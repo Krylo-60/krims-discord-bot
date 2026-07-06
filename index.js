@@ -44,7 +44,7 @@ client.on('messageCreate', async (message) => {
     try {
       // Query the custom SDK
       const result = await sdk.ask(prompt, {
-        model: 'krims-cloud', // Route to cloud fallback if available
+        model: 'gemini', // Route to Google Gemini 2.5
         systemInstruction: "You are the Krims AI Assistant inside the Discord Server. Be helpful, concise, and full of cyberpunk energy."
       });
 
