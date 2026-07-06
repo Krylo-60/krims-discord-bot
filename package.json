@@ -1,0 +1,16 @@
+{
+  "name": "krims-discord-bot",
+  "version": "1.0.0",
+  "description": "Discord Bot for the Krims Code ecosystem, integrating user SDK commands",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "@krishivpb60/krims-code-sdk": "^0.1.0",
+    "dotenv": "^16.4.5",
+    "node-fetch": "^3.3.2"
+  }
+}
