@@ -30,12 +30,23 @@ client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
   const content = message.content.trim();
+  const isDM = !message.guild;
 
-  // Command: !ask <prompt>
+  let isPrompt = false;
+  let prompt = '';
+
   if (content.startsWith('!ask ')) {
-    const prompt = content.substring(5).trim();
+    isPrompt = true;
+    prompt = content.substring(5).trim();
+  } else if (isDM && !content.startsWith('!')) {
+    isPrompt = true;
+    prompt = content;
+  }
+
+  // Handle AI queries
+  if (isPrompt) {
     if (!prompt) {
-      message.reply("⚠️ Please provide a prompt! Example: `!ask How does the SDK work?`");
+      message.reply("⚠️ Please provide a prompt!");
       return;
     }
 
