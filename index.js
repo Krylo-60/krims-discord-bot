@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits } from 'discord.js';
+import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import { KrimsClient } from '@krishivpb60/krims-code-sdk';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
@@ -9,7 +9,11 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.DirectMessages
+  ],
+  partials: [
+    Partials.Channel
   ]
 });
 
