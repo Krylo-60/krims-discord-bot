@@ -1,5 +1,5 @@
 import { Client, GatewayIntentBits } from 'discord.js';
-import { KrimsCodeClient } from '@krishivpb60/krims-code-sdk';
+import { KrimsClient } from '@krishivpb60/krims-code-sdk';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
 
@@ -14,7 +14,9 @@ const client = new Client({
 });
 
 // Initialize Krims SDK Client pointing to Vercel mesh Chatbot API
-const sdk = new KrimsCodeClient('https://krims-code-chatbot.vercel.app');
+const sdk = new KrimsClient({
+  baseUrl: 'https://krims-code-chatbot.vercel.app'
+});
 
 client.once('ready', () => {
   console.log(`[+] Krims Code Discord Bot online as ${client.user.tag}`);
@@ -37,7 +39,7 @@ client.on('messageCreate', async (message) => {
 
     try {
       // Query the custom SDK
-      const result = await sdk.executePrompt(prompt, {
+      const result = await sdk.ask(prompt, {
         model: 'krims-cloud', // Route to cloud fallback if available
         systemInstruction: "You are the Krims AI Assistant inside the Discord Server. Be helpful, concise, and full of cyberpunk energy."
       });
