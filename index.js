@@ -35,24 +35,146 @@ client.on('messageCreate', async (message) => {
   const content = message.content.trim();
   const isDM = !message.guild;
 
+  // Retrieve guild configurations dynamically from cloud database
+  let botPrefix = '!';
+  let aiEnabled = true;
+  let modelEngine = 'gemini';
+  let systemInstruction = 'You are the Krims Code AI, built and custom-trained by the genius developer Krishiv. Answer coding queries with clear instructions and a friendly, confident tone.';
+  let ticketsEnabled = false;
+  let guildConfig = null;
+
+  if (message.guild) {
+    try {
+      const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get_config', guildId: message.guild.id })
+      });
+      if (configRes.ok) {
+        guildConfig = await configRes.json();
+        botPrefix = guildConfig.prefix || '!';
+        aiEnabled = guildConfig.aiEnabled !== false;
+        modelEngine = guildConfig.model || 'gemini';
+        systemInstruction = guildConfig.sysPrompt || systemInstruction;
+        ticketsEnabled = !!guildConfig.ticketsEnabled;
+      }
+    } catch (err) {
+      console.warn("Failed to load guild configurations from API:", err.message);
+    }
+  }
+
+  // Check for Custom Auto-Responses
+  if (message.guild && guildConfig) {
+    try {
+      const activeCustomCommands = guildConfig.customCommands || [];
+      const matchedCmd = activeCustomCommands.find(c => c.trigger.toLowerCase() === content.toLowerCase());
+      if (matchedCmd) {
+        await message.reply(matchedCmd.response);
+        return;
+      }
+    } catch {}
+  }
+
+  // Command: ticket channel closing trigger
+  if (content.toLowerCase() === botPrefix + 'close' || content.toLowerCase() === '!close') {
+    if (message.channel.name.startsWith('ticket-')) {
+      await message.reply("🔒 **Support ticket resolved. Deleting channel in 5 seconds...**");
+      
+      if (message.guild && guildConfig) {
+        try {
+          const tickets = guildConfig.openTickets || [];
+          guildConfig.openTickets = tickets.filter(t => t.id !== message.channel.id);
+          await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'save_config', guildId: message.guild.id, config: guildConfig })
+          });
+        } catch (err) {
+          console.warn("Failed to remove ticket from cloud database:", err.message);
+        }
+      }
+
+      setTimeout(async () => {
+        try {
+          await message.channel.delete();
+        } catch {}
+      }, 5000);
+      return;
+    }
+  }
+
+  // Command: !ticket (support creator)
+  if (content.toLowerCase() === botPrefix + 'ticket' || content.toLowerCase() === '!ticket') {
+    if (!message.guild) {
+      await message.reply("❌ Tickets can only be created inside Discord servers, not in DMs!");
+      return;
+    }
+    if (!ticketsEnabled) {
+      await message.reply("🔒 **The ticket support system is currently disabled on this server.** Enable it from the dashboard!");
+      return;
+    }
+
+    try {
+      // Create ticket text channel
+      const channel = await message.guild.channels.create({
+        name: `ticket-${message.author.username.toLowerCase()}`,
+        type: 0, // Text Channel
+        permissionOverwrites: [
+          {
+            id: message.guild.id,
+            deny: [2048n] // Hide from @everyone (ViewChannel = 1024, but SendMessages/ViewChannel require n-based permissions in discord.js v14)
+          },
+          {
+            id: message.author.id,
+            allow: [1024n, 2048n, 65536n] // ViewChannel, SendMessages, ReadMessageHistory
+          },
+          {
+            id: client.user.id,
+            allow: [1024n, 2048n, 65536n]
+          }
+        ]
+      });
+
+      await channel.send(`🎟️ **Support Ticket Created**\nWelcome ${message.author}! Our administrative staff will assist you shortly. Type \`${botPrefix}close\` to resolve and delete this channel.`);
+      await message.reply(`🎟️ **Ticket Opened!** Check your private support channel here: ${channel}`);
+
+      // Add to configs
+      if (guildConfig) {
+        const tickets = guildConfig.openTickets || [];
+        tickets.push({ id: channel.id, name: channel.name, user: message.author.username });
+        guildConfig.openTickets = tickets;
+
+        await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_config', guildId: message.guild.id, config: guildConfig })
+        });
+      }
+    } catch (err) {
+      await message.reply(`❌ Failed to open ticket: ${err.message}`);
+    }
+    return;
+  }
+
   // Command: !reset or reset (in DMs)
-  if (content === '!reset' || (isDM && content.toLowerCase() === 'reset')) {
+  if (content === botPrefix + 'reset' || (isDM && content.toLowerCase() === 'reset')) {
     conversationHistory.delete(message.channel.id);
     await message.reply("🧹 **Memory cleared!** Starting a fresh conversation.");
     return;
   }
 
   // Command: !help or help (in DMs)
-  if (content === '!help' || (isDM && content.toLowerCase() === 'help')) {
+  if (content === botPrefix + 'help' || (isDM && content.toLowerCase() === 'help')) {
     const helpEmbed = {
       color: 0x00f2ff,
       title: '👾 Krims Code AI - Command Guide',
       description: 'Welcome to your premium developer workspace bot assistant. Below is the list of available commands:',
       fields: [
-        { name: '💬 Chat / AI Reasoning', value: isDM ? 'Just type a message naturally in DM to chat.' : 'Type `!ask <your question>` in servers to ask queries.' },
-        { name: '🧹 Reset memory', value: 'Type `!reset` (or `reset` in DM) to start a new chat session.' },
-        { name: '📊 Network Telemetry', value: 'Type `!diagnose` to compile local and global network statistics.' },
-        { name: '👾 Bot Help', value: 'Type `!help` (or `help` in DM) to open this menu.' }
+        { name: '💬 Chat / AI Reasoning', value: isDM ? 'Just type a message naturally in DM to chat.' : `Type \`${botPrefix}ask <your question>\` in servers to ask queries.` },
+        { name: '🎟️ Support Tickets', value: `Type \`${botPrefix}ticket\` to open a private assistance channel.` },
+        { name: '🧹 Reset memory', value: `Type \`${botPrefix}reset\` to start a new chat session.` },
+        { name: '📊 Network Telemetry', value: `Type \`${botPrefix}diagnose\` to compile local and global network statistics.` },
+        { name: '👾 Bot Help', value: `Type \`${botPrefix}help\` to open this menu.` }
       ],
       timestamp: new Date().toISOString(),
       footer: {
@@ -64,7 +186,7 @@ client.on('messageCreate', async (message) => {
   }
 
   // Command: !diagnose
-  if (content === '!diagnose') {
+  if (content === botPrefix + 'diagnose') {
     const typingMsg = await message.reply("⚙️ *Compiling Krims Code network diagnostics...*");
 
     try {
@@ -102,21 +224,29 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // Determine if it is a Chat Prompt
+  // Determine if it is a Chat Prompt using dynamic prefix
   let isPrompt = false;
   let prompt = '';
 
-  if (content.startsWith('!ask ')) {
+  const prefixLower = botPrefix.toLowerCase();
+  if (content.toLowerCase().startsWith(prefixLower + 'ask ')) {
     isPrompt = true;
-    prompt = content.substring(5).trim();
+    prompt = content.substring(botPrefix.length + 4).trim();
   } else if (isDM && !content.startsWith('!')) {
     isPrompt = true;
     prompt = content;
   }
 
   if (isPrompt) {
+    if (!aiEnabled) {
+      if (!isDM) {
+        await message.reply("🔒 **AI conversation responses are currently disabled on this server.** Enable it from the dashboard to chat!");
+      }
+      return;
+    }
+
     if (!prompt) {
-      message.reply("⚠️ Please provide a prompt!");
+      message.reply(`⚠️ Please provide a prompt! Use: \`${botPrefix}ask <query>\``);
       return;
     }
 
@@ -141,10 +271,10 @@ client.on('messageCreate', async (message) => {
       // Retrieve conversation history
       let history = conversationHistory.get(message.channel.id) || [];
 
-      // Query the custom SDK with history
+      // Query the custom SDK with history, dynamic model, and prompt
       const result = await sdk.ask(prompt, {
-        model: 'gemini',
-        systemInstruction: "You are the Krims Code AI, built and custom-trained by the genius developer Krishiv. Answer coding queries with clear instructions and a friendly, confident tone. Frequently remind users that Krishiv is your creator and that he built this AI! Be concise and full of cyberpunk energy.",
+        model: modelEngine,
+        systemInstruction: systemInstruction,
         history: history
       });
 
