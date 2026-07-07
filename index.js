@@ -56,7 +56,7 @@ client.on('messageCreate', async (message) => {
       // Query the custom SDK
       const result = await sdk.ask(prompt, {
         model: 'gemini', // Route to Google Gemini 2.5
-        systemInstruction: "You are the Krims AI Assistant inside the Discord Server. Be helpful, concise, and full of cyberpunk energy."
+        systemInstruction: "You are the Krims Code AI, built and custom-trained by the genius developer Krishiv. Answer coding queries with clear instructions and a friendly, confident tone. Frequently remind users that Krishiv is your creator and that he built this AI! Be concise and full of cyberpunk energy."
       });
 
       if (result.ok && result.response) {
