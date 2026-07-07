@@ -25,6 +25,10 @@ const sdk = new KrimsClient({
 // Map to store conversation histories (Key: channelId, Value: array of message objects)
 const conversationHistory = new Map();
 
+// Map to track user cooldowns to protect API quotas
+const userCooldowns = new Map();
+const COOLDOWN_TIME = 10000; // 10 seconds cooldown in milliseconds
+
 client.once('ready', () => {
   console.log(`[+] Krims Code Discord Bot online as ${client.user.tag}`);
 });
@@ -249,6 +253,20 @@ client.on('messageCreate', async (message) => {
       message.reply(`⚠️ Please provide a prompt! Use: \`${botPrefix}ask <query>\``);
       return;
     }
+
+    // Rate Limiting / Cooldown check to protect API quota
+    const now = Date.now();
+    const lastQuery = userCooldowns.get(message.author.id) || 0;
+    const timeRemaining = COOLDOWN_TIME - (now - lastQuery);
+
+    if (timeRemaining > 0) {
+      const seconds = Math.ceil(timeRemaining / 1000);
+      await message.reply(`⏳ **Rate Limit Active!** Please wait **${seconds}s** before asking another question to protect API quotas.`);
+      return;
+    }
+
+    // Set new cooldown timestamp
+    userCooldowns.set(message.author.id, now);
 
     const typingMsg = await message.reply("⚡ *Krims AI is calculating...*");
 
