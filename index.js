@@ -122,6 +122,21 @@ client.on('messageCreate', async (message) => {
 
     const typingMsg = await message.reply("⚡ *Krims AI is calculating...*");
 
+    // Fast local JS evaluation for simple math/arithmetic expressions
+    const lowerPrompt = prompt.toLowerCase().trim();
+    const cleanMathExpr = lowerPrompt.replace(/what is/gi, '').replace(/\?/g, '').replace(/=/g, '').trim();
+    const mathRegex = /^[0-9+\-*/().\s]+$/;
+    if (mathRegex.test(cleanMathExpr) && /[0-9]/.test(cleanMathExpr)) {
+      try {
+        const mathResult = Function(`"use strict"; return (${cleanMathExpr})`)();
+        const responseText = `🤖 **Krims AI Response:**\nThe answer to ${cleanMathExpr} is ${mathResult}!`;
+        await typingMsg.edit(responseText);
+        return;
+      } catch (e) {
+        // Fall back to querying the SDK if evaluation fails
+      }
+    }
+
     try {
       // Retrieve conversation history
       let history = conversationHistory.get(message.channel.id) || [];
