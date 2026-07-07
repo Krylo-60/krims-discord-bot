@@ -31,6 +31,59 @@ const COOLDOWN_TIME = 10000; // 10 seconds cooldown in milliseconds
 
 client.once('ready', () => {
   console.log(`[+] Krims Code Discord Bot online as ${client.user.tag}`);
+
+  // Start polling Vercel configuration database for pending actions (Web-to-Discord Embed Broadcaster)
+  setInterval(async () => {
+    const GUILD_ID = '1420991845546332162';
+    try {
+      const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get_config', guildId: GUILD_ID })
+      });
+      if (configRes.ok) {
+        const guildConfig = await configRes.json();
+        const actions = guildConfig.actions || [];
+        if (actions.length > 0) {
+          console.log(`[ACTION QUEUE] Found ${actions.length} pending action(s). Processing...`);
+          
+          for (const action of actions) {
+            if (action.type === 'send_embed') {
+              try {
+                const channel = await client.channels.fetch(action.channelId);
+                if (channel) {
+                  const embed = {
+                    color: parseInt(action.color.replace('#', ''), 16) || 0x00f2ff,
+                    title: action.title,
+                    description: action.description,
+                    timestamp: new Date().toISOString(),
+                    footer: {
+                      text: 'Krims Code Broadcast Station'
+                    }
+                  };
+                  await channel.send({ embeds: [embed] });
+                  console.log(`[ACTION QUEUE] Successfully posted embed to channel #${channel.name}`);
+                }
+              } catch (err) {
+                console.error(`[ACTION QUEUE] Failed to execute send_embed:`, err.message);
+              }
+            }
+          }
+
+          // Clear processed actions from config and save back to database
+          guildConfig.actions = [];
+          await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'save_config', guildId: GUILD_ID, config: guildConfig })
+          });
+          console.log(`[ACTION QUEUE] Queue cleared and database synchronized.`);
+        }
+      }
+    } catch (err) {
+      console.warn(`[ACTION QUEUE] Polling failed:`, err.message);
+    }
+  }, 5000); // Poll every 5 seconds
 });
 
 client.on('messageCreate', async (message) => {
