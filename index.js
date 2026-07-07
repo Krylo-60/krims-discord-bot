@@ -22,6 +22,9 @@ const sdk = new KrimsClient({
   baseUrl: 'https://krims-code-chatbot.vercel.app'
 });
 
+// Map to store conversation histories (Key: channelId, Value: array of message objects)
+const conversationHistory = new Map();
+
 client.once('ready', () => {
   console.log(`[+] Krims Code Discord Bot online as ${client.user.tag}`);
 });
@@ -32,46 +35,32 @@ client.on('messageCreate', async (message) => {
   const content = message.content.trim();
   const isDM = !message.guild;
 
-  let isPrompt = false;
-  let prompt = '';
-
-  if (content.startsWith('!ask ')) {
-    isPrompt = true;
-    prompt = content.substring(5).trim();
-  } else if (isDM && !content.startsWith('!')) {
-    isPrompt = true;
-    prompt = content;
+  // Command: !reset or reset (in DMs)
+  if (content === '!reset' || (isDM && content.toLowerCase() === 'reset')) {
+    conversationHistory.delete(message.channel.id);
+    await message.reply("🧹 **Memory cleared!** Starting a fresh conversation.");
+    return;
   }
 
-  // Handle AI queries
-  if (isPrompt) {
-    if (!prompt) {
-      message.reply("⚠️ Please provide a prompt!");
-      return;
-    }
-
-    const typingMsg = await message.reply("⚡ *Krims AI is calculating...*");
-
-    try {
-      // Query the custom SDK
-      const result = await sdk.ask(prompt, {
-        model: 'gemini', // Route to Google Gemini 2.5
-        systemInstruction: "You are the Krims Code AI, built and custom-trained by the genius developer Krishiv. Answer coding queries with clear instructions and a friendly, confident tone. Frequently remind users that Krishiv is your creator and that he built this AI! Be concise and full of cyberpunk energy."
-      });
-
-      if (result.ok && result.response) {
-        let replyText = `🤖 **Krims AI Response:**\n${result.response}`;
-        if (result.stats) {
-          replyText += `\n\n*Latency: ${result.stats.latency}*`;
-        }
-        await typingMsg.edit(replyText);
-      } else {
-        await typingMsg.edit("❌ Failed to parse AI response.");
+  // Command: !help or help (in DMs)
+  if (content === '!help' || (isDM && content.toLowerCase() === 'help')) {
+    const helpEmbed = {
+      color: 0x00f2ff,
+      title: '👾 Krims Code AI - Command Guide',
+      description: 'Welcome to your premium developer workspace bot assistant. Below is the list of available commands:',
+      fields: [
+        { name: '💬 Chat / AI Reasoning', value: isDM ? 'Just type a message naturally in DM to chat.' : 'Type `!ask <your question>` in servers to ask queries.' },
+        { name: '🧹 Reset memory', value: 'Type `!reset` (or `reset` in DM) to start a new chat session.' },
+        { name: '📊 Network Telemetry', value: 'Type `!diagnose` to compile local and global network statistics.' },
+        { name: '👾 Bot Help', value: 'Type `!help` (or `help` in DM) to open this menu.' }
+      ],
+      timestamp: new Date().toISOString(),
+      footer: {
+        text: 'Krims Code Command Center • Coded by Krishiv'
       }
-    } catch (err) {
-      console.error(err);
-      await typingMsg.edit(`❌ Error calling Krims API: ${err.message}`);
-    }
+    };
+    await message.reply({ embeds: [helpEmbed] });
+    return;
   }
 
   // Command: !diagnose
@@ -109,6 +98,63 @@ client.on('messageCreate', async (message) => {
       await typingMsg.edit({ content: '', embeds: [embed] });
     } catch (err) {
       await typingMsg.edit(`❌ Failed to run diagnosis: ${err.message}`);
+    }
+    return;
+  }
+
+  // Determine if it is a Chat Prompt
+  let isPrompt = false;
+  let prompt = '';
+
+  if (content.startsWith('!ask ')) {
+    isPrompt = true;
+    prompt = content.substring(5).trim();
+  } else if (isDM && !content.startsWith('!')) {
+    isPrompt = true;
+    prompt = content;
+  }
+
+  if (isPrompt) {
+    if (!prompt) {
+      message.reply("⚠️ Please provide a prompt!");
+      return;
+    }
+
+    const typingMsg = await message.reply("⚡ *Krims AI is calculating...*");
+
+    try {
+      // Retrieve conversation history
+      let history = conversationHistory.get(message.channel.id) || [];
+
+      // Query the custom SDK with history
+      const result = await sdk.ask(prompt, {
+        model: 'gemini',
+        systemInstruction: "You are the Krims Code AI, built and custom-trained by the genius developer Krishiv. Answer coding queries with clear instructions and a friendly, confident tone. Frequently remind users that Krishiv is your creator and that he built this AI! Be concise and full of cyberpunk energy.",
+        history: history
+      });
+
+      if (result.ok && result.response) {
+        // Update local history
+        history.push({ role: 'user', content: prompt });
+        history.push({ role: 'model', content: result.response });
+
+        // Limit memory history to the last 10 messages (5 turns)
+        if (history.length > 10) {
+          history = history.slice(history.length - 10);
+        }
+        conversationHistory.set(message.channel.id, history);
+
+        let replyText = `🤖 **Krims AI Response:**\n${result.response}`;
+        if (result.stats) {
+          replyText += `\n\n*Latency: ${result.stats.latency}*`;
+        }
+        await typingMsg.edit(replyText);
+      } else {
+        await typingMsg.edit("❌ Failed to parse AI response.");
+      }
+    } catch (err) {
+      console.error(err);
+      await typingMsg.edit(`❌ Error calling Krims API: ${err.message}`);
     }
   }
 });
