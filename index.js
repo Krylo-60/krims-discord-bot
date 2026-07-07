@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Partials } from 'discord.js';
+import { Client, GatewayIntentBits, Partials, PermissionFlagsBits, ChannelType } from 'discord.js';
 import { KrimsClient } from '@krishivpb60/krims-code-sdk';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
@@ -118,19 +118,19 @@ client.on('messageCreate', async (message) => {
       // Create ticket text channel
       const channel = await message.guild.channels.create({
         name: `ticket-${message.author.username.toLowerCase()}`,
-        type: 0, // Text Channel
+        type: ChannelType.GuildText,
         permissionOverwrites: [
           {
             id: message.guild.id,
-            deny: [2048n] // Hide from @everyone (ViewChannel = 1024, but SendMessages/ViewChannel require n-based permissions in discord.js v14)
+            deny: [PermissionFlagsBits.ViewChannel] // Hide from everyone
           },
           {
             id: message.author.id,
-            allow: [1024n, 2048n, 65536n] // ViewChannel, SendMessages, ReadMessageHistory
+            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
           },
           {
             id: client.user.id,
-            allow: [1024n, 2048n, 65536n]
+            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
           }
         ]
       });
