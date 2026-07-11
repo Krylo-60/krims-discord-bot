@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Partials, PermissionFlagsBits, ChannelType } from 'discord.js';
+import { Client, GatewayIntentBits, Partials, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
 import { KrimsClient } from '@krishivpb60/krims-code-sdk';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
@@ -25,6 +25,7 @@ const sdk = new KrimsClient({
 // Maps to store state
 const conversationHistory = new Map();
 const userCooldowns = new Map();
+const giveawayEntries = new Map(); // giveaway message ID -> Set of user IDs
 const COOLDOWN_TIME = 10000; // 10 seconds cooldown in milliseconds
 
 client.once('ready', async () => {
@@ -59,6 +60,104 @@ client.once('ready', async () => {
     {
       name: 'github',
       description: 'Get links to the Krims Code GitHub repositories and portal site'
+    },
+    {
+      name: 'status',
+      description: 'Check the real-time status of the KryloSMP Minecraft server'
+    },
+    {
+      name: 'ip',
+      description: 'Get the Minecraft server connection address and port'
+    },
+    {
+      name: 'shop',
+      description: 'Display in-game shop items and coin prices'
+    },
+    {
+      name: 'poll',
+      description: 'Create a poll for the server to vote on',
+      options: [
+        {
+          name: 'question',
+          type: 3,
+          description: 'The poll question',
+          required: true
+        },
+        {
+          name: 'option1',
+          type: 3,
+          description: 'First option',
+          required: true
+        },
+        {
+          name: 'option2',
+          type: 3,
+          description: 'Second option',
+          required: true
+        },
+        {
+          name: 'option3',
+          type: 3,
+          description: 'Third option (optional)',
+          required: false
+        }
+      ]
+    },
+    {
+      name: 'giveaway',
+      description: 'Start a giveaway that players can enter by clicking a button',
+      options: [
+        {
+          name: 'prize',
+          type: 3,
+          description: 'What is the prize?',
+          required: true
+        },
+        {
+          name: 'duration',
+          type: 4, // Integer
+          description: 'Duration in minutes',
+          required: true
+        }
+      ]
+    },
+    {
+      name: 'leaderboard',
+      description: 'Show the server activity leaderboard'
+    },
+    {
+      name: 'serverinfo',
+      description: 'Display detailed information about this Discord server'
+    },
+    {
+      name: 'suggest',
+      description: 'Submit a suggestion for the server',
+      options: [
+        {
+          name: 'idea',
+          type: 3,
+          description: 'Your suggestion for the server',
+          required: true
+        }
+      ]
+    },
+    {
+      name: 'announce',
+      description: 'Send an announcement embed to the announcements channel (Admin only)',
+      options: [
+        {
+          name: 'title',
+          type: 3,
+          description: 'Announcement title',
+          required: true
+        },
+        {
+          name: 'message',
+          type: 3,
+          description: 'Announcement message',
+          required: true
+        }
+      ]
     }
   ];
 
@@ -87,7 +186,26 @@ client.once('ready', async () => {
           for (const action of actions) {
             if (action.type === 'send_embed') {
               try {
-                const channel = await client.channels.fetch(action.channelId);
+                let channel = null;
+                if (action.channelId && action.channelId !== 'default') {
+                  channel = await client.channels.fetch(action.channelId).catch(() => null);
+                }
+                
+                if (!channel) {
+                  const guild = client.guilds.cache.get(GUILD_ID) || await client.guilds.fetch(GUILD_ID).catch(() => null);
+                  if (guild) {
+                    channel = guild.channels.cache.find(c => 
+                      c.type === ChannelType.GuildText && (
+                        c.name.includes('staff') || 
+                        c.name.includes('admin') || 
+                        c.name.includes('alert') || 
+                        c.name.includes('notifications') || 
+                        c.name.includes('general')
+                      )
+                    );
+                  }
+                }
+
                 if (channel) {
                   const embed = {
                     color: parseInt(action.color.replace('#', ''), 16) || 0x00f2ff,
@@ -121,10 +239,150 @@ client.once('ready', async () => {
       console.warn(`[ACTION QUEUE] Polling failed:`, err.message);
     }
   }, 5000); // Poll every 5 seconds
+
+  // Post Interactive Buttons in KryloSMP Server if they don't exist
+  try {
+    const GUILD_ID = '1524878881918685405';
+    const guild = client.guilds.cache.get(GUILD_ID) || await client.guilds.fetch(GUILD_ID).catch(() => null);
+    if (guild) {
+      console.log(`[KryloSMP Setup] Found KryloSMP guild. Ensuring button systems are active...`);
+
+      // 1. Support Ticket Button
+      const supportCh = guild.channels.cache.find(c => c.name.includes('support-tickets') && c.type === ChannelType.GuildText);
+      if (supportCh) {
+        const messages = await supportCh.messages.fetch({ limit: 10 });
+        const hasTicketBtn = messages.some(m => m.components.some(c => c.components.some(b => b.customId === 'open_ticket')));
+        if (!hasTicketBtn) {
+          const embed = new EmbedBuilder()
+            .setColor(0x00F2FF)
+            .setTitle('🎟️ KryloSMP Support Tickets')
+            .setDescription('Need assistance, want to report a player, or have a question? Click the button below to open a private support ticket with our staff!');
+          const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId('open_ticket')
+              .setLabel('Open Support Ticket')
+              .setStyle(ButtonStyle.Primary)
+              .setEmoji('🎟️')
+          );
+          await supportCh.send({ embeds: [embed], components: [row] });
+          console.log(`[KryloSMP Setup] Sent support ticket button embed.`);
+        }
+      }
+
+      // 2. Role Selector Buttons
+      const infoCh = guild.channels.cache.find(c => c.name.includes('server-info') && c.type === ChannelType.GuildText);
+      if (infoCh) {
+        const messages = await infoCh.messages.fetch({ limit: 20 });
+        const hasRoleBtn = messages.some(m => m.components.some(c => c.components.some(b => b.customId.startsWith('role_'))));
+        if (!hasRoleBtn) {
+          const embed = new EmbedBuilder()
+            .setColor(0xAA55FF)
+            .setTitle('🎨 Server Roles Selection')
+            .setDescription('Click the buttons below to grab your platform roles so other players know how you play!');
+          const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId('role_java')
+              .setLabel('Java Player')
+              .setStyle(ButtonStyle.Success)
+              .setEmoji('☕'),
+            new ButtonBuilder()
+              .setCustomId('role_bedrock')
+              .setLabel('Bedrock Player')
+              .setStyle(ButtonStyle.Secondary)
+              .setEmoji('🪨')
+          );
+          await infoCh.send({ embeds: [embed], components: [row] });
+          console.log(`[KryloSMP Setup] Sent role selection button embed.`);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn(`[KryloSMP Setup] Failed to post interactive components:`, err.message);
+  }
 });
 
-// Slash Commands Interaction Handler
+// Slash Commands & Buttons Interaction Handler
 client.on('interactionCreate', async (interaction) => {
+  // Handle Button Interactions
+  if (interaction.isButton()) {
+    const { customId } = interaction;
+
+    if (customId === 'open_ticket') {
+      await interaction.deferReply({ ephemeral: true });
+      try {
+        const channel = await interaction.guild.channels.create({
+          name: `ticket-${interaction.user.username.toLowerCase()}`,
+          type: ChannelType.GuildText,
+          permissionOverwrites: [
+            {
+              id: interaction.guild.id,
+              deny: [PermissionFlagsBits.ViewChannel]
+            },
+            {
+              id: interaction.user.id,
+              allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+            },
+            {
+              id: client.user.id,
+              allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+            }
+          ]
+        });
+
+        await channel.send(`🎟️ **Support Ticket Created**\nWelcome <@${interaction.user.id}>! Our administrative staff will assist you shortly. Type \`/close\` to resolve and delete this channel.`);
+        await interaction.editReply(`🎟️ **Ticket Opened!** Check it out here: <#${channel.id}>`);
+      } catch (err) {
+        await interaction.editReply(`❌ Failed to open ticket: ${err.message}`);
+      }
+      return;
+    }
+
+    if (customId === 'role_java' || customId === 'role_bedrock') {
+      await interaction.deferReply({ ephemeral: true });
+      try {
+        const roleName = customId === 'role_java' ? '☕ Java Player' : '🪨 Bedrock Player';
+        const role = interaction.guild.roles.cache.find(r => r.name === roleName);
+        if (!role) {
+          await interaction.editReply(`❌ Role "${roleName}" not found on this server!`);
+          return;
+        }
+
+        const hasRole = interaction.member.roles.cache.has(role.id);
+        if (hasRole) {
+          await interaction.member.roles.remove(role);
+          await interaction.editReply(`✗ Removed role: **${roleName}**`);
+        } else {
+          await interaction.member.roles.add(role);
+          await interaction.editReply(`✓ Granted role: **${roleName}**`);
+        }
+      } catch (err) {
+        await interaction.editReply(`❌ Failed to assign role: ${err.message}`);
+      }
+      return;
+    }
+
+    // Giveaway enter button
+    if (customId.startsWith('giveaway_enter_')) {
+      const giveawayId = customId.replace('giveaway_enter_', '');
+      await interaction.deferReply({ ephemeral: true });
+
+      if (!giveawayEntries.has(giveawayId)) {
+        await interaction.editReply('❌ This giveaway has ended!');
+        return;
+      }
+
+      const entries = giveawayEntries.get(giveawayId);
+      if (entries.has(interaction.user.id)) {
+        entries.delete(interaction.user.id);
+        await interaction.editReply('✗ You left the giveaway.');
+      } else {
+        entries.add(interaction.user.id);
+        await interaction.editReply(`🎉 You entered the giveaway! (${entries.size} total entries)`);
+      }
+      return;
+    }
+  }
+
   if (!interaction.isChatInputCommand()) return;
 
   const { commandName } = interaction;
@@ -162,7 +420,7 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.reply({
       embeds: [{
         color: 0x00f2ff,
-        title: '🐙 Krims Code Command Hub',
+        title: '🐙 Krylo Code Command Hub',
         description: 'Access the unified portal and ecosystem source codes below:',
         fields: [
           { name: '🌐 Developer Portal', value: '[krims-code-portal.vercel.app](https://krims-code-portal.vercel.app)' },
@@ -173,6 +431,334 @@ client.on('interactionCreate', async (interaction) => {
       }],
       ephemeral: true
     });
+    return;
+  }
+
+  // Command: /status
+  if (commandName === 'status') {
+    await interaction.deferReply();
+    try {
+      // 1. Fetch Minecraft Server Status
+      const res = await fetch('https://api.mcsrvstat.us/2/KryloSmp.play.hosting');
+      const data = await res.json();
+
+      // 2. Fetch Sync Stats from Vercel config database
+      let dbStats = null;
+      try {
+        const dbRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get_config', guildId: '1420991845546332162' })
+        });
+        if (dbRes.ok) {
+          const guildConfig = await dbRes.json();
+          dbStats = guildConfig.serverStats;
+        }
+      } catch (err) {
+        console.warn('Failed to fetch DB stats:', err.message);
+      }
+
+      if (data.online) {
+        const playersOnline = data.players.online;
+        const playersMax = data.players.max;
+        const playerList = data.players.list ? data.players.list.join(', ') : 'None';
+        const motd = data.motd.clean ? data.motd.clean.join('\n') : 'A Minecraft Server';
+
+        const embed = new EmbedBuilder()
+          .setColor(0x00F2FF)
+          .setTitle('🟢 KryloSMP Server Status')
+          .setDescription('The server is currently online and running!')
+          .addFields(
+            { name: '📊 Players Online', value: `\`${playersOnline} / ${playersMax}\``, inline: true },
+            { name: '🔌 Version', value: `\`${data.version}\``, inline: true },
+            { name: '📡 IP Address', value: '`KryloSmp.play.hosting`', inline: false },
+            { name: '📖 MOTD', value: `\`\`\`\n${motd}\n\`\`\``, inline: false },
+            { name: '👥 Online Players', value: playerList, inline: false }
+          );
+
+        // Add synced statistics fields if available
+        if (dbStats) {
+          const playtimeHrs = (dbStats.mostPlaytimeSeconds / 3600).toFixed(1);
+          embed.addFields(
+            { name: '📈 Total Server Joins', value: `\`${dbStats.totalJoins || 0} times\``, inline: true },
+            { name: '👥 Unique Players Joined', value: `\`${dbStats.uniquePlayers || 0} players\``, inline: true },
+            { name: '👑 Most Active Player', value: `\`${dbStats.mostActivePlayer || 'None'}\` (${dbStats.mostActiveJoins || 0} joins)`, inline: false },
+            { name: '🕒 Top Playtime', value: `\`${dbStats.mostPlaytimePlayer || 'None'}\` (${playtimeHrs} hours)`, inline: false }
+          );
+        }
+
+        embed.setFooter({ text: 'KryloSMP Status Tracker' }).setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
+      } else {
+        const embed = new EmbedBuilder()
+          .setColor(0xFF5555)
+          .setTitle('🔴 KryloSMP Server Status')
+          .setDescription('The server is currently offline.')
+          .addFields(
+            { name: '📡 Address', value: '`KryloSmp.play.hosting`', inline: false },
+            { name: '💡 Note', value: 'Start the server on Play Hosting to join!', inline: false }
+          );
+
+        if (dbStats) {
+          embed.addFields(
+            { name: '👥 Total Unique Players', value: `\`${dbStats.uniquePlayers || 0} players\``, inline: true },
+            { name: '📈 Total Joins', value: `\`${dbStats.totalJoins || 0} joins\``, inline: true }
+          );
+        }
+
+        embed.setFooter({ text: 'KryloSMP Status Tracker' }).setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
+      }
+    } catch (err) {
+      await interaction.editReply(`❌ Failed to fetch server status: ${err.message}`);
+    }
+    return;
+  }
+
+  // Command: /ip
+  if (commandName === 'ip') {
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('🌐 KryloSMP Connection Details')
+      .setDescription('Use these details to connect to the server in Minecraft.')
+      .addFields(
+        { name: '☕ Java Edition', value: '• **IP:** `KryloSmp.play.hosting` (Port is default)', inline: false },
+        { name: '🪨 Bedrock Edition', value: '• **IP:** `KryloSmp.play.hosting` (Port is default)', inline: false },
+        { name: '🎮 Platform Integration', value: 'Both Java and Bedrock players can join and play together seamlessly!', inline: false }
+      )
+      .setFooter({ text: 'KryloSMP Server Info' })
+      .setTimestamp();
+
+    await interaction.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: /shop
+  if (commandName === 'shop') {
+    const embed = new EmbedBuilder()
+      .setColor(0xFFD700)
+      .setTitle('🛒 KryloSMP In-Game Shop Prices')
+      .setDescription('Use `/shop` in-game to buy these items with your coin balance.')
+      .addFields(
+        { name: '💎 Ore Minerals', value: '• **Diamond**: 100 ⛃\n• **Netherite Ingot**: 500 ⛃\n• **Gold Ingot**: 25 ⛃\n• **Emerald**: 75 ⛃\n• **Iron Ingot**: 10 ⛃', inline: true },
+        { name: '⚔️ Gear & Specials', value: '• **Elytra**: 1000 ⛃\n• **Trident**: 800 ⛃\n• **Totem of Undying**: 600 ⛃\n• **Shulker Box**: 300 ⛃\n• **God Apple**: 250 ⛃', inline: true }
+      )
+      .setFooter({ text: 'Earn coins by defeating mobs and players!' })
+      .setTimestamp();
+
+    await interaction.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: /poll
+  if (commandName === 'poll') {
+    const question = interaction.options.getString('question');
+    const opt1 = interaction.options.getString('option1');
+    const opt2 = interaction.options.getString('option2');
+    const opt3 = interaction.options.getString('option3');
+
+    let description = `📊 **${question}**\n\n`;
+    description += `1️⃣ ${opt1}\n`;
+    description += `2️⃣ ${opt2}\n`;
+    if (opt3) description += `3️⃣ ${opt3}\n`;
+    description += `\nReact below to vote!`;
+
+    const embed = new EmbedBuilder()
+      .setColor(0x5865F2)
+      .setTitle('📊 Server Poll')
+      .setDescription(description)
+      .setFooter({ text: `Poll by ${interaction.user.username}` })
+      .setTimestamp();
+
+    const msg = await interaction.reply({ embeds: [embed], fetchReply: true });
+    await msg.react('1️⃣');
+    await msg.react('2️⃣');
+    if (opt3) await msg.react('3️⃣');
+    return;
+  }
+
+  // Command: /giveaway
+  if (commandName === 'giveaway') {
+    const prize = interaction.options.getString('prize');
+    const duration = interaction.options.getInteger('duration');
+
+    const endTime = Math.floor(Date.now() / 1000) + (duration * 60);
+
+    const embed = new EmbedBuilder()
+      .setColor(0xFFD700)
+      .setTitle('🎉 GIVEAWAY!')
+      .setDescription(`**Prize:** ${prize}\n\n⏰ Ends: <t:${endTime}:R>\n\nClick the button below to enter!`)
+      .setFooter({ text: `Hosted by ${interaction.user.username} • 0 entries` })
+      .setTimestamp();
+
+    const msg = await interaction.reply({ embeds: [embed], fetchReply: true });
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`giveaway_enter_${msg.id}`)
+        .setLabel('Enter Giveaway')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('🎉')
+    );
+    await msg.edit({ components: [row] });
+
+    // Track entries
+    giveawayEntries.set(msg.id, new Set());
+
+    // End giveaway after duration
+    setTimeout(async () => {
+      try {
+        const entries = giveawayEntries.get(msg.id);
+        giveawayEntries.delete(msg.id);
+
+        const endEmbed = new EmbedBuilder()
+          .setColor(0xFF5555)
+          .setTitle('🎉 GIVEAWAY ENDED!')
+          .setTimestamp();
+
+        if (!entries || entries.size === 0) {
+          endEmbed.setDescription(`**Prize:** ${prize}\n\n😢 No one entered the giveaway.`);
+        } else {
+          const winnerId = [...entries][Math.floor(Math.random() * entries.size)];
+          endEmbed.setDescription(`**Prize:** ${prize}\n\n🏆 **Winner:** <@${winnerId}>\n\nCongrats! 🎊`);
+        }
+
+        const disabledRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`giveaway_ended_${msg.id}`)
+            .setLabel('Giveaway Ended')
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(true)
+        );
+
+        await msg.edit({ embeds: [endEmbed], components: [disabledRow] });
+      } catch (err) {
+        console.warn('[Giveaway] Failed to end giveaway:', err.message);
+      }
+    }, duration * 60 * 1000);
+
+    return;
+  }
+
+  // Command: /leaderboard
+  if (commandName === 'leaderboard') {
+    await interaction.deferReply();
+    try {
+      const members = await interaction.guild.members.fetch();
+      const sorted = members
+        .filter(m => !m.user.bot)
+        .sort((a, b) => {
+          const aJoined = a.joinedTimestamp || 0;
+          const bJoined = b.joinedTimestamp || 0;
+          return aJoined - bJoined;
+        })
+        .first(10);
+
+      let leaderboardText = '';
+      const medals = ['🥇', '🥈', '🥉'];
+      let i = 0;
+      for (const [, member] of sorted) {
+        const medal = medals[i] || `**${i + 1}.**`;
+        const joined = member.joinedAt ? `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>` : 'Unknown';
+        leaderboardText += `${medal} **${member.user.username}** — Joined ${joined}\n`;
+        i++;
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor(0xFFD700)
+        .setTitle('👑 KryloSMP Leaderboard — Earliest Members')
+        .setDescription(leaderboardText || 'No members found.')
+        .setFooter({ text: `${interaction.guild.memberCount} total members` })
+        .setTimestamp();
+
+      await interaction.editReply({ embeds: [embed] });
+    } catch (err) {
+      await interaction.editReply(`❌ Failed to fetch leaderboard: ${err.message}`);
+    }
+    return;
+  }
+
+  // Command: /serverinfo
+  if (commandName === 'serverinfo') {
+    const guild = interaction.guild;
+    const owner = await guild.fetchOwner();
+    const textChannels = guild.channels.cache.filter(c => c.type === ChannelType.GuildText).size;
+    const voiceChannels = guild.channels.cache.filter(c => c.type === ChannelType.GuildVoice).size;
+    const roles = guild.roles.cache.size;
+    const boosts = guild.premiumSubscriptionCount || 0;
+
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle(`📋 ${guild.name} — Server Info`)
+      .setThumbnail(guild.iconURL({ dynamic: true, size: 256 }))
+      .addFields(
+        { name: '👑 Owner', value: `${owner.user.username}`, inline: true },
+        { name: '👥 Members', value: `${guild.memberCount}`, inline: true },
+        { name: '💬 Text Channels', value: `${textChannels}`, inline: true },
+        { name: '🔊 Voice Channels', value: `${voiceChannels}`, inline: true },
+        { name: '🎭 Roles', value: `${roles}`, inline: true },
+        { name: '🚀 Boosts', value: `${boosts}`, inline: true },
+        { name: '📅 Created', value: `<t:${Math.floor(guild.createdTimestamp / 1000)}:F>`, inline: false }
+      )
+      .setFooter({ text: `Server ID: ${guild.id}` })
+      .setTimestamp();
+
+    await interaction.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: /suggest
+  if (commandName === 'suggest') {
+    const idea = interaction.options.getString('idea');
+    const suggestCh = interaction.guild.channels.cache.find(c => c.name.includes('suggestions') && c.type === ChannelType.GuildText);
+
+    if (!suggestCh) {
+      await interaction.reply({ content: '❌ No suggestions channel found!', ephemeral: true });
+      return;
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor(0x5865F2)
+      .setTitle('💡 New Suggestion')
+      .setDescription(idea)
+      .setFooter({ text: `Suggested by ${interaction.user.username}` })
+      .setTimestamp();
+
+    const msg = await suggestCh.send({ embeds: [embed] });
+    await msg.react('👍');
+    await msg.react('👎');
+
+    await interaction.reply({ content: `✅ Your suggestion was posted in ${suggestCh}!`, ephemeral: true });
+    return;
+  }
+
+  // Command: /announce
+  if (commandName === 'announce') {
+    if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+      await interaction.reply({ content: '❌ Only admins can send announcements!', ephemeral: true });
+      return;
+    }
+
+    const title = interaction.options.getString('title');
+    const message = interaction.options.getString('message');
+    const announceCh = interaction.guild.channels.cache.find(c => c.name.includes('announcements') && c.type === ChannelType.GuildText);
+
+    if (!announceCh) {
+      await interaction.reply({ content: '❌ No announcements channel found!', ephemeral: true });
+      return;
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor(0xFFD700)
+      .setTitle(`📣 ${title}`)
+      .setDescription(message)
+      .setFooter({ text: `Announced by ${interaction.user.username}` })
+      .setTimestamp();
+
+    await announceCh.send({ content: '@everyone', embeds: [embed] });
+    await interaction.reply({ content: `✅ Announcement posted in ${announceCh}!`, ephemeral: true });
     return;
   }
 
@@ -623,6 +1209,49 @@ client.on('messageCreate', async (message) => {
       console.error(err);
       await typingMsg.edit(`❌ Error calling Krims API: ${err.message}`);
     }
+  }
+});
+// ═══════════════════════════════════════════════════════════
+// WELCOME SYSTEM — Auto-role + Welcome message on join
+// ═══════════════════════════════════════════════════════════
+const KRYLO_GUILD_ID = '1524878881918685405';
+
+client.on('guildMemberAdd', async (member) => {
+  if (member.guild.id !== KRYLO_GUILD_ID) return;
+
+  // Auto-assign 🎮 Member role
+  try {
+    const memberRole = member.guild.roles.cache.find(r => r.name === '🎮 Member');
+    if (memberRole) {
+      await member.roles.add(memberRole);
+      console.log(`[Welcome] Assigned 🎮 Member role to ${member.user.username}`);
+    }
+  } catch (err) {
+    console.warn(`[Welcome] Failed to assign role:`, err.message);
+  }
+
+  // Send welcome message in #general
+  try {
+    const generalCh = member.guild.channels.cache.find(c => c.name.includes('general') && c.type === ChannelType.GuildText);
+    if (generalCh) {
+      const memberCount = member.guild.memberCount;
+      const embed = new EmbedBuilder()
+        .setColor(0x00F2FF)
+        .setTitle('⚡ New Player Joined!')
+        .setDescription(`Welcome to **KryloSMP**, <@${member.user.id}>! You are member **#${memberCount}**!`)
+        .addFields(
+          { name: '🎮 Server IP', value: '`KryloSmp.play.hosting`', inline: true },
+          { name: '📜 Rules', value: 'Check <#rules> first!', inline: true },
+          { name: '🎨 Get Roles', value: 'Pick your platform role in <#server-info>!', inline: true }
+        )
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
+        .setFooter({ text: `KryloSMP • ${memberCount} members` })
+        .setTimestamp();
+
+      await generalCh.send({ embeds: [embed] });
+    }
+  } catch (err) {
+    console.warn(`[Welcome] Failed to send welcome message:`, err.message);
   }
 });
 
