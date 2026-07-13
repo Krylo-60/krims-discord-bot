@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Partials, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
+import { Client, GatewayIntentBits, Partials, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { KrimsClient } from '@krishivpb60/krims-code-sdk';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
@@ -307,6 +307,34 @@ client.once('ready', async () => {
           console.log(`[KryloSMP Setup] Sent role selection button embed.`);
         }
       }
+
+      // 3. Minecraft Link / Verify Button
+      const verifyCh = guild.channels.cache.find(c => (c.name.includes('verify') || c.name.includes('link')) && c.type === ChannelType.GuildText);
+      if (verifyCh) {
+        const messages = await verifyCh.messages.fetch({ limit: 10 });
+        const hasVerifyBtn = messages.some(m => m.components.some(c => c.components.some(b => b.customId === 'start_verification')));
+        if (!hasVerifyBtn) {
+          const embed = new EmbedBuilder()
+            .setColor(0x00FF66)
+            .setTitle('🔗 Link Minecraft Account')
+            .setDescription('Link your official Minecraft account to gain access to the **Verified** role, sync your nickname, and track your in-game stats directly on Discord!\n\n**Instructions:**\n1. Click **Link Account** below and enter your Minecraft username.\n2. Log in to the Minecraft server (**`KryloSmp.play.hosting`**) where your verification code will display in chat!\n3. Click **Enter Verification Code** below and enter the code you received in-game.');
+          
+          const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId('start_verification')
+              .setLabel('Link Account')
+              .setStyle(ButtonStyle.Success)
+              .setEmoji('🔗'),
+            new ButtonBuilder()
+              .setCustomId('enter_verify_code')
+              .setLabel('Enter Code')
+              .setStyle(ButtonStyle.Primary)
+              .setEmoji('🔑')
+          );
+          await verifyCh.send({ embeds: [embed], components: [row] });
+          console.log(`[KryloSMP Setup] Sent verification button embed.`);
+        }
+      }
     }
   } catch (err) {
     console.warn(`[KryloSMP Setup] Failed to post interactive components:`, err.message);
@@ -318,6 +346,44 @@ client.on('interactionCreate', async (interaction) => {
   // Handle Button Interactions
   if (interaction.isButton()) {
     const { customId } = interaction;
+
+    if (customId === 'start_verification') {
+      const modal = new ModalBuilder()
+        .setCustomId('modal_start_verification')
+        .setTitle('Link Minecraft Account');
+
+      const usernameInput = new TextInputBuilder()
+        .setCustomId('mc_username')
+        .setLabel('What is your Minecraft Username?')
+        .setPlaceholder('e.g. Krylo_MC')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true);
+
+      const row = new ActionRowBuilder().addComponents(usernameInput);
+      modal.addComponents(row);
+
+      await interaction.showModal(modal);
+      return;
+    }
+
+    if (customId === 'enter_verify_code') {
+      const modal = new ModalBuilder()
+        .setCustomId('modal_enter_verify_code')
+        .setTitle('Enter Verification Code');
+
+      const codeInput = new TextInputBuilder()
+        .setCustomId('verify_code')
+        .setLabel('Enter the 5-digit code shown in-game:')
+        .setPlaceholder('e.g. A3F89')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true);
+
+      const row = new ActionRowBuilder().addComponents(codeInput);
+      modal.addComponents(row);
+
+      await interaction.showModal(modal);
+      return;
+    }
 
     if (customId === 'open_ticket') {
       await interaction.deferReply({ ephemeral: true });
@@ -390,6 +456,110 @@ client.on('interactionCreate', async (interaction) => {
       } else {
         entries.add(interaction.user.id);
         await interaction.editReply(`🎉 You entered the giveaway! (${entries.size} total entries)`);
+      }
+      return;
+    }
+  }
+
+  if (interaction.isModalSubmit()) {
+    const { customId } = interaction;
+    if (customId === 'modal_start_verification') {
+      await interaction.deferReply({ ephemeral: true });
+      const mcUsername = interaction.fields.getTextInputValue('mc_username');
+      
+      try {
+        const response = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'request_verification',
+            guildId: '1420991845546332162',
+            name: mcUsername,
+            discordUserId: interaction.user.id
+          })
+        });
+
+        if (response.ok) {
+          const resData = await response.json();
+          if (resData.ok) {
+            await interaction.editReply(`✅ **Link request queued for username: \`${mcUsername}\`!**\n\nNext steps:\n1. Open Minecraft and connect to the server: **\`KryloSmp.play.hosting\`**\n2. Look at your in-game chat—your 5-digit verification code will display on join!\n3. Copy that code, return here, and click the **Enter Code** button.`);
+          } else {
+            await interaction.editReply(`❌ Failed: ${resData.error || 'Server error'}`);
+          }
+        } else {
+          await interaction.editReply('❌ Failed to connect to verification server.');
+        }
+      } catch (err) {
+        await interaction.editReply(`❌ Error: ${err.message}`);
+      }
+      return;
+    }
+
+    if (customId === 'modal_enter_verify_code') {
+      await interaction.deferReply({ ephemeral: true });
+      const code = interaction.fields.getTextInputValue('verify_code').trim().toUpperCase();
+
+      try {
+        const response = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'confirm_verification_code',
+            guildId: '1420991845546332162',
+            code: code,
+            discordUserId: interaction.user.id
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.ok) {
+            const mcName = result.name;
+
+            // 1. Assign 'Verified' role
+            let role = interaction.guild.roles.cache.find(r => r.name === 'Verified');
+            if (!role) {
+              try {
+                role = await interaction.guild.roles.create({
+                  name: 'Verified',
+                  color: '#00ff66',
+                  reason: 'Auto-created by verification system'
+                });
+              } catch (roleErr) {
+                console.warn('Failed to create Verified role:', roleErr.message);
+              }
+            }
+
+            if (role) {
+              await interaction.member.roles.add(role);
+            }
+
+            // 2. Set Nickname
+            try {
+              await interaction.member.setNickname(mcName, 'Synced with Minecraft username');
+            } catch (nickErr) {
+              console.warn('Failed to set nickname:', nickErr.message);
+            }
+
+            const successEmbed = new EmbedBuilder()
+              .setColor(0x00FF66)
+              .setTitle('✅ Verification Successful!')
+              .setDescription(`Your Discord account is now linked to Minecraft account **${mcName}**!`)
+              .addFields(
+                { name: '👤 Minecraft Username', value: `\`${mcName}\``, inline: true },
+                { name: '🎭 Assigned Role', value: role ? `<@&${role.id}>` : '`Verified`', inline: true }
+              )
+              .setTimestamp();
+
+            await interaction.editReply({ embeds: [successEmbed] });
+          } else {
+            await interaction.editReply(`❌ Verification failed: ${result.error || 'Invalid or expired code.'}`);
+          }
+        } else {
+          await interaction.editReply('❌ Failed to connect to verification server.');
+        }
+      } catch (err) {
+        await interaction.editReply(`❌ Error: ${err.message}`);
       }
       return;
     }
