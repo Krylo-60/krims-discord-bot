@@ -374,6 +374,14 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.isButton()) {
     const { customId } = interaction;
 
+    if (customId === 'start_verification' || customId === 'enter_verify_code') {
+      const verifiedRole = interaction.guild?.roles.cache.find(r => r.name === 'Verified');
+      if (verifiedRole && interaction.member.roles.cache.has(verifiedRole.id)) {
+        await interaction.reply({ content: '❌ **You are already verified!**\n\nIf you need to change your Minecraft username or link a different account, please open a support ticket in <#support-tickets> for staff assistance.', ephemeral: true });
+        return;
+      }
+    }
+
     if (customId === 'start_verification') {
       const modal = new ModalBuilder()
         .setCustomId('modal_start_verification')
@@ -1015,6 +1023,14 @@ client.on('interactionCreate', async (interaction) => {
   // Command: /verify
   if (commandName === 'verify') {
     await interaction.deferReply({ ephemeral: true });
+    
+    // Check if player is already verified
+    const verifiedRole = interaction.guild?.roles.cache.find(r => r.name === 'Verified');
+    if (verifiedRole && interaction.member.roles.cache.has(verifiedRole.id)) {
+      await interaction.editReply('❌ **You are already verified!**\n\nIf you need to change your Minecraft username or link a different account, please open a support ticket in <#support-tickets> for staff assistance.');
+      return;
+    }
+    
     const code = interaction.options.getString('code').trim();
 
     try {
