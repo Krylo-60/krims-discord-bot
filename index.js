@@ -400,6 +400,28 @@ client.once('ready', async () => {
         await verifyCh.send({ embeds: [embed], components: [row] });
         console.log(`[KryloSMP Setup] Sent verification button embed.`);
       }
+
+      // 4. Enforce Verification Gateway Channel Permissions
+      console.log('[KryloSMP Setup] Enforcing Verification Gateway permissions...');
+      const categories = guild.channels.cache.filter(c => c.type === ChannelType.GuildCategory);
+      for (const [, cat] of categories) {
+        if (cat.name.toUpperCase().includes('INFORMATION')) {
+          continue;
+        }
+
+        try {
+          await cat.permissionOverwrites.edit(guild.roles.everyone.id, {
+            ViewChannel: false
+          });
+          if (verifiedRole) {
+            await cat.permissionOverwrites.edit(verifiedRole.id, {
+              ViewChannel: true
+            });
+          }
+        } catch (err) {
+          console.warn(`Failed to enforce gateway permissions for category ${cat.name}:`, err.message);
+        }
+      }
     }
   } catch (err) {
     console.warn(`[KryloSMP Setup] Failed to post interactive components:`, err.message);
