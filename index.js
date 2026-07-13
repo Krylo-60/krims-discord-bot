@@ -1131,6 +1131,17 @@ client.on('interactionCreate', async (interaction) => {
             await interaction.member.roles.add(role);
           }
 
+          // Grant Member role immediately on verification (bypassing 10-minute wait!)
+          try {
+            const memberRole = interaction.guild.roles.cache.find(r => r.name === '🎮 Member');
+            if (memberRole && !interaction.member.roles.cache.has(memberRole.id)) {
+              await interaction.member.roles.add(memberRole);
+              console.log(`[Verification] Granted immediate 🎮 Member role to verified user: ${interaction.user.username}`);
+            }
+          } catch (memberRoleErr) {
+            console.warn('Failed to add Member role on verification:', memberRoleErr.message);
+          }
+
           // 3. Rename user's nickname to match their Minecraft username!
           try {
             await interaction.member.setNickname(mcName, 'Synced with Minecraft username');
@@ -1591,16 +1602,21 @@ const KRYLO_GUILD_ID = '1524878881918685405';
 client.on('guildMemberAdd', async (member) => {
   if (member.guild.id !== KRYLO_GUILD_ID) return;
 
-  // Auto-assign 🎮 Member role
-  try {
-    const memberRole = member.guild.roles.cache.find(r => r.name === '🎮 Member');
-    if (memberRole) {
-      await member.roles.add(memberRole);
-      console.log(`[Welcome] Assigned 🎮 Member role to ${member.user.username}`);
+  // Auto-assign 🎮 Member role after 10 minutes
+  setTimeout(async () => {
+    try {
+      const freshMember = await member.guild.members.fetch(member.id).catch(() => null);
+      if (!freshMember) return;
+
+      const memberRole = member.guild.roles.cache.find(r => r.name === '🎮 Member');
+      if (memberRole && !freshMember.roles.cache.has(memberRole.id)) {
+        await freshMember.roles.add(memberRole);
+        console.log(`[Welcome] Assigned delayed 10-minute 🎮 Member role to ${freshMember.user.username}`);
+      }
+    } catch (err) {
+      console.warn(`[Welcome] Failed to assign delayed role:`, err.message);
     }
-  } catch (err) {
-    console.warn(`[Welcome] Failed to assign role:`, err.message);
-  }
+  }, 10 * 60 * 1000); // 10 minutes
 
   // Send welcome message in #general
   try {
