@@ -488,9 +488,11 @@ client.on('interactionCreate', async (interaction) => {
         return;
       }
       try {
+        const supportCategory = interaction.guild.channels.cache.find(c => c.name.toLowerCase().includes('support') && c.type === ChannelType.GuildCategory);
         const channel = await interaction.guild.channels.create({
           name: `ticket-${interaction.user.username.toLowerCase()}`,
           type: ChannelType.GuildText,
+          parent: supportCategory ? supportCategory.id : null,
           permissionOverwrites: [
             {
               id: interaction.guild.id,
@@ -1173,9 +1175,11 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.deferReply({ ephemeral: true });
 
     try {
+      const supportCategory = interaction.guild.channels.cache.find(c => c.name.toLowerCase().includes('support') && c.type === ChannelType.GuildCategory);
       const channel = await interaction.guild.channels.create({
         name: `ticket-${interaction.user.username.toLowerCase()}`,
         type: ChannelType.GuildText,
+        parent: supportCategory ? supportCategory.id : null,
         permissionOverwrites: [
           {
             id: interaction.guild.id,
@@ -1380,9 +1384,11 @@ client.on('messageCreate', async (message) => {
     }
 
     try {
+      const supportCategory = message.guild.channels.cache.find(c => c.name.toLowerCase().includes('support') && c.type === ChannelType.GuildCategory);
       const channel = await message.guild.channels.create({
         name: `ticket-${message.author.username.toLowerCase()}`,
         type: ChannelType.GuildText,
+        parent: supportCategory ? supportCategory.id : null,
         permissionOverwrites: [
           {
             id: message.guild.id,
