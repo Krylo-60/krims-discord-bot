@@ -310,19 +310,57 @@ client.once('ready', async () => {
 
       // 3. Minecraft Link / Verify Button
       let verifyCh = guild.channels.cache.find(c => (c.name.includes('verify') || c.name.includes('link')) && c.type === ChannelType.GuildText);
+      
+      let verifiedRole = guild.roles.cache.find(r => r.name === 'Verified');
+      if (!verifiedRole) {
+        try {
+          verifiedRole = await guild.roles.create({
+            name: 'Verified',
+            color: '#00ff66',
+            reason: 'Auto-created by verification system'
+          });
+        } catch (err) {
+          console.warn('Failed to create Verified role:', err.message);
+        }
+      }
+
       if (!verifyCh) {
         const infoCategory = guild.channels.cache.find(c => c.name.includes('INFORMATION') && c.type === ChannelType.GuildCategory);
         try {
+          const overwrites = [
+            {
+              id: guild.roles.everyone.id,
+              allow: [PermissionFlagsBits.ViewChannel],
+              deny: [PermissionFlagsBits.SendMessages]
+            }
+          ];
+          if (verifiedRole) {
+            overwrites.push({
+              id: verifiedRole.id,
+              deny: [PermissionFlagsBits.ViewChannel]
+            });
+          }
+
           verifyCh = await guild.channels.create({
             name: 'verify',
             type: ChannelType.GuildText,
             parent: infoCategory ? infoCategory.id : null,
             topic: 'Verify your Minecraft account here!',
+            permissionOverwrites: overwrites,
             reason: 'Auto-created by verification setup'
           });
           console.log('[KryloSMP Setup] Created missing verify channel.');
         } catch (err) {
           console.warn('[KryloSMP Setup] Failed to create verify channel:', err.message);
+        }
+      } else if (verifiedRole) {
+        try {
+          await verifyCh.permissionOverwrites.edit(verifiedRole.id, {
+            ViewChannel: false
+          });
+          console.log('[KryloSMP Setup] Enforced verify channel permission overwrites.');
+        } catch (err) {
+          console.warn('Failed to edit verify channel permissions:', err.message);
         }
       }
 
