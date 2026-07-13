@@ -422,6 +422,27 @@ client.once('ready', async () => {
           console.warn(`Failed to enforce gateway permissions for category ${cat.name}:`, err.message);
         }
       }
+
+      // 5. Enforce Private Staff Channel Permissions (hide from Verified players!)
+      console.log('[KryloSMP Setup] Securing private staff channels...');
+      const staffChannels = guild.channels.cache.filter(c => 
+        (c.name.includes('staff-chat') || c.name.includes('mod-logs') || c.name.includes('staff_chat') || c.name.includes('mod_logs')) && 
+        c.type === ChannelType.GuildText
+      );
+      for (const [, ch] of staffChannels) {
+        try {
+          await ch.permissionOverwrites.edit(guild.roles.everyone.id, {
+            ViewChannel: false
+          });
+          if (verifiedRole) {
+            await ch.permissionOverwrites.edit(verifiedRole.id, {
+              ViewChannel: false
+            });
+          }
+        } catch (err) {
+          console.warn(`Failed to secure staff channel ${ch.name}:`, err.message);
+        }
+      }
     }
   } catch (err) {
     console.warn(`[KryloSMP Setup] Failed to post interactive components:`, err.message);
