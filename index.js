@@ -386,7 +386,12 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     if (customId === 'open_ticket') {
-      await interaction.deferReply({ ephemeral: true });
+      try {
+        await interaction.deferReply({ ephemeral: true });
+      } catch (deferErr) {
+        console.warn('Failed to defer open_ticket interaction:', deferErr.message);
+        return;
+      }
       try {
         const channel = await interaction.guild.channels.create({
           name: `ticket-${interaction.user.username.toLowerCase()}`,
@@ -416,7 +421,12 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     if (customId === 'role_java' || customId === 'role_bedrock') {
-      await interaction.deferReply({ ephemeral: true });
+      try {
+        await interaction.deferReply({ ephemeral: true });
+      } catch (deferErr) {
+        console.warn('Failed to defer role interaction:', deferErr.message);
+        return;
+      }
       try {
         const roleName = customId === 'role_java' ? '☕ Java Player' : '🪨 Bedrock Player';
         const role = interaction.guild.roles.cache.find(r => r.name === roleName);
@@ -1515,3 +1525,12 @@ if (token && token !== 'YOUR_DISCORD_TOKEN') {
 } else {
   console.log('[!] DISCORD_TOKEN is missing or mock. Add a valid Discord Bot Token in the .env file to start the bot.');
 }
+
+// Global process error handlers to prevent crashes on Discord API timeouts/errors
+process.on('uncaughtException', (err) => {
+  console.error('[CRITICAL] Uncaught Exception:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[CRITICAL] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
