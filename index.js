@@ -311,29 +311,40 @@ client.once('ready', async () => {
       // 3. Minecraft Link / Verify Button
       const verifyCh = guild.channels.cache.find(c => (c.name.includes('verify') || c.name.includes('link')) && c.type === ChannelType.GuildText);
       if (verifyCh) {
-        const messages = await verifyCh.messages.fetch({ limit: 10 });
-        const hasVerifyBtn = messages.some(m => m.components.some(c => c.components.some(b => b.customId === 'start_verification')));
-        if (!hasVerifyBtn) {
-          const embed = new EmbedBuilder()
-            .setColor(0x00FF66)
-            .setTitle('🔗 Link Minecraft Account')
-            .setDescription('Link your official Minecraft account to gain access to the **Verified** role, sync your nickname, and track your in-game stats directly on Discord!\n\n**Instructions:**\n1. Click **Link Account** below and enter your Minecraft username.\n2. Log in to the Minecraft server (**`KryloSmp.play.hosting`**) where your verification code will display in chat!\n3. Click **Enter Verification Code** below and enter the code you received in-game.');
-          
-          const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-              .setCustomId('start_verification')
-              .setLabel('Link Account')
-              .setStyle(ButtonStyle.Success)
-              .setEmoji('🔗'),
-            new ButtonBuilder()
-              .setCustomId('enter_verify_code')
-              .setLabel('Enter Code')
-              .setStyle(ButtonStyle.Primary)
-              .setEmoji('🔑')
-          );
-          await verifyCh.send({ embeds: [embed], components: [row] });
-          console.log(`[KryloSMP Setup] Sent verification button embed.`);
+        try {
+          // Clear any old messages in the channel to ensure fresh setup
+          const oldMessages = await verifyCh.messages.fetch({ limit: 100 });
+          if (oldMessages.size > 0) {
+            await verifyCh.bulkDelete(oldMessages).catch(async () => {
+              // Fallback if bulkDelete fails (older than 14 days)
+              for (const [, m] of oldMessages) {
+                await m.delete().catch(() => {});
+              }
+            });
+          }
+        } catch (err) {
+          console.warn('Failed to clear old verify messages:', err.message);
         }
+
+        const embed = new EmbedBuilder()
+          .setColor(0x00FF66)
+          .setTitle('🔗 Link Minecraft Account')
+          .setDescription('Link your official Minecraft account to gain access to the **Verified** role, sync your nickname, and track your in-game stats directly on Discord!\n\n**Instructions:**\n1. Click **Link Account** below and enter your Minecraft username.\n2. Log in to the Minecraft server (**`KryloSmp.play.hosting`**) where your verification code will display in chat!\n3. Click **Enter Verification Code** below and enter the code you received in-game.');
+        
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('start_verification')
+            .setLabel('Link Account')
+            .setStyle(ButtonStyle.Success)
+            .setEmoji('🔗'),
+          new ButtonBuilder()
+            .setCustomId('enter_verify_code')
+            .setLabel('Enter Code')
+            .setStyle(ButtonStyle.Primary)
+            .setEmoji('🔑')
+        );
+        await verifyCh.send({ embeds: [embed], components: [row] });
+        console.log(`[KryloSMP Setup] Sent verification button embed.`);
       }
     }
   } catch (err) {
