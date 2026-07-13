@@ -309,7 +309,23 @@ client.once('ready', async () => {
       }
 
       // 3. Minecraft Link / Verify Button
-      const verifyCh = guild.channels.cache.find(c => (c.name.includes('verify') || c.name.includes('link')) && c.type === ChannelType.GuildText);
+      let verifyCh = guild.channels.cache.find(c => (c.name.includes('verify') || c.name.includes('link')) && c.type === ChannelType.GuildText);
+      if (!verifyCh) {
+        const infoCategory = guild.channels.cache.find(c => c.name.includes('INFORMATION') && c.type === ChannelType.GuildCategory);
+        try {
+          verifyCh = await guild.channels.create({
+            name: 'verify',
+            type: ChannelType.GuildText,
+            parent: infoCategory ? infoCategory.id : null,
+            topic: 'Verify your Minecraft account here!',
+            reason: 'Auto-created by verification setup'
+          });
+          console.log('[KryloSMP Setup] Created missing verify channel.');
+        } catch (err) {
+          console.warn('[KryloSMP Setup] Failed to create verify channel:', err.message);
+        }
+      }
+
       if (verifyCh) {
         try {
           // Clear any old messages in the channel to ensure fresh setup
