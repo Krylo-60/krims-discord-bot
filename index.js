@@ -158,6 +158,18 @@ client.once('ready', async () => {
           required: true
         }
       ]
+    },
+    {
+      name: 'verify',
+      description: 'Verify your Minecraft account by entering your verification code',
+      options: [
+        {
+          name: 'code',
+          type: 3,
+          description: 'The verification code generated in Minecraft',
+          required: true
+        }
+      ]
     }
   ];
 
@@ -789,6 +801,77 @@ client.on('interactionCreate', async (interaction) => {
       await interaction.editReply({ embeds: [embed] });
     } catch (err) {
       await interaction.editReply(`❌ Failed to run diagnostics: ${err.message}`);
+    }
+    return;
+  }
+
+  // Command: /verify
+  if (commandName === 'verify') {
+    await interaction.deferReply({ ephemeral: true });
+    const code = interaction.options.getString('code').trim();
+
+    try {
+      // 1. Confirm code with Vercel API
+      const response = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'confirm_verification',
+          guildId: '1420991845546332162',
+          code: code,
+          discordUserId: interaction.user.id
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.ok) {
+          const mcName = result.name;
+
+          // 2. Assign 'Verified' role in Discord guild
+          let role = interaction.guild.roles.cache.find(r => r.name === 'Verified');
+          if (!role) {
+            try {
+              role = await interaction.guild.roles.create({
+                name: 'Verified',
+                color: '#00ff66',
+                reason: 'Auto-created by verification system'
+              });
+            } catch (roleErr) {
+              console.warn('Failed to create Verified role:', roleErr.message);
+            }
+          }
+
+          if (role) {
+            await interaction.member.roles.add(role);
+          }
+
+          // 3. Rename user's nickname to match their Minecraft username!
+          try {
+            await interaction.member.setNickname(mcName, 'Synced with Minecraft username');
+          } catch (nickErr) {
+            console.warn('Failed to set nickname:', nickErr.message);
+          }
+
+          const successEmbed = new EmbedBuilder()
+            .setColor(0x00FF66)
+            .setTitle('✅ Verification Successful!')
+            .setDescription(`Your Discord account is now linked to Minecraft account **${mcName}**!`)
+            .addFields(
+              { name: '👤 Minecraft Username', value: `\`${mcName}\``, inline: true },
+              { name: '🎭 Assigned Role', value: role ? `<@&${role.id}>` : '`Verified`', inline: true }
+            )
+            .setTimestamp();
+
+          await interaction.editReply({ embeds: [successEmbed] });
+        } else {
+          await interaction.editReply(`❌ Verification failed: ${result.error || 'Invalid or expired code.'}`);
+        }
+      } else {
+        await interaction.editReply('❌ Failed to connect to verification server. Please try again later.');
+      }
+    } catch (err) {
+      await interaction.editReply(`❌ Error during verification: ${err.message}`);
     }
     return;
   }
