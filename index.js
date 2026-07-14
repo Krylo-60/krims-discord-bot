@@ -878,7 +878,7 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     if (mcUsername) {
-      const pteroToken = 'ptlc_MSenXS1ZTEajqdqjRXix9jvxawbytpHMTkVWV73bwyw';
+      const pteroToken = process.env.PTERODACTYL_TOKEN;
       const serverId = '25a5d79a';
 
       // 1. Minecraft Username Ban
@@ -1925,7 +1925,7 @@ client.on('guildBanAdd', async (ban) => {
       const mcUsername = config.verifiedPlayers?.[user.id]?.name;
       if (mcUsername) {
         console.log(`[Double-Ban Sync] Synced Minecraft account found: ${mcUsername}. Issuing bans...`);
-        const pteroToken = 'ptlc_MSenXS1ZTEajqdqjRXix9jvxawbytpHMTkVWV73bwyw';
+        const pteroToken = process.env.PTERODACTYL_TOKEN;
         const serverId = '25a5d79a';
 
         // Ban username
