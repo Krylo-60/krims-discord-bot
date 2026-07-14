@@ -1851,7 +1851,7 @@ client.on('guildMemberAdd', async (member) => {
         .setDescription(`Welcome to **KryloSMP**, <@${member.user.id}>! You are member **#${memberCount}**!`)
         .addFields(
           { name: '🎮 Server IP', value: '`KryloSmp.play.hosting`', inline: true },
-          { name: '📜 Rules', value: 'Check <#1526685104477438023> first!', inline: true },
+          { name: '📜 Rules', value: 'Check <#1524882716468842720> first!', inline: true },
           { name: '🎨 Get Roles', value: 'Pick your platform role in <#1526685108311031980>!', inline: true }
         )
         .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
