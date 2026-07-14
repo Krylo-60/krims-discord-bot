@@ -2,6 +2,9 @@ import { Client, GatewayIntentBits, Partials, PermissionFlagsBits, ChannelType, 
 import { KrimsClient } from '@krishivpb60/krims-code-sdk';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
+import fs from 'fs';
+import { exec, spawn } from 'child_process';
+import util from 'util';
 
 dotenv.config();
 
@@ -28,8 +31,46 @@ const userCooldowns = new Map();
 const giveawayEntries = new Map(); // giveaway message ID -> Set of user IDs
 const COOLDOWN_TIME = 10000; // 10 seconds cooldown in milliseconds
 
+const execPromise = util.promisify(exec);
+
+function startAutoUpdater() {
+  console.log("[Auto-Updater] Initialized. Checking for GitHub repository updates every 5 minutes...");
+  setInterval(async () => {
+    try {
+      console.log("[Auto-Updater] Fetching origin...");
+      await execPromise('git fetch origin');
+      
+      const { stdout } = await execPromise('git status -uno');
+      if (stdout.includes('Your branch is behind')) {
+        console.log("[Auto-Updater] New updates detected on origin/main! Pulling changes...");
+        await execPromise('git pull');
+        console.log("[Auto-Updater] Re-installing dependencies...");
+        await execPromise('npm install');
+        console.log("[Auto-Updater] Auto-restart triggered. Spawning new process...");
+        
+        const out = fs.openSync('./auto_update.log', 'a');
+        const err = fs.openSync('./auto_update.log', 'a');
+        
+        const child = spawn(process.argv[0], process.argv.slice(1), {
+          detached: true,
+          stdio: [ 'ignore', out, err ]
+        });
+        child.unref();
+        
+        console.log("[Auto-Updater] Exiting old process...");
+        process.exit(0);
+      } else {
+        console.log("[Auto-Updater] Bot is up to date.");
+      }
+    } catch (err) {
+      console.error("[Auto-Updater] Update check failed:", err.message);
+    }
+  }, 5 * 60 * 1000);
+}
+
 client.once('ready', async () => {
   console.log(`[+] Krims Code Discord Bot online as ${client.user.tag}`);
+  startAutoUpdater();
 
   // Register Global Slash Commands
   const slashCommands = [
@@ -168,6 +209,30 @@ client.once('ready', async () => {
           type: 3,
           description: 'The verification code generated in Minecraft',
           required: true
+        }
+      ]
+    },
+    {
+      name: 'mcban',
+      description: 'Double-ban a user from both Discord and Minecraft (including IP ban)',
+      options: [
+        {
+          name: 'user',
+          type: 6,
+          description: 'The Discord member to ban',
+          required: false
+        },
+        {
+          name: 'mcusername',
+          type: 3,
+          description: 'The Minecraft username to ban (if no Discord account is linked/present)',
+          required: false
+        },
+        {
+          name: 'reason',
+          type: 3,
+          description: 'Reason for the ban',
+          required: false
         }
       ]
     }
@@ -442,6 +507,48 @@ client.once('ready', async () => {
         } catch (err) {
           console.warn(`Failed to secure staff channel ${ch.name}:`, err.message);
         }
+      }
+
+      // 6. Setup Live Status / Online Players Channel
+      console.log('[KryloSMP Setup] Setting up Live Player Status channel...');
+      let onlinePlayersCh = guild.channels.cache.find(c => c.name.includes('players-online') && c.type === ChannelType.GuildText);
+      if (!onlinePlayersCh) {
+        const commCategory = guild.channels.cache.find(c => c.name.toUpperCase().includes('COMMUNITY') && c.type === ChannelType.GuildCategory);
+        try {
+          onlinePlayersCh = await guild.channels.create({
+            name: '🟢-players-online',
+            type: ChannelType.GuildText,
+            parent: commCategory ? commCategory.id : null,
+            topic: 'Real-time player tracking for KryloSMP',
+            permissionOverwrites: [
+              {
+                id: guild.roles.everyone.id,
+                allow: [PermissionFlagsBits.ViewChannel],
+                deny: [PermissionFlagsBits.SendMessages]
+              }
+            ],
+            reason: 'Auto-created live player status channel'
+          });
+          console.log('[KryloSMP Setup] Created missing 🟢-players-online channel.');
+        } catch (err) {
+          console.warn('[KryloSMP Setup] Failed to create 🟢-players-online channel:', err.message);
+        }
+      }
+
+      if (onlinePlayersCh) {
+        try {
+          const oldMsgs = await onlinePlayersCh.messages.fetch({ limit: 50 });
+          if (oldMsgs.size > 0) {
+            await onlinePlayersCh.bulkDelete(oldMsgs).catch(async () => {
+              for (const [, m] of oldMsgs) {
+                await m.delete().catch(() => {});
+              }
+            });
+          }
+        } catch (err) {
+          console.warn('Failed to clear old status messages:', err.message);
+        }
+        startLiveStatusUpdate(guild, onlinePlayersCh);
       }
     }
   } catch (err) {
@@ -723,6 +830,100 @@ client.on('interactionCreate', async (interaction) => {
     } catch (err) {
       console.warn("Failed to load configs:", err.message);
     }
+  }
+
+  // Command: /mcban
+  if (commandName === 'mcban') {
+    if (!interaction.member.permissions.has(PermissionFlagsBits.BanMembers)) {
+      await interaction.reply({ content: '❌ **Permission Denied:** You need `Ban Members` permission to use this command.', ephemeral: true });
+      return;
+    }
+
+    const targetUser = interaction.options.getUser('user');
+    const targetMcName = interaction.options.getString('mcusername');
+    const reason = interaction.options.getString('reason') || 'Banned by admin';
+
+    if (!targetUser && !targetMcName) {
+      await interaction.reply({ content: '❌ You must specify a Discord user or a Minecraft username to ban!', ephemeral: true });
+      return;
+    }
+
+    // Owner / Creator Protection Guard
+    const protectedMcNames = ['krishiv', 'krylo_mc', 'krishivpb60'];
+    if (targetUser && (targetUser.id === interaction.guild.ownerId || targetUser.id === '1420991845546332162' || targetUser.id === '1524878881918685405')) {
+      await interaction.reply({ content: '❌ **Protection Guard:** You cannot ban the server owner or developers!', ephemeral: true });
+      return;
+    }
+    if (targetMcName && protectedMcNames.includes(targetMcName.toLowerCase().trim())) {
+      await interaction.reply({ content: '❌ **Protection Guard:** This Minecraft username is protected and cannot be banned!', ephemeral: true });
+      return;
+    }
+
+    await interaction.deferReply();
+    let mcUsername = targetMcName;
+    let statusMsg = `🔨 **Double-Ban Executing...**\n`;
+
+    if (targetUser) {
+      // Find Minecraft username from guild config verified list
+      if (guildConfig && guildConfig.verifiedPlayers && guildConfig.verifiedPlayers[targetUser.id]) {
+        mcUsername = guildConfig.verifiedPlayers[targetUser.id].name;
+      }
+      
+      try {
+        await interaction.guild.members.ban(targetUser.id, { reason: `MC-Sync: ${reason}` });
+        statusMsg += `✅ Discord account <@${targetUser.id}> banned.\n`;
+      } catch (err) {
+        statusMsg += `❌ Failed to ban Discord account: ${err.message}\n`;
+      }
+    }
+
+    if (mcUsername) {
+      const pteroToken = 'ptlc_MSenXS1ZTEajqdqjRXix9jvxawbytpHMTkVWV73bwyw';
+      const serverId = '25a5d79a';
+
+      // 1. Minecraft Username Ban
+      try {
+        const mcBanRes = await fetch(`https://panel.playhosting.co/api/client/servers/${serverId}/command`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${pteroToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ command: `ban ${mcUsername} ${reason}` })
+        });
+        if (mcBanRes.ok) {
+          statusMsg += `✅ Minecraft Username \`${mcUsername}\` banned.\n`;
+        } else {
+          statusMsg += `❌ MC Username ban returned code ${mcBanRes.status}\n`;
+        }
+      } catch (err) {
+        statusMsg += `❌ MC Username ban failed: ${err.message}\n`;
+      }
+
+      // 2. Minecraft IP Ban
+      try {
+        const mcIpBanRes = await fetch(`https://panel.playhosting.co/api/client/servers/${serverId}/command`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${pteroToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ command: `ban-ip ${mcUsername} ${reason}` })
+        });
+        if (mcIpBanRes.ok) {
+          statusMsg += `✅ Minecraft IP Address banned for \`${mcUsername}\`.\n`;
+        } else {
+          statusMsg += `❌ MC IP ban returned code ${mcIpBanRes.status}\n`;
+        }
+      } catch (err) {
+        statusMsg += `❌ MC IP ban failed: ${err.message}\n`;
+      }
+    } else {
+      statusMsg += `⚠️ No linked Minecraft account found for this Discord user. Sync-ban skipped.\n`;
+    }
+
+    await interaction.editReply(statusMsg);
+    return;
   }
 
   // Command: /github
@@ -1663,6 +1864,184 @@ client.on('guildMemberAdd', async (member) => {
     console.warn(`[Welcome] Failed to send welcome message:`, err.message);
   }
 });
+
+// ═══════════════════════════════════════════════════════════
+// NICKNAME GUARD & NICKNAME SYNC FORCING
+// ═══════════════════════════════════════════════════════════
+client.on('guildMemberUpdate', async (oldMember, newMember) => {
+  if (newMember.guild.id !== KRYLO_GUILD_ID) return;
+
+  // If nickname was changed
+  if (oldMember.nickname !== newMember.nickname) {
+    const verifiedRole = newMember.guild.roles.cache.find(r => r.name === 'Verified');
+    if (verifiedRole && newMember.roles.cache.has(verifiedRole.id)) {
+      try {
+        const dbRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get_config', guildId: '1420991845546332162' })
+        });
+        if (dbRes.ok) {
+          const config = await dbRes.json();
+          const mcName = config.verifiedPlayers?.[newMember.id]?.name;
+          if (mcName && newMember.nickname !== mcName) {
+            // Revert nickname back to verified Minecraft username
+            await newMember.setNickname(mcName, 'Forced sync with Minecraft username').catch(() => {});
+            console.log(`[Nickname Guard] Reverted nickname change for ${newMember.user.username} back to ${mcName}`);
+          }
+        }
+      } catch (err) {
+        console.warn(`[Nickname Guard] Error running nickname guard:`, err.message);
+      }
+    }
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// AUTOMATIC DOUBLE-BAN SYNC (DISCORD -> MINECRAFT USER & IP)
+// ═══════════════════════════════════════════════════════════
+client.on('guildBanAdd', async (ban) => {
+  if (ban.guild.id !== KRYLO_GUILD_ID) return;
+  const user = ban.user;
+
+  // Owner / Creator Protection Guard
+  const protectedMcNames = ['krishiv', 'krylo_mc', 'krishivpb60'];
+  if (user.id === ban.guild.ownerId || user.id === '1420991845546332162' || user.id === '1524878881918685405') {
+    console.log(`[Double-Ban Sync] Aborted ban synchronization: Banned user is a protected owner/developer.`);
+    return;
+  }
+
+  console.log(`[Double-Ban Sync] Discord ban detected for ${user.username} (${user.id}). Synchronizing...`);
+
+  try {
+    const dbRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'get_config', guildId: '1420991845546332162' })
+    });
+
+    if (dbRes.ok) {
+      const config = await dbRes.json();
+      const mcUsername = config.verifiedPlayers?.[user.id]?.name;
+      if (mcUsername) {
+        console.log(`[Double-Ban Sync] Synced Minecraft account found: ${mcUsername}. Issuing bans...`);
+        const pteroToken = 'ptlc_MSenXS1ZTEajqdqjRXix9jvxawbytpHMTkVWV73bwyw';
+        const serverId = '25a5d79a';
+
+        // Ban username
+        await fetch(`https://panel.playhosting.co/api/client/servers/${serverId}/command`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${pteroToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ command: `ban ${mcUsername} Discord Ban Synchronized` })
+        }).catch(e => console.error(`[Double-Ban Sync] MC Username Ban failed:`, e.message));
+
+        // Ban IP
+        await fetch(`https://panel.playhosting.co/api/client/servers/${serverId}/command`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${pteroToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ command: `ban-ip ${mcUsername} Discord Ban Synchronized` })
+        }).catch(e => console.error(`[Double-Ban Sync] MC IP Ban failed:`, e.message));
+
+        // Log to mod-logs if present
+        const logCh = ban.guild.channels.cache.find(c => c.name.includes('mod-logs') && c.type === ChannelType.GuildText);
+        if (logCh) {
+          const embed = new EmbedBuilder()
+            .setColor(0xFF0000)
+            .setTitle('🔨 Double-Ban Executed')
+            .setDescription(`Banned Discord user **${user.tag}** and synchronized IP ban to Minecraft.`)
+            .addFields(
+              { name: '👤 Discord User', value: `<@${user.id}> (${user.id})`, inline: true },
+              { name: '🎮 Minecraft Account', value: `\`${mcUsername}\``, inline: true },
+              { name: '🔒 IP Ban Status', value: '🟢 Synchronized (IP Banned)', inline: false }
+            )
+            .setTimestamp();
+          await logCh.send({ embeds: [embed] }).catch(() => {});
+        }
+      }
+    }
+  } catch (err) {
+    console.warn(`[Double-Ban Sync] Error syncing ban:`, err.message);
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// LIVE MINECRAFT STATUS UPDATE SCHEDULER
+// ═══════════════════════════════════════════════════════════
+async function startLiveStatusUpdate(guild, channel) {
+  let statusMessage = null;
+
+  // Try to find existing bot message to edit
+  try {
+    const messages = await channel.messages.fetch({ limit: 10 });
+    statusMessage = messages.find(m => m.author.id === client.user.id);
+  } catch (err) {
+    console.warn('[Live Status] Failed to fetch messages:', err.message);
+  }
+
+  // Update function
+  const updateStatus = async () => {
+    try {
+      const res = await fetch('https://api.mcsrvstat.us/2/KryloSmp.play.hosting');
+      if (!res.ok) throw new Error(`mcsrvstat returned ${res.status}`);
+      const data = await res.json();
+      
+      const unixTime = Math.floor(Date.now() / 1000);
+      const embed = new EmbedBuilder();
+
+      if (data.online) {
+        const onlineCount = data.players.online;
+        const maxCount = data.players.max;
+        const playerList = data.players.list ? data.players.list.map(p => `• \`${p}\``).join('\n') : 'No players currently online.';
+        const motd = data.motd.clean ? data.motd.clean.join('\n') : 'KryloSMP Minecraft Server';
+
+        embed
+          .setColor(0x00FF66)
+          .setTitle('🟢 KryloSMP Server is ONLINE')
+          .setDescription(`🤖 **Live Server Tracking**\n\n**IP:** \`KryloSmp.play.hosting\`\n**Version:** \`v3.0.0\`\n\n**MOTD:**\n\`\`\`\n${motd}\n\`\`\``)
+          .addFields(
+            { name: `👥 Players Online (${onlineCount}/${maxCount})`, value: playerList, inline: false },
+            { name: '🕒 Last Updated', value: `<t:${unixTime}:R>`, inline: true }
+          )
+          .setFooter({ text: 'Auto-updating every 20 seconds' })
+          .setTimestamp();
+
+        // Update bot activity status
+        client.user.setActivity(`KryloSMP: ${onlineCount}/${maxCount}`, { type: 0 }); // Playing
+      } else {
+        embed
+          .setColor(0xFF3333)
+          .setTitle('🔴 KryloSMP Server is OFFLINE')
+          .setDescription('The server is currently stopped or restarting.')
+          .addFields(
+            { name: '📡 Connection IP', value: '`KryloSmp.play.hosting`', inline: false },
+            { name: '🕒 Last Updated', value: `<t:${unixTime}:R>`, inline: true }
+          )
+          .setFooter({ text: 'Auto-updating every 20 seconds' })
+          .setTimestamp();
+
+        client.user.setActivity('KryloSMP (Offline)', { type: 0 });
+      }
+
+      if (statusMessage) {
+        await statusMessage.edit({ embeds: [embed] });
+      } else {
+        statusMessage = await channel.send({ embeds: [embed] });
+      }
+    } catch (err) {
+      console.warn('[Live Status] Error updating status:', err.message);
+    }
+  };
+
+  // Run immediately and then schedule every 20 seconds
+  await updateStatus();
+  setInterval(updateStatus, 20000);
+}
 
 // Login using bot token
 const token = process.env.DISCORD_TOKEN;
