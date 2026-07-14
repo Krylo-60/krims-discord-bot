@@ -30,6 +30,7 @@ const conversationHistory = new Map();
 const userCooldowns = new Map();
 const giveawayEntries = new Map(); // giveaway message ID -> Set of user IDs
 const COOLDOWN_TIME = 10000; // 10 seconds cooldown in milliseconds
+const spamMap = new Map();
 
 const execPromise = util.promisify(exec);
 
@@ -1533,6 +1534,122 @@ client.on('interactionCreate', async (interaction) => {
 // Prefix Message Commands Handler (Legacy fallback & DMs)
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
+
+  // ═══════════════════════════════════════
+  // AUTOMATIC AUTO-MODERATION ENGINE
+  // ═══════════════════════════════════════
+  if (message.guild) {
+    const member = message.member;
+    // Bypass if member is administrator or has staff-related roles
+    const isStaff = member && (
+      member.permissions.has(PermissionFlagsBits.Administrator) ||
+      member.permissions.has(PermissionFlagsBits.ManageMessages) ||
+      member.roles.cache.some(r => ['admin', 'moderator', 'staff', 'owner'].includes(r.name.toLowerCase()))
+    );
+
+    if (!isStaff) {
+      const msgContent = message.content.toLowerCase();
+      const authorId = message.author.id;
+      const now = Date.now();
+
+      // 1. Anti-Spam Filter (Max 5 messages in 3 seconds)
+      if (!spamMap.has(authorId)) {
+        spamMap.set(authorId, []);
+      }
+      const timestamps = spamMap.get(authorId);
+      timestamps.push(now);
+      // Clean timestamps older than 3 seconds
+      const recentTimestamps = timestamps.filter(t => now - t < 3000);
+      spamMap.set(authorId, recentTimestamps);
+
+      if (recentTimestamps.length > 5) {
+        // Trigger Spam Warning and Timeout
+        try {
+          await message.delete().catch(() => {});
+          if (member && member.moderatable) {
+            await member.timeout(60000, 'Auto-Mod: Excessive spamming');
+            const warnMsg = await message.channel.send(`⚠️ <@${authorId}> has been timed out for 1 minute due to spamming!`);
+            setTimeout(() => warnMsg.delete().catch(() => {}), 5000);
+
+            // Log to mod-logs
+            const logCh = message.guild.channels.cache.find(c => c.name.includes('mod-logs') && c.type === ChannelType.GuildText);
+            if (logCh) {
+              const logEmbed = new EmbedBuilder()
+                .setColor(0xFF9900)
+                .setTitle('⚠️ Auto-Mod Action: Spam Timeout')
+                .setDescription(`User <@${authorId}> was timed out for 1 minute for spamming.`)
+                .addFields(
+                  { name: 'Channel', value: `<#${message.channel.id}>`, inline: true },
+                  { name: 'Action', value: '1 Minute Timeout', inline: true }
+                )
+                .setTimestamp();
+              await logCh.send({ embeds: [logEmbed] });
+            }
+          }
+        } catch (e) {
+          console.warn("[Auto-Mod] Failed to timeout spammer:", e.message);
+        }
+        return;
+      }
+
+      // 2. Invite Link Filter
+      const inviteRegex = /(discord\.(gg|io|me|li)\/.+|discord(app)?\.com\/invite\/.+)/i;
+      if (inviteRegex.test(msgContent)) {
+        try {
+          await message.delete();
+          const warnMsg = await message.channel.send(`⚠️ <@${authorId}>, invite links to other Discord servers are not allowed!`);
+          setTimeout(() => warnMsg.delete().catch(() => {}), 5000);
+
+          // Log to mod-logs
+          const logCh = message.guild.channels.cache.find(c => c.name.includes('mod-logs') && c.type === ChannelType.GuildText);
+          if (logCh) {
+            const logEmbed = new EmbedBuilder()
+              .setColor(0xFF3300)
+              .setTitle('⚠️ Auto-Mod Action: Invite Link Deleted')
+              .setDescription(`Deleted invite link from <@${authorId}>.`)
+              .addFields(
+                { name: 'Channel', value: `<#${message.channel.id}>`, inline: true },
+                { name: 'Content', value: `\`\`\`${message.content}\`\`\`` }
+              )
+              .setTimestamp();
+            await logCh.send({ embeds: [logEmbed] });
+          }
+        } catch (e) {
+          console.warn("[Auto-Mod] Failed to delete invite link:", e.message);
+        }
+        return;
+      }
+
+      // 3. Bad Words / Profanity Filter
+      const toxicWords = ['nigger', 'nigga', 'faggot', 'retard', 'kike', 'tranny', 'bastard', 'bitch', 'cunt', 'dick', 'whore', 'slut', 'ddos', 'dox', 'wurst client', 'meteor client', 'liquidbounce'];
+      const hasBadWord = toxicWords.some(word => msgContent.includes(word));
+      if (hasBadWord) {
+        try {
+          await message.delete();
+          const warnMsg = await message.channel.send(`⚠️ <@${authorId}>, please keep chat clean and respectful. Profanity or slurs are not allowed!`);
+          setTimeout(() => warnMsg.delete().catch(() => {}), 5000);
+
+          // Log to mod-logs
+          const logCh = message.guild.channels.cache.find(c => c.name.includes('mod-logs') && c.type === ChannelType.GuildText);
+          if (logCh) {
+            const logEmbed = new EmbedBuilder()
+              .setColor(0xFF3300)
+              .setTitle('⚠️ Auto-Mod Action: Profanity Filter')
+              .setDescription(`Deleted offensive message from <@${authorId}>.`)
+              .addFields(
+                { name: 'Channel', value: `<#${message.channel.id}>`, inline: true },
+                { name: 'Filtered Message', value: `||${message.content}||` }
+              )
+              .setTimestamp();
+            await logCh.send({ embeds: [logEmbed] });
+          }
+        } catch (e) {
+          console.warn("[Auto-Mod] Failed to delete profanity:", e.message);
+        }
+        return;
+      }
+    }
+  }
 
   const content = message.content.trim();
   const isDM = !message.guild;
