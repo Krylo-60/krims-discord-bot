@@ -1824,16 +1824,16 @@ const KRYLO_GUILD_ID = '1524878881918685405';
 client.on('guildMemberAdd', async (member) => {
   if (member.guild.id !== KRYLO_GUILD_ID) return;
 
-  // Auto-assign 🎮 Member role after 10 minutes
+  // Auto-assign Members role after 10 minutes
   setTimeout(async () => {
     try {
       const freshMember = await member.guild.members.fetch(member.id).catch(() => null);
       if (!freshMember) return;
 
-      const memberRole = member.guild.roles.cache.find(r => r.name === '🎮 Member');
+      const memberRole = member.guild.roles.cache.find(r => r.name === 'Members');
       if (memberRole && !freshMember.roles.cache.has(memberRole.id)) {
         await freshMember.roles.add(memberRole);
-        console.log(`[Welcome] Assigned delayed 10-minute 🎮 Member role to ${freshMember.user.username}`);
+        console.log(`[Welcome] Assigned delayed 10-minute Members role to ${freshMember.user.username}`);
       }
     } catch (err) {
       console.warn(`[Welcome] Failed to assign delayed role:`, err.message);
@@ -1851,8 +1851,8 @@ client.on('guildMemberAdd', async (member) => {
         .setDescription(`Welcome to **KryloSMP**, <@${member.user.id}>! You are member **#${memberCount}**!`)
         .addFields(
           { name: '🎮 Server IP', value: '`KryloSmp.play.hosting`', inline: true },
-          { name: '📜 Rules', value: 'Check <#rules> first!', inline: true },
-          { name: '🎨 Get Roles', value: 'Pick your platform role in <#server-info>!', inline: true }
+          { name: '📜 Rules', value: 'Check <#1526685104477438023> first!', inline: true },
+          { name: '🎨 Get Roles', value: 'Pick your platform role in <#1526685108311031980>!', inline: true }
         )
         .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
         .setFooter({ text: `KryloSMP • ${memberCount} members` })
