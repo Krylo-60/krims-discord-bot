@@ -835,8 +835,16 @@ client.on('interactionCreate', async (interaction) => {
 
   // Command: /mcban
   if (commandName === 'mcban') {
-    if (!interaction.member.permissions.has(PermissionFlagsBits.BanMembers)) {
-      await interaction.reply({ content: '❌ **Permission Denied:** You need `Ban Members` permission to use this command.', ephemeral: true });
+    const member = interaction.member;
+    const isOwner = interaction.user.id === interaction.guild.ownerId;
+    const hasModRole = member && member.roles.cache.some(r => {
+      const name = r.name.toLowerCase();
+      return name.includes('mod') || name.includes('staff') || name.includes('admin') || name.includes('owner');
+    });
+    const hasBanPerm = member && member.permissions.has(PermissionFlagsBits.BanMembers);
+
+    if (!isOwner && !hasModRole && !hasBanPerm) {
+      await interaction.reply({ content: '❌ **Permission Denied:** This command is restricted to the Server Owner and Mod/Staff team.', ephemeral: true });
       return;
     }
 
