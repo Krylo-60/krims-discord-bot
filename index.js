@@ -893,7 +893,7 @@ client.on('interactionCreate', async (interaction) => {
 
       // 1. Minecraft Username Ban
       try {
-        const mcBanRes = await fetch(`https://panel.playhosting.co/api/client/servers/${serverId}/command`, {
+        const mcBanRes = await fetch(`https://panel.play.hosting/api/client/servers/${serverId}/command`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${pteroToken}`,
@@ -912,7 +912,7 @@ client.on('interactionCreate', async (interaction) => {
 
       // 2. Minecraft IP Ban
       try {
-        const mcIpBanRes = await fetch(`https://panel.playhosting.co/api/client/servers/${serverId}/command`, {
+        const mcIpBanRes = await fetch(`https://panel.play.hosting/api/client/servers/${serverId}/command`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${pteroToken}`,
@@ -2038,7 +2038,7 @@ client.on('guildBanAdd', async (ban) => {
         const serverId = '25a5d79a';
 
         // Ban username
-        await fetch(`https://panel.playhosting.co/api/client/servers/${serverId}/command`, {
+        await fetch(`https://panel.play.hosting/api/client/servers/${serverId}/command`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${pteroToken}`,
@@ -2048,7 +2048,7 @@ client.on('guildBanAdd', async (ban) => {
         }).catch(e => console.error(`[Double-Ban Sync] MC Username Ban failed:`, e.message));
 
         // Ban IP
-        await fetch(`https://panel.playhosting.co/api/client/servers/${serverId}/command`, {
+        await fetch(`https://panel.play.hosting/api/client/servers/${serverId}/command`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${pteroToken}`,
