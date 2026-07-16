@@ -1544,6 +1544,28 @@ client.on('interactionCreate', async (interaction) => {
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
+  // ─── TICKET CHANNEL AUTO-RESPONSE & ESCALATION ───
+  if (message.guild && message.channel.name.startsWith('ticket-')) {
+    let botPrefix = '!';
+    try {
+      const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get_config', guildId: message.guild.id })
+      });
+      if (configRes.ok) {
+        const guildConfig = await configRes.json();
+        botPrefix = guildConfig.prefix || '!';
+      }
+    } catch {}
+
+    const isCommand = message.content.startsWith(botPrefix) || message.content.startsWith('!');
+    if (!isCommand) {
+      await handleTicketMessage(message);
+      return;
+    }
+  }
+
   // ═══════════════════════════════════════
   // AUTOMATIC AUTO-MODERATION ENGINE
   // ═══════════════════════════════════════
@@ -2150,6 +2172,94 @@ async function startLiveStatusUpdate(guild, channel) {
   // Run immediately and then schedule every 20 seconds
   await updateStatus();
   setInterval(updateStatus, 20000);
+}
+
+async function handleTicketMessage(message) {
+  try {
+    await message.channel.sendTyping();
+
+    let botPrefix = '!';
+    let modelEngine = 'gemini';
+    let systemInstruction = "You are a helpful support assistant for the KryloSMP Minecraft server.";
+
+    try {
+      const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get_config', guildId: message.guild.id })
+      });
+      if (configRes.ok) {
+        const guildConfig = await configRes.json();
+        botPrefix = guildConfig.prefix || '!';
+        modelEngine = guildConfig.model || 'gemini';
+        systemInstruction = guildConfig.sysPrompt || systemInstruction;
+      }
+    } catch (err) {
+      console.warn("Failed to load config for ticket response:", err.message);
+    }
+
+    let history = conversationHistory.get(message.channel.id) || [];
+    const answerResult = await sdk.ask(message.content, {
+      model: modelEngine,
+      systemInstruction: systemInstruction + " Provide a friendly and clear solution to the player's problem.",
+      history: history
+    });
+
+    if (answerResult.ok && answerResult.response) {
+      history.push({ role: 'user', content: message.content });
+      history.push({ role: 'model', content: answerResult.response });
+      if (history.length > 10) history = history.slice(history.length - 10);
+      conversationHistory.set(message.channel.id, history);
+
+      await message.reply(`🤖 **Krims Support AI:**\n${answerResult.response}`);
+    } else {
+      await message.reply("❌ Failed to parse AI support response.");
+    }
+
+    const messages = await message.channel.messages.fetch({ limit: 50 });
+    const alreadyEscalated = messages.some(m => m.author.id === client.user.id && m.content.includes('Escalation Alert'));
+
+    if (!alreadyEscalated) {
+      const classificationPrompt = `Classify the following support ticket question into one of these difficulty levels: "EASY", "MEDIUM", "HARD". 
+      
+      Rules:
+      - EASY: General questions about server IP, rules, linking accounts, using commands, how to play, buying items, or simple advice.
+      - MEDIUM: Minor bugs, plugin issues, claiming land problems, report player claims, connection lag, or questions that require moderator investigation.
+      - HARD: Server crashes, payment/donation issues, severe griefing reports (major builds destroyed), hack allegations with proof, database errors, or lost items due to system bugs.
+      
+      Respond with ONLY one word: "EASY", "MEDIUM", or "HARD".
+      
+      Ticket text: "${message.content}"`;
+
+      const classificationResult = await sdk.ask(classificationPrompt, {
+        model: modelEngine,
+        systemInstruction: "You are a precise classifier. Output only one word: EASY, MEDIUM, or HARD."
+      });
+
+      if (classificationResult.ok && classificationResult.response) {
+        const level = classificationResult.response.toUpperCase().trim().replace(/[^A-Z]/g, '');
+        console.log(`[Ticket Escalation] Classified level: ${level}`);
+
+        const modRole = message.guild.roles.cache.find(r => ['moderator', 'mod', 'staff'].includes(r.name.toLowerCase()));
+        const adminRole = message.guild.roles.cache.find(r => ['admin', 'administrator'].includes(r.name.toLowerCase()));
+        const ownerId = message.guild.ownerId;
+
+        let mentionList = `<@${ownerId}>`;
+        if (modRole) mentionList += ` <@&${modRole.id}>`;
+        if (adminRole) mentionList += ` <@&${adminRole.id}>`;
+
+        if (level.includes('HARD')) {
+          await message.channel.send(`🚨 **Escalation Alert (Level: HARD)**\n${mentionList}\nThis ticket has been classified as **HARD**. Our administrative staff must resolve this problem in the **next 24 hours**!`);
+        } else if (level.includes('MEDIUM')) {
+          await message.channel.send(`⚠️ **Escalation Alert (Level: MEDIUM)**\nThis ticket has been classified as **MEDIUM**. Support team, please resolve this problem within **48 hours**.`);
+        } else {
+          await message.channel.send(`ℹ️ **Ticket Status (Level: EASY / NOT FIXABLE)**\nThis ticket has been classified as **EASY** or **NOT FIXABLE**. Support team, resolve this when free (within **72 hours**).`);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Error handling ticket message:", err.message);
+  }
 }
 
 // Login using bot token
