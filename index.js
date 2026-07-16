@@ -2220,25 +2220,88 @@ async function handleTicketMessage(message) {
     const alreadyEscalated = messages.some(m => m.author.id === client.user.id && m.content.includes('Escalation Alert'));
 
     if (!alreadyEscalated) {
-      const classificationPrompt = `Classify the following support ticket question into one of these difficulty levels: "EASY", "MEDIUM", "HARD". 
+      const classificationPrompt = `Analyze the following support ticket message: "${message.content}"
       
-      Rules:
-      - EASY: General questions about server IP, rules, linking accounts, using commands, how to play, buying items, or simple advice.
-      - MEDIUM: Minor bugs, plugin issues, claiming land problems, report player claims, connection lag, or questions that require moderator investigation.
-      - HARD: Server crashes, payment/donation issues, severe griefing reports (major builds destroyed), hack allegations with proof, database errors, or lost items due to system bugs.
+      Determine if this is one of these three requests and respond with the exact instruction:
+      1. Whitelist a player name (e.g. "whitelist me", "add me to whitelist", "name: krishiv"): respond with "AUTO_EXECUTE: easywhitelist add <name>" (replace <name> with their username).
+      2. Unban a player (e.g. "unban me", "pardon my friend"): respond with "AUTO_EXECUTE: pardon <name>".
+      3. Reset their login password (e.g. "reset my password", "forgot my login password"): respond with "AUTO_EXECUTE: krylo resetpass <name> <temp_pass>" (generate a random 6-character alphanumeric temp_pass).
       
-      Respond with ONLY one word: "EASY", "MEDIUM", or "HARD".
+      If it is none of these, or if the request is a general question / not automatable:
+      Respond with: "CLASSIFY: <EASY|MEDIUM|HARD>" based on these rules:
+      - EASY: General questions (server IP, rules, socials, or advice).
+      - MEDIUM: Bug reports, claims issues, player reports, lag, or questions requiring moderator check.
+      - HARD: Server crashes, payment/donation errors, severe griefing, or lost items.
       
-      Ticket text: "${message.content}"`;
+      Respond with ONLY the match string (e.g., "AUTO_EXECUTE: easywhitelist add name" or "CLASSIFY: EASY").`;
 
       const classificationResult = await sdk.ask(classificationPrompt, {
         model: modelEngine,
-        systemInstruction: "You are a precise classifier. Output only one word: EASY, MEDIUM, or HARD."
+        systemInstruction: "You are a precise analyzer. Output only the requested match string without any introductory text."
       });
 
       if (classificationResult.ok && classificationResult.response) {
-        const level = classificationResult.response.toUpperCase().trim().replace(/[^A-Z]/g, '');
-        console.log(`[Ticket Escalation] Classified level: ${level}`);
+        const resText = classificationResult.response.trim();
+        console.log(`[Ticket Analyzer] Result: ${resText}`);
+
+        if (resText.startsWith('AUTO_EXECUTE:')) {
+          const cmdToRun = resText.substring(13).trim();
+          console.log(`[Ticket Analyzer] Executing automated command: ${cmdToRun}`);
+
+          const pteroToken = process.env.PTERODACTYL_TOKEN;
+          const serverId = '25a5d79a';
+
+          try {
+            const execRes = await fetch(`https://panel.play.hosting/api/client/servers/${serverId}/command`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${pteroToken}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ command: cmdToRun })
+            });
+
+            if (execRes.ok) {
+              await message.reply(`🤖 **Krims Support AI:**\nI have **automatically resolved** your issue! I executed the following command on the server console: \`/${cmdToRun}\`.\n\n*This ticket has been marked as resolved.*`);
+              await message.channel.send(`ℹ️ **Ticket Resolved**\nThis ticket has been automatically resolved by the AI support team. Resolving channel in 10 seconds...`);
+              
+              if (message.guild) {
+                try {
+                  const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'get_config', guildId: message.guild.id })
+                  });
+                  if (configRes.ok) {
+                    const guildConfig = await configRes.json();
+                    const tickets = guildConfig.openTickets || [];
+                    guildConfig.openTickets = tickets.filter(t => t.id !== message.channel.id);
+                    await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ action: 'save_config', guildId: message.guild.id, config: guildConfig })
+                    });
+                  }
+                } catch {}
+              }
+
+              setTimeout(async () => {
+                try {
+                  await message.channel.delete();
+                } catch {}
+              }, 10000);
+              return;
+            } else {
+              await message.reply(`❌ I attempted to automatically execute the command, but the server returned status code ${execRes.status}. I have escalated this to staff.`);
+            }
+          } catch (err) {
+            console.error("[Ticket Analyzer] Auto-execute failed:", err.message);
+          }
+        }
+
+        let level = 'EASY';
+        if (resText.includes('HARD')) level = 'HARD';
+        else if (resText.includes('MEDIUM')) level = 'MEDIUM';
 
         const modRole = message.guild.roles.cache.find(r => ['moderator', 'mod', 'staff'].includes(r.name.toLowerCase()));
         const adminRole = message.guild.roles.cache.find(r => ['admin', 'administrator'].includes(r.name.toLowerCase()));
@@ -2248,9 +2311,9 @@ async function handleTicketMessage(message) {
         if (modRole) mentionList += ` <@&${modRole.id}>`;
         if (adminRole) mentionList += ` <@&${adminRole.id}>`;
 
-        if (level.includes('HARD')) {
+        if (level === 'HARD') {
           await message.channel.send(`🚨 **Escalation Alert (Level: HARD)**\n${mentionList}\nThis ticket has been classified as **HARD**. Our administrative staff must resolve this problem in the **next 24 hours**!`);
-        } else if (level.includes('MEDIUM')) {
+        } else if (level === 'MEDIUM') {
           await message.channel.send(`⚠️ **Escalation Alert (Level: MEDIUM)**\nThis ticket has been classified as **MEDIUM**. Support team, please resolve this problem within **48 hours**.`);
         } else {
           await message.channel.send(`ℹ️ **Ticket Status (Level: EASY / NOT FIXABLE)**\nThis ticket has been classified as **EASY** or **NOT FIXABLE**. Support team, resolve this when free (within **72 hours**).`);
