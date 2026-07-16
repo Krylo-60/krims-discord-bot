@@ -2180,7 +2180,6 @@ async function handleTicketMessage(message) {
 
     let botPrefix = '!';
     let modelEngine = 'gemini';
-    let systemInstruction = "You are a helpful support assistant for the KryloSMP Minecraft server.";
 
     try {
       const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
@@ -2192,16 +2191,27 @@ async function handleTicketMessage(message) {
         const guildConfig = await configRes.json();
         botPrefix = guildConfig.prefix || '!';
         modelEngine = guildConfig.model || 'gemini';
-        systemInstruction = guildConfig.sysPrompt || systemInstruction;
       }
     } catch (err) {
       console.warn("Failed to load config for ticket response:", err.message);
     }
 
+    const ticketSystemInstruction = 
+      "You are Krims Support AI, the official support assistant for the KryloSMP Minecraft Server and Discord community. " +
+      "You were built by Krishiv to help players resolve their issues.\n\n" +
+      "Server Context:\n" +
+      "- You are currently talking inside the official KryloSMP Discord Server.\n" +
+      "- The Minecraft Server IP is: KryloSmp.play.hosting\n" +
+      "- The server supports Java (default port 25565) and Bedrock (default port 19132) cross-play.\n" +
+      "- The server is offline-mode (cracked), meaning players can join using cracked launchers (like TLauncher) without an official Mojang account. On join, they must type `/register <password> <confirm>` or `/login <password>` to secure their username.\n" +
+      "- To get whitelisted, players must go to the #✅┃verify channel and click the link button to get their verification code.\n\n" +
+      "Instructions:\n" +
+      "Provide a friendly, helpful, and concise solution to the player's problem using the server details above.";
+
     let history = conversationHistory.get(message.channel.id) || [];
     const answerResult = await sdk.ask(message.content, {
       model: modelEngine,
-      systemInstruction: systemInstruction + " Provide a friendly and clear solution to the player's problem.",
+      systemInstruction: ticketSystemInstruction,
       history: history
     });
 
