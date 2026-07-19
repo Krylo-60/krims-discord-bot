@@ -598,7 +598,7 @@ client.once('ready', async () => {
               try {
                 let channel = null;
                 if (action.channelId && action.channelId !== 'default') {
-                  channel = await client.channels.fetch(action.channelId).catch(() => null);
+                  channel = client.channels.cache.get(action.channelId) || await client.channels.fetch(action.channelId).catch(() => null);
                 }
                 
                 if (!channel) {
@@ -637,6 +637,37 @@ client.once('ready', async () => {
 
           guildConfig.actions = [];
           configChanged = true;
+        }
+
+        // 3. Sync player ranks/roles from Discord to Vercel config
+        const guild = client.guilds.cache.get(GUILD_ID) || await client.guilds.fetch(GUILD_ID).catch(() => null);
+        if (guild && guildConfig.verifiedPlayers) {
+          let rolesUpdated = false;
+          for (const [userId, playerInfo] of Object.entries(guildConfig.verifiedPlayers)) {
+            try {
+              const member = guild.members.cache.get(userId) || await guild.members.fetch(userId).catch(() => null);
+              if (member) {
+                let resolvedRank = 'Member';
+                if (member.roles.cache.some(r => r.name.toLowerCase().includes('legend'))) {
+                  resolvedRank = 'Legend';
+                } else if (member.roles.cache.some(r => r.name.toLowerCase().includes('mvp'))) {
+                  resolvedRank = 'MVP';
+                } else if (member.roles.cache.some(r => r.name.toLowerCase().includes('vip'))) {
+                  resolvedRank = 'VIP';
+                }
+                
+                if (playerInfo.rank !== resolvedRank) {
+                  playerInfo.rank = resolvedRank;
+                  rolesUpdated = true;
+                }
+              }
+            } catch (err) {
+              // Ignore failed member fetches
+            }
+          }
+          if (rolesUpdated) {
+            configChanged = true;
+          }
         }
 
         // Save back changes if config changed
