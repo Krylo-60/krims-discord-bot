@@ -823,166 +823,169 @@ client.once('ready', async () => {
         }
       }
 
-      // 4. Create Additional Premium SMP Channels
+      // 4. Create and Align Category/Channel Hierarchy (Hypixel/Hermitcraft Style)
       try {
-        console.log('[KryloSMP Setup] Ensuring additional premium SMP channels exist...');
+        console.log('[KryloSMP Setup] Ensuring all premium categories and channels are created & organized...');
         
-        // A. Create #📷┃media-clips under CHAT category
-        let mediaCh = guild.channels.cache.find(c => (c.name.includes('media-clips') || c.name.includes('media')) && c.type === ChannelType.GuildText);
-        if (!mediaCh) {
-          const chatCategory = guild.channels.cache.find(c => c.name.toUpperCase().includes('CHAT') && c.type === ChannelType.GuildCategory);
-          mediaCh = await guild.channels.create({
-            name: '📷┃media-clips',
-            type: ChannelType.GuildText,
-            parent: chatCategory ? chatCategory.id : null,
-            topic: 'Share your builds, screenshots, and videos here!'
-          });
-          console.log('[KryloSMP Setup] Created media-clips channel.');
-        }
+        // Helper to find or create a category
+        const ensureCategory = async (name) => {
+          let cat = guild.channels.cache.find(c => c.name.toUpperCase().includes(name.toUpperCase()) && c.type === ChannelType.GuildCategory);
+          if (!cat) {
+            cat = await guild.channels.create({
+              name: name,
+              type: ChannelType.GuildCategory
+            });
+            console.log(`[KryloSMP Setup] Created category: ${name}`);
+          }
+          return cat;
+        };
 
-        // B. Create #🛒┃marketplace under CHAT category
-        let marketCh = guild.channels.cache.find(c => (c.name.includes('marketplace') || c.name.includes('market')) && c.type === ChannelType.GuildText);
-        if (!marketCh) {
-          const chatCategory = guild.channels.cache.find(c => c.name.toUpperCase().includes('CHAT') && c.type === ChannelType.GuildCategory);
-          marketCh = await guild.channels.create({
-            name: '🛒┃marketplace',
-            type: ChannelType.GuildText,
-            parent: chatCategory ? chatCategory.id : null,
-            topic: 'Trade items, advertise shops, and list prices!'
-          });
-          console.log('[KryloSMP Setup] Created marketplace channel.');
-        }
+        const infoCat = await ensureCategory('📌 INFORMATION');
+        const commCat = await ensureCategory('💬 COMMUNITY ZONE');
+        const eventCat = await ensureCategory('🎪 EVENTS & ACTIVITIES');
+        const liveCat = await ensureCategory('🎮 MINECRAFT LIVE');
+        const staffCat = await ensureCategory('📞 STAFF AREA');
+        const voiceCat = await ensureCategory('🔊 VOICE CHANNELS');
 
-        // C. Create #💡┃suggestions under SUPPORT category
-        let sugCh = guild.channels.cache.find(c => c.name.includes('suggestions') && c.type === ChannelType.GuildText);
-        if (!sugCh) {
-          const supportCategory = guild.channels.cache.find(c => c.name.toUpperCase().includes('SUPPORT') && c.type === ChannelType.GuildCategory);
-          sugCh = await guild.channels.create({
-            name: '💡┃suggestions',
-            type: ChannelType.GuildText,
-            parent: supportCategory ? supportCategory.id : null,
-            topic: 'Submit your suggestions for KryloSMP here!'
-          });
-          console.log('[KryloSMP Setup] Created suggestions channel.');
-        }
+        // Helper to find or create/move a text channel
+        const ensureChannel = async (name, parentCat, topic = '', isPrivate = false) => {
+          const cleanSearch = name.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase();
+          let ch = guild.channels.cache.find(c => c.name.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase().includes(cleanSearch) && c.type === ChannelType.GuildText);
+          
+          const overwrites = [];
+          if (isPrivate) {
+            overwrites.push(
+              { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] }
+            );
+            if (verifiedRole) {
+              overwrites.push(
+                { id: verifiedRole.id, deny: [PermissionFlagsBits.ViewChannel] }
+              );
+            }
+          }
 
-        // D. Create Category: 🔊 VOICE CHANNELS and VCs
-        let vcCategory = guild.channels.cache.find(c => c.name.toUpperCase().includes('VOICE') && c.type === ChannelType.GuildCategory);
-        if (!vcCategory) {
-          vcCategory = await guild.channels.create({
-            name: '🔊 VOICE CHANNELS',
-            type: ChannelType.GuildCategory
-          });
-          console.log('[KryloSMP Setup] Created voice category.');
-        }
+          if (!ch) {
+            ch = await guild.channels.create({
+              name: name,
+              type: ChannelType.GuildText,
+              parent: parentCat.id,
+              topic: topic,
+              permissionOverwrites: overwrites
+            });
+            console.log(`[KryloSMP Setup] Created channel: ${name}`);
+          } else {
+            if (ch.parentId !== parentCat.id) {
+              await ch.setParent(parentCat.id).catch(() => {});
+              console.log(`[KryloSMP Setup] Moved channel ${ch.name} to category ${parentCat.name}`);
+            }
+            if (isPrivate) {
+              await ch.permissionOverwrites.edit(guild.roles.everyone.id, { ViewChannel: false }).catch(() => {});
+              if (verifiedRole) {
+                await ch.permissionOverwrites.edit(verifiedRole.id, { ViewChannel: false }).catch(() => {});
+              }
+            }
+          }
+          return ch;
+        };
 
+        // Align channels under 📌 INFORMATION
+        await ensureChannel('📌┃rules', infoCat, 'Official server rules and regulations.');
+        await ensureChannel('ℹ️┃server-info', infoCat, 'Server information, IP address, and role selector.');
+        await ensureChannel('📢┃announcements', infoCat, 'Official server news and announcements.');
+        await ensureChannel('💡┃suggestions', infoCat, 'Submit your ideas and vote on suggestions!');
+
+        // Align channels under 💬 COMMUNITY ZONE
+        await ensureChannel('💬┃general-chat', commCat, 'General chat and discussion for KryloSMP players.');
+        await ensureChannel('📷┃media-clips', commCat, 'Post your builds, screenshots, and videos!');
+        await ensureChannel('🛒┃marketplace', commCat, 'List items for sale, trade, and advertise player shops.');
+        await ensureChannel('🤖┃bot-commands', commCat, 'Use bot commands like /rank or /xpleaderboard here to keep chat clean.');
+        await ensureChannel('📈┃polls', commCat, 'Participate in official server votes and polls.');
+
+        // Align channels under 🎪 EVENTS & ACTIVITIES
+        await ensureChannel('⚔️┃pvp-chat', eventCat, 'Chat about PvP, tournaments, and duels.');
+        await ensureChannel('🏆┃tournaments', eventCat, 'Official server tournament updates.');
+        await ensureChannel('🎨┃build-showcase', eventCat, 'Share your base coordinates or submit builds for build contests!');
+        await ensureChannel('🎉┃giveaways', eventCat, 'Participate in item and rank giveaways!');
+
+        // Align channels under 🎮 MINECRAFT LIVE
+        const onlinePlayersCh = await ensureChannel('🟢┃players-online', liveCat, 'Real-time player tracking for KryloSMP.');
+        const leaderboardCh = await ensureChannel('🏆┃leaderboards', liveCat, 'KryloSMP global chat and in-game leaderboards.');
+        await ensureChannel('📰┃server-updates', liveCat, 'Real-time alerts for server join/leaves, deaths, and advancements!');
+
+        // Align channels under 📞 STAFF AREA
+        await ensureChannel('💬┃staff-chat', staffCat, 'Private chat area for staff members only.', true);
+        const modLogsCh = await ensureChannel('🛡️┃mod-logs', staffCat, 'Moderator action logs and system notifications.', true);
+        await ensureChannel('🚨┃reports', staffCat, 'Real-time player report logs.', true);
+
+        // Align Voice Channels
         const voiceChannels = ['🔊┃Lobby', '🔊┃Survival 1', '🔊┃Survival 2', '🔊┃Gaming'];
         for (const vcName of voiceChannels) {
-          const existingVC = guild.channels.cache.find(c => c.name === vcName && c.type === ChannelType.GuildVoice && c.parentId === vcCategory.id);
+          const existingVC = guild.channels.cache.find(c => c.name === vcName && c.type === ChannelType.GuildVoice && c.parentId === voiceCat.id);
           if (!existingVC) {
             await guild.channels.create({
               name: vcName,
               type: ChannelType.GuildVoice,
-              parent: vcCategory.id
+              parent: voiceCat.id
             });
             console.log(`[KryloSMP Setup] Created voice channel: ${vcName}`);
           }
         }
+
+        // Setup live status and leaderboard polling
+        if (onlinePlayersCh) {
+          try {
+            const oldMsgs = await onlinePlayersCh.messages.fetch({ limit: 50 });
+            if (oldMsgs.size > 0) {
+              await onlinePlayersCh.bulkDelete(oldMsgs).catch(async () => {
+                for (const [, m] of oldMsgs) {
+                  await m.delete().catch(() => {});
+                }
+              });
+            }
+          } catch (err) {
+            console.warn('Failed to clear old status messages:', err.message);
+          }
+          startLiveStatusUpdate(guild, onlinePlayersCh);
+        }
+        
+        startLeaderboardUpdate(guild);
+        startPaperAutoUpdater(guild);
+
       } catch (err) {
-        console.warn('[KryloSMP Setup] Failed to setup premium SMP channels:', err.message);
+        console.warn('[KryloSMP Setup] Failed to setup channels/categories structure:', err.message);
       }
 
-      // 5. Enforce Verification Gateway Channel Permissions
-      console.log('[KryloSMP Setup] Enforcing Verification Gateway permissions...');
-      const categories = guild.channels.cache.filter(c => c.type === ChannelType.GuildCategory);
-      for (const [, cat] of categories) {
-        if (cat.name.toUpperCase().includes('INFORMATION')) {
-          continue;
-        }
+      // 5. Enforce Verification Gateway Category-Level Permissions
+      console.log('[KryloSMP Setup] Enforcing gateway permissions for all categories...');
+      try {
+        const categories = guild.channels.cache.filter(c => c.type === ChannelType.GuildCategory);
+        for (const [, cat] of categories) {
+          if (cat.name.toUpperCase().includes('INFORMATION')) {
+            // Everyone can see INFORMATION category (so they can verify!)
+            await cat.permissionOverwrites.edit(guild.roles.everyone.id, {
+              ViewChannel: true
+            }).catch(() => {});
+            continue;
+          }
 
-        try {
+          // Lock all other categories for unverified, open for verified!
           await cat.permissionOverwrites.edit(guild.roles.everyone.id, {
             ViewChannel: false
-          });
+          }).catch(() => {});
+          
           if (verifiedRole) {
             await cat.permissionOverwrites.edit(verifiedRole.id, {
               ViewChannel: true
-            });
+            }).catch(() => {});
           }
-        } catch (err) {
-          console.warn(`Failed to enforce gateway permissions for category ${cat.name}:`, err.message);
         }
+      } catch (err) {
+        console.warn('Failed to enforce category gateway permissions:', err.message);
       }
 
-      // 5. Enforce Private Staff Channel Permissions (hide from Verified players!)
-      console.log('[KryloSMP Setup] Securing private staff channels...');
-      const staffChannels = guild.channels.cache.filter(c => 
-        (c.name.includes('staff-chat') || c.name.includes('mod-logs') || c.name.includes('staff_chat') || c.name.includes('mod_logs')) && 
-        c.type === ChannelType.GuildText
-      );
-      for (const [, ch] of staffChannels) {
-        try {
-          await ch.permissionOverwrites.edit(guild.roles.everyone.id, {
-            ViewChannel: false
-          });
-          if (verifiedRole) {
-            await ch.permissionOverwrites.edit(verifiedRole.id, {
-              ViewChannel: false
-            });
-          }
-        } catch (err) {
-          console.warn(`Failed to secure staff channel ${ch.name}:`, err.message);
-        }
-      }
-
-      // 6. Setup Live Status / Online Players Channel
-      console.log('[KryloSMP Setup] Setting up Live Player Status channel...');
-      let onlinePlayersCh = guild.channels.cache.find(c => c.name.includes('players-online') && c.type === ChannelType.GuildText);
-      if (!onlinePlayersCh) {
-        const commCategory = guild.channels.cache.find(c => c.name.toUpperCase().includes('COMMUNITY') && c.type === ChannelType.GuildCategory);
-        try {
-          onlinePlayersCh = await guild.channels.create({
-            name: '🟢-players-online',
-            type: ChannelType.GuildText,
-            parent: commCategory ? commCategory.id : null,
-            topic: 'Real-time player tracking for KryloSMP',
-            permissionOverwrites: [
-              {
-                id: guild.roles.everyone.id,
-                allow: [PermissionFlagsBits.ViewChannel],
-                deny: [PermissionFlagsBits.SendMessages]
-              }
-            ],
-            reason: 'Auto-created live player status channel'
-          });
-          console.log('[KryloSMP Setup] Created missing 🟢-players-online channel.');
-        } catch (err) {
-          console.warn('[KryloSMP Setup] Failed to create 🟢-players-online channel:', err.message);
-        }
-      }
-
-      if (onlinePlayersCh) {
-        try {
-          const oldMsgs = await onlinePlayersCh.messages.fetch({ limit: 50 });
-          if (oldMsgs.size > 0) {
-            await onlinePlayersCh.bulkDelete(oldMsgs).catch(async () => {
-              for (const [, m] of oldMsgs) {
-                await m.delete().catch(() => {});
-              }
-            });
-          }
-        } catch (err) {
-          console.warn('Failed to clear old status messages:', err.message);
-        }
-        startLiveStatusUpdate(guild, onlinePlayersCh);
-      }
-      startLeaderboardUpdate(guild);
-      startPaperAutoUpdater(guild);
-
-      // 7. Setup PvP and Tournament Roles & Channels
+      // 6. Setup PvP and Tournament Roles & Channels
       console.log('[KryloSMP Setup] Setting up PvP and Tournament roles and channels...');
       
-      // Get or create PvP Player role
       let pvpRole = guild.roles.cache.find(r => r.name === 'PvP Player');
       if (!pvpRole) {
         try {
@@ -997,7 +1000,6 @@ client.once('ready', async () => {
         }
       }
 
-      // Get or create Tournament Participant role
       let tournamentRole = guild.roles.cache.find(r => r.name === 'Tournament Participant');
       if (!tournamentRole) {
         try {
