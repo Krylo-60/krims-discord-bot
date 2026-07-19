@@ -553,7 +553,7 @@ client.once('ready', async () => {
 
   // Start polling Vercel configuration database for pending actions (Web-to-Discord Embed Broadcaster)
   setInterval(async () => {
-    const GUILD_ID = '1420991845546332162';
+    const GUILD_ID = '1524878881918685405';
     try {
       const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
         method: 'POST',
@@ -1729,7 +1729,7 @@ client.on('interactionCreate', async (interaction) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'request_verification',
-            guildId: '1420991845546332162',
+            guildId: '1524878881918685405',
             name: mcUsername,
             discordUserId: interaction.user.id
           })
@@ -1761,7 +1761,7 @@ client.on('interactionCreate', async (interaction) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'confirm_verification_code',
-            guildId: '1420991845546332162',
+            guildId: '1524878881918685405',
             code: code,
             discordUserId: interaction.user.id
           })
@@ -2058,7 +2058,7 @@ client.on('interactionCreate', async (interaction) => {
 
     // Owner / Creator Protection Guard
     const protectedMcNames = ['krishiv', 'krylo_mc', 'krishivpb60'];
-    if (targetUser && (targetUser.id === interaction.guild.ownerId || targetUser.id === '1420991845546332162' || targetUser.id === '1524878881918685405')) {
+    if (targetUser && (targetUser.id === interaction.guild.ownerId || targetUser.id === '1524878881918685405' || targetUser.id === '1524878881918685405')) {
       await interaction.reply({ content: '❌ **Protection Guard:** You cannot ban the server owner or developers!', ephemeral: true });
       return;
     }
@@ -2167,7 +2167,7 @@ client.on('interactionCreate', async (interaction) => {
         const dbRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'get_config', guildId: '1420991845546332162' })
+          body: JSON.stringify({ action: 'get_config', guildId: '1524878881918685405' })
         });
         if (dbRes.ok) {
           const guildConfig = await dbRes.json();
@@ -2530,7 +2530,7 @@ client.on('interactionCreate', async (interaction) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'confirm_verification',
-          guildId: '1420991845546332162',
+          guildId: '1524878881918685405',
           code: code,
           discordUserId: interaction.user.id
         })
@@ -3046,7 +3046,7 @@ client.on('messageCreate', async (message) => {
   if (message.guild) {
     const authorId = message.author.id;
     // Protection check: Bypasses owner (Guild owner) and developers
-    const isProtected = authorId === message.guild.ownerId || authorId === '1420991845546332162' || authorId === '1524878881918685405';
+    const isProtected = authorId === message.guild.ownerId || authorId === '1524878881918685405' || authorId === '1524878881918685405';
     
     if (!isProtected) {
       const member = message.member;
@@ -3894,7 +3894,7 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
         const dbRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'get_config', guildId: '1420991845546332162' })
+          body: JSON.stringify({ action: 'get_config', guildId: '1524878881918685405' })
         });
         if (dbRes.ok) {
           const config = await dbRes.json();
@@ -3921,7 +3921,7 @@ client.on('guildBanAdd', async (ban) => {
 
   // Owner / Creator Protection Guard
   const protectedMcNames = ['krishiv', 'krylo_mc', 'krishivpb60'];
-  if (user.id === ban.guild.ownerId || user.id === '1420991845546332162' || user.id === '1524878881918685405') {
+  if (user.id === ban.guild.ownerId || user.id === '1524878881918685405' || user.id === '1524878881918685405') {
     console.log(`[Double-Ban Sync] Aborted ban synchronization: Banned user is a protected owner/developer.`);
     return;
   }
@@ -3932,7 +3932,7 @@ client.on('guildBanAdd', async (ban) => {
     const dbRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'get_config', guildId: '1420991845546332162' })
+      body: JSON.stringify({ action: 'get_config', guildId: '1524878881918685405' })
     });
 
     if (dbRes.ok) {
