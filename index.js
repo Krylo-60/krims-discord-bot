@@ -3707,16 +3707,6 @@ client.on('guildBanAdd', async (ban) => {
 // LIVE MINECRAFT STATUS UPDATE SCHEDULER
 // ═══════════════════════════════════════════════════════════
 async function startLiveStatusUpdate(guild, channel) {
-  let statusMessage = null;
-
-  // Try to find existing bot message to edit
-  try {
-    const messages = await channel.messages.fetch({ limit: 10 });
-    statusMessage = messages.find(m => m.author.id === client.user.id);
-  } catch (err) {
-    console.warn('[Live Status] Failed to fetch messages:', err.message);
-  }
-
   // Update function
   const updateStatus = async () => {
     try {
@@ -3761,12 +3751,19 @@ async function startLiveStatusUpdate(guild, channel) {
         client.user.setActivity('KryloSMP (Offline)', { type: 0 });
       }
 
-      if (statusMessage) {
-        try {
-          await statusMessage.delete().catch(() => {});
-        } catch (e) {}
+      // Fetch and delete any existing bot messages in this channel to clear old statuses
+      try {
+        const messages = await channel.messages.fetch({ limit: 10 });
+        const botMessages = messages.filter(m => m.author.id === client.user.id);
+        for (const [, msg] of botMessages) {
+          await msg.delete().catch(() => {});
+        }
+      } catch (err) {
+        console.warn('[Live Status] Failed to clean up old status messages:', err.message);
       }
-      statusMessage = await channel.send({ embeds: [embed] });
+
+      // Send the new fresh status message
+      await channel.send({ embeds: [embed] });
     } catch (err) {
       console.warn('[Live Status] Error updating status:', err.message);
     }
