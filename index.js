@@ -636,10 +636,21 @@ client.once('ready', async () => {
         const messages = await supportCh.messages.fetch({ limit: 10 });
         const hasTicketBtn = messages.some(m => m.components.some(c => c.components.some(b => b.customId === 'open_ticket')));
         if (!hasTicketBtn) {
+          try {
+            if (messages.size > 0) {
+              await supportCh.bulkDelete(messages).catch(async () => {
+                for (const [, m] of messages) {
+                  await m.delete().catch(() => {});
+                }
+              });
+            }
+          } catch {}
+
           const embed = new EmbedBuilder()
             .setColor(0x00F2FF)
             .setTitle('🎟️ KryloSMP Support Tickets')
-            .setDescription('Need assistance, want to report a player, or have a question? Click the button below to open a private support ticket with our staff!');
+            .setDescription('Need assistance, want to report a player, or have a question? Click the button below to open a private support ticket with our staff!')
+            .setImage('attachment://krylosmp_banner.png');
           const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
               .setCustomId('open_ticket')
@@ -647,7 +658,11 @@ client.once('ready', async () => {
               .setStyle(ButtonStyle.Primary)
               .setEmoji('🎟️')
           );
-          await supportCh.send({ embeds: [embed], components: [row] });
+          const files = [];
+          if (fs.existsSync('krylosmp_banner.png')) {
+            files.push(new AttachmentBuilder('krylosmp_banner.png', { name: 'krylosmp_banner.png' }));
+          }
+          await supportCh.send({ embeds: [embed], components: [row], files });
           console.log(`[KryloSMP Setup] Sent support ticket button embed.`);
         }
       }
@@ -658,10 +673,21 @@ client.once('ready', async () => {
         const messages = await infoCh.messages.fetch({ limit: 20 });
         const hasRoleBtn = messages.some(m => m.components.some(c => c.components.some(b => b.customId.startsWith('role_'))));
         if (!hasRoleBtn) {
+          try {
+            if (messages.size > 0) {
+              await infoCh.bulkDelete(messages).catch(async () => {
+                for (const [, m] of messages) {
+                  await m.delete().catch(() => {});
+                }
+              });
+            }
+          } catch {}
+
           const embed = new EmbedBuilder()
             .setColor(0xAA55FF)
             .setTitle('🎨 Server Roles Selection')
-            .setDescription('Click the buttons below to grab your platform and notification roles!');
+            .setDescription('Click the buttons below to grab your platform and notification roles!')
+            .setImage('attachment://krylosmp_banner.png');
           const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
               .setCustomId('role_java')
@@ -684,7 +710,11 @@ client.once('ready', async () => {
               .setStyle(ButtonStyle.Primary)
               .setEmoji('🎁')
           );
-          await infoCh.send({ embeds: [embed], components: [row] });
+          const files = [];
+          if (fs.existsSync('krylosmp_banner.png')) {
+            files.push(new AttachmentBuilder('krylosmp_banner.png', { name: 'krylosmp_banner.png' }));
+          }
+          await infoCh.send({ embeds: [embed], components: [row], files });
           console.log(`[KryloSMP Setup] Sent role selection button embed.`);
         }
       }
@@ -767,7 +797,8 @@ client.once('ready', async () => {
           const embed = new EmbedBuilder()
             .setColor(0x00FF66)
             .setTitle('🔗 Link Minecraft Account')
-            .setDescription('Link your official Minecraft account to gain access to the **Verified** role, sync your nickname, and track your in-game stats directly on Discord!\n\n**Instructions:**\n1. Click **Link Account** below and enter your Minecraft username.\n2. Log in to the Minecraft server (**`KryloSmp.play.hosting`**) where your verification code will display in chat!\n3. Click **Enter Verification Code** below and enter the code you received in-game.');
+            .setDescription('Link your official Minecraft account to gain access to the **Verified** role, sync your nickname, and track your in-game stats directly on Discord!\n\n**Instructions:**\n1. Click **Link Account** below and enter your Minecraft username.\n2. Log in to the Minecraft server (**`KryloSmp.play.hosting`**) where your verification code will display in chat!\n3. Click **Enter Verification Code** below and enter the code you received in-game.')
+            .setImage('attachment://krylosmp_banner.png');
           
           const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
@@ -781,7 +812,11 @@ client.once('ready', async () => {
               .setStyle(ButtonStyle.Primary)
               .setEmoji('🔑')
           );
-          await verifyCh.send({ embeds: [embed], components: [row] });
+          const files = [];
+          if (fs.existsSync('krylosmp_banner.png')) {
+            files.push(new AttachmentBuilder('krylosmp_banner.png', { name: 'krylosmp_banner.png' }));
+          }
+          await verifyCh.send({ embeds: [embed], components: [row], files });
           console.log(`[KryloSMP Setup] Sent verification button embed.`);
         } else {
           console.log(`[KryloSMP Setup] Verify button already exists, skipping.`);
