@@ -873,6 +873,7 @@ client.once('ready', async () => {
         startLiveStatusUpdate(guild, onlinePlayersCh);
       }
       startLeaderboardUpdate(guild);
+      startPaperAutoUpdater(guild);
 
       // 7. Setup PvP and Tournament Roles & Channels
       console.log('[KryloSMP Setup] Setting up PvP and Tournament roles and channels...');
@@ -3919,6 +3920,233 @@ async function startLiveStatusUpdate(guild, channel) {
   // Run immediately and then schedule every 20 seconds
   await updateStatus();
   setInterval(updateStatus, 20000);
+}
+
+let isUpgradingPaper = false;
+
+async function startPaperAutoUpdater(guild) {
+  // Check every 10 minutes
+  setInterval(async () => {
+    if (isUpgradingPaper) return;
+    
+    try {
+      // 1. Fetch latest build from PaperMC API v3
+      const apiRes = await fetch('https://fill.papermc.io/v3/projects/paper/versions/26.2', {
+        headers: { 'User-Agent': 'KrimsBot/1.0.0 (contact@krims.com)' }
+      });
+      if (!apiRes.ok) return;
+      const apiData = await apiRes.json();
+      if (!apiData || !apiData.builds || apiData.builds.length === 0) return;
+      
+      const latestBuild = apiData.builds[0]; // e.g. 62 or 63
+      if (!latestBuild) return;
+
+      // 2. Fetch current config to check installedPaperBuild
+      const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get_config', guildId: '1524878881918685405' })
+      });
+      if (!configRes.ok) return;
+      const guildConfig = await configRes.json();
+      const installedBuild = guildConfig.installedPaperBuild || 62; // Default to 62
+
+      if (latestBuild > installedBuild) {
+        console.log(`[Paper Auto-Updater] New build detected: #${latestBuild} (current is #${installedBuild}). Starting upgrade sequence...`);
+        isUpgradingPaper = true;
+
+        const serverId = '25a5d79a';
+        const pteroToken = process.env.PTERODACTYL_TOKEN;
+        const generalCh = guild.channels.cache.find(c => c.name.includes('general-chat') && c.type === ChannelType.GuildText);
+
+        // A. Send warnings to Discord & Minecraft Console
+        const sendAlert = async (timeLeftText) => {
+          const alertMsg = `🚨 **PaperMC Server Auto-Upgrade Alert!**\n` +
+            `A new Paper build (#${latestBuild}) has been detected. The Minecraft server will save and shut down for auto-upgrade in **${timeLeftText}**.\n` +
+            `*Please save your progress and log out safely!*`;
+          
+          if (generalCh) {
+            await generalCh.send({
+              embeds: [
+                new EmbedBuilder()
+                  .setColor(0xFF3300)
+                  .setTitle('⚠️ Server Update Warning')
+                  .setDescription(alertMsg)
+                  .setTimestamp()
+              ]
+            }).catch(() => {});
+          }
+
+          // Send to Minecraft console using say command
+          try {
+            await fetch(`https://panel.play.hosting/api/client/servers/${serverId}/command`, {
+              method: 'POST',
+              headers: {
+                'Authorization': 'Bearer ' + pteroToken,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify({ command: `say [ALERT] Server is shutting down for update in ${timeLeftText}!` })
+            });
+          } catch (e) {
+            console.warn('[Paper Auto-Updater] Failed to send say command:', e.message);
+          }
+        };
+
+        // Warning countdown schedule (shorter intervals for testing & server safety)
+        await sendAlert('5 minutes');
+        await new Promise(r => setTimeout(r, 60000)); // 1 min wait
+        await sendAlert('4 minutes');
+        await new Promise(r => setTimeout(r, 60000)); // 1 min wait
+        await sendAlert('3 minutes');
+        await new Promise(r => setTimeout(r, 60000)); // 1 min wait
+        await sendAlert('2 minutes');
+        await new Promise(r => setTimeout(r, 60000)); // 1 min wait
+        await sendAlert('1 minute');
+        await new Promise(r => setTimeout(r, 50000)); // 50s wait
+        await sendAlert('10 seconds');
+        await new Promise(r => setTimeout(r, 10000)); // 10s wait
+
+        // B. Stop the server
+        console.log('[Paper Auto-Updater] Stopping Minecraft server...');
+        try {
+          await fetch(`https://panel.play.hosting/api/client/servers/${serverId}/power`, {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer ' + pteroToken,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({ signal: 'stop' })
+          });
+        } catch (e) {
+          console.warn('[Paper Auto-Updater] Failed to send stop command:', e.message);
+        }
+
+        // Wait 30 seconds for the server to halt completely
+        await new Promise(r => setTimeout(r, 30000));
+
+        // C. Delete old server.jar
+        console.log('[Paper Auto-Updater] Deleting old server.jar...');
+        try {
+          await fetch(`https://panel.play.hosting/api/client/servers/${serverId}/files/delete`, {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer ' + pteroToken,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+              root: '/',
+              files: ['server.jar']
+            })
+          });
+        } catch (e) {
+          console.warn('[Paper Auto-Updater] Failed to delete old jar:', e.message);
+        }
+
+        // D. Pull the new jar directly to the server
+        console.log('[Paper Auto-Updater] Pulling new jar...');
+        const downloadUrl = `https://fill.papermc.io/v3/projects/paper/versions/26.2/builds/${latestBuild}/downloads/paper-26.2-${latestBuild}.jar`;
+        try {
+          await fetch(`https://panel.play.hosting/api/client/servers/${serverId}/files/pull`, {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer ' + pteroToken,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+              url: downloadUrl,
+              directory: '/'
+            })
+          });
+        } catch (e) {
+          console.warn('[Paper Auto-Updater] Failed to pull new jar:', e.message);
+        }
+
+        // Wait 30 seconds for Wings to complete the download
+        await new Promise(r => setTimeout(r, 30000));
+
+        // E. Rename the pulled jar to server.jar
+        console.log('[Paper Auto-Updater] Renaming pulled jar to server.jar...');
+        try {
+          await fetch(`https://panel.play.hosting/api/client/servers/${serverId}/files/rename`, {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer ' + pteroToken,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+              root: '/',
+              files: [
+                {
+                  from: `paper-26.2-${latestBuild}.jar`,
+                  to: 'server.jar'
+                }
+              ]
+            })
+          });
+        } catch (e) {
+          console.warn('[Paper Auto-Updater] Failed to rename new jar:', e.message);
+        }
+
+        // F. Start the server
+        console.log('[Paper Auto-Updater] Starting Minecraft server...');
+        try {
+          await fetch(`https://panel.play.hosting/api/client/servers/${serverId}/power`, {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer ' + pteroToken,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({ signal: 'start' })
+          });
+        } catch (e) {
+          console.warn('[Paper Auto-Updater] Failed to start server:', e.message);
+        }
+
+        // G. Update config in database
+        guildConfig.installedPaperBuild = latestBuild;
+        try {
+          await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'save_config',
+              guildId: '1524878881918685405',
+              config: guildConfig
+            })
+          });
+        } catch (e) {
+          console.warn('[Paper Auto-Updater] Failed to save updated config:', e.message);
+        }
+
+        // H. Send success notification to Discord
+        if (generalCh) {
+          await generalCh.send({
+            embeds: [
+              new EmbedBuilder()
+                .setColor(0x00FF66)
+                .setTitle('✅ Server Upgrade Complete!')
+                .setDescription(
+                  `The Minecraft server has been successfully upgraded to **Paper Build #${latestBuild}**!\n` +
+                  `All systems are back online at \`KryloSmp.play.hosting\`.`
+                )
+                .setTimestamp()
+            ]
+          }).catch(() => {});
+        }
+
+        isUpgradingPaper = false;
+      }
+    } catch (err) {
+      console.warn('[Paper Auto-Updater] Error in update check loop:', err.message);
+      isUpgradingPaper = false;
+    }
+  }, 600000); // Check every 10 minutes
 }
 
 async function startLeaderboardUpdate(guild) {
