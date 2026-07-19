@@ -1,10 +1,11 @@
-import { Client, GatewayIntentBits, Partials, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
+import { Client, GatewayIntentBits, Partials, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder } from 'discord.js';
 import { KrimsClient } from '@krishivpb60/krims-code-sdk';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
 import fs from 'fs';
 import { exec, spawn } from 'child_process';
 import util from 'util';
+import path from 'path';
 
 dotenv.config();
 
@@ -13,10 +14,13 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
-    GatewayIntentBits.DirectMessages
+    GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.GuildMessageReactions
   ],
   partials: [
-    Partials.Channel
+    Partials.Channel,
+    Partials.Message,
+    Partials.Reaction
   ]
 });
 
@@ -32,6 +36,182 @@ const giveawayEntries = new Map(); // giveaway message ID -> Set of user IDs
 const COOLDOWN_TIME = 10000; // 10 seconds cooldown in milliseconds
 const spamMap = new Map();
 const userStrikes = new Map();
+
+// PvP Matchmaking State
+let activeDuel = null; // { challengerId, challengedId, channelId }
+const pvpQueue = [];  // Array of { challengerId, challengedId, challengerTag, challengedTag }
+
+// Chat Activity Leveling System
+const xpCooldowns = new Set();
+let xpData = {};
+
+try {
+  if (fs.existsSync('xp.json')) {
+    xpData = JSON.parse(fs.readFileSync('xp.json', 'utf8'));
+  }
+} catch (err) {
+  console.warn("[Leveling] Failed to load XP data:", err.message);
+}
+
+function saveXPData() {
+  try {
+    fs.writeFileSync('xp.json', JSON.stringify(xpData, null, 2));
+  } catch (err) {
+    console.warn("[Leveling] Failed to save XP data:", err.message);
+  }
+}
+
+async function handleMessageXP(message) {
+  if (!message.guild) return;
+  const userId = message.author.id;
+  
+  if (xpCooldowns.has(userId)) return;
+  xpCooldowns.add(userId);
+  setTimeout(() => xpCooldowns.delete(userId), 60000); // 60s cooldown
+  
+  if (!xpData[userId]) {
+    xpData[userId] = { xp: 0, level: 1 };
+  }
+  
+  const xpToAdd = Math.floor(Math.random() * 11) + 15;
+  xpData[userId].xp += xpToAdd;
+  
+  const currentLevel = xpData[userId].level;
+  const xpNeeded = 5 * (currentLevel * currentLevel) + 50 * currentLevel + 100;
+  
+  if (xpData[userId].xp >= xpNeeded) {
+    xpData[userId].level += 1;
+    saveXPData();
+    
+    try {
+      const levelUpEmbed = new EmbedBuilder()
+        .setColor(0x00F2FF)
+        .setTitle('🎉 LEVEL UP!')
+        .setDescription(`Congratulations <@${userId}>, you have reached **Level ${xpData[userId].level}**! 🎉\nKeep chatting to unlock cool status!`)
+        .setFooter({ text: 'KryloSMP Chat Leveling ⚡' })
+        .setTimestamp();
+      
+      await message.channel.send({ embeds: [levelUpEmbed] });
+    } catch (e) {
+      console.warn("[Leveling] Failed to send level up message:", e.message);
+    }
+  } else {
+    saveXPData();
+  }
+}
+
+async function startNextDuel(guild) {
+  if (activeDuel) return; // A duel is already in progress
+  if (pvpQueue.length === 0) return; // No one in the queue
+
+  const nextMatch = pvpQueue.shift();
+  try {
+    const challenger = await guild.members.fetch(nextMatch.challengerId).catch(() => null);
+    const challenged = await guild.members.fetch(nextMatch.challengedId).catch(() => null);
+
+    if (!challenger || !challenged) {
+      // If one of the players left or is invalid, try the next one
+      await startNextDuel(guild);
+      return;
+    }
+
+    // Find or create PvP category
+    const pvpCategory = guild.channels.cache.find(c => c.name.toLowerCase().includes('pvp') && c.type === ChannelType.GuildCategory);
+
+    const duelChannel = await guild.channels.create({
+      name: `⚔️┃duel-${challenger.user.username.toLowerCase()}-vs-${challenged.user.username.toLowerCase()}`,
+      type: ChannelType.GuildText,
+      parent: pvpCategory ? pvpCategory.id : null,
+      topic: `Active 1v1 PvP Duel: ${challenger.user.tag} vs ${challenged.user.tag}. Type /endduel to finish.`,
+      permissionOverwrites: [
+        {
+          id: guild.roles.everyone.id,
+          deny: [PermissionFlagsBits.ViewChannel]
+        },
+        {
+          id: challenger.id,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+        },
+        {
+          id: challenged.id,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+        },
+        {
+          id: client.user.id,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+        }
+      ]
+    });
+
+    activeDuel = {
+      challengerId: challenger.id,
+      challengedId: challenged.id,
+      channelId: duelChannel.id
+    };
+
+    const embed = new EmbedBuilder()
+      .setColor(0xFF0055)
+      .setTitle('⚔️ PvP Duel Commenced!')
+      .setDescription(`The duel between <@${challenger.id}> and <@${challenged.id}> has begun!\n\n**Instructions:**\n1. Join the server and warp to the arena: \`/warp pvp\`\n2. Battle each other!\n3. Once you are finished, type \`/endduel\` or click the button below to close this channel and start the next match in the queue.`)
+      .setTimestamp();
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('pvp_finish_duel')
+        .setLabel('Finish Duel')
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji('🏁')
+    );
+
+    await duelChannel.send({ content: `<@${challenger.id}> vs <@${challenged.id}>`, embeds: [embed], components: [row] });
+
+    // Notify in general pvp channel
+    const pvpChatCh = guild.channels.cache.find(c => c.name.includes('pvp-chat') && c.type === ChannelType.GuildText);
+    if (pvpChatCh) {
+      await pvpChatCh.send(`⚔️ **A duel has started!** <@${challenger.id}> vs <@${challenged.id}> is now active in <#${duelChannel.id}>.`);
+    }
+  } catch (err) {
+    console.error('Failed to start next duel:', err.message);
+    activeDuel = null;
+    await startNextDuel(guild);
+  }
+}
+
+async function endCurrentDuel(guild, duelChannel) {
+  if (!activeDuel) return;
+  
+  const oldDuel = activeDuel;
+  activeDuel = null;
+
+  try {
+    await duelChannel.delete();
+  } catch (err) {
+    console.warn('[PvP Matchmaking] Failed to delete duel channel:', err.message);
+  }
+
+  // Remove PvP Player role from both players
+  try {
+    const pvpRole = guild.roles.cache.find(r => r.name === 'PvP Player');
+    if (pvpRole) {
+      const challenger = await guild.members.fetch(oldDuel.challengerId).catch(() => null);
+      const challenged = await guild.members.fetch(oldDuel.challengedId).catch(() => null);
+      if (challenger) await challenger.roles.remove(pvpRole).catch(() => {});
+      if (challenged) await challenged.roles.remove(pvpRole).catch(() => {});
+      console.log(`[PvP Matchmaking] Removed PvP Player role from ${oldDuel.challengerId} and ${oldDuel.challengedId}`);
+    }
+  } catch (roleErr) {
+    console.warn('[PvP Matchmaking] Failed to remove role:', roleErr.message);
+  }
+
+  // Post notice in pvp-chat
+  const pvpChatCh = guild.channels.cache.find(c => c.name.includes('pvp-chat') && c.type === ChannelType.GuildText);
+  if (pvpChatCh) {
+    await pvpChatCh.send(`🏁 **Duel Finished:** <@${oldDuel.challengerId}> vs <@${oldDuel.challengedId}> has concluded. PvP roles have been removed.`);
+  }
+
+  // Start next match
+  await startNextDuel(guild);
+}
 
 const execPromise = util.promisify(exec);
 
@@ -90,7 +270,15 @@ client.once('ready', async () => {
     },
     {
       name: 'ticket',
-      description: 'Open a secure private support ticket channel'
+      description: 'Open a secure private support ticket channel',
+      options: [
+        {
+          name: 'reason',
+          type: 3, // String type
+          description: 'The reason / question for opening this ticket',
+          required: true
+        }
+      ]
     },
     {
       name: 'close',
@@ -237,6 +425,86 @@ client.once('ready', async () => {
           required: false
         }
       ]
+    },
+    {
+      name: 'pvp',
+      description: 'Toggle your access to the private PvP chat channel'
+    },
+    {
+      name: 'tournament',
+      description: 'Toggle your access to the private tournaments channel'
+    },
+    {
+      name: 'tornament',
+      description: 'Toggle your access to the private tournaments channel (alias)'
+    },
+    {
+      name: 'challenge',
+      description: 'Challenge another player to a 1v1 PvP duel',
+      options: [
+        {
+          name: 'opponent',
+          type: 6,
+          description: 'The player you want to challenge',
+          required: true
+        }
+      ]
+    },
+    {
+      name: 'endduel',
+      description: 'End the current PvP duel and start the next match in the queue'
+    },
+    {
+      name: 'coinflip',
+      description: 'Flip a coin - Heads or Tails!'
+    },
+    {
+      name: 'roll',
+      description: 'Roll a dice (1 to 6) or specify a custom range',
+      options: [
+        {
+          name: 'max',
+          type: 4, // Integer
+          description: 'Maximum number (default is 6)',
+          required: false
+        }
+      ]
+    },
+    {
+      name: 'avatar',
+      description: 'Get a link to a user\'s avatar image',
+      options: [
+        {
+          name: 'user',
+          type: 6, // User
+          description: 'The user to get the avatar of',
+          required: false
+        }
+      ]
+    },
+    {
+      name: 'joke',
+      description: 'Get a funny Minecraft or gaming joke'
+    },
+    {
+      name: 'meme',
+      description: 'Fetch a random funny Minecraft meme'
+    },
+    {
+      name: 'rank',
+      description: 'Show your server chat activity rank, level, and XP',
+      options: [
+        {
+          name: 'user',
+          type: 6, // User
+          description: 'The user to show the rank of',
+          required: false
+        }
+      ]
+    },
+    {
+      name: 'xpleaderboard',
+      description: 'Display the top 10 most active chatters in the server'
     }
   ];
 
@@ -432,40 +700,46 @@ client.once('ready', async () => {
       }
 
       if (verifyCh) {
-        try {
-          // Clear any old messages in the channel to ensure fresh setup
-          const oldMessages = await verifyCh.messages.fetch({ limit: 100 });
-          if (oldMessages.size > 0) {
-            await verifyCh.bulkDelete(oldMessages).catch(async () => {
-              // Fallback if bulkDelete fails (older than 14 days)
-              for (const [, m] of oldMessages) {
-                await m.delete().catch(() => {});
-              }
-            });
-          }
-        } catch (err) {
-          console.warn('Failed to clear old verify messages:', err.message);
-        }
-
-        const embed = new EmbedBuilder()
-          .setColor(0x00FF66)
-          .setTitle('🔗 Link Minecraft Account')
-          .setDescription('Link your official Minecraft account to gain access to the **Verified** role, sync your nickname, and track your in-game stats directly on Discord!\n\n**Instructions:**\n1. Click **Link Account** below and enter your Minecraft username.\n2. Log in to the Minecraft server (**`KryloSmp.play.hosting`**) where your verification code will display in chat!\n3. Click **Enter Verification Code** below and enter the code you received in-game.');
+        // Only post verify embed if it doesn't already exist (prevents duplicates on restart)
+        const existingMsgs = await verifyCh.messages.fetch({ limit: 10 });
+        const hasVerifyBtn = existingMsgs.some(m => m.author.id === client.user.id && m.components.some(c => c.components.some(b => b.customId === 'start_verification')));
         
-        const row = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId('start_verification')
-            .setLabel('Link Account')
-            .setStyle(ButtonStyle.Success)
-            .setEmoji('🔗'),
-          new ButtonBuilder()
-            .setCustomId('enter_verify_code')
-            .setLabel('Enter Code')
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji('🔑')
-        );
-        await verifyCh.send({ embeds: [embed], components: [row] });
-        console.log(`[KryloSMP Setup] Sent verification button embed.`);
+        if (!hasVerifyBtn) {
+          // Clear any stale messages before posting fresh embed
+          try {
+            if (existingMsgs.size > 0) {
+              await verifyCh.bulkDelete(existingMsgs).catch(async () => {
+                for (const [, m] of existingMsgs) {
+                  await m.delete().catch(() => {});
+                }
+              });
+            }
+          } catch (err) {
+            console.warn('Failed to clear old verify messages:', err.message);
+          }
+
+          const embed = new EmbedBuilder()
+            .setColor(0x00FF66)
+            .setTitle('🔗 Link Minecraft Account')
+            .setDescription('Link your official Minecraft account to gain access to the **Verified** role, sync your nickname, and track your in-game stats directly on Discord!\n\n**Instructions:**\n1. Click **Link Account** below and enter your Minecraft username.\n2. Log in to the Minecraft server (**`KryloSmp.play.hosting`**) where your verification code will display in chat!\n3. Click **Enter Verification Code** below and enter the code you received in-game.');
+          
+          const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId('start_verification')
+              .setLabel('Link Account')
+              .setStyle(ButtonStyle.Success)
+              .setEmoji('🔗'),
+            new ButtonBuilder()
+              .setCustomId('enter_verify_code')
+              .setLabel('Enter Code')
+              .setStyle(ButtonStyle.Primary)
+              .setEmoji('🔑')
+          );
+          await verifyCh.send({ embeds: [embed], components: [row] });
+          console.log(`[KryloSMP Setup] Sent verification button embed.`);
+        } else {
+          console.log(`[KryloSMP Setup] Verify button already exists, skipping.`);
+        }
       }
 
       // 4. Enforce Verification Gateway Channel Permissions
@@ -552,6 +826,138 @@ client.once('ready', async () => {
         }
         startLiveStatusUpdate(guild, onlinePlayersCh);
       }
+
+      // 7. Setup PvP and Tournament Roles & Channels
+      console.log('[KryloSMP Setup] Setting up PvP and Tournament roles and channels...');
+      
+      // Get or create PvP Player role
+      let pvpRole = guild.roles.cache.find(r => r.name === 'PvP Player');
+      if (!pvpRole) {
+        try {
+          pvpRole = await guild.roles.create({
+            name: 'PvP Player',
+            color: 0xFF0055,
+            reason: 'Auto-created PvP command role'
+          });
+          console.log('[KryloSMP Setup] Created PvP Player role.');
+        } catch (err) {
+          console.warn('[KryloSMP Setup] Failed to create PvP Player role:', err.message);
+        }
+      }
+
+      // Get or create Tournament Participant role
+      let tournamentRole = guild.roles.cache.find(r => r.name === 'Tournament Participant');
+      if (!tournamentRole) {
+        try {
+          tournamentRole = await guild.roles.create({
+            name: 'Tournament Participant',
+            color: 0xFFAA00,
+            reason: 'Auto-created Tournament command role'
+          });
+          console.log('[KryloSMP Setup] Created Tournament Participant role.');
+        } catch (err) {
+          console.warn('[KryloSMP Setup] Failed to create Tournament Participant role:', err.message);
+        }
+      }
+
+      // Find or create "─── PvP & TOURNAMENTS ───" category
+      let pvpCategory = guild.channels.cache.find(c => c.name.toLowerCase().includes('pvp') && c.type === ChannelType.GuildCategory);
+      if (!pvpCategory) {
+        try {
+          pvpCategory = await guild.channels.create({
+            name: '─── PvP & TOURNAMENTS ───',
+            type: ChannelType.GuildCategory,
+            reason: 'Auto-created PvP & Tournaments category'
+          });
+          console.log('[KryloSMP Setup] Created PvP & Tournaments category.');
+        } catch (err) {
+          console.warn('[KryloSMP Setup] Failed to create category:', err.message);
+        }
+      }
+
+      // Find or create pvp-chat channel
+      let pvpChatCh = guild.channels.cache.find(c => c.name.includes('pvp-chat') && c.type === ChannelType.GuildText);
+      if (!pvpChatCh && pvpRole) {
+        try {
+          pvpChatCh = await guild.channels.create({
+            name: '⚔️┃pvp-chat',
+            type: ChannelType.GuildText,
+            parent: pvpCategory ? pvpCategory.id : null,
+            topic: 'Private channel for PvP discussion and match making. Run /pvp to gain access!',
+            permissionOverwrites: [
+              {
+                id: guild.roles.everyone.id,
+                deny: [PermissionFlagsBits.ViewChannel]
+              },
+              {
+                id: pvpRole.id,
+                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+              },
+              {
+                id: client.user.id,
+                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+              }
+            ],
+            reason: 'Auto-created pvp-chat channel'
+          });
+          console.log('[KryloSMP Setup] Created private #pvp-chat channel.');
+        } catch (err) {
+          console.warn('[KryloSMP Setup] Failed to create pvp-chat channel:', err.message);
+        }
+      }
+
+      // Setup Monthly Tournament Channel (delete old, create new)
+      console.log('[KryloSMP Setup] Setting up Monthly Tournament channel...');
+      const monthNames = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+      const currentDate = new Date();
+      const currentMonth = monthNames[currentDate.getMonth()];
+      const currentYear = currentDate.getFullYear();
+      const targetChannelName = `🏆┃tournament-${currentMonth}-${currentYear}`;
+
+      // Check if current month channel exists
+      let currentTourneyCh = guild.channels.cache.find(c => c.name === targetChannelName && c.type === ChannelType.GuildText);
+      if (!currentTourneyCh && tournamentRole) {
+        try {
+          // Create the new tournament channel
+          currentTourneyCh = await guild.channels.create({
+            name: targetChannelName,
+            type: ChannelType.GuildText,
+            parent: pvpCategory ? pvpCategory.id : null,
+            topic: `Official tournament channel for ${currentMonth.toUpperCase()} ${currentYear}. Run /tournament to join!`,
+            permissionOverwrites: [
+              {
+                id: guild.roles.everyone.id,
+                deny: [PermissionFlagsBits.ViewChannel]
+              },
+              {
+                id: tournamentRole.id,
+                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+              },
+              {
+                id: client.user.id,
+                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+              }
+            ],
+            reason: `Created new monthly tournament channel for ${currentMonth} ${currentYear}`
+          });
+          console.log(`[KryloSMP Setup] Created monthly tournament channel: ${targetChannelName}`);
+
+          // Delete previous monthly tournament channels
+          const allChannels = guild.channels.cache.filter(c => c.type === ChannelType.GuildText && c.parentId === pvpCategory?.id);
+          for (const [, oldCh] of allChannels) {
+            if ((oldCh.name.includes('tournament-') || oldCh.name.includes('tournaments')) && oldCh.name !== targetChannelName) {
+              try {
+                await oldCh.delete();
+                console.log(`[KryloSMP Setup] Deleted old tournament channel: ${oldCh.name}`);
+              } catch (err) {
+                console.warn(`[KryloSMP Setup] Failed to delete old channel ${oldCh.name}:`, err.message);
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('[KryloSMP Setup] Failed to setup monthly tournament channel:', err.message);
+        }
+      }
     }
   } catch (err) {
     console.warn(`[KryloSMP Setup] Failed to post interactive components:`, err.message);
@@ -560,14 +966,96 @@ client.once('ready', async () => {
 
 // Slash Commands & Buttons Interaction Handler
 client.on('interactionCreate', async (interaction) => {
+  if (interaction.guildId !== '1524878881918685405') {
+    if (interaction.isRepliable()) {
+      await interaction.reply({ content: '❌ This bot is private to KryloSMP and cannot be used here!', ephemeral: true });
+    }
+    return;
+  }
+  let guildConfig = null;
   // Handle Button Interactions
   if (interaction.isButton()) {
     const { customId } = interaction;
 
+    // PvP Accept/Decline Button Handling
+    if (customId.startsWith('pvp_accept_') || customId.startsWith('pvp_decline_')) {
+      const parts = customId.split('_');
+      const action = parts[1]; // 'accept' or 'decline'
+      const challengerId = parts[2];
+      const challengedId = parts[3];
+
+      if (interaction.user.id !== challengedId) {
+        await interaction.reply({ content: '❌ Only the challenged player can respond to this challenge!', ephemeral: true });
+        return;
+      }
+
+      await interaction.deferUpdate();
+
+      if (action === 'accept') {
+        // Add to queue
+        pvpQueue.push({
+          challengerId,
+          challengedId,
+          challengerTag: `<@${challengerId}>`,
+          challengedTag: `<@${challengedId}>`
+        });
+
+        // Update original challenge message
+        await interaction.editReply({
+          content: `✅ <@${challengedId}> has accepted the challenge from <@${challengerId}>! Added to PvP Queue.`,
+          components: []
+        });
+
+        // Start next duel if empty
+        if (!activeDuel) {
+          await startNextDuel(interaction.guild);
+        } else {
+          // Send queue position message in pvp-chat
+          const pvpChatCh = interaction.guild.channels.cache.find(c => c.name.includes('pvp-chat') && c.type === ChannelType.GuildText);
+          if (pvpChatCh) {
+            await pvpChatCh.send(`⏳ **Queue Update:** <@${challengerId}> vs <@${challengedId}> is in queue (Position #${pvpQueue.length}).`);
+          }
+        }
+      } else {
+        // Decline challenge
+        await interaction.editReply({
+          content: `❌ <@${challengedId}> has declined the challenge from <@${challengerId}>.`,
+          components: []
+        });
+      }
+      return;
+    }
+
+    // PvP Finish Duel Button Handling
+    if (customId === 'pvp_finish_duel') {
+      if (!activeDuel) {
+        await interaction.reply({ content: '❌ No active duel found.', ephemeral: true });
+        return;
+      }
+
+      const isDuelist = interaction.user.id === activeDuel.challengerId || interaction.user.id === activeDuel.challengedId;
+      const isStaff = interaction.member.permissions.has(PermissionFlagsBits.ManageChannels) || interaction.member.roles.cache.some(r => r.name.toLowerCase().includes('staff') || r.name.toLowerCase().includes('admin') || r.name.toLowerCase().includes('mod'));
+
+      if (!isDuelist && !isStaff) {
+        await interaction.reply({ content: '❌ Only the duelists or staff members can end the duel!', ephemeral: true });
+        return;
+      }
+
+      await interaction.reply('🏁 **Duel finished. Deleting channel and starting next match...**');
+
+      const guild = interaction.guild;
+      const duelChannel = interaction.channel;
+
+      setTimeout(async () => {
+        await endCurrentDuel(guild, duelChannel);
+      }, 3000);
+      return;
+    }
+
     if (customId === 'start_verification' || customId === 'enter_verify_code') {
       const verifiedRole = interaction.guild?.roles.cache.find(r => r.name === 'Verified');
       if (verifiedRole && interaction.member.roles.cache.has(verifiedRole.id)) {
-        await interaction.reply({ content: '❌ **You are already verified!**\n\nIf you need to change your Minecraft username or link a different account, please open a support ticket in <#support-tickets> for staff assistance.', ephemeral: true });
+        await interaction.reply({ content: '❌ **You are already verified!**\n\nIf you need to change your Minecraft username or link a different account, please open a support ticket in <#1524882737230774332> for staff assistance.', ephemeral: true });
         return;
       }
     }
@@ -611,38 +1099,24 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     if (customId === 'open_ticket') {
-      try {
-        await interaction.deferReply({ ephemeral: true });
-      } catch (deferErr) {
-        console.warn('Failed to defer open_ticket interaction:', deferErr.message);
-        return;
-      }
-      try {
-        const supportCategory = interaction.guild.channels.cache.find(c => c.name.toLowerCase().includes('support') && c.type === ChannelType.GuildCategory);
-        const channel = await interaction.guild.channels.create({
-          name: `ticket-${interaction.user.username.toLowerCase()}`,
-          type: ChannelType.GuildText,
-          parent: supportCategory ? supportCategory.id : null,
-          permissionOverwrites: [
-            {
-              id: interaction.guild.id,
-              deny: [PermissionFlagsBits.ViewChannel]
-            },
-            {
-              id: interaction.user.id,
-              allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-            },
-            {
-              id: client.user.id,
-              allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-            }
-          ]
-        });
+      const modal = new ModalBuilder()
+        .setCustomId('modal_open_ticket')
+        .setTitle('Open Support Ticket');
 
-        await channel.send(`🎟️ **Support Ticket Created**\nWelcome <@${interaction.user.id}>! Our administrative staff will assist you shortly. Type \`/close\` to resolve and delete this channel.`);
-        await interaction.editReply(`🎟️ **Ticket Opened!** Check it out here: <#${channel.id}>`);
-      } catch (err) {
-        await interaction.editReply(`❌ Failed to open ticket: ${err.message}`);
+      const reasonInput = new TextInputBuilder()
+        .setCustomId('ticket_reason')
+        .setLabel('Reason / Question')
+        .setStyle(TextInputStyle.Paragraph)
+        .setPlaceholder('Describe your issue, question, or report (e.g. grief, bug, crash...)')
+        .setRequired(true);
+
+      const row = new ActionRowBuilder().addComponents(reasonInput);
+      modal.addComponents(row);
+
+      try {
+        await interaction.showModal(modal);
+      } catch (modalErr) {
+        console.error('Failed to show modal:', modalErr.message);
       }
       return;
     }
@@ -696,10 +1170,388 @@ client.on('interactionCreate', async (interaction) => {
       }
       return;
     }
+
+    // ══════════════════════════════════════════════════════════
+    // 🛒 DISCORD STORE — Buy Button Handler
+    // ══════════════════════════════════════════════════════════
+    if (customId.startsWith('shop_buy_')) {
+      const itemId = customId.replace('shop_buy_', '');
+      await interaction.deferReply({ ephemeral: true });
+
+      // Item catalog with prices & display info (must match create-store.mjs)
+      const SHOP_CATALOG = {
+        // Ranks
+        bronze:    { name: '🥉 Bronze Rank',         price: 500,   category: 'Rank',     emoji: '👑', desc: 'Custom prefix, colored name, priority queue' },
+        silver:    { name: '🥈 Silver Rank',         price: 1500,  category: 'Rank',     emoji: '👑', desc: 'Bronze perks + /fly, 3 homes, kit access' },
+        gold:      { name: '🥇 Gold Rank',           price: 3000,  category: 'Rank',     emoji: '👑', desc: 'Silver perks + /nick, 5 homes, cosmetics' },
+        diamond:   { name: '💎 Diamond Rank',        price: 5000,  category: 'Rank',     emoji: '👑', desc: 'All perks + /god, unlimited homes, VIP' },
+        // Kits
+        warrior:   { name: '⚔️ Warrior Kit',         price: 200,   category: 'Kit',      emoji: '🎒', desc: 'Iron armor + Sharpness II sword + food' },
+        ranger:    { name: '🏹 Ranger Kit',          price: 200,   category: 'Kit',      emoji: '🎒', desc: 'Leather armor + Power II Infinity bow' },
+        miner:     { name: '⛏️ Miner Kit',           price: 200,   category: 'Kit',      emoji: '🎒', desc: 'Efficiency III Fortune II pickaxe + torches' },
+        enchanter: { name: '🔮 Enchanter Kit',       price: 350,   category: 'Kit',      emoji: '🎒', desc: 'Enchanting table + 30 bookshelves + XP' },
+        // Cosmetics
+        fire:      { name: '🔥 Fire Trail',          price: 300,   category: 'Cosmetic', emoji: '✨', desc: 'Leave a trail of fire particles' },
+        frost:     { name: '❄️ Frost Aura',           price: 300,   category: 'Cosmetic', emoji: '✨', desc: 'Surround yourself with frost particles' },
+        lightning: { name: '⚡ Lightning Kill Effect', price: 500,   category: 'Cosmetic', emoji: '✨', desc: 'Lightning strikes when you get a kill' },
+        rainbow:   { name: '🌈 Rainbow Name',        price: 750,   category: 'Cosmetic', emoji: '✨', desc: 'Your name cycles through rainbow colors' },
+        firework:  { name: '🎆 Firework Death Effect', price: 400,  category: 'Cosmetic', emoji: '✨', desc: 'Fireworks explode on your death' },
+        // Specials
+        claim:     { name: '🏗️ +1,000 Claim Blocks', price: 400,   category: 'Special',  emoji: '🎁', desc: 'Expand your protected land area' },
+        backpack:  { name: '🎒 Backpack Expansion',  price: 250,   category: 'Special',  emoji: '🎁', desc: 'Upgrade your portable storage' },
+        warp:      { name: '🌀 Custom Warp',         price: 600,   category: 'Special',  emoji: '🎁', desc: 'Create a personal public warp point' },
+        keepinv:   { name: '🛡️ Keep Inventory Token', price: 150,   category: 'Special',  emoji: '🎁', desc: 'Keep items on next death (1 use)' },
+      };
+
+      const item = SHOP_CATALOG[itemId];
+      if (!item) {
+        await interaction.editReply('❌ Unknown item. This shop item may have been removed.');
+        return;
+      }
+
+      // Check if user has a linked Minecraft account + fetch balance
+      let mcUsername = null;
+      let playerBalance = null;
+      try {
+        const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get_config', guildId: interaction.guild?.id || '1524878881918685405' })
+        });
+        if (configRes.ok) {
+          const cfg = await configRes.json();
+          if (cfg.verifiedPlayers && cfg.verifiedPlayers[interaction.user.id]) {
+            mcUsername = cfg.verifiedPlayers[interaction.user.id].name;
+            // Check if balance data is synced
+            if (cfg.verifiedPlayers[interaction.user.id].balance !== undefined) {
+              playerBalance = cfg.verifiedPlayers[interaction.user.id].balance;
+            }
+          }
+          // Also check server-synced economy data
+          if (mcUsername && cfg.economyData && cfg.economyData[mcUsername]) {
+            playerBalance = cfg.economyData[mcUsername];
+          }
+        }
+      } catch (e) {
+        console.warn('[Shop] Failed to fetch config:', e.message);
+      }
+
+      if (!mcUsername) {
+        const linkEmbed = new EmbedBuilder()
+          .setColor(0xFF4444)
+          .setTitle('❌ Account Not Linked')
+          .setDescription('You need to **link your Minecraft account** before you can purchase items from the store!')
+          .addFields(
+            { name: '📋 How to Link', value: '1. Go to <#1526685112693952568>\n2. Click **Link Minecraft Account**\n3. Enter your MC username\n4. Join the server & enter the code' }
+          )
+          .setFooter({ text: 'KryloSMP Store' })
+          .setTimestamp();
+        await interaction.editReply({ embeds: [linkEmbed] });
+        return;
+      }
+
+      // Build rich profile confirmation embed
+      const avatarUrl = interaction.user.displayAvatarURL({ dynamic: true, size: 128 });
+      const mcHeadUrl = `https://mc-heads.net/avatar/${mcUsername}/64`;
+      const canAfford = playerBalance !== null ? playerBalance >= item.price : null;
+      const balanceStr = playerBalance !== null 
+        ? `**${Math.floor(playerBalance).toLocaleString()} ⛃**` 
+        : '`Syncing...`';
+      const affordStr = canAfford === true 
+        ? '✅ You can afford this!' 
+        : canAfford === false 
+        ? '❌ Not enough coins!' 
+        : '⚠️ Balance checked on purchase';
+
+      const confirmEmbed = new EmbedBuilder()
+        .setColor(canAfford === false ? 0xFF4444 : 0xFFAA00)
+        .setAuthor({ name: `${interaction.user.displayName} (${interaction.user.tag})`, iconURL: avatarUrl })
+        .setTitle(`${item.emoji} Confirm Purchase — ${item.name}`)
+        .setThumbnail(mcHeadUrl)
+        .setDescription(`> ${item.desc}\n\nAre you sure you want to buy this item?`)
+        .addFields(
+          { name: '💰 Price', value: `**${item.price.toLocaleString()} KryloCoins** ⛃`, inline: true },
+          { name: '🪙 Your Balance', value: balanceStr, inline: true },
+          { name: '📦 Category', value: item.category, inline: true },
+          { name: '⛏️ Minecraft Account', value: `\`${mcUsername}\``, inline: true },
+          { name: '🏷️ Discord', value: `<@${interaction.user.id}>`, inline: true },
+          { name: '💳 Status', value: affordStr, inline: true }
+        )
+        .setFooter({ text: 'KryloSMP Store • Coins deducted from in-game balance', iconURL: 'https://mc-heads.net/avatar/KryloSMP/32' })
+        .setTimestamp();
+
+      const confirmRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`shop_confirm_${itemId}_${interaction.user.id}`)
+          .setLabel(`✅ Buy for ${item.price.toLocaleString()} ⛃`)
+          .setStyle(canAfford === false ? ButtonStyle.Secondary : ButtonStyle.Success)
+          .setDisabled(canAfford === false),
+        new ButtonBuilder()
+          .setCustomId(`shop_cancel_${interaction.user.id}`)
+          .setLabel('❌ Cancel')
+          .setStyle(ButtonStyle.Secondary)
+      );
+
+      await interaction.editReply({ embeds: [confirmEmbed], components: [confirmRow] });
+      return;
+    }
+
+    // Shop Confirm Purchase
+    if (customId.startsWith('shop_confirm_')) {
+      const parts = customId.replace('shop_confirm_', '').split('_');
+      const userId = parts.pop(); // last segment is user ID
+      const itemId = parts.join('_'); // everything before is the item ID
+
+      // Only the original buyer can confirm
+      if (interaction.user.id !== userId) {
+        await interaction.reply({ content: '❌ This purchase confirmation is not for you!', ephemeral: true });
+        return;
+      }
+
+      await interaction.deferUpdate();
+
+      // Item catalog (same as above)
+      const SHOP_CATALOG = {
+        bronze: { name: '🥉 Bronze Rank', price: 500, category: 'Rank' },
+        silver: { name: '🥈 Silver Rank', price: 1500, category: 'Rank' },
+        gold: { name: '🥇 Gold Rank', price: 3000, category: 'Rank' },
+        diamond: { name: '💎 Diamond Rank', price: 5000, category: 'Rank' },
+        warrior: { name: '⚔️ Warrior Kit', price: 200, category: 'Kit' },
+        ranger: { name: '🏹 Ranger Kit', price: 200, category: 'Kit' },
+        miner: { name: '⛏️ Miner Kit', price: 200, category: 'Kit' },
+        enchanter: { name: '🔮 Enchanter Kit', price: 350, category: 'Kit' },
+        fire: { name: '🔥 Fire Trail', price: 300, category: 'Cosmetic' },
+        frost: { name: '❄️ Frost Aura', price: 300, category: 'Cosmetic' },
+        lightning: { name: '⚡ Lightning Kill Effect', price: 500, category: 'Cosmetic' },
+        rainbow: { name: '🌈 Rainbow Name', price: 750, category: 'Cosmetic' },
+        firework: { name: '🎆 Firework Death Effect', price: 400, category: 'Cosmetic' },
+        claim: { name: '🏗️ +1,000 Claim Blocks', price: 400, category: 'Special' },
+        backpack: { name: '🎒 Backpack Expansion', price: 250, category: 'Special' },
+        warp: { name: '🌀 Custom Warp', price: 600, category: 'Special' },
+        keepinv: { name: '🛡️ Keep Inventory Token', price: 150, category: 'Special' },
+      };
+
+      const item = SHOP_CATALOG[itemId];
+      if (!item) {
+        await interaction.editReply({ content: '❌ Item no longer available.', embeds: [], components: [] });
+        return;
+      }
+
+      // Get linked MC username
+      let mcUsername = null;
+      try {
+        const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get_config', guildId: interaction.guild?.id || '1524878881918685405' })
+        });
+        if (configRes.ok) {
+          const cfg = await configRes.json();
+          if (cfg.verifiedPlayers && cfg.verifiedPlayers[interaction.user.id]) {
+            mcUsername = cfg.verifiedPlayers[interaction.user.id].name;
+          }
+        }
+      } catch (e) {
+        console.warn('[Shop] Config fetch failed:', e.message);
+      }
+
+      if (!mcUsername) {
+        await interaction.editReply({ content: '❌ Your Minecraft account is no longer linked. Please re-verify in <#1526685112693952568>.', embeds: [], components: [] });
+        return;
+      }
+
+      // Execute the purchase via Pterodactyl console command
+      const pteroToken = process.env.PTERODACTYL_TOKEN;
+      const serverId = '25a5d79a';
+      const buyCommand = `krylo buy ${mcUsername} ${itemId} ${item.price}`;
+
+      try {
+        const execRes = await fetch(`https://panel.play.hosting/api/client/servers/${serverId}/command`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${pteroToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ command: buyCommand })
+        });
+
+        if (execRes.ok || execRes.status === 204) {
+          const mcHeadUrl = `https://mc-heads.net/avatar/${mcUsername}/64`;
+          const successEmbed = new EmbedBuilder()
+            .setColor(0x00FF66)
+            .setAuthor({ name: `${interaction.user.displayName}`, iconURL: interaction.user.displayAvatarURL({ dynamic: true, size: 64 }) })
+            .setTitle('✅ Purchase Successful!')
+            .setThumbnail(mcHeadUrl)
+            .setDescription(`🛒 You bought **${item.name}** for **${item.price.toLocaleString()} KryloCoins** ⛃`)
+            .addFields(
+              { name: '⛏️ Delivered To', value: `\`${mcUsername}\``, inline: true },
+              { name: '📦 Category', value: item.category, inline: true },
+              { name: '🏷️ Discord', value: `<@${interaction.user.id}>`, inline: true },
+              { name: '💡 Note', value: item.category === 'Kit'
+                ? 'If you\'re online, check your inventory! If offline, the kit will be delivered when you join.'
+                : item.category === 'Rank'
+                ? 'Your rank has been updated! Rejoin the server to see your new perks.'
+                : 'Your purchase has been applied to your account!' }
+            )
+            .setFooter({ text: `Receipt • KryloSMP Store`, iconURL: 'https://mc-heads.net/avatar/KryloSMP/32' })
+            .setTimestamp();
+
+          await interaction.editReply({ embeds: [successEmbed], components: [] });
+
+          // Log the purchase publicly in the store channel
+          try {
+            const logEmbed = new EmbedBuilder()
+              .setColor(0xFFAA00)
+              .setAuthor({ name: interaction.user.displayName, iconURL: interaction.user.displayAvatarURL({ dynamic: true, size: 32 }) })
+              .setDescription(`🛒 <@${interaction.user.id}> purchased **${item.name}** for **${item.price.toLocaleString()}** ⛃\n⛏️ MC: \`${mcUsername}\``)
+              .setThumbnail(mcHeadUrl)
+              .setTimestamp();
+            await interaction.channel.send({ embeds: [logEmbed] });
+          } catch (logErr) {
+            console.warn('[Shop] Failed to log purchase:', logErr.message);
+          }
+        } else {
+          const errorEmbed = new EmbedBuilder()
+            .setColor(0xFF4444)
+            .setTitle('❌ Purchase Failed')
+            .setDescription('The server could not process your purchase. This could mean:')
+            .addFields(
+              { name: '🔧 Possible Reasons', value: '• Insufficient KryloCoins balance\n• Server is offline or restarting\n• Network connection issue' },
+              { name: '💡 What to Do', value: `Check your balance in-game with \`/balance\` — you need **${item.price.toLocaleString()} ⛃**` }
+            )
+            .setFooter({ text: 'No coins were deducted.' })
+            .setTimestamp();
+
+          await interaction.editReply({ embeds: [errorEmbed], components: [] });
+        }
+      } catch (err) {
+        console.error('[Shop] Purchase execution error:', err);
+        await interaction.editReply({
+          content: `❌ Failed to connect to the Minecraft server. Please try again later.\n\`${err.message}\``,
+          embeds: [],
+          components: []
+        });
+      }
+      return;
+    }
+
+    // Shop Cancel
+    if (customId.startsWith('shop_cancel_')) {
+      const userId = customId.replace('shop_cancel_', '');
+      if (interaction.user.id !== userId) {
+        await interaction.reply({ content: '❌ This is not your purchase to cancel!', ephemeral: true });
+        return;
+      }
+
+      await interaction.deferUpdate();
+      const cancelEmbed = new EmbedBuilder()
+        .setColor(0x888888)
+        .setTitle('🚫 Purchase Cancelled')
+        .setDescription('No coins were deducted. You can browse the store anytime and try again!')
+        .setTimestamp();
+
+      await interaction.editReply({ embeds: [cancelEmbed], components: [] });
+      return;
+    }
   }
 
   if (interaction.isModalSubmit()) {
     const { customId } = interaction;
+    if (customId === 'modal_open_ticket') {
+      await interaction.deferReply({ ephemeral: true });
+      const userTicketReasonText = interaction.fields.getTextInputValue('ticket_reason');
+      
+      try {
+        const supportCategory = interaction.guild.channels.cache.find(c => c.name.toLowerCase().includes('support') && c.type === ChannelType.GuildCategory);
+        const channel = await interaction.guild.channels.create({
+          name: `ticket-${interaction.user.username.toLowerCase()}`,
+          type: ChannelType.GuildText,
+          parent: supportCategory ? supportCategory.id : null,
+          permissionOverwrites: [
+            {
+              id: interaction.guild.id,
+              deny: [PermissionFlagsBits.ViewChannel]
+            },
+            {
+              id: interaction.user.id,
+              allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+            },
+            {
+              id: client.user.id,
+              allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+            }
+          ]
+        });
+
+        const calculatedPriority = await calculatePriority(userTicketReasonText);
+        let mcUsername = 'Not Linked';
+        let playerBalance = 0;
+        try {
+          const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'get_config', guildId: interaction.guild?.id || '1524878881918685405' })
+          });
+          if (configRes.ok) {
+            guildConfig = await configRes.json();
+            if (guildConfig.verifiedPlayers && guildConfig.verifiedPlayers[interaction.user.id]) {
+              mcUsername = guildConfig.verifiedPlayers[interaction.user.id].name || 'Not Linked';
+              if (guildConfig.verifiedPlayers[interaction.user.id].balance !== undefined) {
+                playerBalance = guildConfig.verifiedPlayers[interaction.user.id].balance;
+              }
+            }
+            if (mcUsername !== 'Not Linked' && guildConfig.economyData && guildConfig.economyData[mcUsername]) {
+              playerBalance = guildConfig.economyData[mcUsername];
+            }
+          }
+        } catch (e) {
+          console.warn('[Ticket Log] Failed to fetch config:', e.message);
+        }
+
+        const profileEmbed = new EmbedBuilder()
+          .setColor(0x00F2FF)
+          .setTitle('🎫 Support Ticket Details')
+          .setDescription(`Welcome <@${interaction.user.id}>! Our administrative staff will assist you shortly.`)
+          .addFields(
+            { name: '👤 Discord User', value: `${interaction.user.tag} (<@${interaction.user.id}>)`, inline: true },
+            { name: '🎮 Minecraft Account', value: mcUsername !== 'Not Linked' ? `\`${mcUsername}\`` : '❌ Not Linked', inline: true },
+            { name: '🪙 KryloCoins', value: `\`${Math.floor(playerBalance).toLocaleString()} ⛃\``, inline: true },
+            { name: '📋 Reason / Question', value: userTicketReasonText },
+            { name: '🚨 Priority Level', value: `\`${calculatedPriority}\``, inline: true }
+          )
+          .setFooter({ text: 'Type /close to resolve and delete this channel' })
+          .setTimestamp();
+
+        await channel.send({ content: `<@${interaction.user.id}>`, embeds: [profileEmbed] });
+        await interaction.editReply(`🎟️ **Ticket Opened!** Check it out here: <#${channel.id}>`);
+
+        // Log to Google Sheet via SheetDB API
+        await logTicketToGoogleSheet(
+          channel.id, 
+          interaction.user.tag, 
+          interaction.user.id, 
+          userTicketReasonText, 
+          calculatedPriority, 
+          mcUsername, 
+          playerBalance
+        );
+
+        if (guildConfig) {
+          const tickets = guildConfig.openTickets || [];
+          tickets.push({ id: channel.id, name: channel.name, user: interaction.user.username });
+          guildConfig.openTickets = tickets;
+          await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'save_config', guildId: interaction.guild.id, config: guildConfig })
+          });
+        }
+      } catch (err) {
+        await interaction.editReply(`❌ Failed to open ticket: ${err.message}`);
+      }
+      return;
+    }
+
     if (customId === 'modal_start_verification') {
       await interaction.deferReply({ ephemeral: true });
       const mcUsername = interaction.fields.getTextInputValue('mc_username');
@@ -812,7 +1664,6 @@ client.on('interactionCreate', async (interaction) => {
   let modelEngine = 'gemini';
   let systemInstruction = 'You are the Krims Code AI, built and custom-trained by the genius developer Krishiv. Answer coding queries with clear instructions and a friendly, confident tone.';
   let ticketsEnabled = false;
-  let guildConfig = null;
 
   if (interaction.guild) {
     try {
@@ -832,6 +1683,186 @@ client.on('interactionCreate', async (interaction) => {
     } catch (err) {
       console.warn("Failed to load configs:", err.message);
     }
+  }
+
+  // Command: /coinflip
+  if (commandName === 'coinflip') {
+    const outcome = Math.random() < 0.5 ? 'Heads' : 'Tails';
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('🪙 Coin Flip')
+      .setDescription(`The coin landed on: **${outcome}**!`)
+      .setTimestamp();
+    await interaction.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: /roll
+  if (commandName === 'roll') {
+    const max = interaction.options.getInteger('max') || 6;
+    if (max <= 1) {
+      await interaction.reply({ content: '❌ Maximum number must be greater than 1!', ephemeral: true });
+      return;
+    }
+    const roll = Math.floor(Math.random() * max) + 1;
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('🎲 Dice Roll')
+      .setDescription(`You rolled a **${roll}** (1-${max})!`)
+      .setTimestamp();
+    await interaction.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: /avatar
+  if (commandName === 'avatar') {
+    const user = interaction.options.getUser('user') || interaction.user;
+    const avatarUrl = user.displayAvatarURL({ dynamic: true, size: 1024 });
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle(`Avatar of ${user.username}`)
+      .setImage(avatarUrl)
+      .setTimestamp();
+    await interaction.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: /joke
+  if (commandName === 'joke') {
+    const jokes = [
+      "Why did the Creeper cross the road? To get to the other side... of your wall! 💥",
+      "Why do skeletons make terrible comedians? They just don't have the guts! 💀",
+      "What is a Ghast's favorite food? Scream of wheat! 👻",
+      "How does Steve get his exercise? He runs around the block! 🏃‍♂️",
+      "What do you call a Minecraft zombie that writes books? A dead-author! 🧟‍♂️",
+      "Why did the Enderman get a ticket? Because he was block-ing traffic! 👁️",
+      "Why did the Piglin go to the store? To get some gold-en apples! 🐖",
+      "How do Minecraft players stay clean? They take a bucket of water shower! 🪣"
+    ];
+    const joke = jokes[Math.floor(Math.random() * jokes.length)];
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('🤣 Minecraft Joke')
+      .setDescription(joke)
+      .setTimestamp();
+    await interaction.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: /meme
+  if (commandName === 'meme') {
+    await interaction.deferReply();
+    try {
+      const res = await fetch('https://meme-api.com/gimme/minecraftmemes');
+      if (res.ok) {
+        const data = await res.json();
+        const embed = new EmbedBuilder()
+          .setColor(0x00F2FF)
+          .setTitle(data.title || 'Minecraft Meme')
+          .setImage(data.url)
+          .setURL(data.postLink)
+          .setFooter({ text: `r/${data.subreddit} • Posted by u/${data.author}` });
+        await interaction.editReply({ embeds: [embed] });
+      } else {
+        throw new Error('Failed to fetch meme from API');
+      }
+    } catch (err) {
+      const fallbackMemes = [
+        "https://i.imgur.com/8Qp2tP0.png",
+        "https://i.imgur.com/e7eFhF4.png",
+        "https://i.imgur.com/rLzT45P.jpeg",
+        "https://i.imgur.com/97y0u7t.jpeg"
+      ];
+      const randomMeme = fallbackMemes[Math.floor(Math.random() * fallbackMemes.length)];
+      const embed = new EmbedBuilder()
+        .setColor(0x00F2FF)
+        .setTitle('😂 Minecraft Meme')
+        .setImage(randomMeme)
+        .setFooter({ text: 'Fallback Minecraft Meme' });
+      await interaction.editReply({ embeds: [embed] });
+    }
+    return;
+  }
+
+  // Command: /rank
+  if (commandName === 'rank') {
+    const targetUser = interaction.options.getUser('user') || interaction.user;
+    const userId = targetUser.id;
+    
+    if (!xpData[userId]) {
+      xpData[userId] = { xp: 0, level: 1 };
+    }
+    
+    const userStats = xpData[userId];
+    const currentLevel = userStats.level;
+    const currentXp = userStats.xp;
+    
+    // Calculate progress
+    const prevLevelXp = currentLevel === 1 ? 0 : 5 * ((currentLevel - 1) * (currentLevel - 1)) + 50 * (currentLevel - 1) + 100;
+    const nextLevelXp = 5 * (currentLevel * currentLevel) + 50 * currentLevel + 100;
+    
+    const xpInCurrentLevel = currentXp - prevLevelXp;
+    const xpNeededForNextLevel = nextLevelXp - prevLevelXp;
+    const progressPercent = Math.max(0, Math.min(100, Math.floor((xpInCurrentLevel / xpNeededForNextLevel) * 100)));
+    
+    // Generate ASCII/unicode progress bar
+    const barSize = 10;
+    const filledBars = Math.floor(progressPercent / barSize);
+    const emptyBars = barSize - filledBars;
+    const progressBar = '🟩'.repeat(filledBars) + '⬜'.repeat(emptyBars);
+    
+    // Calculate rank
+    const sortedUsers = Object.entries(xpData)
+      .sort((a, b) => b[1].xp - a[1].xp);
+    const rankIndex = sortedUsers.findIndex(entry => entry[0] === userId);
+    const rank = rankIndex === -1 ? sortedUsers.length + 1 : rankIndex + 1;
+    
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle(`⭐ ${targetUser.username}'s Chat Rank`)
+      .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
+      .addFields(
+        { name: '✨ Level', value: `\`${currentLevel}\``, inline: true },
+        { name: '🏆 Rank Position', value: `#**${rank}** / ${sortedUsers.length}`, inline: true },
+        { name: '📈 Level Progress', value: `${progressBar} (${progressPercent}%)`, inline: false },
+        { name: '💎 Total XP', value: `\`${currentXp}\` / \`${nextLevelXp}\``, inline: true }
+      )
+      .setFooter({ text: 'KryloSMP Chat Leveling ⚡' })
+      .setTimestamp();
+      
+    await interaction.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: /xpleaderboard
+  if (commandName === 'xpleaderboard') {
+    const sortedUsers = Object.entries(xpData)
+      .sort((a, b) => b[1].xp - a[1].xp)
+      .slice(0, 10);
+      
+    if (sortedUsers.length === 0) {
+      await interaction.reply({ content: '❌ No chat history or leveling stats recorded yet!', ephemeral: true });
+      return;
+    }
+    
+    let lbText = '';
+    const medals = ['🥇', '🥈', '🥉'];
+    
+    for (let i = 0; i < sortedUsers.length; i++) {
+      const [uId, stats] = sortedUsers[i];
+      const medal = medals[i] || `\`#${i + 1}\``;
+      lbText += `${medal} <@${uId}> - **Level ${stats.level}** (XP: \`${stats.xp}\`)\n`;
+    }
+    
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('🏆 Top 10 Active Chatters - XP Leaderboard')
+      .setDescription(lbText)
+      .setFooter({ text: 'KryloSMP Chat Leveling ⚡' })
+      .setTimestamp();
+      
+    await interaction.reply({ embeds: [embed] });
+    return;
   }
 
   // Command: /mcban
@@ -1167,31 +2198,29 @@ client.on('interactionCreate', async (interaction) => {
   if (commandName === 'leaderboard') {
     await interaction.deferReply();
     try {
-      const members = await interaction.guild.members.fetch();
-      const sorted = members
-        .filter(m => !m.user.bot)
-        .sort((a, b) => {
-          const aJoined = a.joinedTimestamp || 0;
-          const bJoined = b.joinedTimestamp || 0;
-          return aJoined - bJoined;
-        })
-        .first(10);
+      const sortedUsers = Object.entries(xpData)
+        .sort((a, b) => b[1].xp - a[1].xp)
+        .slice(0, 10);
+
+      if (sortedUsers.length === 0) {
+        await interaction.editReply({ content: '❌ No chat activity or leveling stats recorded yet!' });
+        return;
+      }
 
       let leaderboardText = '';
       const medals = ['🥇', '🥈', '🥉'];
-      let i = 0;
-      for (const [, member] of sorted) {
+
+      for (let i = 0; i < sortedUsers.length; i++) {
+        const [uId, stats] = sortedUsers[i];
         const medal = medals[i] || `**${i + 1}.**`;
-        const joined = member.joinedAt ? `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>` : 'Unknown';
-        leaderboardText += `${medal} **${member.user.username}** — Joined ${joined}\n`;
-        i++;
+        leaderboardText += `${medal} <@${uId}> — **Level ${stats.level}** (XP: \`${stats.xp}\`)\n`;
       }
 
       const embed = new EmbedBuilder()
-        .setColor(0xFFD700)
-        .setTitle('👑 KryloSMP Leaderboard — Earliest Members')
-        .setDescription(leaderboardText || 'No members found.')
-        .setFooter({ text: `${interaction.guild.memberCount} total members` })
+        .setColor(0x00F2FF)
+        .setTitle('🏆 KryloSMP Chat Activity Leaderboard')
+        .setDescription(leaderboardText)
+        .setFooter({ text: 'KryloSMP Chat Leveling ⚡' })
         .setTimestamp();
 
       await interaction.editReply({ embeds: [embed] });
@@ -1321,7 +2350,7 @@ client.on('interactionCreate', async (interaction) => {
     // Check if player is already verified
     const verifiedRole = interaction.guild?.roles.cache.find(r => r.name === 'Verified');
     if (verifiedRole && interaction.member.roles.cache.has(verifiedRole.id)) {
-      await interaction.editReply('❌ **You are already verified!**\n\nIf you need to change your Minecraft username or link a different account, please open a support ticket in <#support-tickets> for staff assistance.');
+      await interaction.editReply('❌ **You are already verified!**\n\nIf you need to change your Minecraft username or link a different account, please open a support ticket in <#1524882737230774332> for staff assistance.');
       return;
     }
     
@@ -1415,6 +2444,7 @@ client.on('interactionCreate', async (interaction) => {
       return;
     }
 
+    const userTicketReasonText = interaction.options.getString('reason');
     await interaction.deferReply({ ephemeral: true });
 
     try {
@@ -1439,8 +2469,59 @@ client.on('interactionCreate', async (interaction) => {
         ]
       });
 
-      await channel.send(`🎟️ **Support Ticket Created**\nWelcome <@${interaction.user.id}>! Our administrative staff will assist you shortly. Type \`/close\` to resolve and delete this channel.`);
+      const calculatedPriority = await calculatePriority(userTicketReasonText);
+
+      let mcUsername = 'Not Linked';
+      let playerBalance = 0;
+      try {
+        const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get_config', guildId: interaction.guild?.id || '1524878881918685405' })
+        });
+        if (configRes.ok) {
+          guildConfig = await configRes.json();
+          if (guildConfig.verifiedPlayers && guildConfig.verifiedPlayers[interaction.user.id]) {
+            mcUsername = guildConfig.verifiedPlayers[interaction.user.id].name || 'Not Linked';
+            if (guildConfig.verifiedPlayers[interaction.user.id].balance !== undefined) {
+              playerBalance = guildConfig.verifiedPlayers[interaction.user.id].balance;
+            }
+          }
+          if (mcUsername !== 'Not Linked' && guildConfig.economyData && guildConfig.economyData[mcUsername]) {
+            playerBalance = guildConfig.economyData[mcUsername];
+          }
+        }
+      } catch (e) {
+        console.warn('[Ticket Log] Failed to fetch config:', e.message);
+      }
+
+      const profileEmbed = new EmbedBuilder()
+        .setColor(0x00F2FF)
+        .setTitle('🎫 Support Ticket Details')
+        .setDescription(`Welcome <@${interaction.user.id}>! Our administrative staff will assist you shortly.`)
+        .addFields(
+          { name: '👤 Discord User', value: `${interaction.user.tag} (<@${interaction.user.id}>)`, inline: true },
+          { name: '🎮 Minecraft Account', value: mcUsername !== 'Not Linked' ? `\`${mcUsername}\`` : '❌ Not Linked', inline: true },
+          { name: '🪙 KryloCoins', value: `\`${Math.floor(playerBalance).toLocaleString()} ⛃\``, inline: true },
+          { name: '📋 Reason / Question', value: userTicketReasonText },
+          { name: '🚨 Priority Level', value: `\`${calculatedPriority}\``, inline: true }
+        )
+        .setFooter({ text: 'Type /close to resolve and delete this channel' })
+        .setTimestamp();
+
+      await channel.send({ content: `<@${interaction.user.id}>`, embeds: [profileEmbed] });
       await interaction.editReply(`🎟️ **Ticket Opened!** Private support channel created here: <#${channel.id}>`);
+
+      // Log to Google Sheet via SheetDB API
+      await logTicketToGoogleSheet(
+        channel.id,
+        interaction.user.tag,
+        interaction.user.id,
+        userTicketReasonText,
+        calculatedPriority,
+        mcUsername,
+        playerBalance
+      );
 
       if (guildConfig) {
         const tickets = guildConfig.openTickets || [];
@@ -1467,6 +2548,14 @@ client.on('interactionCreate', async (interaction) => {
 
     await interaction.reply("🔒 **Support ticket resolved. Deleting channel in 5 seconds...**");
 
+    if (interaction.guild && interaction.guild.id === '1524878881918685405') {
+      try {
+        await closeTicketInGoogleSheet(interaction.channel.id);
+      } catch (err) {
+        console.warn("Failed to close ticket in Google Sheet:", err.message);
+      }
+    }
+
     if (interaction.guild && guildConfig) {
       try {
         const tickets = guildConfig.openTickets || [];
@@ -1486,6 +2575,185 @@ client.on('interactionCreate', async (interaction) => {
         await interaction.channel.delete();
       } catch {}
     }, 5000);
+    return;
+  }
+
+  // Command: /pvp
+  if (commandName === 'pvp') {
+    if (!interaction.guild) {
+      await interaction.reply({ content: "❌ This command can only be used inside servers!", ephemeral: true });
+      return;
+    }
+
+    await interaction.deferReply({ ephemeral: true });
+
+    let pvpRole = interaction.guild.roles.cache.find(r => r.name === 'PvP Player');
+    if (!pvpRole) {
+      try {
+        pvpRole = await interaction.guild.roles.create({
+          name: 'PvP Player',
+          color: 0xFF0055,
+          reason: 'Created for PvP command'
+        });
+      } catch (err) {
+        await interaction.editReply(`❌ Failed to find or create the PvP role: ${err.message}`);
+        return;
+      }
+    }
+
+    const hasRole = interaction.member.roles.cache.has(pvpRole.id);
+    try {
+      if (hasRole) {
+        await interaction.member.roles.remove(pvpRole);
+        await interaction.editReply('❌ **Removed PvP role.** You no longer have access to the private PvP chat.');
+      } else {
+        await interaction.member.roles.add(pvpRole);
+        
+        // Find the channel to mention it in response
+        const pvpChatCh = interaction.guild.channels.cache.find(c => c.name.includes('pvp-chat') && c.type === ChannelType.GuildText);
+        const channelMention = pvpChatCh ? `<#${pvpChatCh.id}>` : 'the PvP channel';
+        
+        await interaction.editReply(`✅ **Granted PvP role!** You now have access to ${channelMention}. Go say hello! ⚔️`);
+      }
+    } catch (err) {
+      await interaction.editReply(`❌ Failed to update role: ${err.message}`);
+    }
+    return;
+  }
+
+  // Command: /tournament or /tornament
+  if (commandName === 'tournament' || commandName === 'tornament') {
+    if (!interaction.guild) {
+      await interaction.reply({ content: "❌ This command can only be used inside servers!", ephemeral: true });
+      return;
+    }
+
+    await interaction.deferReply({ ephemeral: true });
+
+    let tournamentRole = interaction.guild.roles.cache.find(r => r.name === 'Tournament Participant');
+    if (!tournamentRole) {
+      try {
+        tournamentRole = await interaction.guild.roles.create({
+          name: 'Tournament Participant',
+          color: 0xFFAA00,
+          reason: 'Created for Tournament command'
+        });
+      } catch (err) {
+        await interaction.editReply(`❌ Failed to find or create the Tournament role: ${err.message}`);
+        return;
+      }
+    }
+
+    const hasRole = interaction.member.roles.cache.has(tournamentRole.id);
+    try {
+      if (hasRole) {
+        await interaction.member.roles.remove(tournamentRole);
+        await interaction.editReply('❌ **Removed Tournament Participant role.** You will no longer receive tournament notifications or access the private channel.');
+      } else {
+        await interaction.member.roles.add(tournamentRole);
+
+        // Find the channel to mention it
+        const tournamentCh = interaction.guild.channels.cache.find(c => c.name.includes('tournament') && c.type === ChannelType.GuildText);
+        const channelMention = tournamentCh ? `<#${tournamentCh.id}>` : 'the tournament channel';
+
+        await interaction.editReply(`🏆 **Granted Tournament Participant role!** You now have access to ${channelMention}. Get ready to fight! ⚔️`);
+      }
+    } catch (err) {
+      await interaction.editReply(`❌ Failed to update role: ${err.message}`);
+    }
+    return;
+  }
+
+  // Command: /challenge
+  if (commandName === 'challenge') {
+    if (!interaction.guild) {
+      await interaction.reply({ content: "❌ This command can only be used inside servers!", ephemeral: true });
+      return;
+    }
+
+    const opponent = interaction.options.getUser('opponent');
+    if (opponent.id === interaction.user.id) {
+      await interaction.reply({ content: '❌ You cannot challenge yourself!', ephemeral: true });
+      return;
+    }
+    if (opponent.bot) {
+      await interaction.reply({ content: '❌ You cannot challenge bots!', ephemeral: true });
+      return;
+    }
+
+    const pvpChatCh = interaction.guild.channels.cache.find(c => c.name.includes('pvp-chat') && c.type === ChannelType.GuildText);
+    if (pvpChatCh && interaction.channel.id !== pvpChatCh.id) {
+      await interaction.reply({ content: `❌ Please run this command inside <#${pvpChatCh.id}>!`, ephemeral: true });
+      return;
+    }
+
+    // Check if either player is already in the queue or in an active duel
+    const isChallengerBusy = (activeDuel && (activeDuel.challengerId === interaction.user.id || activeDuel.challengedId === interaction.user.id)) ||
+      pvpQueue.some(q => q.challengerId === interaction.user.id || q.challengedId === interaction.user.id);
+
+    const isOpponentBusy = (activeDuel && (activeDuel.challengerId === opponent.id || activeDuel.challengedId === opponent.id)) ||
+      pvpQueue.some(q => q.challengerId === opponent.id || q.challengedId === opponent.id);
+
+    if (isChallengerBusy) {
+      await interaction.reply({ content: '❌ You are already in an active duel or queue!', ephemeral: true });
+      return;
+    }
+    if (isOpponentBusy) {
+      await interaction.reply({ content: `❌ <@${opponent.id}> is already in an active duel or queue!`, ephemeral: true });
+      return;
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor(0xFF0055)
+      .setTitle('⚔️ PvP Challenge Invitation!')
+      .setDescription(`<@${interaction.user.id}> has challenged <@${opponent.id}> to a 1v1 PvP Duel!\n\n<@${opponent.id}>, do you accept?`)
+      .setTimestamp();
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`pvp_accept_${interaction.user.id}_${opponent.id}`)
+        .setLabel('Accept')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('✅'),
+      new ButtonBuilder()
+        .setCustomId(`pvp_decline_${interaction.user.id}_${opponent.id}`)
+        .setLabel('Decline')
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji('❌')
+    );
+
+    await interaction.reply({ content: `<@${opponent.id}>`, embeds: [embed], components: [row] });
+    return;
+  }
+
+  // Command: /endduel
+  if (commandName === 'endduel') {
+    if (!interaction.guild) {
+      await interaction.reply({ content: "❌ This command can only be used inside servers!", ephemeral: true });
+      return;
+    }
+
+    if (!activeDuel) {
+      await interaction.reply({ content: '❌ There is no active duel in progress!', ephemeral: true });
+      return;
+    }
+
+    const isDuelist = interaction.user.id === activeDuel.challengerId || interaction.user.id === activeDuel.challengedId;
+    const isStaff = interaction.member.permissions.has(PermissionFlagsBits.ManageChannels) || interaction.member.roles.cache.some(r => r.name.toLowerCase().includes('staff') || r.name.toLowerCase().includes('admin') || r.name.toLowerCase().includes('mod'));
+
+    if (!isDuelist && !isStaff) {
+      await interaction.reply({ content: '❌ Only the duelists or staff members can end the duel!', ephemeral: true });
+      return;
+    }
+
+    await interaction.reply('🏁 **Duel finished. Deleting channel and starting next match...**');
+
+    const guild = interaction.guild;
+    const duelChannel = interaction.channel;
+
+    setTimeout(async () => {
+      await endCurrentDuel(guild, duelChannel);
+    }, 3000);
     return;
   }
 
@@ -1541,8 +2809,21 @@ client.on('interactionCreate', async (interaction) => {
 });
 
 // Prefix Message Commands Handler (Legacy fallback & DMs)
+// Dedup guard to prevent processing the same message twice
+const processedMessages = new Set();
+
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
+  if (message.guildId !== '1524878881918685405') return;
+
+  // Prevent duplicate processing of the same message
+  if (processedMessages.has(message.id)) return;
+  processedMessages.add(message.id);
+  // Clean up old message IDs after 30 seconds to prevent memory leak
+  setTimeout(() => processedMessages.delete(message.id), 30000);
+
+  // Process message XP leveling
+  await handleMessageXP(message);
 
   // ─── TICKET CHANNEL AUTO-RESPONSE & ESCALATION ───
   if (message.guild && message.channel.name.startsWith('ticket-')) {
@@ -1708,11 +2989,196 @@ client.on('messageCreate', async (message) => {
     } catch {}
   }
 
+  // Command: !pvp
+  if (content.toLowerCase() === botPrefix + 'pvp' || content.toLowerCase() === '!pvp') {
+    if (!message.guild) {
+      await message.reply("❌ This command can only be used inside servers!");
+      return;
+    }
+
+    let pvpRole = message.guild.roles.cache.find(r => r.name === 'PvP Player');
+    if (!pvpRole) {
+      try {
+        pvpRole = await message.guild.roles.create({
+          name: 'PvP Player',
+          color: 0xFF0055,
+          reason: 'Created for PvP command'
+        });
+      } catch (err) {
+        await message.reply(`❌ Failed to find or create the PvP role: ${err.message}`);
+        return;
+      }
+    }
+
+    const hasRole = message.member.roles.cache.has(pvpRole.id);
+    try {
+      if (hasRole) {
+        await message.member.roles.remove(pvpRole);
+        await message.reply('❌ **Removed PvP role.** You no longer have access to the private PvP chat.');
+      } else {
+        await message.member.roles.add(pvpRole);
+
+        const pvpChatCh = message.guild.channels.cache.find(c => c.name.includes('pvp-chat') && c.type === ChannelType.GuildText);
+        const channelMention = pvpChatCh ? `<#${pvpChatCh.id}>` : 'the PvP channel';
+
+        await message.reply(`✅ **Granted PvP role!** You now have access to ${channelMention}. Go say hello! ⚔️`);
+      }
+    } catch (err) {
+      await message.reply(`❌ Failed to update role: ${err.message}`);
+    }
+    return;
+  }
+
+  // Command: !tournament or !tornament
+  if (content.toLowerCase() === botPrefix + 'tournament' || content.toLowerCase() === '!tournament' || content.toLowerCase() === botPrefix + 'tornament' || content.toLowerCase() === '!tornament') {
+    if (!message.guild) {
+      await message.reply("❌ This command can only be used inside servers!");
+      return;
+    }
+
+    let tournamentRole = message.guild.roles.cache.find(r => r.name === 'Tournament Participant');
+    if (!tournamentRole) {
+      try {
+        tournamentRole = await message.guild.roles.create({
+          name: 'Tournament Participant',
+          color: 0xFFAA00,
+          reason: 'Created for Tournament command'
+        });
+      } catch (err) {
+        await message.reply(`❌ Failed to find or create the Tournament role: ${err.message}`);
+        return;
+      }
+    }
+
+    const hasRole = message.member.roles.cache.has(tournamentRole.id);
+    try {
+      if (hasRole) {
+        await message.member.roles.remove(tournamentRole);
+        await message.reply('❌ **Removed Tournament Participant role.** You will no longer receive tournament notifications or access the private channel.');
+      } else {
+        await message.member.roles.add(tournamentRole);
+
+        const tournamentCh = message.guild.channels.cache.find(c => c.name.includes('tournament') && c.type === ChannelType.GuildText);
+        const channelMention = tournamentCh ? `<#${tournamentCh.id}>` : 'the tournament channel';
+
+        await message.reply(`🏆 **Granted Tournament Participant role!** You now have access to ${channelMention}. Get ready to fight! ⚔️`);
+      }
+    } catch (err) {
+      await message.reply(`❌ Failed to update role: ${err.message}`);
+    }
+    return;
+  }
+
+  // Command: !challenge
+  if (content.toLowerCase().startsWith(botPrefix + 'challenge') || content.toLowerCase().startsWith('!challenge')) {
+    if (!message.guild) {
+      await message.reply("❌ This command can only be used inside servers!");
+      return;
+    }
+
+    const opponent = message.mentions.users.first();
+    if (!opponent) {
+      await message.reply("❌ Please mention the player you want to challenge (e.g. `!challenge @user`)!");
+      return;
+    }
+
+    if (opponent.id === message.author.id) {
+      await message.reply('❌ You cannot challenge yourself!');
+      return;
+    }
+    if (opponent.bot) {
+      await message.reply('❌ You cannot challenge bots!');
+      return;
+    }
+
+    const pvpChatCh = message.guild.channels.cache.find(c => c.name.includes('pvp-chat') && c.type === ChannelType.GuildText);
+    if (pvpChatCh && message.channel.id !== pvpChatCh.id) {
+      await message.reply(`❌ Please run this command inside <#${pvpChatCh.id}>!`);
+      return;
+    }
+
+    const isChallengerBusy = (activeDuel && (activeDuel.challengerId === message.author.id || activeDuel.challengedId === message.author.id)) ||
+      pvpQueue.some(q => q.challengerId === message.author.id || q.challengedId === message.author.id);
+
+    const isOpponentBusy = (activeDuel && (activeDuel.challengerId === opponent.id || activeDuel.challengedId === opponent.id)) ||
+      pvpQueue.some(q => q.challengerId === opponent.id || q.challengedId === opponent.id);
+
+    if (isChallengerBusy) {
+      await message.reply('❌ You are already in an active duel or queue!');
+      return;
+    }
+    if (isOpponentBusy) {
+      await message.reply(`❌ <@${opponent.id}> is already in an active duel or queue!`);
+      return;
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor(0xFF0055)
+      .setTitle('⚔️ PvP Challenge Invitation!')
+      .setDescription(`<@${message.author.id}> has challenged <@${opponent.id}> to a 1v1 PvP Duel!\n\n<@${opponent.id}>, do you accept?`)
+      .setTimestamp();
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`pvp_accept_${message.author.id}_${opponent.id}`)
+        .setLabel('Accept')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('✅'),
+      new ButtonBuilder()
+        .setCustomId(`pvp_decline_${message.author.id}_${opponent.id}`)
+        .setLabel('Decline')
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji('❌')
+    );
+
+    await message.reply({ content: `<@${opponent.id}>`, embeds: [embed], components: [row] });
+    return;
+  }
+
+  // Command: !endduel
+  if (content.toLowerCase() === botPrefix + 'endduel' || content.toLowerCase() === '!endduel') {
+    if (!message.guild) {
+      await message.reply("❌ This command can only be used inside servers!");
+      return;
+    }
+
+    if (!activeDuel) {
+      await message.reply('❌ There is no active duel in progress!');
+      return;
+    }
+
+    const isDuelist = message.author.id === activeDuel.challengerId || message.author.id === activeDuel.challengedId;
+    const isStaff = message.member.permissions.has(PermissionFlagsBits.ManageChannels) || message.member.roles.cache.some(r => r.name.toLowerCase().includes('staff') || r.name.toLowerCase().includes('admin') || r.name.toLowerCase().includes('mod'));
+
+    if (!isDuelist && !isStaff) {
+      await message.reply('❌ Only the duelists or staff members can end the duel!');
+      return;
+    }
+
+    await message.reply('🏁 **Duel finished. Deleting channel and starting next match...**');
+
+    const guild = message.guild;
+    const duelChannel = message.channel;
+
+    setTimeout(async () => {
+      await endCurrentDuel(guild, duelChannel);
+    }, 3000);
+    return;
+  }
+
   // Command: !close
   if (content.toLowerCase() === botPrefix + 'close' || content.toLowerCase() === '!close') {
     if (message.channel.name.startsWith('ticket-')) {
       await message.reply("🔒 **Support ticket resolved. Deleting channel in 5 seconds...**");
       
+      if (message.guild && message.guild.id === '1524878881918685405') {
+        try {
+          await closeTicketInGoogleSheet(message.channel.id);
+        } catch (err) {
+          console.warn("Failed to close ticket in Google Sheet:", err.message);
+        }
+      }
+
       if (message.guild && guildConfig) {
         try {
           const tickets = guildConfig.openTickets || [];
@@ -1737,13 +3203,21 @@ client.on('messageCreate', async (message) => {
   }
 
   // Command: !ticket
-  if (content.toLowerCase() === botPrefix + 'ticket' || content.toLowerCase() === '!ticket') {
+  if (content.toLowerCase().startsWith(botPrefix + 'ticket') || content.toLowerCase().startsWith('!ticket')) {
     if (!message.guild) {
       await message.reply("❌ Tickets can only be created inside servers!");
       return;
     }
     if (!ticketsEnabled) {
       await message.reply("🔒 **The ticket support system is currently disabled on this server.** Enable it from the dashboard!");
+      return;
+    }
+
+    const prefixUsed = content.toLowerCase().startsWith(botPrefix + 'ticket') ? (botPrefix + 'ticket') : '!ticket';
+    const userTicketReasonText = content.substring(prefixUsed.length).trim();
+
+    if (!userTicketReasonText) {
+      await message.reply(`❌ **Please specify a reason for opening a ticket.**\nExample: \`${botPrefix}ticket griefing at my base\``);
       return;
     }
 
@@ -1769,8 +3243,59 @@ client.on('messageCreate', async (message) => {
         ]
       });
 
-      await channel.send(`🎟️ **Support Ticket Created**\nWelcome ${message.author}! Our administrative staff will assist you shortly. Type \`${botPrefix}close\` to resolve and delete this channel.`);
+      const calculatedPriority = await calculatePriority(userTicketReasonText);
+
+      let mcUsername = 'Not Linked';
+      let playerBalance = 0;
+      try {
+        const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get_config', guildId: message.guild.id })
+        });
+        if (configRes.ok) {
+          const cfg = await configRes.json();
+          if (cfg.verifiedPlayers && cfg.verifiedPlayers[message.author.id]) {
+            mcUsername = cfg.verifiedPlayers[message.author.id].name || 'Not Linked';
+            if (cfg.verifiedPlayers[message.author.id].balance !== undefined) {
+              playerBalance = cfg.verifiedPlayers[message.author.id].balance;
+            }
+          }
+          if (mcUsername !== 'Not Linked' && cfg.economyData && cfg.economyData[mcUsername]) {
+            playerBalance = cfg.economyData[mcUsername];
+          }
+        }
+      } catch (e) {
+        console.warn('[Ticket Log] Failed to fetch config:', e.message);
+      }
+
+      const profileEmbed = new EmbedBuilder()
+        .setColor(0x00F2FF)
+        .setTitle('🎫 Support Ticket Details')
+        .setDescription(`Welcome ${message.author}! Our administrative staff will assist you shortly.`)
+        .addFields(
+          { name: '👤 Discord User', value: `${message.author.tag} (<@${message.author.id}>)`, inline: true },
+          { name: '🎮 Minecraft Account', value: mcUsername !== 'Not Linked' ? `\`${mcUsername}\`` : '❌ Not Linked', inline: true },
+          { name: '🪙 KryloCoins', value: `\`${Math.floor(playerBalance).toLocaleString()} ⛃\``, inline: true },
+          { name: '📋 Reason / Question', value: userTicketReasonText },
+          { name: '🚨 Priority Level', value: `\`${calculatedPriority}\``, inline: true }
+        )
+        .setFooter({ text: `Type ${botPrefix}close to resolve and delete this channel` })
+        .setTimestamp();
+
+      await channel.send({ content: `<@${message.author.id}>`, embeds: [profileEmbed] });
       await message.reply(`🎟️ **Ticket Opened!** Check your private support channel here: ${channel}`);
+
+      // Log to Google Sheet via SheetDB API
+      await logTicketToGoogleSheet(
+        channel.id,
+        message.author.tag,
+        message.author.id,
+        userTicketReasonText,
+        calculatedPriority,
+        mcUsername,
+        playerBalance
+      );
 
       if (guildConfig) {
         const tickets = guildConfig.openTickets || [];
@@ -1849,7 +3374,9 @@ client.on('messageCreate', async (message) => {
 
       await typingMsg.edit({ content: '', embeds: [embed] });
     } catch (err) {
-      await typingMsg.edit(`❌ Failed to run diagnosis: ${err.message}`);
+      const cleanError = err.message.replace(/"[^"]{100,}"/g, '"..."').substring(0, 150);
+      await typingMsg.edit(`❌ Failed to run diagnosis. The server may be temporarily unavailable. Try again in a moment.`);
+      console.error('[Diagnose] Error:', cleanError);
     }
     return;
   }
@@ -1943,7 +3470,17 @@ client.on('messageCreate', async (message) => {
       }
     } catch (err) {
       console.error(err);
-      await typingMsg.edit(`❌ Error calling Krims API: ${err.message}`);
+      // Hide raw API error details from users - show clean message
+      const isOverloaded = err.message.includes('503') || err.message.includes('UNAVAILABLE') || err.message.includes('high demand');
+      const isTimeout = err.message.includes('timeout') || err.message.includes('ECONNRESET') || err.message.includes('ENOTFOUND');
+      if (isOverloaded) {
+        await typingMsg.edit('⚡ **AI is experiencing high demand.** Please try again in a few seconds!');
+      } else if (isTimeout) {
+        await typingMsg.edit('🌐 **Connection timed out.** The AI server may be temporarily unreachable. Try again!');
+      } else {
+        await typingMsg.edit('❌ **AI is temporarily unavailable.** Please try again in a moment!');
+      }
+      console.error('[AI Error]', err.message.substring(0, 200));
     }
   }
 });
@@ -1955,44 +3492,108 @@ const KRYLO_GUILD_ID = '1524878881918685405';
 client.on('guildMemberAdd', async (member) => {
   if (member.guild.id !== KRYLO_GUILD_ID) return;
 
-  // Auto-assign Members role after 10 minutes
-  setTimeout(async () => {
-    try {
-      const freshMember = await member.guild.members.fetch(member.id).catch(() => null);
-      if (!freshMember) return;
-
-      const memberRole = member.guild.roles.cache.find(r => r.name === 'Members');
-      if (memberRole && !freshMember.roles.cache.has(memberRole.id)) {
-        await freshMember.roles.add(memberRole);
-        console.log(`[Welcome] Assigned delayed 10-minute Members role to ${freshMember.user.username}`);
-      }
-    } catch (err) {
-      console.warn(`[Welcome] Failed to assign delayed role:`, err.message);
-    }
-  }, 10 * 60 * 1000); // 10 minutes
-
-  // Send welcome message in #general
+  // Auto-assign 🎮 Player role immediately on join
   try {
-    const generalCh = member.guild.channels.cache.find(c => c.name.includes('general') && c.type === ChannelType.GuildText);
+    const playerRole = member.guild.roles.cache.find(r => r.name === '🎮 Player');
+    if (playerRole && !member.roles.cache.has(playerRole.id)) {
+      await member.roles.add(playerRole);
+      console.log(`[Welcome] Auto-assigned 🎮 Player role to ${member.user.username}`);
+    }
+  } catch (err) {
+    console.warn(`[Welcome] Failed to assign Player role:`, err.message);
+  }
+
+  // Send styled welcome embed in #general-chat
+  try {
+    const generalCh = member.guild.channels.cache.find(c => c.name.includes('general-chat') && c.type === ChannelType.GuildText);
     if (generalCh) {
       const memberCount = member.guild.memberCount;
+
+      let files = [];
+      const bannerPath = path.resolve('krylosmp_banner.png');
+      if (fs.existsSync(bannerPath)) {
+        files.push(new AttachmentBuilder(bannerPath, { name: 'krylosmp_banner.png' }));
+      }
+
       const embed = new EmbedBuilder()
         .setColor(0x00F2FF)
         .setTitle('⚡ New Player Joined!')
-        .setDescription(`Welcome to **KryloSMP**, <@${member.user.id}>! You are member **#${memberCount}**!`)
-        .addFields(
-          { name: '🎮 Server IP', value: '`KryloSmp.play.hosting`', inline: true },
-          { name: '📜 Rules', value: 'Check <#1524882716468842720> first!', inline: true },
-          { name: '🎨 Get Roles', value: 'Pick your platform role in <#1526685108311031980>!', inline: true }
+        .setDescription(
+          `Welcome to **KryloSMP**, <@${member.user.id}>! You are member **#${memberCount}**!\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+          `🔐 Head to <#1526685108311031980> to **verify** and pick your platform\n` +
+          `📜 Read the <#1524882716468842720> to stay safe\n` +
+          `🎮 Connect to \`KryloSmp.play.hosting\` and start playing!`
         )
         .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
-        .setFooter({ text: `KryloSMP • ${memberCount} members` })
+        .setFooter({ text: `KryloSMP • ${memberCount} members • Built by Krishiv ⚡` })
         .setTimestamp();
 
-      await generalCh.send({ embeds: [embed] });
+      if (fs.existsSync(bannerPath)) {
+        embed.setImage('attachment://krylosmp_banner.png');
+      }
+
+      await generalCh.send({ embeds: [embed], files });
     }
   } catch (err) {
     console.warn(`[Welcome] Failed to send welcome message:`, err.message);
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// REACTION ROLE SYSTEM (Verify + Platform Selection)
+// ═══════════════════════════════════════════════════════════
+const VERIFY_MESSAGE_ID = '1527435695377879104';
+
+const REACTION_ROLE_MAP = {
+  '✅': '✅ Verified',
+  '☕': '☕ Java Player',
+  '🪨': '🪨 Bedrock Player',
+};
+
+client.on('messageReactionAdd', async (reaction, user) => {
+  if (user.bot) return;
+  if (reaction.partial) await reaction.fetch().catch(() => {});
+  if (reaction.message.partial) await reaction.message.fetch().catch(() => {});
+  if (reaction.message.id !== VERIFY_MESSAGE_ID) return;
+
+  const emoji = reaction.emoji.name;
+  const roleName = REACTION_ROLE_MAP[emoji];
+  if (!roleName) return;
+
+  try {
+    const guild = reaction.message.guild;
+    const member = await guild.members.fetch(user.id);
+    const role = guild.roles.cache.find(r => r.name === roleName);
+    if (role && !member.roles.cache.has(role.id)) {
+      await member.roles.add(role);
+      console.log(`[Roles] Added "${roleName}" to ${user.username}`);
+    }
+  } catch (err) {
+    console.warn(`[Roles] Failed to add role:`, err.message);
+  }
+});
+
+client.on('messageReactionRemove', async (reaction, user) => {
+  if (user.bot) return;
+  if (reaction.partial) await reaction.fetch().catch(() => {});
+  if (reaction.message.partial) await reaction.message.fetch().catch(() => {});
+  if (reaction.message.id !== VERIFY_MESSAGE_ID) return;
+
+  const emoji = reaction.emoji.name;
+  const roleName = REACTION_ROLE_MAP[emoji];
+  if (!roleName) return;
+
+  try {
+    const guild = reaction.message.guild;
+    const member = await guild.members.fetch(user.id);
+    const role = guild.roles.cache.find(r => r.name === roleName);
+    if (role && member.roles.cache.has(role.id)) {
+      await member.roles.remove(role);
+      console.log(`[Roles] Removed "${roleName}" from ${user.username}`);
+    }
+  } catch (err) {
+    console.warn(`[Roles] Failed to remove role:`, err.message);
   }
 });
 
@@ -2134,7 +3735,7 @@ async function startLiveStatusUpdate(guild, channel) {
         embed
           .setColor(0x00FF66)
           .setTitle('🟢 KryloSMP Server is ONLINE')
-          .setDescription(`🤖 **Live Server Tracking**\n\n**IP:** \`KryloSmp.play.hosting\`\n**Version:** \`v3.0.0\`\n\n**MOTD:**\n\`\`\`\n${motd}\n\`\`\``)
+          .setDescription(`🤖 **Live Server Tracking**\n\n**IP:** \`KryloSmp.play.hosting\`\n**Version:** \`v5.0.0\`\n\n**MOTD:**\n\`\`\`\n${motd}\n\`\`\``)
           .addFields(
             { name: `👥 Players Online (${onlineCount}/${maxCount})`, value: playerList, inline: false },
             { name: '🕒 Last Updated', value: `<t:${unixTime}:R>`, inline: true }
@@ -2160,10 +3761,11 @@ async function startLiveStatusUpdate(guild, channel) {
       }
 
       if (statusMessage) {
-        await statusMessage.edit({ embeds: [embed] });
-      } else {
-        statusMessage = await channel.send({ embeds: [embed] });
+        try {
+          await statusMessage.delete().catch(() => {});
+        } catch (e) {}
       }
+      statusMessage = await channel.send({ embeds: [embed] });
     } catch (err) {
       console.warn('[Live Status] Error updating status:', err.message);
     }
@@ -2174,7 +3776,134 @@ async function startLiveStatusUpdate(guild, channel) {
   setInterval(updateStatus, 20000);
 }
 
+async function calculatePriority(text) {
+  if (!text || text.trim().length === 0) return 'Medium';
+  
+  try {
+    const prompt = `You are a ticket classifier. Analyze the following support ticket reason and classify it into exactly one of these three categories: "High", "Medium", or "No Staff Needed".
+
+Guidelines:
+- "High": Critical issues like griefing, hackers, cheating, server crashes, exploits, game-breaking bugs, theft.
+- "No Staff Needed": Simple greetings (e.g. "hello", "hi", "hey"), casual messages, questions about basic info already covered in FAQs, linking requests, or testing messages.
+- "Medium": Standard player reports, questions requiring staff assistance, bug reports that aren't game-breaking, claims, or other general help requests.
+
+Response format: Reply with ONLY the category name. Do not include any punctuation, explanation, or extra words.
+
+Ticket Reason: "${text}"`;
+
+    const result = await sdk.ask(prompt, {
+      model: 'gemini',
+      systemInstruction: 'You are an automated support ticket priority classifier. Reply with exactly "High", "Medium", or "No Staff Needed" based on the ticket reason.'
+    });
+
+    if (result && result.response) {
+      const responseText = result.response.trim();
+      if (responseText.includes('High')) return 'High';
+      if (responseText.includes('No Staff Needed')) return 'No Staff Needed';
+      if (responseText.includes('Medium')) return 'Medium';
+    }
+  } catch (err) {
+    console.warn('[Priority Classifier] Failed to query LLM for priority, falling back to keyword logic:', err.message);
+  }
+
+  // Fallback to keyword matching logic
+  const lower = text.toLowerCase();
+  if (lower.includes('grief') || lower.includes('hacker') || lower.includes('crash') || lower.includes('exploit') || lower.includes('hack')) {
+    return 'High';
+  }
+  if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey') || lower.includes('test') || lower.includes('claim') || lower.includes('question') || lower.includes('apply')) {
+    return 'No Staff Needed';
+  }
+  return 'Medium';
+}
+
+async function logTicketToGoogleSheet(channelId, userTag, userId, reason, priority, mcUsername, balance) {
+  const url = 'https://sheetdb.io/api/v1/f5m3eu25aobp3?sheet=TicketData';
+  const payload = {
+    data: [
+      {
+        "Ticket ID": channelId,
+        "User Name": userTag,
+        "Discord User ID": userId,
+        "Minecraft Username": mcUsername,
+        "KryloCoins": balance,
+        "Discord Profile Link": `https://discord.com/users/${userId}`,
+        "Reason / Question": reason,
+        "Priority Level": priority,
+        "Time Created": new Date().toLocaleString(),
+        "Status": "Open"
+      }
+    ]
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      console.log(`[SheetDB Log] Ticket ${channelId} successfully logged to Google Sheet.`);
+      return true;
+    } else {
+      const errText = await response.text();
+      console.error(`[SheetDB Log] Failed to log ticket. Status: ${response.status}. Error: ${errText}`);
+      return false;
+    }
+  } catch (err) {
+    console.error(`[SheetDB Log] Network error logging ticket to SheetDB:`, err.message);
+    return false;
+  }
+}
+
+async function closeTicketInGoogleSheet(channelId) {
+  const url = `https://sheetdb.io/api/v1/f5m3eu25aobp3/Ticket%20ID/${channelId}?sheet=TicketData`;
+  const payload = {
+    data: {
+      "Status": "Closed"
+    }
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      console.log(`[SheetDB Log] Ticket ${channelId} successfully closed in Google Sheet.`);
+      return true;
+    } else {
+      const errText = await response.text();
+      console.error(`[SheetDB Log] Failed to close ticket in sheet. Status: ${response.status}. Error: ${errText}`);
+      return false;
+    }
+  } catch (err) {
+    console.error(`[SheetDB Log] Network error closing ticket in SheetDB:`, err.message);
+    return false;
+  }
+}
+
+
 async function handleTicketMessage(message) {
+  // Guard 1: Restrict updates/actions strictly to the KryloSMP Discord Server
+  if (!message.guild || message.guild.id !== '1524878881918685405') {
+    return;
+  }
+
+  // Guard 2: Skip automated responses if a staff member/moderator/admin is chatting
+  const isStaff = message.member?.permissions.has(PermissionFlagsBits.ManageChannels) || 
+                  message.member?.roles.cache.some(r => r.name.toLowerCase().includes('staff') || r.name.toLowerCase().includes('admin') || r.name.toLowerCase().includes('mod'));
+  if (isStaff) {
+    return;
+  }
+
   try {
     await message.channel.sendTyping();
 
@@ -2204,7 +3933,8 @@ async function handleTicketMessage(message) {
       "- The Minecraft Server IP is: KryloSmp.play.hosting\n" +
       "- The server supports Java (default port 25565) and Bedrock (default port 19132) cross-play.\n" +
       "- The server is offline-mode (cracked), meaning players can join using cracked launchers (like TLauncher) without an official Mojang account. On join, they must type `/register <password> <confirm>` or `/login <password>` to secure their username.\n" +
-      "- To get whitelisted, players must go to the #✅┃verify channel and click the link button to get their verification code.\n\n" +
+      "- To get whitelisted, players must go to the #✅┃verify channel and click the link button to get their verification code.\n" +
+      "- CURRENT SERVER STATUS & OUTAGES: The Minecraft server hosting provider (play.hosting) is currently experiencing network issues, making the server temporarily unavailable. Waking servers from limbo is turned off right now by play.hosting. If players complain that the server is offline, down, or they get a limbo/waking error, politely explain this play.hosting issue to them and advise them that the development team is waiting for the host to restore waking.\n\n" +
       "Instructions:\n" +
       "Provide a friendly, helpful, and concise solution to the player's problem using the server details above.";
 

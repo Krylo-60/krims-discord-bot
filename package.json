@@ -8,9 +8,11 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "discord.js": "^14.14.1",
     "@krishivpb60/krims-code-sdk": "^0.1.0",
+    "discord.js": "^14.14.1",
     "dotenv": "^16.4.5",
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^3.3.2",
+    "puppeteer": "^25.3.0",
+    "ws": "^8.21.1"
   }
 }
