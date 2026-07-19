@@ -6,6 +6,7 @@ import fs from 'fs';
 import { exec, spawn } from 'child_process';
 import util from 'util';
 import path from 'path';
+import http from 'http';
 
 dotenv.config();
 
@@ -4079,5 +4080,14 @@ process.on('uncaughtException', (err) => {
 });
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[CRITICAL] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Simple HTTP server to bind to port for Render Web Service compatibility
+const port = process.env.PORT || 3000;
+http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('Krims Code Discord Bot is active!');
+}).listen(port, () => {
+  console.log(`[HTTP Server] Listening on port ${port}`);
 });
 
