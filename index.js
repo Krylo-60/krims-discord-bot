@@ -551,7 +551,7 @@ client.once('ready', async () => {
     console.error('[-] Failed to register slash commands:', err.message);
   }
 
-  // Start polling Vercel configuration database for pending actions (Web-to-Discord Embed Broadcaster)
+  // Start polling Vercel configuration database for pending actions and console commands
   setInterval(async () => {
     const GUILD_ID = '1524878881918685405';
     try {
@@ -562,6 +562,33 @@ client.once('ready', async () => {
       });
       if (configRes.ok) {
         const guildConfig = await configRes.json();
+        let configChanged = false;
+
+        // 1. Process pending store commands from website checkout
+        const pendingCommands = guildConfig.pendingCommands || [];
+        if (pendingCommands.length > 0) {
+          console.log(`[STORE PENDING] Found ${pendingCommands.length} store command(s) to execute...`);
+          for (const cmd of pendingCommands) {
+            try {
+              console.log(`[STORE PENDING] Executing Pterodactyl command: ${cmd}`);
+              await fetch(`https://panel.play.hosting/api/client/servers/25a5d79a/command`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': 'Bearer ' + process.env.PTERODACTYL_TOKEN,
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json'
+                },
+                body: JSON.stringify({ command: cmd })
+              });
+            } catch (cmdErr) {
+              console.error(`[STORE PENDING] Command failed: ${cmd}`, cmdErr.message);
+            }
+          }
+          guildConfig.pendingCommands = [];
+          configChanged = true;
+        }
+
+        // 2. Process pending broadcast actions
         const actions = guildConfig.actions || [];
         if (actions.length > 0) {
           console.log(`[ACTION QUEUE] Found ${actions.length} pending action(s). Processing...`);
@@ -608,14 +635,18 @@ client.once('ready', async () => {
             }
           }
 
-          // Clear processed actions from config and save back to database
           guildConfig.actions = [];
+          configChanged = true;
+        }
+
+        // Save back changes if config changed
+        if (configChanged) {
           await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'save_config', guildId: GUILD_ID, config: guildConfig })
           });
-          console.log(`[ACTION QUEUE] Queue cleared and database synchronized.`);
+          console.log(`[DATABASE] Config synchronized and queues cleared.`);
         }
       }
     } catch (err) {
