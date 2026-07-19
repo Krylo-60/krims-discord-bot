@@ -827,6 +827,7 @@ client.once('ready', async () => {
         }
         startLiveStatusUpdate(guild, onlinePlayersCh);
       }
+      startLeaderboardUpdate(guild);
 
       // 7. Setup PvP and Tournament Roles & Channels
       console.log('[KryloSMP Setup] Setting up PvP and Tournament roles and channels...');
@@ -3772,6 +3773,88 @@ async function startLiveStatusUpdate(guild, channel) {
   // Run immediately and then schedule every 20 seconds
   await updateStatus();
   setInterval(updateStatus, 20000);
+}
+
+async function startLeaderboardUpdate(guild) {
+  const leaderboardCh = guild.channels.cache.find(c => c.name.includes('leaderboard') && c.type === ChannelType.GuildText);
+  if (!leaderboardCh) return;
+
+  const updateLeaderboard = async () => {
+    try {
+      // 1. Fetch Minecraft server stats from Vercel config
+      let dbStats = null;
+      try {
+        const dbRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get_config', guildId: '1524878881918685405' })
+        });
+        if (dbRes.ok) {
+          const guildConfig = await dbRes.json();
+          dbStats = guildConfig.serverStats;
+        }
+      } catch (err) {
+        console.warn('[Leaderboard] Failed to fetch DB stats:', err.message);
+      }
+
+      // 2. Format Discord Chat Leaderboard
+      const sortedUsers = Object.entries(xpData)
+        .sort((a, b) => b[1].xp - a[1].xp)
+        .slice(0, 5);
+
+      let chatLeaderboardText = '';
+      const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+      if (sortedUsers.length > 0) {
+        for (let i = 0; i < sortedUsers.length; i++) {
+          const [uId, stats] = sortedUsers[i];
+          chatLeaderboardText += `${medals[i]} <@${uId}> — **Level ${stats.level}** (XP: \`${stats.xp}\`)\n`;
+        }
+      } else {
+        chatLeaderboardText = '*Waiting for chat activity...*\n';
+      }
+
+      // 3. Format Minecraft Stats
+      let mcStatsText = '';
+      if (dbStats) {
+        const playtimeHours = (dbStats.mostPlaytimeSeconds / 3600).toFixed(1);
+        mcStatsText += `🏆 **Most Playtime:** \`${dbStats.mostPlaytimePlayer}\` (${playtimeHours} hours)\n` +
+                       `⚡ **Most Server Joins:** \`${dbStats.mostActivePlayer}\` (${dbStats.mostActiveJoins} joins)\n`;
+      } else {
+        mcStatsText = '*Waiting for server stats...*\n';
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor(0x00F2FF)
+        .setTitle('👑 KryloSMP Server Leaderboards')
+        .setDescription(
+          `🏆 **Season 1 Leaderboard**\n\n` +
+          `💬 **Top Discord Chatters (XP Levels)**\n` +
+          `${chatLeaderboardText}\n` +
+          `🎮 **Minecraft Server Legends**\n` +
+          `${mcStatsText}\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `*Rankings update automatically. Play and chat to reach the top!*`
+        )
+        .setFooter({ text: 'KryloSMP Leaderboard • Updates every 10 minutes' })
+        .setTimestamp();
+
+      // Find existing message to edit
+      const messages = await leaderboardCh.messages.fetch({ limit: 10 });
+      let lbMessage = messages.find(m => m.author.id === client.user.id);
+
+      if (lbMessage) {
+        await lbMessage.edit({ embeds: [embed] });
+      } else {
+        await leaderboardCh.send({ embeds: [embed] });
+      }
+    } catch (err) {
+      console.warn('[Leaderboard] Error updating leaderboard:', err.message);
+    }
+  };
+
+  // Run immediately and then schedule every 10 minutes (600,000 ms)
+  await updateLeaderboard();
+  setInterval(updateLeaderboard, 600000);
 }
 
 async function calculatePriority(text) {
