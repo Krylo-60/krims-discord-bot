@@ -3800,10 +3800,10 @@ async function startLeaderboardUpdate(guild) {
       // 2. Format Discord Chat Leaderboard
       const sortedUsers = Object.entries(xpData)
         .sort((a, b) => b[1].xp - a[1].xp)
-        .slice(0, 5);
+        .slice(0, 10);
 
       let chatLeaderboardText = '';
-      const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+      const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
       if (sortedUsers.length > 0) {
         for (let i = 0; i < sortedUsers.length; i++) {
           const [uId, stats] = sortedUsers[i];
