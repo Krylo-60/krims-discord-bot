@@ -823,7 +823,76 @@ client.once('ready', async () => {
         }
       }
 
-      // 4. Enforce Verification Gateway Channel Permissions
+      // 4. Create Additional Premium SMP Channels
+      try {
+        console.log('[KryloSMP Setup] Ensuring additional premium SMP channels exist...');
+        
+        // A. Create #📷┃media-clips under CHAT category
+        let mediaCh = guild.channels.cache.find(c => (c.name.includes('media-clips') || c.name.includes('media')) && c.type === ChannelType.GuildText);
+        if (!mediaCh) {
+          const chatCategory = guild.channels.cache.find(c => c.name.toUpperCase().includes('CHAT') && c.type === ChannelType.GuildCategory);
+          mediaCh = await guild.channels.create({
+            name: '📷┃media-clips',
+            type: ChannelType.GuildText,
+            parent: chatCategory ? chatCategory.id : null,
+            topic: 'Share your builds, screenshots, and videos here!'
+          });
+          console.log('[KryloSMP Setup] Created media-clips channel.');
+        }
+
+        // B. Create #🛒┃marketplace under CHAT category
+        let marketCh = guild.channels.cache.find(c => (c.name.includes('marketplace') || c.name.includes('market')) && c.type === ChannelType.GuildText);
+        if (!marketCh) {
+          const chatCategory = guild.channels.cache.find(c => c.name.toUpperCase().includes('CHAT') && c.type === ChannelType.GuildCategory);
+          marketCh = await guild.channels.create({
+            name: '🛒┃marketplace',
+            type: ChannelType.GuildText,
+            parent: chatCategory ? chatCategory.id : null,
+            topic: 'Trade items, advertise shops, and list prices!'
+          });
+          console.log('[KryloSMP Setup] Created marketplace channel.');
+        }
+
+        // C. Create #💡┃suggestions under SUPPORT category
+        let sugCh = guild.channels.cache.find(c => c.name.includes('suggestions') && c.type === ChannelType.GuildText);
+        if (!sugCh) {
+          const supportCategory = guild.channels.cache.find(c => c.name.toUpperCase().includes('SUPPORT') && c.type === ChannelType.GuildCategory);
+          sugCh = await guild.channels.create({
+            name: '💡┃suggestions',
+            type: ChannelType.GuildText,
+            parent: supportCategory ? supportCategory.id : null,
+            topic: 'Submit your suggestions for KryloSMP here!'
+          });
+          console.log('[KryloSMP Setup] Created suggestions channel.');
+        }
+
+        // D. Create Category: 🔊 VOICE CHANNELS and VCs
+        let vcCategory = guild.channels.cache.find(c => c.name.toUpperCase().includes('VOICE') && c.type === ChannelType.GuildCategory);
+        if (!vcCategory) {
+          vcCategory = await guild.channels.create({
+            name: '🔊 VOICE CHANNELS',
+            type: ChannelType.GuildCategory
+          });
+          console.log('[KryloSMP Setup] Created voice category.');
+        }
+
+        const voiceChannels = ['🔊┃Lobby', '🔊┃Survival 1', '🔊┃Survival 2', '🔊┃Gaming'];
+        for (const vcName of voiceChannels) {
+          const existingVC = guild.channels.cache.find(c => c.name === vcName && c.type === ChannelType.GuildVoice && c.parentId === vcCategory.id);
+          if (!existingVC) {
+            await guild.channels.create({
+              name: vcName,
+              type: ChannelType.GuildVoice,
+              parent: vcCategory.id
+            });
+            console.log(`[KryloSMP Setup] Created voice channel: ${vcName}`);
+          }
+        }
+      } catch (err) {
+        console.warn('[KryloSMP Setup] Failed to setup premium SMP channels:', err.message);
+      }
+
+      // 5. Enforce Verification Gateway Channel Permissions
       console.log('[KryloSMP Setup] Enforcing Verification Gateway permissions...');
       const categories = guild.channels.cache.filter(c => c.type === ChannelType.GuildCategory);
       for (const [, cat] of categories) {
@@ -2922,6 +2991,30 @@ client.on('messageCreate', async (message) => {
 
   // Process message XP leveling
   await handleMessageXP(message);
+
+  // Auto-Format Suggestions Channel
+  if (message.guild && message.channel.name.includes('suggestions')) {
+    try {
+      await message.delete().catch(() => {});
+      const suggestEmbed = new EmbedBuilder()
+        .setColor(0xFFAA00)
+        .setTitle('💡 New Server Suggestion')
+        .setDescription(message.content)
+        .setAuthor({
+          name: message.author.tag,
+          iconURL: message.author.displayAvatarURL({ dynamic: true })
+        })
+        .setFooter({ text: `Suggested by ${message.author.username} • React to vote!` })
+        .setTimestamp();
+
+      const msg = await message.channel.send({ embeds: [suggestEmbed] });
+      await msg.react('👍');
+      await msg.react('👎');
+    } catch (err) {
+      console.warn('[Suggestions] Failed to auto-format suggestion:', err.message);
+    }
+    return;
+  }
 
   // ─── TICKET CHANNEL AUTO-RESPONSE & ESCALATION ───
   if (message.guild && message.channel.name.startsWith('ticket-')) {
