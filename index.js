@@ -7,6 +7,7 @@ import { exec, spawn } from 'child_process';
 import util from 'util';
 import path from 'path';
 import http from 'http';
+import Jimp from 'jimp';
 
 dotenv.config();
 
@@ -626,7 +627,7 @@ client.once('ready', async () => {
           const embed = new EmbedBuilder()
             .setColor(0xAA55FF)
             .setTitle('🎨 Server Roles Selection')
-            .setDescription('Click the buttons below to grab your platform roles so other players know how you play!');
+            .setDescription('Click the buttons below to grab your platform and notification roles!');
           const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
               .setCustomId('role_java')
@@ -637,7 +638,17 @@ client.once('ready', async () => {
               .setCustomId('role_bedrock')
               .setLabel('Bedrock Player')
               .setStyle(ButtonStyle.Secondary)
-              .setEmoji('🪨')
+              .setEmoji('🪨'),
+            new ButtonBuilder()
+              .setCustomId('role_announcements')
+              .setLabel('Announcements')
+              .setStyle(ButtonStyle.Primary)
+              .setEmoji('📢'),
+            new ButtonBuilder()
+              .setCustomId('role_giveaways')
+              .setLabel('Giveaways')
+              .setStyle(ButtonStyle.Primary)
+              .setEmoji('🎁')
           );
           await infoCh.send({ embeds: [embed], components: [row] });
           console.log(`[KryloSMP Setup] Sent role selection button embed.`);
@@ -1123,7 +1134,7 @@ client.on('interactionCreate', async (interaction) => {
       return;
     }
 
-    if (customId === 'role_java' || customId === 'role_bedrock') {
+    if (customId.startsWith('role_')) {
       try {
         await interaction.deferReply({ ephemeral: true });
       } catch (deferErr) {
@@ -1131,11 +1142,24 @@ client.on('interactionCreate', async (interaction) => {
         return;
       }
       try {
-        const roleName = customId === 'role_java' ? '☕ Java Player' : '🪨 Bedrock Player';
-        const role = interaction.guild.roles.cache.find(r => r.name === roleName);
+        let roleName = '';
+        if (customId === 'role_java') roleName = '☕ Java Player';
+        else if (customId === 'role_bedrock') roleName = '🪨 Bedrock Player';
+        else if (customId === 'role_announcements') roleName = '📢 Announcements';
+        else if (customId === 'role_giveaways') roleName = '🎁 Giveaways';
+
+        let role = interaction.guild.roles.cache.find(r => r.name === roleName);
         if (!role) {
-          await interaction.editReply(`❌ Role "${roleName}" not found on this server!`);
-          return;
+          try {
+            role = await interaction.guild.roles.create({
+              name: roleName,
+              reason: 'Auto-created for self-assignable roles selector'
+            });
+            console.log(`[Role Selector] Auto-created missing role: ${roleName}`);
+          } catch (createErr) {
+            await interaction.editReply(`❌ Role "${roleName}" not found and could not be created!`);
+            return;
+          }
         }
 
         const hasRole = interaction.member.roles.cache.has(role.id);
@@ -2944,6 +2968,46 @@ client.on('messageCreate', async (message) => {
           await handleViolation(message, 'profanity or slurs are not allowed', `Filtered Message: ||${message.content}||`);
           return;
         }
+
+        // 4. Caps Lock Screaming Filter
+        if (message.content.length > 10) {
+          const uppercaseCount = (message.content.match(/[A-Z]/g) || []).length;
+          const letterCount = (message.content.match(/[a-zA-Z]/g) || []).length;
+          if (letterCount > 0 && (uppercaseCount / letterCount) > 0.75) {
+            await handleViolation(message, 'screaming in all caps is not allowed', `Caps Ratio: \`${Math.round((uppercaseCount / letterCount) * 100)}%\``);
+            return;
+          }
+        }
+
+        // 5. External Link Filter (Allow only trusted domains)
+        const urlRegex = /(https?:\/\/[^\s]+)/gi;
+        if (urlRegex.test(message.content)) {
+          const allowedDomains = ['youtube.com', 'youtu.be', 'play.hosting', 'onrender.com', 'discord.com', 'tenor.com', 'giphy.com', 'github.com', 'krims-code-chatbot.vercel.app'];
+          const urls = message.content.match(urlRegex) || [];
+          let blockLink = false;
+          let blockedUrl = '';
+
+          for (const url of urls) {
+            try {
+              const domain = new URL(url).hostname.replace('www.', '').toLowerCase();
+              const isAllowed = allowedDomains.some(d => domain === d || domain.endsWith('.' + d));
+              if (!isAllowed) {
+                blockLink = true;
+                blockedUrl = url;
+                break;
+              }
+            } catch {
+              blockLink = true;
+              blockedUrl = url;
+              break;
+            }
+          }
+
+          if (blockLink) {
+            await handleViolation(message, 'posting unauthorized external links is not allowed', `Link: \`${blockedUrl}\``);
+            return;
+          }
+        }
       }
     }
   }
@@ -3491,6 +3555,53 @@ client.on('messageCreate', async (message) => {
 // ═══════════════════════════════════════════════════════════
 const KRYLO_GUILD_ID = '1524878881918685405';
 
+async function generateWelcomeCard(avatarUrl, username, memberCount) {
+  try {
+    const bg = await Jimp.read('welcome-bg.png');
+    bg.resize(1020, 450);
+
+    // Fetch avatar or fallback to default
+    let avatar;
+    try {
+      avatar = await Jimp.read(avatarUrl);
+    } catch {
+      avatar = new Jimp(200, 200, 0x555555ff); // Grey square fallback
+    }
+    avatar.resize(200, 200);
+
+    const mask = new Jimp(200, 200, 0x00000000);
+    mask.scan(0, 0, 200, 200, (x, y) => {
+      const dist = Math.sqrt(Math.pow(x - 100, 2) + Math.pow(y - 100, 2));
+      if (dist <= 100) {
+        mask.setPixelColor(0xffffffff, x, y);
+      }
+    });
+    avatar.mask(mask, 0, 0);
+
+    bg.composite(avatar, 410, 50);
+
+    const font32 = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
+    const font64 = await Jimp.loadFont(Jimp.FONT_SANS_64_WHITE);
+
+    const welcomeText = `WELCOME TO KRYLOSMP`;
+    const userText = username.toUpperCase();
+    const countText = `MEMBER #${memberCount}`;
+
+    const wTextWidth = Jimp.measureText(font32, welcomeText);
+    const uTextWidth = Jimp.measureText(font64, userText);
+    const cTextWidth = Jimp.measureText(font32, countText);
+
+    bg.print(font32, (1020 - wTextWidth) / 2, 270, welcomeText);
+    bg.print(font64, (1020 - uTextWidth) / 2, 310, userText);
+    bg.print(font32, (1020 - cTextWidth) / 2, 385, countText);
+
+    return await bg.getBufferAsync(Jimp.MIME_PNG);
+  } catch (err) {
+    console.error('[Welcome Card] Error generating card:', err);
+    return null;
+  }
+}
+
 client.on('guildMemberAdd', async (member) => {
   if (member.guild.id !== KRYLO_GUILD_ID) return;
 
@@ -3505,16 +3616,17 @@ client.on('guildMemberAdd', async (member) => {
     console.warn(`[Welcome] Failed to assign Player role:`, err.message);
   }
 
-  // Send styled welcome embed in #general-chat
+  // Send styled welcome card in #general-chat
   try {
     const generalCh = member.guild.channels.cache.find(c => c.name.includes('general-chat') && c.type === ChannelType.GuildText);
     if (generalCh) {
       const memberCount = member.guild.memberCount;
-
+      const avatarUrl = member.user.displayAvatarURL({ extension: 'png', forceStatic: true, size: 256 });
+      
+      const cardBuffer = await generateWelcomeCard(avatarUrl, member.user.username, memberCount);
       let files = [];
-      const bannerPath = path.resolve('krylosmp_banner.png');
-      if (fs.existsSync(bannerPath)) {
-        files.push(new AttachmentBuilder(bannerPath, { name: 'krylosmp_banner.png' }));
+      if (cardBuffer) {
+        files.push(new AttachmentBuilder(cardBuffer, { name: 'welcome-card.png' }));
       }
 
       const embed = new EmbedBuilder()
@@ -3531,8 +3643,8 @@ client.on('guildMemberAdd', async (member) => {
         .setFooter({ text: `KryloSMP • ${memberCount} members • Built by Krishiv ⚡` })
         .setTimestamp();
 
-      if (fs.existsSync(bannerPath)) {
-        embed.setImage('attachment://krylosmp_banner.png');
+      if (cardBuffer) {
+        embed.setImage('attachment://welcome-card.png');
       }
 
       await generalCh.send({ embeds: [embed], files });
