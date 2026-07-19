@@ -1,9 +1,10 @@
+import 'dotenv/config';
 import { spawn } from 'child_process';
 import fetch from 'node-fetch';
 import WebSocket from 'ws';
 import fs from 'fs';
 
-const token = 'ptlc_y3F1H2hfU3S7JTftuECr7LMhJNaDod1HYaF4gVJ2jnE';
+const token = '${process.env.PTERODACTYL_TOKEN}';
 const serverId = '25a5d79a';
 const chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const userDataDir = 'C:\\Users\\naina\\.gemini\\antigravity\\scratch\\ChromeDevProfile';
