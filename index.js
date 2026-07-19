@@ -2849,6 +2849,8 @@ client.on('interactionCreate', async (interaction) => {
         history: history
       });
 
+      handleAIFailover(result, interaction.guild);
+
       if (result.ok && result.response) {
         history.push({ role: 'user', content: prompt });
         history.push({ role: 'model', content: result.response });
@@ -3550,6 +3552,8 @@ client.on('messageCreate', async (message) => {
         history: history
       });
 
+      handleAIFailover(result, message.guild);
+
       if (result.ok && result.response) {
         // Update local history
         history.push({ role: 'user', content: prompt });
@@ -3920,6 +3924,29 @@ async function startLiveStatusUpdate(guild, channel) {
   // Run immediately and then schedule every 20 seconds
   await updateStatus();
   setInterval(updateStatus, 20000);
+}
+
+function handleAIFailover(result, guild) {
+  if (result && result.failover && guild) {
+    try {
+      const logCh = guild.channels.cache.find(c => c.name.includes('mod-logs') && c.type === ChannelType.GuildText);
+      if (logCh) {
+        const logEmbed = new EmbedBuilder()
+          .setColor(0xFFAA00)
+          .setTitle('🔄 AI Engine Failover Alert')
+          .setDescription(
+            `Primary AI engine failed. Automatically routed query to backup engine.\n\n` +
+            `• **Failed Engine:** ${result.failover.from}\n` +
+            `• **Routed To:** ${result.failover.to}\n` +
+            `• **Error Details:** \`${result.failover.error}\``
+          )
+          .setTimestamp();
+        logCh.send({ embeds: [logEmbed] }).catch(() => {});
+      }
+    } catch (err) {
+      console.warn('[Log] Failed to send failover log:', err.message);
+    }
+  }
 }
 
 let isUpgradingPaper = false;
@@ -4399,6 +4426,8 @@ async function handleTicketMessage(message) {
       systemInstruction: ticketSystemInstruction,
       history: history
     });
+
+    handleAIFailover(answerResult, message.guild);
 
     if (answerResult.ok && answerResult.response) {
       history.push({ role: 'user', content: message.content });
