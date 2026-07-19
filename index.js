@@ -60,8 +60,23 @@ function saveXPData() {
   try {
     fs.writeFileSync('xp.json', JSON.stringify(xpData, null, 2));
   } catch (err) {
-    console.warn("[Leveling] Failed to save XP data:", err.message);
+    console.warn("[Leveling] Failed to save local XP data:", err.message);
   }
+
+  // Sync to persistent Vercel database asynchronously
+  fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'update_xp_data',
+      guildId: '1524878881918685405',
+      xpData: xpData
+    })
+  }).then(res => {
+    if (!res.ok) console.warn("[Leveling] Failed to sync XP data to Vercel database: status", res.status);
+  }).catch(err => {
+    console.warn("[Leveling] Failed to sync XP data to Vercel database:", err.message);
+  });
 }
 
 async function handleMessageXP(message) {
@@ -256,6 +271,24 @@ function startAutoUpdater() {
 client.once('ready', async () => {
   console.log(`[+] Krims Code Discord Bot online as ${client.user.tag}`);
   startAutoUpdater();
+
+  // Load XP data from persistent Vercel database
+  try {
+    const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'get_config', guildId: '1524878881918685405' })
+    });
+    if (configRes.ok) {
+      const dbConfig = await configRes.json();
+      if (dbConfig && dbConfig.xpData) {
+        xpData = dbConfig.xpData;
+        console.log(`[Leveling] Successfully loaded ${Object.keys(xpData).length} users' XP from Vercel database!`);
+      }
+    }
+  } catch (err) {
+    console.warn("[Leveling] Failed to load XP from Vercel config database:", err.message);
+  }
 
   // Register Global Slash Commands
   const slashCommands = [
