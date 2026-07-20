@@ -810,7 +810,7 @@ client.once('ready', async () => {
       // 3. Minecraft Link / Verify Button
       let verifyCh = guild.channels.cache.find(c => (c.name.includes('verify') || c.name.includes('link')) && c.type === ChannelType.GuildText);
       
-      let verifiedRole = guild.roles.cache.find(r => r.name === 'Verified');
+      let verifiedRole = guild.roles.cache.find(r => r.name.toLowerCase().includes('verified'));
       if (!verifiedRole) {
         try {
           verifiedRole = await guild.roles.create({
@@ -1861,7 +1861,7 @@ client.on('interactionCreate', async (interaction) => {
             const mcName = result.name;
 
             // 1. Assign 'Verified' role
-            let role = interaction.guild.roles.cache.find(r => r.name === 'Verified');
+            let role = interaction.guild.roles.cache.find(r => r.name.toLowerCase().includes('verified'));
             if (!role) {
               try {
                 role = await interaction.guild.roles.create({
@@ -2630,7 +2630,7 @@ client.on('interactionCreate', async (interaction) => {
           const mcName = result.name;
 
           // 2. Assign 'Verified' role in Discord guild
-          let role = interaction.guild.roles.cache.find(r => r.name === 'Verified');
+          let role = interaction.guild.roles.cache.find(r => r.name.toLowerCase().includes('verified'));
           if (!role) {
             try {
               role = await interaction.guild.roles.create({
