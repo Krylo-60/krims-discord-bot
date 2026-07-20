@@ -647,8 +647,34 @@ client.once('ready', async () => {
             try {
               const member = guild.members.cache.get(userId) || await guild.members.fetch(userId).catch(() => null);
               if (member) {
+                // 1. Sync from Vercel config (store purchases) to Discord
+                const dbRank = playerInfo.rank;
+                if (dbRank && dbRank !== 'Member') {
+                  const cleanDbRank = dbRank.toLowerCase().replace(' rank', '');
+                  const matchingRole = guild.roles.cache.find(r => r.name.toLowerCase().includes(cleanDbRank));
+                  if (matchingRole && !member.roles.cache.has(matchingRole.id)) {
+                    await member.roles.add(matchingRole);
+                    console.log(`[Auto-Sync] Granted role ${matchingRole.name} to ${member.user.tag} matching Vercel database rank.`);
+                  }
+                }
+
+                // 2. Sync from Discord roles to Vercel config
                 let resolvedRank = 'Member';
-                if (member.roles.cache.some(r => r.name.toLowerCase().includes('legend'))) {
+                if (member.roles.cache.some(r => r.name.toLowerCase().includes('krylo god'))) {
+                  resolvedRank = 'Krylo God';
+                } else if (member.roles.cache.some(r => r.name.toLowerCase().includes('immortal'))) {
+                  resolvedRank = 'Immortal';
+                } else if (member.roles.cache.some(r => r.name.toLowerCase().includes('god'))) {
+                  resolvedRank = 'God';
+                } else if (member.roles.cache.some(r => r.name.toLowerCase().includes('overlord'))) {
+                  resolvedRank = 'Overlord';
+                } else if (member.roles.cache.some(r => r.name.toLowerCase().includes('elite'))) {
+                  resolvedRank = 'Elite';
+                } else if (member.roles.cache.some(r => r.name.toLowerCase().includes('champion'))) {
+                  resolvedRank = 'Champion';
+                } else if (member.roles.cache.some(r => r.name.toLowerCase().includes('titan'))) {
+                  resolvedRank = 'Titan';
+                } else if (member.roles.cache.some(r => r.name.toLowerCase().includes('legend'))) {
                   resolvedRank = 'Legend';
                 } else if (member.roles.cache.some(r => r.name.toLowerCase().includes('mvp'))) {
                   resolvedRank = 'MVP';
@@ -1691,7 +1717,7 @@ client.on('interactionCreate', async (interaction) => {
       const userTicketReasonText = interaction.fields.getTextInputValue('ticket_reason');
       
       try {
-        const supportCategory = interaction.guild.channels.cache.find(c => c.name.toLowerCase().includes('support') && c.type === ChannelType.GuildCategory);
+        const supportCategory = interaction.guild.channels.cache.find(c => c.name.toLowerCase().includes('support') && c.type === ChannelType.GuildCategory) || interaction.guild.channels.cache.find(c => c.name.toLowerCase().includes('support-tickets') && c.type === ChannelType.GuildText)?.parent;
         const channel = await interaction.guild.channels.create({
           name: `ticket-${interaction.user.username.toLowerCase()}`,
           type: ChannelType.GuildText,
@@ -2677,7 +2703,7 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.deferReply({ ephemeral: true });
 
     try {
-      const supportCategory = interaction.guild.channels.cache.find(c => c.name.toLowerCase().includes('support') && c.type === ChannelType.GuildCategory);
+      const supportCategory = interaction.guild.channels.cache.find(c => c.name.toLowerCase().includes('support') && c.type === ChannelType.GuildCategory) || interaction.guild.channels.cache.find(c => c.name.toLowerCase().includes('support-tickets') && c.type === ChannelType.GuildText)?.parent;
       const channel = await interaction.guild.channels.create({
         name: `ticket-${interaction.user.username.toLowerCase()}`,
         type: ChannelType.GuildText,
@@ -3517,7 +3543,7 @@ client.on('messageCreate', async (message) => {
     }
 
     try {
-      const supportCategory = message.guild.channels.cache.find(c => c.name.toLowerCase().includes('support') && c.type === ChannelType.GuildCategory);
+      const supportCategory = message.guild.channels.cache.find(c => c.name.toLowerCase().includes('support') && c.type === ChannelType.GuildCategory) || message.guild.channels.cache.find(c => c.name.toLowerCase().includes('support-tickets') && c.type === ChannelType.GuildText)?.parent;
       const channel = await message.guild.channels.create({
         name: `ticket-${message.author.username.toLowerCase()}`,
         type: ChannelType.GuildText,
