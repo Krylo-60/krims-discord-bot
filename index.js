@@ -3071,7 +3071,7 @@ const processedMessages = new Set();
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
-  if (message.guildId !== '1524878881918685405') return;
+  if (message.guild && message.guild.id !== '1524878881918685405') return;
 
   // Prevent duplicate processing of the same message
   if (processedMessages.has(message.id)) return;
@@ -4632,9 +4632,9 @@ async function handleTicketMessage(message) {
       "- You are currently talking inside the official KryloSMP Discord Server.\n" +
       "- The Minecraft Server IP is: KryloSmp.play.hosting\n" +
       "- The server supports Java (default port 25565) and Bedrock (default port 19132) cross-play.\n" +
-      "- The server is offline-mode (cracked), meaning players can join using cracked launchers (like TLauncher) without an official Mojang account. On join, they must type `/register <password> <confirm>` or `/login <password>` to secure their username.\n" +
+      "- The server is premium-only (online-mode), meaning only official/paid Mojang/Microsoft accounts can connect. Cracked launchers are blocked to protect against bot join attacks. Registering/logging in in-game is not required.\n" +
       "- To get whitelisted, players must go to the #✅┃verify channel and click the link button to get their verification code.\n" +
-      "- CURRENT SERVER STATUS & OUTAGES: The Minecraft server hosting provider (play.hosting) is currently experiencing network issues, making the server temporarily unavailable. Waking servers from limbo is turned off right now by play.hosting. If players complain that the server is offline, down, or they get a limbo/waking error, politely explain this play.hosting issue to them and advise them that the development team is waiting for the host to restore waking.\n\n" +
+      "- CURRENT SERVER STATUS: The server is fully operational and online at KryloSmp.play.hosting.\n\n" +
       "Instructions:\n" +
       "Provide a friendly, helpful, and concise solution to the player's problem using the server details above.";
 
