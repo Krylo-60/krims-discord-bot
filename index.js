@@ -663,6 +663,26 @@ client.once('ready', async () => {
           required: true
         }
       ]
+    },
+    {
+      name: 'vote',
+      description: 'Vote for KryloSMP on top server directories to earn free +500 KC & keys!'
+    },
+    {
+      name: 'refer',
+      description: 'Refer friends to KryloSMP to earn +2,000 KC & Referral Crate Keys!',
+      options: [
+        {
+          name: 'friend',
+          type: 6,
+          description: 'Friend you invited to the server',
+          required: false
+        }
+      ]
+    },
+    {
+      name: 'bump',
+      description: 'Check Disboard bump status and set 2-hour reminder for free server traffic!'
     }
   ];
 
@@ -2245,6 +2265,90 @@ client.on('interactionCreate', async (interaction) => {
       .setColor(0x00F2FF)
       .setTitle('⚒️ Shift Complete!')
       .setDescription(`You worked hard and **${job.text}**!\nYou earned **+${job.pay} KryloCoins** 🪙`)
+      .setTimestamp();
+    await interaction.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: /vote
+  if (commandName === 'vote') {
+    const embed = new EmbedBuilder()
+      .setColor(0x00FF66)
+      .setTitle('🗳️ Vote for KryloSMP & Claim Free Rewards!')
+      .setDescription(
+        'Vote for `KryloSmp.play.hosting` on top Minecraft server lists to boost our network ranking and earn **+500 KryloCoins** + **1x Vote Crate Key** per site!\n\n' +
+        '• [Vote on PlanetMinecraft](https://planetminecraft.com)\n' +
+        '• [Vote on Minecraft-MP](https://minecraft-mp.com)\n' +
+        '• [Vote on NameMC](https://namemc.com)\n' +
+        '• [Vote on TopG](https://topg.org)\n' +
+        '• [Vote on Minecraft Server List](https://minecraft-server-list.com)\n\n' +
+        '*Rewards credit automatically to your wallet balance!*'
+      )
+      .setTimestamp();
+    await interaction.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: /refer
+  if (commandName === 'refer') {
+    const friend = interaction.options.getUser('friend');
+    if (!friend) {
+      const embed = new EmbedBuilder()
+        .setColor(0xFFAA00)
+        .setTitle('🤝 Referral Rewards Program')
+        .setDescription(
+          `Invite friends to KryloSMP and earn **+2,000 KryloCoins** + **1x Referral Crate Key** for every friend that joins!\n\n` +
+          `• **Your Invite Link:** \`https://discord.gg/krylosmp\`\n` +
+          `• **How to Claim:** When your friend joins, run \`/refer friend:@YourFriend\` to claim your bonus!`
+        )
+        .setTimestamp();
+      await interaction.reply({ embeds: [embed] });
+      return;
+    }
+
+    try {
+      const guildId = interaction.guild ? interaction.guild.id : '1524878881918685405';
+      const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get_config', guildId })
+      });
+      if (configRes.ok) {
+        const config = await configRes.json();
+        if (!config.economyData) config.economyData = {};
+        if (!config.economyData[interaction.user.username]) config.economyData[interaction.user.username] = { balance: 0 };
+        config.economyData[interaction.user.username].balance += 2000;
+
+        if (!config.pendingCommands) config.pendingCommands = [];
+        config.pendingCommands.push(`give ${interaction.user.username} minecraft:tripwire_hook 1`);
+
+        await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_config', guildId, config })
+        });
+      }
+    } catch {}
+
+    const embed = new EmbedBuilder()
+      .setColor(0x00FF66)
+      .setTitle('🤝 Referral Bonus Claimed!')
+      .setDescription(`Congratulations <@${interaction.user.id}>! You referred <@${friend.id}> to KryloSMP!\n\n• **+2,000 KryloCoins** credited to your wallet!\n• **1x Referral Crate Key** queued in-game!`)
+      .setTimestamp();
+    await interaction.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: /bump
+  if (commandName === 'bump') {
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('🚀 Disboard Server Bump Helper')
+      .setDescription(
+        'Type `/bump` (Disboard Bot command) in <#1526685119375478997> to bump KryloSMP to the top of Disboard homepage!\n\n' +
+        '• **Bump Cooldown:** Disboard allows bumping every **2 hours**.\n' +
+        '• **Reward:** +300 KryloCoins granted to every player who bumps!'
+      )
       .setTimestamp();
     await interaction.reply({ embeds: [embed] });
     return;
