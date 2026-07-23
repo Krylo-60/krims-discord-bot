@@ -683,6 +683,18 @@ client.once('ready', async () => {
     {
       name: 'bump',
       description: 'Check Disboard bump status and set 2-hour reminder for free server traffic!'
+    },
+    {
+      name: 'verify',
+      description: 'Link your Discord account & whitelist your Minecraft username for real player access!',
+      options: [
+        {
+          name: 'username',
+          type: 3,
+          description: 'Your Minecraft In-Game Username',
+          required: true
+        }
+      ]
     }
   ];
 
@@ -717,8 +729,55 @@ client.once('ready', async () => {
       } catch (err) {
         console.warn("[🎂 BIRTHDAY DAEMON] Failed to send announcement:", err.message);
       }
-    }
   }, 60000);
+
+  // 24/7 Automated Social News & Real-Player Acquisition Daemon (Runs on Render every 4 hours)
+  setInterval(async () => {
+    try {
+      const guild = await client.guilds.fetch('1524878881918685405');
+      const generalCh = guild.channels.cache.find(c => c && c.name && c.name.includes('general-chat') && c.type === ChannelType.GuildText);
+      const socialsCh = guild.channels.cache.find(c => c && c.name && c.name.includes('socials') && c.type === ChannelType.GuildText);
+
+      const promoEmbed = new EmbedBuilder()
+        .setColor(0x00F2FF)
+        .setTitle('🚀 KRYLOSMP AUTOMATED COMMUNITY SPOTLIGHT & REWARDS 🚀')
+        .setDescription(
+          '👑 **Join the #1 Cross-Platform Survival SMP!** 🥳\n\n' +
+          '• **Java IP:** `KryloSmp.play.hosting` (Port: `25565`)\n' +
+          '• **Bedrock / Mobile IP:** `KryloSmp.play.hosting` (Port: `19132`)\n\n' +
+          '---\n\n' +
+          '### 🎁 Active Player Perks & Rewards:\n' +
+          '• 💎 **Daily Item Rewards:** Run `/daily` for Day 1 free **32x Diamonds & +1,000 KC**!\n' +
+          '• 🤝 **Referral Rewards:** Run `/refer` and earn **+2,000 KC** per friend invited!\n' +
+          '• 🗳️ **Voting Rewards:** Run `/vote` on top directories for free Crate Keys!\n\n' +
+          'Webstore: `https://krylosmp-store.vercel.app` ⚔️'
+        )
+        .setFooter({ text: 'KryloSMP 24/7 Cloud Automated Spotlight' })
+        .setTimestamp();
+
+      if (generalCh) {
+        // Auto-purge old promo spotlight messages before sending new one
+        const recent = await generalCh.messages.fetch({ limit: 20 }).catch(() => null);
+        if (recent && recent.size > 0) {
+          const oldPromos = recent.filter(m => m.author.id === client.user.id && m.embeds && m.embeds[0] && m.embeds[0].title && m.embeds[0].title.includes('COMMUNITY SPOTLIGHT'));
+          if (oldPromos.size > 0) await generalCh.bulkDelete(oldPromos, true).catch(() => {});
+        }
+        await generalCh.send({ embeds: [promoEmbed] });
+      }
+
+      if (socialsCh) {
+        const recentSocial = await socialsCh.messages.fetch({ limit: 20 }).catch(() => null);
+        if (recentSocial && recentSocial.size > 0) {
+          const oldPromos = recentSocial.filter(m => m.author.id === client.user.id && m.embeds && m.embeds[0] && m.embeds[0].title && m.embeds[0].title.includes('COMMUNITY SPOTLIGHT'));
+          if (oldPromos.size > 0) await socialsCh.bulkDelete(oldPromos, true).catch(() => {});
+        }
+        await socialsCh.send({ embeds: [promoEmbed] });
+      }
+      console.log('[🚀 NEWS SPREADER DAEMON] Broadcasted 24/7 KryloSMP spotlight!');
+    } catch (err) {
+      console.warn('[🚀 NEWS SPREADER DAEMON] Warning:', err.message);
+    }
+  }, 4 * 60 * 60 * 1000); // Every 4 hours
 
   // Start polling Vercel configuration database for pending actions and console commands
   setInterval(async () => {
@@ -2352,6 +2411,64 @@ client.on('interactionCreate', async (interaction) => {
       .setTimestamp();
     await interaction.reply({ embeds: [embed] });
     return;
+  }
+
+  // Command: /verify
+  if (commandName === 'verify') {
+    const mcUsername = interaction.options.getString('username');
+    const member = interaction.member;
+
+    try {
+      // 1. Assign Verified role in Discord
+      const verifiedRole = interaction.guild.roles.cache.find(r => r.name.toLowerCase() === 'verified' || r.name.toLowerCase() === 'member');
+      if (verifiedRole && member) {
+        await member.roles.add(verifiedRole).catch(() => {});
+      }
+
+      // 2. Queue console whitelist add & welcome bonus
+      const guildId = interaction.guild ? interaction.guild.id : '1524878881918685405';
+      const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get_config', guildId })
+      });
+
+      if (configRes.ok) {
+        const config = await configRes.json();
+        if (!config.economyData) config.economyData = {};
+        if (!config.economyData[interaction.user.username]) config.economyData[interaction.user.username] = { balance: 0 };
+        config.economyData[interaction.user.username].balance += 500;
+
+        if (!config.pendingCommands) config.pendingCommands = [];
+        config.pendingCommands.push(`whitelist add ${mcUsername}`);
+        config.pendingCommands.push(`give ${mcUsername} minecraft:diamond 16`);
+        config.pendingCommands.push(`say 🛡️ Real Human Player ${mcUsername} has verified via Discord and joined the network!`);
+
+        await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_config', guildId, config })
+        });
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor(0x00FF66)
+        .setTitle('🛡️ Account Verification Successful!')
+        .setDescription(
+          `Welcome to KryloSMP <@${interaction.user.id}>!\n\n` +
+          `• **Minecraft Username:** \`${mcUsername}\`\n` +
+          `• **Status:** Verified Human Player ✅\n` +
+          `• **Whitelist:** Added to Minecraft Server Whitelist!\n` +
+          `• **Welcome Bonus:** **+500 KryloCoins & 16x Free Diamonds** queued in-game!\n\n` +
+          `Connect now at \`KryloSmp.play.hosting\``
+        )
+        .setTimestamp();
+      await interaction.reply({ embeds: [embed] });
+      return;
+    } catch (err) {
+      await interaction.reply({ content: `❌ Verification error: ${err.message}`, ephemeral: true });
+      return;
+    }
   }
 
   // Command: /balance
