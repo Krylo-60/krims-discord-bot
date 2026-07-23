@@ -673,6 +673,33 @@ client.once('ready', async () => {
     console.error('[-] Failed to register slash commands:', err.message);
   }
 
+  // Automatic Birthday Scheduler for July 24th
+  let birthdayAnnounced = false;
+  setInterval(async () => {
+    const now = new Date();
+    if (now.getMonth() === 6 && now.getDate() === 24 && !birthdayAnnounced) {
+      birthdayAnnounced = true;
+      console.log("[🎂 BIRTHDAY DAEMON] July 24th reached! Triggering Official Birthday Announcement & Fireworks...");
+      try {
+        const guild = await client.guilds.fetch('1524878881918685405');
+        const announceCh = guild.channels.cache.find(c => c.name.includes('announcements') && c.type === ChannelType.GuildText);
+        if (announceCh) {
+          const embed = new EmbedBuilder()
+            .setColor(0xFF007F)
+            .setTitle('🎂🎉 IT IS OFFICIALLY KRYLO\'S BIRTHDAY! 🎉🎂')
+            .setDescription('👑 **HAPPY BIRTHDAY TO KRYLO, THE CREATOR & OWNER OF KRYLOSMP!** 🥳✨\n\nToday is the big day! Everyone raise your swords, celebrate in-game, and claim your free **+1000 KryloCoins** bonus using `/bday` and `/daily`! ⚔️💎🎁')
+            .setThumbnail(client.user.displayAvatarURL())
+            .setFooter({ text: 'KryloSMP Official Birthday Event • July 24th' })
+            .setTimestamp();
+
+          await announceCh.send({ content: '🎉 @everyone **IT IS OFFICIALLY KRYLO\'S BIRTHDAY!** 🎂🎈', embeds: [embed] });
+        }
+      } catch (err) {
+        console.warn("[🎂 BIRTHDAY DAEMON] Failed to send announcement:", err.message);
+      }
+    }
+  }, 60000);
+
   // Start polling Vercel configuration database for pending actions and console commands
   setInterval(async () => {
     const GUILD_ID = '1524878881918685405';
