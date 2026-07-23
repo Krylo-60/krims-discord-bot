@@ -729,6 +729,7 @@ client.once('ready', async () => {
       } catch (err) {
         console.warn("[🎂 BIRTHDAY DAEMON] Failed to send announcement:", err.message);
       }
+    }
   }, 60000);
 
   // 24/7 Automated Social News & Real-Player Acquisition Daemon (Runs on Render every 4 hours)
