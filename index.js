@@ -35,6 +35,8 @@ const sdk = new KrimsClient({
 // Maps to store state
 const conversationHistory = new Map();
 const userCooldowns = new Map();
+const dailyCooldowns = new Map();
+const workCooldowns = new Map();
 const giveawayEntries = new Map(); // giveaway message ID -> Set of user IDs
 const COOLDOWN_TIME = 10000; // 10 seconds cooldown in milliseconds
 const spamMap = new Map();
@@ -548,9 +550,117 @@ client.once('ready', async () => {
       options: [
         {
           name: 'user',
-          type: 6, // User type
+          type: 6,
           description: 'The user celebrating their birthday (leave blank for yourself)',
           required: false
+        }
+      ]
+    },
+    {
+      name: 'daily',
+      description: 'Claim your daily free KryloCoins reward!'
+    },
+    {
+      name: 'work',
+      description: 'Work a minigame job to earn KryloCoins!'
+    },
+    {
+      name: 'balance',
+      description: 'Check your current KryloCoins wallet balance',
+      options: [
+        {
+          name: 'user',
+          type: 6,
+          description: 'User to check balance of',
+          required: false
+        }
+      ]
+    },
+    {
+      name: 'pay',
+      description: 'Transfer KryloCoins to another player',
+      options: [
+        {
+          name: 'user',
+          type: 6,
+          description: 'Player to send coins to',
+          required: true
+        },
+        {
+          name: 'amount',
+          type: 4, // Integer
+          description: 'Amount of KryloCoins to send',
+          required: true
+        }
+      ]
+    },
+    {
+      name: 'slots',
+      description: 'Spin the casino slot machine to win KryloCoins!',
+      options: [
+        {
+          name: 'bet',
+          type: 4,
+          description: 'Amount of KryloCoins to bet (min: 10)',
+          required: true
+        }
+      ]
+    },
+    {
+      name: 'eightball',
+      description: 'Ask the Magic 8-Ball a question!',
+      options: [
+        {
+          name: 'question',
+          type: 3,
+          description: 'Your question for the Magic 8-Ball',
+          required: true
+        }
+      ]
+    },
+    {
+      name: 'serverinfo',
+      description: 'Display detailed server statistics, member counts & boost status'
+    },
+    {
+      name: 'userinfo',
+      description: 'Display user account details, join date & permissions',
+      options: [
+        {
+          name: 'user',
+          type: 6,
+          description: 'User to inspect',
+          required: false
+        }
+      ]
+    },
+    {
+      name: 'purge',
+      description: 'Bulk delete messages from the channel (Staff Only)',
+      options: [
+        {
+          name: 'amount',
+          type: 4,
+          description: 'Number of messages to delete (1-100)',
+          required: true
+        }
+      ]
+    },
+    {
+      name: 'warn',
+      description: 'Issue an official warning strike to a player (Staff Only)',
+      options: [
+        {
+          name: 'user',
+          type: 6,
+          description: 'User to warn',
+          required: true
+        },
+        {
+          name: 'reason',
+          type: 3,
+          description: 'Reason for the warning',
+          required: true
         }
       ]
     }
@@ -1991,6 +2101,392 @@ client.on('interactionCreate', async (interaction) => {
       .setImage(avatarUrl)
       .setTimestamp();
     await interaction.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: /daily
+  if (commandName === 'daily') {
+    const userId = interaction.user.id;
+    const now = Date.now();
+    const cooldown = 24 * 60 * 60 * 1000;
+    const lastClaim = dailyCooldowns.get(userId) || 0;
+
+    if (now - lastClaim < cooldown) {
+      const remainingMs = cooldown - (now - lastClaim);
+      const hours = Math.floor(remainingMs / (1000 * 60 * 60));
+      const mins = Math.ceil((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+      await interaction.reply({ content: `⏳ You have already claimed your daily reward! Please wait **${hours}h ${mins}m** before claiming again.`, ephemeral: true });
+      return;
+    }
+
+    dailyCooldowns.set(userId, now);
+    const reward = 250;
+
+    try {
+      const guildId = interaction.guild ? interaction.guild.id : '1524878881918685405';
+      const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get_config', guildId })
+      });
+      if (configRes.ok) {
+        const config = await configRes.json();
+        if (!config.economyData) config.economyData = {};
+        if (!config.economyData[interaction.user.username]) config.economyData[interaction.user.username] = { balance: 0 };
+        config.economyData[interaction.user.username].balance += reward;
+
+        await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_config', guildId, config })
+        });
+      }
+    } catch {}
+
+    const embed = new EmbedBuilder()
+      .setColor(0x00FF66)
+      .setTitle('💰 Daily Reward Claimed!')
+      .setDescription(`Congratulations <@${userId}>! You claimed your daily **+${reward} KryloCoins**! 🪙\nCome back in 24 hours for your next claim!`)
+      .setTimestamp();
+    await interaction.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: /work
+  if (commandName === 'work') {
+    const userId = interaction.user.id;
+    const now = Date.now();
+    const cooldown = 60 * 60 * 1000; // 1 hour
+    const lastWork = workCooldowns.get(userId) || 0;
+
+    if (now - lastWork < cooldown) {
+      const remainingMins = Math.ceil((cooldown - (now - lastWork)) / (1000 * 60));
+      await interaction.reply({ content: `⏳ You are exhausted from working! Take a rest and try again in **${remainingMins} minutes**.`, ephemeral: true });
+      return;
+    }
+
+    workCooldowns.set(userId, now);
+    const jobs = [
+      { text: 'Mined 64 Ancient Debris in the Nether', pay: 280 },
+      { text: 'Built a massive automatic sugar cane farm', pay: 210 },
+      { text: 'Defeated an army of Piglins in a bastion raid', pay: 300 },
+      { text: 'Brewed 50 Health Potions for the Spawn Shop', pay: 180 },
+      { text: 'Enchanted netherite swords for new players', pay: 240 },
+      { text: 'Guarded the spawn city from Ender Dragon attacks', pay: 290 }
+    ];
+    const job = jobs[Math.floor(Math.random() * jobs.length)];
+
+    try {
+      const guildId = interaction.guild ? interaction.guild.id : '1524878881918685405';
+      const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get_config', guildId })
+      });
+      if (configRes.ok) {
+        const config = await configRes.json();
+        if (!config.economyData) config.economyData = {};
+        if (!config.economyData[interaction.user.username]) config.economyData[interaction.user.username] = { balance: 0 };
+        config.economyData[interaction.user.username].balance += job.pay;
+
+        await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_config', guildId, config })
+        });
+      }
+    } catch {}
+
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('⚒️ Shift Complete!')
+      .setDescription(`You worked hard and **${job.text}**!\nYou earned **+${job.pay} KryloCoins** 🪙`)
+      .setTimestamp();
+    await interaction.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: /balance
+  if (commandName === 'balance') {
+    const targetUser = interaction.options.getUser('user') || interaction.user;
+    let balance = 0;
+
+    try {
+      const guildId = interaction.guild ? interaction.guild.id : '1524878881918685405';
+      const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get_config', guildId })
+      });
+      if (configRes.ok) {
+        const config = await configRes.json();
+        if (config.economyData && config.economyData[targetUser.username]) {
+          balance = config.economyData[targetUser.username].balance || 0;
+        }
+      }
+    } catch {}
+
+    const embed = new EmbedBuilder()
+      .setColor(0xFFAA00)
+      .setTitle(`💳 Wallet Balance - ${targetUser.username}`)
+      .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
+      .addFields(
+        { name: '🪙 KryloCoins', value: `\`${balance.toLocaleString()} KC\``, inline: true },
+        { name: '🔗 Server Status', value: '`Linked Account`', inline: true }
+      )
+      .setTimestamp();
+    await interaction.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: /pay
+  if (commandName === 'pay') {
+    const targetUser = interaction.options.getUser('user');
+    const amount = interaction.options.getInteger('amount');
+
+    if (targetUser.id === interaction.user.id) {
+      await interaction.reply({ content: '❌ You cannot send coins to yourself!', ephemeral: true });
+      return;
+    }
+    if (targetUser.bot) {
+      await interaction.reply({ content: '❌ You cannot send coins to bots!', ephemeral: true });
+      return;
+    }
+    if (amount <= 0) {
+      await interaction.reply({ content: '❌ Amount must be greater than 0!', ephemeral: true });
+      return;
+    }
+
+    try {
+      const guildId = interaction.guild ? interaction.guild.id : '1524878881918685405';
+      const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get_config', guildId })
+      });
+      if (configRes.ok) {
+        const config = await configRes.json();
+        if (!config.economyData) config.economyData = {};
+        
+        const senderBal = (config.economyData[interaction.user.username] && config.economyData[interaction.user.username].balance) || 0;
+        if (senderBal < amount) {
+          await interaction.reply({ content: `❌ Insufficient balance! You only have **${senderBal} KC**.`, ephemeral: true });
+          return;
+        }
+
+        // Transfer funds
+        if (!config.economyData[interaction.user.username]) config.economyData[interaction.user.username] = { balance: 0 };
+        if (!config.economyData[targetUser.username]) config.economyData[targetUser.username] = { balance: 0 };
+
+        config.economyData[interaction.user.username].balance -= amount;
+        config.economyData[targetUser.username].balance += amount;
+
+        await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_config', guildId, config })
+        });
+
+        const embed = new EmbedBuilder()
+          .setColor(0x00FF66)
+          .setTitle('💸 Transfer Successful!')
+          .setDescription(`<@${interaction.user.id}> successfully sent **${amount} KryloCoins** to <@${targetUser.id}>! 🪙`)
+          .setTimestamp();
+        await interaction.reply({ embeds: [embed] });
+        return;
+      }
+    } catch (err) {
+      await interaction.reply({ content: `❌ Transfer failed: ${err.message}`, ephemeral: true });
+      return;
+    }
+  }
+
+  // Command: /slots
+  if (commandName === 'slots') {
+    const bet = interaction.options.getInteger('bet');
+    if (bet < 10) {
+      await interaction.reply({ content: '❌ Minimum bet is 10 KryloCoins!', ephemeral: true });
+      return;
+    }
+
+    const symbols = ['💎', '🍋', '🍒', '🔔', '7️⃣', '🎰'];
+    const s1 = symbols[Math.floor(Math.random() * symbols.length)];
+    const s2 = symbols[Math.floor(Math.random() * symbols.length)];
+    const s3 = symbols[Math.floor(Math.random() * symbols.length)];
+
+    let win = false;
+    let multiplier = 0;
+    if (s1 === s2 && s2 === s3) {
+      win = true;
+      multiplier = s1 === '💎' ? 10 : 5;
+    } else if (s1 === s2 || s2 === s3 || s1 === s3) {
+      win = true;
+      multiplier = 2;
+    }
+
+    const winAmount = win ? bet * multiplier : -bet;
+
+    try {
+      const guildId = interaction.guild ? interaction.guild.id : '1524878881918685405';
+      const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get_config', guildId })
+      });
+      if (configRes.ok) {
+        const config = await configRes.json();
+        if (!config.economyData) config.economyData = {};
+        const bal = (config.economyData[interaction.user.username] && config.economyData[interaction.user.username].balance) || 0;
+        if (bal < bet) {
+          await interaction.reply({ content: `❌ Insufficient balance to bet **${bet} KC**! You have **${bal} KC**.`, ephemeral: true });
+          return;
+        }
+
+        config.economyData[interaction.user.username].balance += winAmount;
+
+        await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_config', guildId, config })
+        });
+      }
+    } catch {}
+
+    const embed = new EmbedBuilder()
+      .setColor(win ? 0x00FF66 : 0xFF0055)
+      .setTitle('🎰 Krylo Casino Slots')
+      .setDescription(`[ ${s1} | ${s2} | ${s3} ]\n\n` + (win ? `🎉 **JACKPOT!** You won **+${winAmount} KryloCoins**! (${multiplier}x)` : `❌ **No match!** You lost **${bet} KryloCoins**.`))
+      .setTimestamp();
+    await interaction.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: /eightball
+  if (commandName === 'eightball') {
+    const question = interaction.options.getString('question');
+    const answers = [
+      "It is certain. ✨",
+      "Without a doubt! 💎",
+      "You may rely on it. 👍",
+      "Yes, definitely! 🚀",
+      "Reply hazy, try again later. 🌫️",
+      "Ask again later... ⏳",
+      "Better not tell you now. 🤫",
+      "Don't count on it. ❌",
+      "My sources say no. 🙈",
+      "Outlook not so good. 🌧️"
+    ];
+    const answer = answers[Math.floor(Math.random() * answers.length)];
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('🎱 Magic 8-Ball')
+      .addFields(
+        { name: '❓ Question', value: question },
+        { name: '💬 Answer', value: answer }
+      )
+      .setTimestamp();
+    await interaction.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: /serverinfo
+  if (commandName === 'serverinfo') {
+    const { guild } = interaction;
+    if (!guild) {
+      await interaction.reply({ content: '❌ This command can only be run inside a server!', ephemeral: true });
+      return;
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle(`🏰 Server Info - ${guild.name}`)
+      .setThumbnail(guild.iconURL({ dynamic: true }))
+      .addFields(
+        { name: '👑 Server Owner', value: `<@${guild.ownerId}>`, inline: true },
+        { name: '👥 Members', value: `\`${guild.memberCount.toLocaleString()}\``, inline: true },
+        { name: '💬 Channels', value: `\`${guild.channels.cache.size}\``, inline: true },
+        { name: '🎭 Roles', value: `\`${guild.roles.cache.size}\``, inline: true },
+        { name: '🚀 Boost Level', value: `\`Level ${guild.premiumTier}\` (${guild.premiumSubscriptionCount || 0} boosts)`, inline: true },
+        { name: '📅 Created On', value: `<t:${Math.floor(guild.createdTimestamp / 1000)}:R>`, inline: true }
+      )
+      .setTimestamp();
+    await interaction.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: /userinfo
+  if (commandName === 'userinfo') {
+    const targetUser = interaction.options.getUser('user') || interaction.user;
+    const member = interaction.guild ? await interaction.guild.members.fetch(targetUser.id).catch(() => null) : null;
+
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle(`👤 User Info - ${targetUser.tag}`)
+      .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
+      .addFields(
+        { name: '🆔 User ID', value: `\`${targetUser.id}\``, inline: true },
+        { name: '📅 Account Created', value: `<t:${Math.floor(targetUser.createdTimestamp / 1000)}:R>`, inline: true }
+      );
+
+    if (member) {
+      embed.addFields(
+        { name: '📥 Joined Server', value: `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>`, inline: true },
+        { name: '🎭 Roles', value: member.roles.cache.filter(r => r.id !== interaction.guild.id).map(r => `<@&${r.id}>`).join(' ') || 'None' }
+      );
+    }
+
+    embed.setTimestamp();
+    await interaction.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: /purge
+  if (commandName === 'purge') {
+    if (!interaction.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
+      await interaction.reply({ content: '❌ You do not have permission to manage messages!', ephemeral: true });
+      return;
+    }
+
+    const amount = interaction.options.getInteger('amount');
+    if (amount < 1 || amount > 100) {
+      await interaction.reply({ content: '❌ Amount must be between 1 and 100!', ephemeral: true });
+      return;
+    }
+
+    try {
+      const deleted = await interaction.channel.bulkDelete(amount, true);
+      await interaction.reply({ content: `🧹 **Purged ${deleted.size} messages!**`, ephemeral: true });
+    } catch (err) {
+      await interaction.reply({ content: `❌ Failed to purge messages: ${err.message}`, ephemeral: true });
+    }
+    return;
+  }
+
+  // Command: /warn
+  if (commandName === 'warn') {
+    if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+      await interaction.reply({ content: '❌ You do not have permission to warn members!', ephemeral: true });
+      return;
+    }
+
+    const targetUser = interaction.options.getUser('user');
+    const reason = interaction.options.getString('reason');
+
+    const modLogsCh = interaction.guild.channels.cache.find(c => c.name.includes('mod-logs') && c.type === ChannelType.GuildText);
+    if (modLogsCh) {
+      const warnEmbed = new EmbedBuilder()
+        .setColor(0xFF0055)
+        .setTitle('⚠️ Moderator Action: User Warned')
+        .addFields(
+          { name: '👤 Warned User', value: `<@${targetUser.id}>`, inline: true },
+          { name: '🛡️ Moderator', value: `<@${interaction.user.id}>`, inline: true },
+          { name: '📝 Reason', value: reason }
+        )
+        .setTimestamp();
+      await modLogsCh.send({ embeds: [warnEmbed] });
+    }
+
+    await interaction.reply({ content: `⚠️ **Warned <@${targetUser.id}>** for: *${reason}*` });
     return;
   }
 
