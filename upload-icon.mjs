@@ -5,7 +5,7 @@ import path from 'path';
 
 async function uploadIcon() {
   const serverId = "25a5d79a";
-  const token = "${process.env.PTERODACTYL_TOKEN}";
+  const token = process.env.PTERODACTYL_TOKEN;
   const filename = "server-icon.png";
   const filePath = path.resolve(filename);
 

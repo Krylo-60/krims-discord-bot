@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 
 async function readProperties() {
   const serverId = "25a5d79a";
-  const token = "${process.env.PTERODACTYL_TOKEN}";
+  const token = process.env.PTERODACTYL_TOKEN;
 
   try {
     console.log("Fetching server.properties contents...");

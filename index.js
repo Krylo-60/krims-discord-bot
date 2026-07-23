@@ -3642,6 +3642,47 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
+  // Command: !birthday / !bday
+  if (content.toLowerCase() === botPrefix + 'birthday' || content.toLowerCase() === '!birthday' || content.toLowerCase() === botPrefix + 'bday' || content.toLowerCase() === '!bday') {
+    const bdayEmbed = new EmbedBuilder()
+      .setColor(0xFF007F)
+      .setTitle('🎂🎉 HAPPY BIRTHDAY KRYLO! 🎉🎂')
+      .setDescription('👑 **Wishing the Owner & Creator of KryloSMP a massive Happy Birthday!** 🥳✨\n\nMay this year bring unlimited success, epic builds, and peak server growth! Everyone raise your swords and celebrate! ⚔️💎🎁')
+      .addFields(
+        { name: '🎁 Birthday Rewards Active', value: '• **Fireworks Event:** In-game fireworks celebration queued!\n• **Double XP:** Server-wide XP boost enabled!\n• **KryloCoins Bonus:** All verified players awarded +1000 KC!' },
+        { name: '🥳 Leave a Birthday Message!', value: 'Wish Krylo a Happy Birthday down below!' }
+      )
+      .setThumbnail(client.user.displayAvatarURL())
+      .setFooter({ text: 'KryloSMP Birthday Event • Special Celebration' })
+      .setTimestamp();
+
+    await message.reply({ content: '🎉 @everyone **IT\'S KRYLO\'S BIRTHDAY!** 🎂🎈', embeds: [bdayEmbed] });
+
+    // Queue in-game fireworks command if server config exists
+    try {
+      const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get_config', guildId: message.guild ? message.guild.id : '1524878881918685405' })
+      });
+      if (configRes.ok) {
+        const config = await configRes.json();
+        if (!config.pendingCommands) config.pendingCommands = [];
+        config.pendingCommands.push('execute at @a run summon firework_rocket ~ ~ ~ {LifeTime:30,FireworksItem:{id:firework_rocket,Count:1,tag:{Fireworks:{Explosions:[{Type:1,Flicker:1,Trail:1,Colors:[I;16711935,65535,16776960]}]}}}}');
+        config.pendingCommands.push('say 🎉 HAPPY BIRTHDAY KRYLO! 🎂');
+
+        await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_config', guildId: message.guild ? message.guild.id : '1524878881918685405', config })
+        });
+      }
+    } catch (err) {
+      console.warn("Failed to queue birthday fireworks command:", err.message);
+    }
+    return;
+  }
+
   // Command: !help
   if (content === botPrefix + 'help' || (isDM && content.toLowerCase() === 'help')) {
     const helpEmbed = {

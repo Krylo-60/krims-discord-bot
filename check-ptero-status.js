@@ -4,7 +4,7 @@ import fetch from 'node-fetch';
 import WebSocket from 'ws';
 import fs from 'fs';
 
-const token = '${process.env.PTERODACTYL_TOKEN}';
+const token = process.env.PTERODACTYL_TOKEN;
 const serverId = '25a5d79a';
 const chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const userDataDir = 'C:\\Users\\naina\\.gemini\\antigravity\\scratch\\ChromeDevProfile';

@@ -2,7 +2,7 @@ import 'dotenv/config';
 import fetch from 'node-fetch';
 
 async function listServers() {
-  const token = "${process.env.PTERODACTYL_TOKEN}";
+  const token = process.env.PTERODACTYL_TOKEN;
   try {
     const res = await fetch("https://panel.play.hosting/api/client", {
       headers: { "Authorization": `Bearer ${token}` }
