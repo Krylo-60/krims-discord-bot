@@ -2147,7 +2147,21 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     dailyCooldowns.set(userId, now);
-    const reward = 250;
+
+    // 7-Day Daily Birthday Festival Schedule (July 23 - July 29, 2026)
+    const festivalRewards = [
+      { day: 1, date: 23, name: '💎 Day 1: Diamond Bundle', reward: 1000, mcCmd: 'give {username} minecraft:diamond 32', desc: '• **+1,000 KryloCoins**\n• **32x Free Diamonds** in-game!' },
+      { day: 2, date: 24, name: '🎂 Day 2: Krylo Birthday Special', reward: 2500, mcCmd: 'give {username} minecraft:netherite_ingot 1', desc: '• **+2,500 KryloCoins**\n• **1x Netherite Ingot** in-game!' },
+      { day: 3, date: 25, name: '⚔️ Day 3: Warrior Kit', reward: 1500, mcCmd: 'give {username} minecraft:diamond_sword{Enchantments:[{id:sharpness,lvl:5},{id:unbreaking,lvl:3}]} 1', desc: '• **+1,500 KryloCoins**\n• **1x Sharpness V Diamond Sword** in-game!' },
+      { day: 4, date: 26, name: '🛡️ Day 4: Armor Cache', reward: 1500, mcCmd: 'give {username} minecraft:diamond_chestplate{Enchantments:[{id:protection,lvl:4},{id:mending,lvl:1}]} 1', desc: '• **+1,500 KryloCoins**\n• **1x Protection IV Mending Chestplate** in-game!' },
+      { day: 5, date: 27, name: '🚀 Day 5: Flight Wings', reward: 2000, mcCmd: 'give {username} minecraft:elytra 1', desc: '• **+2,000 KryloCoins**\n• **1x Elytra Wings** in-game!' },
+      { day: 6, date: 28, name: '🏺 Day 6: Ancient Debris Vault', reward: 2000, mcCmd: 'give {username} minecraft:ancient_debris 4', desc: '• **+2,000 KryloCoins**\n• **4x Ancient Debris** in-game!' },
+      { day: 7, date: 29, name: '🎁 Day 7: Grand Jackpot Crate', reward: 5000, mcCmd: 'say 🎉 {username} claimed the Day 7 Grand Birthday Jackpot!', desc: '• **+5,000 KryloCoins Jackpot**\n• **1x GOD Crate Voucher** in-game!' }
+    ];
+
+    const todayDate = new Date().getDate();
+    const activeFest = festivalRewards.find(r => r.date === todayDate) || festivalRewards[0];
+    const rewardCoins = activeFest.reward;
 
     try {
       const guildId = interaction.guild ? interaction.guild.id : '1524878881918685405';
@@ -2160,7 +2174,10 @@ client.on('interactionCreate', async (interaction) => {
         const config = await configRes.json();
         if (!config.economyData) config.economyData = {};
         if (!config.economyData[interaction.user.username]) config.economyData[interaction.user.username] = { balance: 0 };
-        config.economyData[interaction.user.username].balance += reward;
+        config.economyData[interaction.user.username].balance += rewardCoins;
+
+        if (!config.pendingCommands) config.pendingCommands = [];
+        config.pendingCommands.push(activeFest.mcCmd.replace('{username}', interaction.user.username));
 
         await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
           method: 'POST',
@@ -2172,8 +2189,8 @@ client.on('interactionCreate', async (interaction) => {
 
     const embed = new EmbedBuilder()
       .setColor(0x00FF66)
-      .setTitle('💰 Daily Reward Claimed!')
-      .setDescription(`Congratulations <@${userId}>! You claimed your daily **+${reward} KryloCoins**! 🪙\nCome back in 24 hours for your next claim!`)
+      .setTitle(`🎁 Birthday Festival Daily Reward: ${activeFest.name}!`)
+      .setDescription(`Congratulations <@${userId}>! You claimed your **Festival Day ${activeFest.day} Reward**!\n\n${activeFest.desc}\n\n*In-game rewards queued for your username! Come back tomorrow for Day ${activeFest.day < 7 ? activeFest.day + 1 : 1}!*`)
       .setTimestamp();
     await interaction.reply({ embeds: [embed] });
     return;
