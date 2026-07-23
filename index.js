@@ -2550,7 +2550,13 @@ client.on('interactionCreate', async (interaction) => {
   // Command: /bday
   if (commandName === 'bday') {
     const targetUser = interaction.options.getUser('user') || interaction.user;
-    const isOwner = targetUser.username.toLowerCase().includes('krylo') || targetUser.username.toLowerCase().includes('krishiv') || targetUser.id === '1414143825538191373';
+
+    if (targetUser.bot) {
+      await interaction.reply({ content: '🤖 **I am a bot!** But thank you! Make sure to select a human player or run `/bday` for yourself!', ephemeral: true });
+      return;
+    }
+
+    const isOwner = (interaction.guild && targetUser.id === interaction.guild.ownerId) || targetUser.username.toLowerCase() === 'krylo' || targetUser.username.toLowerCase() === 'krishiv' || targetUser.id === '1414143825538191373';
     const targetName = isOwner ? 'KRYLO' : targetUser.username;
 
     const bdayEmbed = new EmbedBuilder()
