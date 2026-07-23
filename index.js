@@ -2415,7 +2415,7 @@ client.on('interactionCreate', async (interaction) => {
 
   // Command: /verify
   if (commandName === 'verify') {
-    const mcUsername = interaction.options.getString('username');
+    const mcUsername = interaction.options.getString('username') || interaction.user.username;
     const member = interaction.member;
 
     try {
