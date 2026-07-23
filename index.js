@@ -541,6 +541,18 @@ client.once('ready', async () => {
     {
       name: 'xpleaderboard',
       description: 'Display the top 10 most active chatters in the server'
+    },
+    {
+      name: 'bday',
+      description: 'Celebrate a user\'s birthday with fireworks, double XP & bonus KryloCoins!',
+      options: [
+        {
+          name: 'user',
+          type: 6, // User type
+          description: 'The user celebrating their birthday (leave blank for yourself)',
+          required: false
+        }
+      ]
     }
   ];
 
@@ -2035,6 +2047,59 @@ client.on('interactionCreate', async (interaction) => {
         .setImage(randomMeme)
         .setFooter({ text: 'Fallback Minecraft Meme' });
       await interaction.editReply({ embeds: [embed] });
+    }
+    return;
+  }
+
+  // Command: /bday
+  if (commandName === 'bday') {
+    const targetUser = interaction.options.getUser('user') || interaction.user;
+    const isOwner = targetUser.username.toLowerCase().includes('krylo') || targetUser.username.toLowerCase().includes('krishiv') || targetUser.id === '1414143825538191373';
+    const targetName = isOwner ? 'KRYLO' : targetUser.username;
+
+    const bdayEmbed = new EmbedBuilder()
+      .setColor(0xFF007F)
+      .setTitle(`🎂🎉 HAPPY BIRTHDAY ${targetName.toUpperCase()}! 🎉🎂`)
+      .setDescription(
+        isOwner 
+          ? '👑 **Wishing the Owner & Creator of KryloSMP a massive Happy Birthday!** 🥳✨\n\nMay this year bring unlimited success, epic builds, and peak server growth! Everyone raise your swords and celebrate! ⚔️💎🎁'
+          : `🥳 **Everyone wish <@${targetUser.id}> a massive Happy Birthday!** 🎉✨\n\nMay your year be filled with epic builds, unlimited diamonds, and great adventures! Everyone raise your swords and celebrate! ⚔️💎🎁`
+      )
+      .addFields(
+        { name: '🎁 Birthday Rewards Active', value: `• **Fireworks Event:** In-game fireworks celebration queued!\n• **Double XP:** Server-wide XP boost enabled!\n• **KryloCoins Bonus:** +500 KC awarded to ${targetName}!` },
+        { name: '🥳 Leave a Birthday Message!', value: `Wish ${targetName} a Happy Birthday down below!` }
+      )
+      .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
+      .setFooter({ text: 'KryloSMP Birthday Event • Special Celebration' })
+      .setTimestamp();
+
+    await interaction.reply({ content: `🎉 @everyone **IT'S ${targetName.toUpperCase()}'S BIRTHDAY!** 🎂🎈`, embeds: [bdayEmbed] });
+
+    try {
+      const guildId = interaction.guild ? interaction.guild.id : '1524878881918685405';
+      const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get_config', guildId })
+      });
+      if (configRes.ok) {
+        const config = await configRes.json();
+        if (!config.pendingCommands) config.pendingCommands = [];
+        config.pendingCommands.push('execute at @a run summon firework_rocket ~ ~ ~ {LifeTime:30,FireworksItem:{id:firework_rocket,Count:1,tag:{Fireworks:{Explosions:[{Type:1,Flicker:1,Trail:1,Colors:[I;16711935,65535,16776960]}]}}}}');
+        config.pendingCommands.push(`say 🎉 HAPPY BIRTHDAY ${targetName.toUpperCase()}! 🎂`);
+
+        if (config.economyData && config.economyData[targetUser.username]) {
+          config.economyData[targetUser.username].balance = (config.economyData[targetUser.username].balance || 0) + 500;
+        }
+
+        await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save_config', guildId, config })
+        });
+      }
+    } catch (err) {
+      console.warn("Failed to queue birthday rewards:", err.message);
     }
     return;
   }
@@ -3642,43 +3707,55 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // Command: !birthday / !bday
-  if (content.toLowerCase() === botPrefix + 'birthday' || content.toLowerCase() === '!birthday' || content.toLowerCase() === botPrefix + 'bday' || content.toLowerCase() === '!bday') {
+  // Command: !birthday / !bday [@user]
+  if (content.toLowerCase().startsWith(botPrefix + 'birthday') || content.toLowerCase().startsWith('!birthday') || content.toLowerCase().startsWith(botPrefix + 'bday') || content.toLowerCase().startsWith('!bday')) {
+    const targetUser = message.mentions.users.first() || message.author;
+    const isOwner = targetUser.username.toLowerCase().includes('krylo') || targetUser.username.toLowerCase().includes('krishiv') || targetUser.id === '1414143825538191373';
+    const targetName = isOwner ? 'KRYLO' : targetUser.username;
+
     const bdayEmbed = new EmbedBuilder()
       .setColor(0xFF007F)
-      .setTitle('🎂🎉 HAPPY BIRTHDAY KRYLO! 🎉🎂')
-      .setDescription('👑 **Wishing the Owner & Creator of KryloSMP a massive Happy Birthday!** 🥳✨\n\nMay this year bring unlimited success, epic builds, and peak server growth! Everyone raise your swords and celebrate! ⚔️💎🎁')
-      .addFields(
-        { name: '🎁 Birthday Rewards Active', value: '• **Fireworks Event:** In-game fireworks celebration queued!\n• **Double XP:** Server-wide XP boost enabled!\n• **KryloCoins Bonus:** All verified players awarded +1000 KC!' },
-        { name: '🥳 Leave a Birthday Message!', value: 'Wish Krylo a Happy Birthday down below!' }
+      .setTitle(`🎂🎉 HAPPY BIRTHDAY ${targetName.toUpperCase()}! 🎉🎂`)
+      .setDescription(
+        isOwner 
+          ? '👑 **Wishing the Owner & Creator of KryloSMP a massive Happy Birthday!** 🥳✨\n\nMay this year bring unlimited success, epic builds, and peak server growth! Everyone raise your swords and celebrate! ⚔️💎🎁'
+          : `🥳 **Everyone wish <@${targetUser.id}> a massive Happy Birthday!** 🎉✨\n\nMay your year be filled with epic builds, unlimited diamonds, and great adventures! Everyone raise your swords and celebrate! ⚔️💎🎁`
       )
-      .setThumbnail(client.user.displayAvatarURL())
+      .addFields(
+        { name: '🎁 Birthday Rewards Active', value: `• **Fireworks Event:** In-game fireworks celebration queued!\n• **Double XP:** Server-wide XP boost enabled!\n• **KryloCoins Bonus:** +500 KC awarded to ${targetName}!` },
+        { name: '🥳 Leave a Birthday Message!', value: `Wish ${targetName} a Happy Birthday down below!` }
+      )
+      .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
       .setFooter({ text: 'KryloSMP Birthday Event • Special Celebration' })
       .setTimestamp();
 
-    await message.reply({ content: '🎉 @everyone **IT\'S KRYLO\'S BIRTHDAY!** 🎂🎈', embeds: [bdayEmbed] });
+    await message.reply({ content: `🎉 @everyone **IT'S ${targetName.toUpperCase()}'S BIRTHDAY!** 🎂🎈`, embeds: [bdayEmbed] });
 
-    // Queue in-game fireworks command if server config exists
     try {
+      const guildId = message.guild ? message.guild.id : '1524878881918685405';
       const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'get_config', guildId: message.guild ? message.guild.id : '1524878881918685405' })
+        body: JSON.stringify({ action: 'get_config', guildId })
       });
       if (configRes.ok) {
         const config = await configRes.json();
         if (!config.pendingCommands) config.pendingCommands = [];
         config.pendingCommands.push('execute at @a run summon firework_rocket ~ ~ ~ {LifeTime:30,FireworksItem:{id:firework_rocket,Count:1,tag:{Fireworks:{Explosions:[{Type:1,Flicker:1,Trail:1,Colors:[I;16711935,65535,16776960]}]}}}}');
-        config.pendingCommands.push('say 🎉 HAPPY BIRTHDAY KRYLO! 🎂');
+        config.pendingCommands.push(`say 🎉 HAPPY BIRTHDAY ${targetName.toUpperCase()}! 🎂`);
+
+        if (config.economyData && config.economyData[targetUser.username]) {
+          config.economyData[targetUser.username].balance = (config.economyData[targetUser.username].balance || 0) + 500;
+        }
 
         await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'save_config', guildId: message.guild ? message.guild.id : '1524878881918685405', config })
+          body: JSON.stringify({ action: 'save_config', guildId, config })
         });
       }
     } catch (err) {
-      console.warn("Failed to queue birthday fireworks command:", err.message);
+      console.warn("Failed to queue birthday rewards:", err.message);
     }
     return;
   }
