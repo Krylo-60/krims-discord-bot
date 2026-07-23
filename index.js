@@ -4880,13 +4880,26 @@ async function startPaperAutoUpdater(guild) {
         const pteroToken = process.env.PTERODACTYL_TOKEN;
         const updatesCh = guild.channels.cache.find(c => (c.name.includes('server-updates') || c.name.includes('announcements')) && c.type === ChannelType.GuildText);
 
-        // A. Send warnings to Discord Updates channel
+        // A. Send warnings to Discord Updates channel with automatic auto-purge of previous warning messages
         const sendAlert = async (timeLeftText) => {
           const alertMsg = `🚨 **PaperMC Server Auto-Upgrade Alert!**\n` +
             `A new Paper build (#${latestBuild}) has been detected. The Minecraft server will save and shut down for auto-upgrade in **${timeLeftText}**.\n` +
             `*Please save your progress and log out safely!*`;
           
           if (updatesCh) {
+            // Auto-purge any previous warning/update embeds sent by the bot in this channel
+            try {
+              const recentMsgs = await updatesCh.messages.fetch({ limit: 25 }).catch(() => null);
+              if (recentMsgs && recentMsgs.size > 0) {
+                const oldBotAlerts = recentMsgs.filter(m => m.author.id === client.user.id && m.embeds && m.embeds[0] && (m.embeds[0].title === '⚠️ Server Update Warning' || m.embeds[0].title === '✅ Server Upgrade Complete!'));
+                if (oldBotAlerts.size > 0) {
+                  await updatesCh.bulkDelete(oldBotAlerts, true).catch(() => {});
+                }
+              }
+            } catch (err) {
+              console.warn('[Auto-Purge Warning] Failed to delete previous alert:', err.message);
+            }
+
             await updatesCh.send({
               embeds: [
                 new EmbedBuilder()
@@ -5030,9 +5043,19 @@ async function startPaperAutoUpdater(guild) {
           console.warn('[Paper Auto-Updater] Failed to save updated config:', e.message);
         }
 
-        // H. Send success notification to Discord
-        if (generalCh) {
-          await generalCh.send({
+        // H. Send success notification to Discord and auto-purge previous warning alerts
+        if (updatesCh) {
+          try {
+            const recentMsgs = await updatesCh.messages.fetch({ limit: 25 }).catch(() => null);
+            if (recentMsgs && recentMsgs.size > 0) {
+              const oldBotAlerts = recentMsgs.filter(m => m.author.id === client.user.id && m.embeds && m.embeds[0] && m.embeds[0].title === '⚠️ Server Update Warning');
+              if (oldBotAlerts.size > 0) {
+                await updatesCh.bulkDelete(oldBotAlerts, true).catch(() => {});
+              }
+            }
+          } catch (err) {}
+
+          await updatesCh.send({
             embeds: [
               new EmbedBuilder()
                 .setColor(0x00FF66)
