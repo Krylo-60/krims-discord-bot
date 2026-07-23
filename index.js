@@ -4814,7 +4814,7 @@ async function startPaperAutoUpdater(guild) {
       });
       if (!configRes.ok) return;
       const guildConfig = await configRes.json();
-      const installedBuild = guildConfig.installedPaperBuild || 63; // Set current default to 63 to prevent false alarms
+      const installedBuild = guildConfig.installedPaperBuild || 65; // Set current installed build to 65
 
       if (latestBuild > installedBuild) {
         console.log(`[Paper Auto-Updater] New build detected: #${latestBuild} (current is #${installedBuild}). Saving build state...`);
