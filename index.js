@@ -4814,24 +4814,36 @@ async function startPaperAutoUpdater(guild) {
       });
       if (!configRes.ok) return;
       const guildConfig = await configRes.json();
-      const installedBuild = guildConfig.installedPaperBuild || 62; // Default to 62
+      const installedBuild = guildConfig.installedPaperBuild || 63; // Set current default to 63 to prevent false alarms
 
       if (latestBuild > installedBuild) {
-        console.log(`[Paper Auto-Updater] New build detected: #${latestBuild} (current is #${installedBuild}). Starting upgrade sequence...`);
+        console.log(`[Paper Auto-Updater] New build detected: #${latestBuild} (current is #${installedBuild}). Saving build state...`);
         isUpgradingPaper = true;
+
+        // Save build state IMMEDIATELY to prevent infinite loop
+        guildConfig.installedPaperBuild = latestBuild;
+        try {
+          await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'save_config', guildId: '1524878881918685405', config: guildConfig })
+          });
+        } catch (err) {
+          console.warn('[Paper Auto-Updater] State save failed:', err.message);
+        }
 
         const serverId = '25a5d79a';
         const pteroToken = process.env.PTERODACTYL_TOKEN;
-        const generalCh = guild.channels.cache.find(c => c.name.includes('general-chat') && c.type === ChannelType.GuildText);
+        const updatesCh = guild.channels.cache.find(c => (c.name.includes('server-updates') || c.name.includes('announcements')) && c.type === ChannelType.GuildText);
 
-        // A. Send warnings to Discord & Minecraft Console
+        // A. Send warnings to Discord Updates channel
         const sendAlert = async (timeLeftText) => {
           const alertMsg = `🚨 **PaperMC Server Auto-Upgrade Alert!**\n` +
             `A new Paper build (#${latestBuild}) has been detected. The Minecraft server will save and shut down for auto-upgrade in **${timeLeftText}**.\n` +
             `*Please save your progress and log out safely!*`;
           
-          if (generalCh) {
-            await generalCh.send({
+          if (updatesCh) {
+            await updatesCh.send({
               embeds: [
                 new EmbedBuilder()
                   .setColor(0xFF3300)
@@ -4840,21 +4852,6 @@ async function startPaperAutoUpdater(guild) {
                   .setTimestamp()
               ]
             }).catch(() => {});
-          }
-
-          // Send to Minecraft console using say command
-          try {
-            await fetch(`https://panel.play.hosting/api/client/servers/${serverId}/command`, {
-              method: 'POST',
-              headers: {
-                'Authorization': 'Bearer ' + pteroToken,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              },
-              body: JSON.stringify({ command: `say [ALERT] Server is shutting down for update in ${timeLeftText}!` })
-            });
-          } catch (e) {
-            console.warn('[Paper Auto-Updater] Failed to send say command:', e.message);
           }
         };
 
