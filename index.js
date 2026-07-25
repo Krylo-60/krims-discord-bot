@@ -1437,6 +1437,29 @@ client.once('ready', async () => {
 });
 
 // Slash Commands & Buttons Interaction Handler
+
+async function checkKryloServerOnline() {
+  return new Promise((resolve) => {
+    import('net').then(({ default: net }) => {
+      const socket = new net.Socket();
+      socket.setTimeout(2500);
+      socket.on('connect', () => {
+        socket.destroy();
+        resolve(true);
+      });
+      socket.on('timeout', () => {
+        socket.destroy();
+        resolve(false);
+      });
+      socket.on('error', () => {
+        socket.destroy();
+        resolve(false);
+      });
+      socket.connect(25565, 'KryloSmp.play.hosting');
+    }).catch(() => resolve(false));
+  });
+}
+
 client.on('interactionCreate', async (interaction) => {
   if (interaction.guildId !== '1524878881918685405') {
     if (interaction.isRepliable()) {
@@ -3992,6 +4015,32 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     const prompt = interaction.options.getString('prompt');
+
+    // Check if query is asking about Minecraft server online status
+    const lowerPrompt = prompt.toLowerCase();
+    if (lowerPrompt.includes('server on') || lowerPrompt.includes('server online') || lowerPrompt.includes('krylo smp on') || lowerPrompt.includes('is the server up') || lowerPrompt.includes('is server online') || lowerPrompt.includes('server status')) {
+      await interaction.deferReply();
+      const isOnline = await checkKryloServerOnline();
+      
+      const statusEmbed = new EmbedBuilder()
+        .setColor(isOnline ? 0x00FF66 : 0xFF4444)
+        .setTitle(isOnline ? '🟢 KryloSMP is 100% ONLINE!' : '🔴 KryloSMP Server Offline / Restarting')
+        .setDescription(
+          isOnline
+            ? 'Yes! **KryloSMP is online, healthy, and open for all players!** 🎮✨\n\n' +
+              '• ☕ **Java Edition IP:** `KryloSmp.play.hosting` (Port: `25565`)\n' +
+              '• 🪨 **Bedrock Edition IP:** `KryloSmp.play.hosting` (Port: `19132`)\n' +
+              '• 🌐 **Webstore:** https://krylosmp-store.vercel.app\n' +
+              '• ⚡ **Status:** 24/7 Monitored by UptimeRobot & Krims AI'
+            : '⚠️ **The server appears offline or undergoing maintenance.**\n\nPlease check the Play.hosting panel or open a support ticket if issues persist!'
+        )
+        .setFooter({ text: 'Krims Code AI • Real-Time Socket Probe ⚡' })
+        .setTimestamp();
+
+      await interaction.editReply({ embeds: [statusEmbed] });
+      return;
+    }
+
     
     // Cooldown check
     const now = Date.now();
