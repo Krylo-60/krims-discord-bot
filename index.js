@@ -706,11 +706,12 @@ client.once('ready', async () => {
   }
 
   // Automatic Birthday Scheduler for July 24th (Cloud hosting safe timestamp: 1784865600000)
-  let birthdayAnnounced = false;
+  let birthdayAnnouncedYear = 0;
   setInterval(async () => {
     const targetTimestamp = 1784865600000; // July 24th, 2026 00:00:00 EDT
-    if (Date.now() >= targetTimestamp && !birthdayAnnounced) {
-      birthdayAnnounced = true;
+    const currentYear = new Date().getFullYear();
+      if (Date.now() >= targetTimestamp && birthdayAnnouncedYear !== currentYear) {
+      birthdayAnnouncedYear = currentYear;
       console.log("[🎂 BIRTHDAY DAEMON] July 24th reached! Triggering Official Birthday Announcement & Fireworks...");
       try {
         const guild = await client.guilds.fetch('1524878881918685405');
@@ -2894,6 +2895,30 @@ client.on('interactionCreate', async (interaction) => {
 
   // Command: /bday
   if (commandName === 'bday') {
+    const userId = interaction.user.id;
+    const now = Date.now();
+    const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000; // 365 days
+
+    if (!xpData[userId]) {
+      xpData[userId] = { xp: 0, level: 1 };
+    }
+
+    if (xpData[userId].lastBdayClaim) {
+      const timePassed = now - xpData[userId].lastBdayClaim;
+      if (timePassed < ONE_YEAR_MS) {
+        const daysLeft = Math.ceil((ONE_YEAR_MS - timePassed) / (24 * 60 * 60 * 1000));
+        await interaction.reply({
+          content: `⏳ **You have already claimed your once-a-year birthday celebration!**\n\nYou can use \`/bday\` again in **${daysLeft} day(s)**.`,
+          ephemeral: true
+        });
+        return;
+      }
+    }
+
+    // Set last claim timestamp & save
+    xpData[userId].lastBdayClaim = now;
+    saveXPData();
+
     const targetUser = interaction.options.getUser('user') || interaction.user;
 
     if (targetUser.bot) {
