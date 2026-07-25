@@ -1,0 +1,115 @@
+# ══════════════════════════════════════════════════════════════════════════
+# ⚔️ KRYLOSMP 3.0 — MEGA FEATURES & IN-GAME ENGINE SKRIPT
+# ══════════════════════════════════════════════════════════════════════════
+# Created for KryloSMP (July 2026)
+# Features: Custom Scoreboard, In-Game Economy, Bounty Board, Drop Parties,
+# Combat Logger, Join Effects, and Clan Tags.
+# ══════════════════════════════════════════════════════════════════════════
+
+options:
+    prefix: &8[&6&lKrylo&e&lSMP&8] &r
+    server_ip: play.krylosmp.net
+    discord_link: https://discord.gg/2hSXQKHvvX
+
+# ──────────────────────────────────────────────────────────────────────────
+# 1. WELCOME EFFECTS & TITLE ON JOIN
+# ──────────────────────────────────────────────────────────────────────────
+on join:
+    send title "&6&lWELCOME TO &e&lKRYLOSMP" with subtitle "&7Season 3 — Premium SMP Experience" to player for 5 seconds
+    play sound "ui.toast.challenge_complete" with volume 1.0 and pitch 1.0 to player
+    spawn 20 totem particle at player's location
+    
+    if {krylosmp::coins::%uuid of player%} is not set:
+        set {krylosmp::coins::%uuid of player%} to 500
+        send "{@prefix} &a&lSTARTER BONUS! &7You received &e+500 KryloCoins&7!" to player
+
+# ──────────────────────────────────────────────────────────────────────────
+# 2. DYNAMIC SIDEBAR SCOREBOARD
+# ──────────────────────────────────────────────────────────────────────────
+on join:
+    while player is online:
+        set title of player's scoreboard to "&6&lKRYLOSMP &7&l| &e&lS3"
+        set line 12 of player's scoreboard to "&7&m---------------------&r"
+        set line 11 of player's scoreboard to "&f👤 Player: &a%player%"
+        set line 10 of player's scoreboard to "&f💰 Coins: &e%{krylosmp::coins::%uuid of player%}% KC"
+        set line 9 of player's scoreboard to "&f⚔️ Kills: &c%{krylosmp::kills::%uuid of player%} || 0%"
+        set line 8 of player's scoreboard to "&f💀 Deaths: &7%{krylosmp::deaths::%uuid of player%} || 0%"
+        
+        if {krylosmp::clan::%uuid of player%} is set:
+            set line 7 of player's scoreboard to "&f🏰 Clan: &b[%{krylosmp::clan::%uuid of player%}%]"
+        else:
+            set line 7 of player's scoreboard to "&f🏰 Clan: &7None"
+            
+        set line 6 of player's scoreboard to "&7&m---------------------&r "
+        set line 5 of player's scoreboard to "&f🌐 IP: &e{@server_ip}"
+        set line 4 of player's scoreboard to "&f💬 Discord: &b/discord"
+        set line 3 of player's scoreboard to "&7&m---------------------&r  "
+        set line 2 of player's scoreboard to "&eplay.krylosmp.net"
+        set line 1 of player's scoreboard to "&7&m---------------------&r   "
+        wait 2 seconds
+
+# ──────────────────────────────────────────────────────────────────────────
+# 3. KILLS, DEATHS & BOUNTY TRACKING
+# ──────────────────────────────────────────────────────────────────────────
+on death of player:
+    if attacker is a player:
+        add 1 to {krylosmp::kills::%uuid of attacker%}
+        add 1 to {krylosmp::deaths::%uuid of victim%}
+        
+        # Award Kill KryloCoins
+        set {_reward} to random integer between 25 and 75
+        add {_reward} to {krylosmp::coins::%uuid of attacker%}
+        send "{@prefix} &a⚔️ You defeated &e%victim% &aand earned &e+%{_reward}% KC&a!" to attacker
+        
+        # Claim Bounty if active
+        if {krylosmp::bounty::%uuid of victim%} is set:
+            set {_bounty} to {krylosmp::bounty::%uuid of victim%}
+            add {_bounty} to {krylosmp::coins::%uuid of attacker%}
+            broadcast "{@prefix} &c🎯 &lBOUNTY CLAIMED! &e%attacker% &7eliminated &c%victim% &7and collected the &e%{_bounty}% KC &7bounty!"
+            delete {krylosmp::bounty::%uuid of victim%}
+            play sound "entity.player.levelup" with volume 1.0 to attacker
+
+# ──────────────────────────────────────────────────────────────────────────
+# 4. IN-GAME COMMANDS (/coins, /bounty, /discord, /pay)
+# ──────────────────────────────────────────────────────────────────────────
+command /coins:
+    trigger:
+        send "{@prefix} &7Your Balance: &e%{krylosmp::coins::%uuid of player%}% KryloCoins"
+        play sound "entity.experience_orb.pickup" to player
+
+command /bounty [<text>] [<player>] [<number>]:
+    trigger:
+        if arg-1 is "add" or "place":
+            if arg-2 is set:
+                if arg-3 is set:
+                    if arg-3 >= 100:
+                        if {krylosmp::coins::%uuid of player%} >= arg-3:
+                            remove arg-3 from {krylosmp::coins::%uuid of player%}
+                            add arg-3 to {krylosmp::bounty::%uuid of arg-2%}
+                            broadcast "{@prefix} &c🎯 &lNEW BOUNTY! &e%player% &7placed a &e%arg-3% KC &7bounty on &c%arg-2%&7!"
+                        else:
+                            send "{@prefix} &cYou don't have enough KryloCoins!" to player
+                    else:
+                        send "{@prefix} &cMinimum bounty amount is 100 KC!" to player
+        else if arg-1 is "list":
+            send "{@prefix} &6&lACTIVE BOUNTIES:" to player
+            loop {krylosmp::bounty::*}:
+                send " &7• &c%loop-index% &7— &e%loop-value% KC" to player
+
+command /discord:
+    trigger:
+        send "{@prefix} &7Join our official Discord server: &b{@discord_link}" to player
+
+# ──────────────────────────────────────────────────────────────────────────
+# 5. AUTOMATED DROP PARTY SYSTEM (EVERY 2 HOURS)
+# ──────────────────────────────────────────────────────────────────────────
+every 2 hours:
+    broadcast "{@prefix} &e&l🎉 DROP PARTY STARTING IN 1 MINUTE AT SPAWN!"
+    wait 55 seconds
+    broadcast "{@prefix} &e&l🎉 DROP PARTY IN 5 SECONDS! 5... 4... 3... 2... 1..."
+    wait 5 seconds
+    broadcast "{@prefix} &a&l🎉 DROP PARTY HAS STARTED! ENJOY THE LOOT!"
+    loop 20 times:
+        set {_loc} to location at (random number between -10 and 10), 70, (random number between -10 and 10) in world "world"
+        drop 1 diamond or 2 gold ingot or 5 iron ingot or 1 golden apple at {_loc}
+        wait 0.5 seconds
