@@ -2562,7 +2562,7 @@ client.on('interactionCreate', async (interaction) => {
         .setTitle('🤝 Referral Rewards Program')
         .setDescription(
           `Invite friends to KryloSMP and earn **+2,000 KryloCoins** + **1x Referral Crate Key** for every friend that joins!\n\n` +
-          `• **Your Invite Link:** \`https://discord.gg/krylosmp\`\n` +
+          `• **Your Invite Link:** \`https://discord.gg/2hSXQKHvvX\`\n` +
           `• **How to Claim:** When your friend joins, run \`/refer friend:@YourFriend\` to claim your bonus!`
         )
         .setTimestamp();
