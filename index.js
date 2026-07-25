@@ -2222,7 +2222,8 @@ client.on('interactionCreate', async (interaction) => {
             const rulesRow = new ActionRowBuilder().addComponents(
               new ButtonBuilder()
                 .setCustomId('claim_starter_role')
-                .setLabel('✅ Accept Rules & Claim KryloSMP Starter Role')
+                .setLabel('Accept Rules & Claim KryloSMP Starter Role')
+                .setEmoji('1530370298262720722')
                 .setStyle(ButtonStyle.Success)
             );
 
