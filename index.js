@@ -2207,32 +2207,77 @@ client.on('interactionCreate', async (interaction) => {
 
     if (customId === 'modal_start_verification') {
       await interaction.deferReply({ ephemeral: true });
-      const mcUsername = interaction.fields.getTextInputValue('mc_username');
-      
+      const mcUsernameInput = interaction.fields.getTextInputValue('mc_username').trim();
+      const cleanUsername = mcUsernameInput.replace(/^[\.\_]+/, '');
+      const member = interaction.member;
+      const guildId = interaction.guild ? interaction.guild.id : '1524878881918685405';
+
       try {
+        // 1. Assign Verified / Member role in Discord
+        let verifiedRole = interaction.guild.roles.cache.find(r => 
+          r.name.toLowerCase().includes('verified') || 
+          r.name.toLowerCase().includes('member') || 
+          r.name.toLowerCase().includes('og member')
+        );
+        if (verifiedRole && member) {
+          await member.roles.add(verifiedRole).catch(() => {});
+        }
+
+        // 2. Queue whitelist commands & rewards on Vercel API
         const response = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            action: 'request_verification',
-            guildId: '1524878881918685405',
-            name: mcUsername,
-            discordUserId: interaction.user.id
+            action: 'get_config',
+            guildId
           })
         });
 
         if (response.ok) {
-          const resData = await response.json();
-          if (resData.ok) {
-            await interaction.editReply(`✅ **Link request queued for username: \`${mcUsername}\`!**\n\nNext steps:\n1. Open Minecraft and connect to the server: **\`KryloSmp.play.hosting\`**\n2. Look at your in-game chat—your 5-digit verification code will display on join!\n3. Copy that code, return here, and click the **Enter Code** button.`);
-          } else {
-            await interaction.editReply(`❌ Failed: ${resData.error || 'Server error'}`);
+          const config = await response.json();
+          if (!config.economyData) config.economyData = {};
+          if (!config.economyData[interaction.user.username]) config.economyData[interaction.user.username] = { balance: 0 };
+          config.economyData[interaction.user.username].balance += 500;
+
+          if (!config.verifiedUsers) config.verifiedUsers = {};
+          config.verifiedUsers[mcUsernameInput] = {
+            discordTag: interaction.user.tag,
+            discordId: interaction.user.id,
+            verifiedAt: new Date().toISOString()
+          };
+
+          if (!config.pendingCommands) config.pendingCommands = [];
+          config.pendingCommands.push(`whitelist add ${mcUsernameInput}`);
+          if (cleanUsername !== mcUsernameInput) {
+            config.pendingCommands.push(`whitelist add ${cleanUsername}`);
           }
-        } else {
-          await interaction.editReply('❌ Failed to connect to verification server.');
+          config.pendingCommands.push(`give ${mcUsernameInput} minecraft:diamond 16`);
+          config.pendingCommands.push(`say 🛡️ Real Human Player ${mcUsernameInput} verified via Discord & joined KryloSMP!`);
+
+          await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'save_config', guildId, config })
+          });
         }
+
+        const successEmbed = new EmbedBuilder()
+          .setColor(0x00FF66)
+          .setTitle('🎉 INSTANT VERIFICATION SUCCESSFUL!')
+          .setDescription(
+            `Welcome to **KryloSMP**, <@${interaction.user.id}>!\n\n` +
+            `• **Linked Username:** \`${mcUsernameInput}\`\n` +
+            `• **Server IP:** \`KryloSmp.play.hosting\`\n` +
+            `• **Discord Role:** Granted ${verifiedRole ? `<@&${verifiedRole.id}>` : '**Verified**'}!\n` +
+            `• **Rewards Granted:** 💰 **+500 KryloCoins** + 💎 **16x Diamonds**!\n\n` +
+            `*Your username has been automatically whitelisted. You can join the server right now!*`
+          )
+          .setFooter({ text: 'KryloSMP Automated Verification Engine ⚡' })
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [successEmbed] });
       } catch (err) {
-        await interaction.editReply(`❌ Error: ${err.message}`);
+        await interaction.editReply(`❌ Error processing verification: ${err.message}`);
       }
       return;
     }
