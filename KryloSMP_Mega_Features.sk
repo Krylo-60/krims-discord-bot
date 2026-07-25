@@ -96,6 +96,26 @@ command /bounty [<text>] [<player>] [<number>]:
             loop {krylosmp::bounty::*}:
                 send " &7• &c%loop-index% &7— &e%loop-value% KC" to player
 
+command /b [<text>]:
+    aliases: /backpack
+    trigger:
+        open chest with 3 rows named "&6&lKryloSMP &7— &e&lVirtual Backpack" to player
+        set {_slot} to 0
+        loop {krylosmp::backpack::%uuid of player%::*}:
+            set slot {_slot} of player's current inventory to loop-value
+            add 1 to {_slot}
+
+on inventory close:
+    if name of event-inventory contains "Virtual Backpack":
+        delete {krylosmp::backpack::%uuid of player%::*}
+        set {_slot} to 0
+        loop 27 times:
+            set {_item} to slot {_slot} of event-inventory
+            if {_item} is set:
+                set {krylosmp::backpack::%uuid of player%::%{_slot}%} to {_item}
+            add 1 to {_slot}
+        send "{@prefix} &a&lBACKPACK SAVED! &7Your items have been safely saved." to player
+
 command /discord:
     trigger:
         send "{@prefix} &7Join our official Discord server: &b{@discord_link}" to player
