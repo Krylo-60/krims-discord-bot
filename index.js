@@ -712,7 +712,17 @@ client.once('ready', async () => {
     const currentYear = new Date().getFullYear();
       if (Date.now() >= targetTimestamp && birthdayAnnouncedYear !== currentYear) {
       birthdayAnnouncedYear = currentYear;
-      console.log("[🎂 BIRTHDAY DAEMON] July 24th reached! Triggering Official Birthday Announcement & Fireworks...");
+      
+          // Check if birthday announcement ALREADY exists in channel history
+          const recentMsgs = await announceCh.messages.fetch({ limit: 25 }).catch(() => null);
+          const alreadyPosted = recentMsgs && recentMsgs.some(m => 
+            m.embeds && m.embeds.some(e => e.title && e.title.includes("OFFICIALLY KRYLO'S BIRTHDAY"))
+          );
+          if (alreadyPosted) {
+            return; // Already posted in channel, skip!
+          }
+
+          console.log("[🎂 BIRTHDAY DAEMON] July 24th reached! Triggering Official Birthday Announcement...");
       try {
         const guild = await client.guilds.fetch('1524878881918685405');
         const announceCh = guild.channels.cache.find(c => c.name.includes('announcements') && c.type === ChannelType.GuildText);
