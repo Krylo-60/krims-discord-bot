@@ -4352,6 +4352,566 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
 
+// ══════════════════════════════════════════════════════════
+// 🎮 KRYLOSMP 3.0 MEGA UPDATE COMMAND HANDLERS
+// ══════════════════════════════════════════════════════════
+const bountyData = new Map();
+const tradeRequests = new Map();
+const petData = new Map();
+const raidData = { hp: 50000, maxHp: 50000, participants: new Map() };
+const duelRequests = new Map();
+const lotteryData = { jackpot: 10000, tickets: new Map() };
+
+// Cooldown Maps
+const fishCooldowns = new Map();
+const mineCooldowns = new Map();
+const heistCooldowns = new Map();
+const robCooldowns = new Map();
+const lootboxCooldowns = new Map();
+
+if (commandName === 'bounty') {
+    const target = interaction.options.getUser('target');
+    const amount = interaction.options.getInteger('amount');
+    
+    if (!target && !amount) {
+        // View bounty board
+        const embed = new EmbedBuilder()
+            .setTitle('🎯 BOUNTY BOARD')
+            .setColor(0xFFAA00)
+            .setThumbnail('https://i.imgur.com/8Q5gW9z.png');
+        
+        let desc = '';
+        if (bountyData.size === 0) desc = 'No active bounties right now.';
+        else {
+            for (const [id, val] of bountyData.entries()) {
+                desc += `<@${id}> - **${val} KC** 💰\n`;
+            }
+        }
+        embed.setDescription(desc);
+        await interaction.reply({ embeds: [embed] });
+        return;
+    }
+    
+    if (target && amount) {
+        const userId = interaction.user.id;
+        if (!xpData[userId]) xpData[userId] = { xp: 0, level: 1, coins: 0 };
+        if ((xpData[userId].coins || 0) < amount) {
+            await interaction.reply({ content: '❌ You do not have enough KC!', ephemeral: true });
+            return;
+        }
+        
+        xpData[userId].coins -= amount;
+        const currentBounty = bountyData.get(target.id) || 0;
+        bountyData.set(target.id, currentBounty + amount);
+        
+        const embed = new EmbedBuilder()
+            .setTitle('🎯 BOUNTY PLACED')
+            .setColor(0x00FF66)
+            .setDescription(`**${interaction.user.username}** has placed a bounty of **${amount} KC** on **${target.username}**!`)
+            .setFooter({ text: 'Hunt them down for a reward!' })
+            .setTimestamp();
+        await interaction.reply({ embeds: [embed] });
+        return;
+    }
+}
+
+if (commandName === 'trade') {
+    const player = interaction.options.getUser('player');
+    const offer = interaction.options.getString('offer');
+    
+    if (player.id === interaction.user.id) {
+        await interaction.reply({ content: '❌ You cannot trade with yourself.', ephemeral: true });
+        return;
+    }
+    
+    const embed = new EmbedBuilder()
+        .setTitle('🤝 TRADE OFFER')
+        .setColor(0x5865F2)
+        .setDescription(`<@${player.id}>, you have received a trade offer from <@${interaction.user.id}>!\n\n**Offer:** ${offer}`)
+        .setFooter({ text: 'Accept or Decline below.' })
+        .setTimestamp();
+        
+    const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`trade_accept_${interaction.user.id}_${player.id}`).setLabel('Accept').setStyle(ButtonStyle.Success).setEmoji('✅'),
+        new ButtonBuilder().setCustomId(`trade_decline_${interaction.user.id}_${player.id}`).setLabel('Decline').setStyle(ButtonStyle.Danger).setEmoji('❌')
+    );
+    
+    await interaction.reply({ content: `<@${player.id}>`, embeds: [embed], components: [row] });
+    return;
+}
+
+if (commandName === 'pet') {
+    const action = interaction.options.getString('action');
+    const userId = interaction.user.id;
+    if (!petData.has(userId)) petData.set(userId, null);
+    
+    if (action === 'adopt') {
+        if (petData.get(userId)) {
+            await interaction.reply({ content: '❌ You already have a pet!', ephemeral: true });
+            return;
+        }
+        const types = ['Wolf 🐺', 'Cat 🐱', 'Parrot 🦜', 'Fox 🦊', 'Axolotl 🦎'];
+        const chosen = types[Math.floor(Math.random() * types.length)];
+        petData.set(userId, { name: 'Unnamed', type: chosen, level: 1, hunger: 100, happiness: 100, xp: 0 });
+        
+        const embed = new EmbedBuilder()
+            .setTitle('🐾 PET ADOPTED')
+            .setColor(0x00FF66)
+            .setDescription(`You adopted a **${chosen}**!\nTake good care of it.`)
+            .setTimestamp();
+        await interaction.reply({ embeds: [embed] });
+        return;
+    }
+    
+    const pet = petData.get(userId);
+    if (!pet) {
+        await interaction.reply({ content: '❌ You do not have a pet! Use `/pet adopt` to get one.', ephemeral: true });
+        return;
+    }
+    
+    if (action === 'view') {
+        const embed = new EmbedBuilder()
+            .setTitle(`🐾 ${pet.name} (${pet.type})`)
+            .setColor(0x9B59B6)
+            .addFields(
+                { name: 'Level', value: `${pet.level}`, inline: true },
+                { name: 'XP', value: `${pet.xp}/100`, inline: true },
+                { name: 'Hunger', value: `${pet.hunger}%`, inline: true },
+                { name: 'Happiness', value: `${pet.happiness}%`, inline: true }
+            )
+            .setFooter({ text: 'KryloSMP Pets' });
+        await interaction.reply({ embeds: [embed] });
+        return;
+    }
+    
+    if (action === 'feed') {
+        pet.hunger = Math.min(100, pet.hunger + 20);
+        pet.happiness = Math.min(100, pet.happiness + 5);
+        await interaction.reply({ content: `🦴 You fed your pet! Hunger is now **${pet.hunger}%**.`, ephemeral: false });
+        return;
+    }
+    
+    if (action === 'train') {
+        pet.xp += 15;
+        pet.hunger = Math.max(0, pet.hunger - 10);
+        if (pet.xp >= 100) {
+            pet.level++;
+            pet.xp = 0;
+            await interaction.reply({ content: `✨ Your pet leveled up! It is now level **${pet.level}**!`, ephemeral: false });
+            return;
+        }
+        await interaction.reply({ content: `🎾 You trained your pet! It gained 15 XP. (Total: ${pet.xp}/100)`, ephemeral: false });
+        return;
+    }
+}
+
+if (commandName === 'fish') {
+    const userId = interaction.user.id;
+    const now = Date.now();
+    if (fishCooldowns.has(userId)) {
+        const exp = fishCooldowns.get(userId) + 30000;
+        if (now < exp) {
+            await interaction.reply({ content: `⏳ You can fish again in **${((exp - now)/1000).toFixed(1)}s**.`, ephemeral: true });
+            return;
+        }
+    }
+    fishCooldowns.set(userId, now);
+    
+    const catches = [
+        { name: 'Nothing 🌊', kc: 0, weight: 30 },
+        { name: 'Old Boot 🥾', kc: 5, weight: 20 },
+        { name: 'Small Fish 🐟', kc: 25, weight: 25 },
+        { name: 'Medium Fish 🐡', kc: 75, weight: 15 },
+        { name: 'Large Fish 🦈', kc: 200, weight: 7 },
+        { name: 'Golden Fish ✨', kc: 500, weight: 2 },
+        { name: 'Legendary Kraken Tentacle 🦑', kc: 2000, weight: 1 }
+    ];
+    
+    const totalWeight = catches.reduce((a, b) => a + b.weight, 0);
+    let rand = Math.random() * totalWeight;
+    let caught = catches[0];
+    for (const c of catches) {
+        if (rand < c.weight) { caught = c; break; }
+        rand -= c.weight;
+    }
+    
+    if (!xpData[userId]) xpData[userId] = { xp: 0, level: 1, coins: 0 };
+    xpData[userId].coins = (xpData[userId].coins || 0) + caught.kc;
+    
+    const embed = new EmbedBuilder()
+        .setTitle('🎣 FISHING')
+        .setColor(caught.kc > 100 ? 0xFFAA00 : 0x5865F2)
+        .setDescription(`You cast your line and caught: **${caught.name}**!\n\nYou earned: **${caught.kc} KC** 💰\nNew Balance: **${xpData[userId].coins} KC**`);
+    await interaction.reply({ embeds: [embed] });
+    return;
+}
+
+if (commandName === 'mine') {
+    const userId = interaction.user.id;
+    const now = Date.now();
+    if (mineCooldowns.has(userId)) {
+        const exp = mineCooldowns.get(userId) + 45000;
+        if (now < exp) {
+            await interaction.reply({ content: `⏳ You can mine again in **${((exp - now)/1000).toFixed(1)}s**.`, ephemeral: true });
+            return;
+        }
+    }
+    mineCooldowns.set(userId, now);
+    
+    const ores = [
+        { name: 'Nothing 🪨', kc: 0, weight: 30 },
+        { name: 'Coal ⬛', kc: 10, weight: 25 },
+        { name: 'Iron 🤍', kc: 30, weight: 20 },
+        { name: 'Gold 💛', kc: 100, weight: 12 },
+        { name: 'Diamond 💎', kc: 250, weight: 7 },
+        { name: 'Emerald 🟩', kc: 400, weight: 4 },
+        { name: 'Ancient Debris 🤎', kc: 800, weight: 1.5 },
+        { name: 'Netherite Block 🖤', kc: 2000, weight: 0.5 }
+    ];
+    
+    const totalWeight = ores.reduce((a, b) => a + b.weight, 0);
+    let rand = Math.random() * totalWeight;
+    let mined = ores[0];
+    for (const o of ores) {
+        if (rand < o.weight) { mined = o; break; }
+        rand -= o.weight;
+    }
+    
+    if (!xpData[userId]) xpData[userId] = { xp: 0, level: 1, coins: 0 };
+    xpData[userId].coins = (xpData[userId].coins || 0) + mined.kc;
+    
+    const embed = new EmbedBuilder()
+        .setTitle('⛏️ MINING')
+        .setColor(mined.kc > 200 ? 0xFFAA00 : 0x9B59B6)
+        .setDescription(`You swung your pickaxe and found: **${mined.name}**!\n\nYou earned: **${mined.kc} KC** 💰\nNew Balance: **${xpData[userId].coins} KC**`);
+    await interaction.reply({ embeds: [embed] });
+    return;
+}
+
+if (commandName === 'craft') {
+    const embed = new EmbedBuilder()
+        .setTitle('🛠️ CRAFTING MENU')
+        .setColor(0x00FF66)
+        .setDescription('Select an item to craft. Requires KC & materials (simulated).')
+        .addFields(
+            { name: '🗡️ Power Sword', value: 'Cost: 500 KC\nEffect: +10% duel damage' },
+            { name: '🛡️ Mystic Shield', value: 'Cost: 800 KC\nEffect: +15% rob defense' },
+            { name: '🧪 Haste Potion', value: 'Cost: 200 KC\nEffect: Reduces cooldowns' }
+        )
+        .setFooter({ text: 'Use buttons below (WIP)' });
+    await interaction.reply({ embeds: [embed] });
+    return;
+}
+
+if (commandName === 'enchant') {
+    const userId = interaction.user.id;
+    if (!xpData[userId]) xpData[userId] = { xp: 0, level: 1, coins: 0 };
+    if ((xpData[userId].coins || 0) < 500) {
+        await interaction.reply({ content: '❌ Enchanting costs **500 KC**.', ephemeral: true });
+        return;
+    }
+    
+    xpData[userId].coins -= 500;
+    const enchants = ['Sharpness V 🗡️', 'Protection IV 🛡️', 'Unbreaking III ⛏️', 'Fortune III ✨', 'Mending 💖'];
+    const chosen = enchants[Math.floor(Math.random() * enchants.length)];
+    
+    const embed = new EmbedBuilder()
+        .setTitle('✨ ENCHANTING')
+        .setColor(0x9B59B6)
+        .setDescription(`You paid 500 KC and received: **${chosen}**!`)
+        .setFooter({ text: `Balance: ${xpData[userId].coins} KC` });
+    await interaction.reply({ embeds: [embed] });
+    return;
+}
+
+if (commandName === 'raid') {
+    const action = interaction.options.getString('action');
+    if (action === 'view') {
+        const embed = new EmbedBuilder()
+            .setTitle('🐉 RAID BOSS: THE ENDER DRAGON')
+            .setColor(0x9B59B6)
+            .setDescription(`**HP:** ${raidData.hp}/${raidData.maxHp} 💖\n\nParticipants: ${raidData.participants.size}`)
+            .setImage('https://i.imgur.com/example.png')
+            .setFooter({ text: 'Use /raid join to fight!' });
+        await interaction.reply({ embeds: [embed] });
+        return;
+    }
+    
+    if (action === 'join') {
+        if (raidData.hp <= 0) {
+            await interaction.reply({ content: '❌ The boss is already dead!', ephemeral: true });
+            return;
+        }
+        const damage = Math.floor(Math.random() * 500) + 100;
+        raidData.hp = Math.max(0, raidData.hp - damage);
+        
+        const currentDmg = raidData.participants.get(interaction.user.id) || 0;
+        raidData.participants.set(interaction.user.id, currentDmg + damage);
+        
+        let desc = `⚔️ You attacked the boss and dealt **${damage}** damage!\nBoss HP: **${raidData.hp}** remaining.`;
+        if (raidData.hp === 0) {
+            desc += '\n\n🎉 **THE BOSS HAS BEEN DEFEATED!** Loot will be distributed.';
+            for (const [id, dmg] of raidData.participants.entries()) {
+                if (!xpData[id]) xpData[id] = { xp: 0, level: 1, coins: 0 };
+                xpData[id].coins = (xpData[id].coins || 0) + (dmg * 2);
+            }
+            raidData.maxHp += 10000;
+            raidData.hp = raidData.maxHp;
+            raidData.participants.clear();
+        }
+        
+        const embed = new EmbedBuilder()
+            .setTitle('🐉 RAID BATTLE')
+            .setColor(0xFF4444)
+            .setDescription(desc);
+        await interaction.reply({ embeds: [embed] });
+        return;
+    }
+    
+    if (action === 'leaderboard') {
+        const sorted = [...raidData.participants.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+        let desc = sorted.length === 0 ? 'No participants yet.' : sorted.map((p, i) => `**${i+1}.** <@${p[0]}> - ${p[1]} DMG`).join('\n');
+        
+        const embed = new EmbedBuilder()
+            .setTitle('🏆 RAID LEADERBOARD')
+            .setColor(0xFFAA00)
+            .setDescription(desc);
+        await interaction.reply({ embeds: [embed] });
+        return;
+    }
+}
+
+if (commandName === 'profile') {
+    const userId = interaction.user.id;
+    const data = xpData[userId] || { xp: 0, level: 1, coins: 0 };
+    const pet = petData.get(userId);
+    
+    const embed = new EmbedBuilder()
+        .setTitle(`👤 ${interaction.user.username}'s Profile`)
+        .setColor(0x5865F2)
+        .setThumbnail(interaction.user.displayAvatarURL())
+        .addFields(
+            { name: 'Level 🌟', value: `${data.level}`, inline: true },
+            { name: 'XP 📊', value: `${data.xp}`, inline: true },
+            { name: 'Balance 💰', value: `${data.coins || 0} KC`, inline: true },
+            { name: 'Pet 🐾', value: pet ? `${pet.name} (${pet.type})` : 'None', inline: true },
+            { name: 'Achievements 🏆', value: '3/50 Unlocked', inline: true }
+        )
+        .setFooter({ text: 'KryloSMP Network' })
+        .setTimestamp();
+    await interaction.reply({ embeds: [embed] });
+    return;
+}
+
+if (commandName === 'inventory') {
+    const embed = new EmbedBuilder()
+        .setTitle(`🎒 ${interaction.user.username}'s Inventory`)
+        .setColor(0x00FF66)
+        .setDescription('**Keys:** 3x Common, 1x Rare\n**Materials:** 15x Iron, 2x Diamond\n**Crafted:** 1x Mystic Shield')
+        .setFooter({ text: 'Inventory System v3.0' });
+    await interaction.reply({ embeds: [embed] });
+    return;
+}
+
+if (commandName === 'achievements') {
+    const embed = new EmbedBuilder()
+        .setTitle('🏆 YOUR ACHIEVEMENTS')
+        .setColor(0xFFAA00)
+        .addFields(
+            { name: '✅ First Steps', value: 'Joined the server.' },
+            { name: '✅ Wealthy', value: 'Earned 1000 KC.' },
+            { name: '❌ Master Miner', value: 'Mine 100 times. (Prog: 12/100)' },
+            { name: '❌ Beast Tamer', value: 'Train pet to level 10.' }
+        );
+    await interaction.reply({ embeds: [embed] });
+    return;
+}
+
+if (commandName === 'duel') {
+    const opponent = interaction.options.getUser('opponent');
+    const wager = interaction.options.getInteger('wager') || 0;
+    const userId = interaction.user.id;
+    
+    if (opponent.id === userId) {
+        await interaction.reply({ content: '❌ You cannot duel yourself!', ephemeral: true });
+        return;
+    }
+    
+    if (wager > 0) {
+        if (!xpData[userId]) xpData[userId] = { xp: 0, level: 1, coins: 0 };
+        if ((xpData[userId].coins || 0) < wager) {
+            await interaction.reply({ content: '❌ You do not have enough KC for this wager!', ephemeral: true });
+            return;
+        }
+    }
+    
+    const embed = new EmbedBuilder()
+        .setTitle('⚔️ DUEL CHALLENGE')
+        .setColor(0xFF4444)
+        .setDescription(`<@${opponent.id}>, you have been challenged to a duel by <@${userId}>!\n**Wager:** ${wager} KC`)
+        .setFooter({ text: 'Accept to fight!' });
+        
+    await interaction.reply({ content: `<@${opponent.id}>`, embeds: [embed] });
+    return;
+}
+
+if (commandName === 'heist') {
+    const userId = interaction.user.id;
+    const now = Date.now();
+    if (heistCooldowns.has(userId)) {
+        const exp = heistCooldowns.get(userId) + 3600000;
+        if (now < exp) {
+            await interaction.reply({ content: `⏳ The bank is on high alert! Try again in **${((exp - now)/60000).toFixed(1)}m**.`, ephemeral: true });
+            return;
+        }
+    }
+    heistCooldowns.set(userId, now);
+    
+    if (!xpData[userId]) xpData[userId] = { xp: 0, level: 1, coins: 0 };
+    const success = Math.random() < 0.30;
+    
+    if (success) {
+        const won = Math.floor(Math.random() * 4500) + 500;
+        xpData[userId].coins = (xpData[userId].coins || 0) + won;
+        const embed = new EmbedBuilder()
+            .setTitle('🏦 BANK HEIST SUCCESS')
+            .setColor(0x00FF66)
+            .setDescription(`You successfully robbed the bank and escaped with **${won} KC**! 💰\nNew Balance: **${xpData[userId].coins} KC**`);
+        await interaction.reply({ embeds: [embed] });
+    } else {
+        const lost = Math.floor((xpData[userId].coins || 0) * (Math.random() * 0.15 + 0.10));
+        xpData[userId].coins = Math.max(0, (xpData[userId].coins || 0) - lost);
+        const embed = new EmbedBuilder()
+            .setTitle('🚨 BANK HEIST FAILED')
+            .setColor(0xFF4444)
+            .setDescription(`You were caught by the guards! You paid a fine of **${lost} KC**.\nNew Balance: **${xpData[userId].coins} KC**`);
+        await interaction.reply({ embeds: [embed] });
+    }
+    return;
+}
+
+if (commandName === 'rob') {
+    const target = interaction.options.getUser('target');
+    const userId = interaction.user.id;
+    
+    if (target.id === userId) {
+        await interaction.reply({ content: '❌ You cannot rob yourself!', ephemeral: true });
+        return;
+    }
+    
+    const now = Date.now();
+    if (robCooldowns.has(userId)) {
+        const exp = robCooldowns.get(userId) + 1800000;
+        if (now < exp) {
+            await interaction.reply({ content: `⏳ You are laying low! Rob again in **${((exp - now)/60000).toFixed(1)}m**.`, ephemeral: true });
+            return;
+        }
+    }
+    robCooldowns.set(userId, now);
+    
+    if (!xpData[userId]) xpData[userId] = { xp: 0, level: 1, coins: 0 };
+    if (!xpData[target.id]) xpData[target.id] = { xp: 0, level: 1, coins: 0 };
+    
+    const targetBal = xpData[target.id].coins || 0;
+    if (targetBal < 100) {
+        await interaction.reply({ content: '❌ That player is too poor to rob!', ephemeral: true });
+        return;
+    }
+    
+    const success = Math.random() < 0.35;
+    if (success) {
+        const stolen = Math.floor(targetBal * (Math.random() * 0.10 + 0.05));
+        xpData[target.id].coins -= stolen;
+        xpData[userId].coins = (xpData[userId].coins || 0) + stolen;
+        const embed = new EmbedBuilder()
+            .setTitle('🥷 ROBBERY SUCCESS')
+            .setColor(0x00FF66)
+            .setDescription(`You snuck up on <@${target.id}> and stole **${stolen} KC**! 💸`);
+        await interaction.reply({ embeds: [embed] });
+    } else {
+        const fine = Math.floor((xpData[userId].coins || 0) * 0.10);
+        xpData[userId].coins = Math.max(0, (xpData[userId].coins || 0) - fine);
+        const embed = new EmbedBuilder()
+            .setTitle('🚔 ROBBERY FAILED')
+            .setColor(0xFF4444)
+            .setDescription(`You tripped and got caught! You paid a fine of **${fine} KC** to the guards.`);
+        await interaction.reply({ embeds: [embed] });
+    }
+    return;
+}
+
+if (commandName === 'lottery') {
+    const tickets = interaction.options.getInteger('tickets') || 1;
+    const userId = interaction.user.id;
+    const cost = tickets * 100;
+    
+    if (!xpData[userId]) xpData[userId] = { xp: 0, level: 1, coins: 0 };
+    if ((xpData[userId].coins || 0) < cost) {
+        await interaction.reply({ content: `❌ You need **${cost} KC** to buy ${tickets} tickets!`, ephemeral: true });
+        return;
+    }
+    
+    xpData[userId].coins -= cost;
+    lotteryData.jackpot += (cost * 0.8);
+    const currentTickets = lotteryData.tickets.get(userId) || 0;
+    lotteryData.tickets.set(userId, currentTickets + tickets);
+    
+    const embed = new EmbedBuilder()
+        .setTitle('🎟️ LOTTERY')
+        .setColor(0xFFAA00)
+        .setDescription(`You bought **${tickets}** tickets!\n\n**Current Jackpot:** ${Math.floor(lotteryData.jackpot)} KC 💰\n**Your Total Tickets:** ${currentTickets + tickets}`)
+        .setFooter({ text: 'Draws every Friday!' });
+    await interaction.reply({ embeds: [embed] });
+    return;
+}
+
+if (commandName === 'lootbox') {
+    const type = interaction.options.getString('type') || 'common';
+    const userId = interaction.user.id;
+    
+    if (type === 'common') {
+        const now = Date.now();
+        if (lootboxCooldowns.has(userId)) {
+            const exp = lootboxCooldowns.get(userId) + 3600000;
+            if (now < exp) {
+                await interaction.reply({ content: `⏳ You can open another free Common Lootbox in **${((exp - now)/60000).toFixed(1)}m**.`, ephemeral: true });
+                return;
+            }
+        }
+        lootboxCooldowns.set(userId, now);
+    } else {
+        const costs = { rare: 200, epic: 500, legendary: 1500 };
+        const cost = costs[type];
+        if (!xpData[userId]) xpData[userId] = { xp: 0, level: 1, coins: 0 };
+        if ((xpData[userId].coins || 0) < cost) {
+            await interaction.reply({ content: `❌ You need **${cost} KC** to open a ${type} lootbox!`, ephemeral: true });
+            return;
+        }
+        xpData[userId].coins -= cost;
+    }
+    
+    const reward = type === 'common' ? 50 : type === 'rare' ? 250 : type === 'epic' ? 700 : 2500;
+    if (!xpData[userId]) xpData[userId] = { xp: 0, level: 1, coins: 0 };
+    xpData[userId].coins = (xpData[userId].coins || 0) + reward;
+    
+    const embed = new EmbedBuilder()
+        .setTitle(`🎁 OPENING ${type.toUpperCase()} LOOTBOX...`)
+        .setColor(0x9B59B6)
+        .setDescription('...');
+    
+    await interaction.reply({ embeds: [embed] });
+    
+    setTimeout(async () => {
+        const resultEmbed = new EmbedBuilder()
+            .setTitle(`🎉 ${type.toUpperCase()} LOOTBOX OPENED!`)
+            .setColor(0x00FF66)
+            .setDescription(`You found:\n\n**${reward} KC** 💰\n_Plus 1x Random Material_`)
+            .setFooter({ text: `Balance: ${xpData[userId].coins} KC` });
+        await interaction.editReply({ embeds: [resultEmbed] });
+    }, 2000);
+    return;
+}
+
     if (commandName === 'ask') {
     if (!aiEnabled) {
       await interaction.reply({ content: "🔒 **AI responses are disabled on this server.**", ephemeral: true });
