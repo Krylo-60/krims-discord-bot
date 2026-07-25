@@ -2208,76 +2208,47 @@ client.on('interactionCreate', async (interaction) => {
     if (customId === 'modal_start_verification') {
       await interaction.deferReply({ ephemeral: true });
       const mcUsernameInput = interaction.fields.getTextInputValue('mc_username').trim();
-      const cleanUsername = mcUsernameInput.replace(/^[\.\_]+/, '');
-      const member = interaction.member;
       const guildId = interaction.guild ? interaction.guild.id : '1524878881918685405';
 
       try {
-        // 1. Assign Verified / Member role in Discord
-        let verifiedRole = interaction.guild.roles.cache.find(r => 
-          r.name.toLowerCase().includes('verified') || 
-          r.name.toLowerCase().includes('member') || 
-          r.name.toLowerCase().includes('og member')
-        );
-        if (verifiedRole && member) {
-          await member.roles.add(verifiedRole).catch(() => {});
-        }
-
-        // 2. Queue whitelist commands & rewards on Vercel API
         const response = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            action: 'get_config',
-            guildId
+            action: 'request_verification',
+            guildId,
+            name: mcUsernameInput,
+            discordUserId: interaction.user.id
           })
         });
 
         if (response.ok) {
-          const config = await response.json();
-          if (!config.economyData) config.economyData = {};
-          if (!config.economyData[interaction.user.username]) config.economyData[interaction.user.username] = { balance: 0 };
-          config.economyData[interaction.user.username].balance += 500;
+          const resData = await response.json();
+          if (resData.ok) {
+            const verifyCode = resData.code || Math.floor(10000 + Math.random() * 90000).toString();
+            const codeEmbed = new EmbedBuilder()
+              .setColor(0x00F2FF)
+              .setTitle('🔐 SECURE VERIFICATION CODE GENERATED!')
+              .setDescription(
+                `A secure 5-digit verification code has been generated for **\`${mcUsernameInput}\`**:\n\n` +
+                `🔑 **YOUR VERIFICATION CODE:** \`${verifyCode}\`\n\n` +
+                `**Next Steps to Complete:**\n` +
+                `1. Open Minecraft and connect to **\`KryloSmp.play.hosting\`**\n` +
+                `2. Look at your in-game chat—or return here to Discord!\n` +
+                `3. Click the **Enter Code** button below and enter **\`${verifyCode}\`**!`
+              )
+              .setFooter({ text: 'KryloSMP 2-Step Security Gate System 🛡️' })
+              .setTimestamp();
 
-          if (!config.verifiedUsers) config.verifiedUsers = {};
-          config.verifiedUsers[mcUsernameInput] = {
-            discordTag: interaction.user.tag,
-            discordId: interaction.user.id,
-            verifiedAt: new Date().toISOString()
-          };
-
-          if (!config.pendingCommands) config.pendingCommands = [];
-          config.pendingCommands.push(`whitelist add ${mcUsernameInput}`);
-          if (cleanUsername !== mcUsernameInput) {
-            config.pendingCommands.push(`whitelist add ${cleanUsername}`);
+            await interaction.editReply({ embeds: [codeEmbed] });
+          } else {
+            await interaction.editReply(`❌ Failed: ${resData.error || 'Server error'}`);
           }
-          config.pendingCommands.push(`give ${mcUsernameInput} minecraft:diamond 16`);
-          config.pendingCommands.push(`say 🛡️ Real Human Player ${mcUsernameInput} verified via Discord & joined KryloSMP!`);
-
-          await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'save_config', guildId, config })
-          });
+        } else {
+          await interaction.editReply('❌ Failed to connect to verification server.');
         }
-
-        const successEmbed = new EmbedBuilder()
-          .setColor(0x00FF66)
-          .setTitle('🎉 INSTANT VERIFICATION SUCCESSFUL!')
-          .setDescription(
-            `Welcome to **KryloSMP**, <@${interaction.user.id}>!\n\n` +
-            `• **Linked Username:** \`${mcUsernameInput}\`\n` +
-            `• **Server IP:** \`KryloSmp.play.hosting\`\n` +
-            `• **Discord Role:** Granted ${verifiedRole ? `<@&${verifiedRole.id}>` : '**Verified**'}!\n` +
-            `• **Rewards Granted:** 💰 **+500 KryloCoins** + 💎 **16x Diamonds**!\n\n` +
-            `*Your username has been automatically whitelisted. You can join the server right now!*`
-          )
-          .setFooter({ text: 'KryloSMP Automated Verification Engine ⚡' })
-          .setTimestamp();
-
-        await interaction.editReply({ embeds: [successEmbed] });
       } catch (err) {
-        await interaction.editReply(`❌ Error processing verification: ${err.message}`);
+        await interaction.editReply(`❌ Error: ${err.message}`);
       }
       return;
     }
@@ -3435,11 +3406,34 @@ client.on('interactionCreate', async (interaction) => {
   // Command: /store
   if (commandName === 'store') {
     const embed = new EmbedBuilder()
-      .setColor(0x00F2FF)
-      .setTitle('🛒 KryloSMP Official Webstore')
-      .setDescription('Visit our official webstore to purchase ranks, crate keys, and server perks!\n\n🌐 **Webstore URL:** https://krylosmp-store.vercel.app')
+      .setColor(0xFFAA00)
+      .setTitle('🛒 KryloSMP Official Webstore & Server Packages')
+      .setDescription(
+        'Enhance your gameplay with exclusive Ranks, Cosmetics, Crate Keys, and KryloCoins!\n\n' +
+        '🌐 **Official Webstore:** https://krylosmp-store.vercel.app\n\n' +
+        '👑 **POPULAR STORE PACKAGES:**\n' +
+        '• 🏅 **VIP Rank** — `$4.99` (Custom Tag, /fly in Lobby, 2x Coin Boost, 3 Homes)\n' +
+        '• 👑 **MVP Rank** — `$9.99` (All VIP perks, Auto-Pickup, KeepXP on death, 5 Homes)\n' +
+        '• 🎫 **Krylo Pass (Season 3)** — `$14.99` (Exclusive cosmetics, pets, neon particle trails)\n' +
+        '• 🔑 **Mega Crate Keys Bundle** — `$6.99` (5x Mythic Keys + 10x Rare Keys)\n' +
+        '• 💰 **5,000 KryloCoins Pack** — `$2.99` (Instant in-game coin credit)\n\n' +
+        '*All purchases directly support the server and unlock instant rewards!*'
+      )
+      .setFooter({ text: 'KryloSMP Store • Safe & Instant Delivery' })
       .setTimestamp();
-    await interaction.reply({ embeds: [embed] }).catch(() => {});
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setLabel('🌐 Visit Webstore')
+        .setStyle(ButtonStyle.Link)
+        .setURL('https://krylosmp-store.vercel.app'),
+      new ButtonBuilder()
+        .setCustomId('open_coin_shop')
+        .setLabel('🪙 In-Game Coin Shop')
+        .setStyle(ButtonStyle.Success)
+    );
+
+    await interaction.reply({ embeds: [embed], components: [row] }).catch(() => {});
     return;
   }
 
