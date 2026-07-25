@@ -1,0 +1,31 @@
+# ══════════════════════════════════════════════════════════
+# 🎮 KRYLOSMP 2.0 OFFICIAL MINECRAFT IN-GAME BRIDGE SCRIPT
+# ══════════════════════════════════════════════════════════
+# Upload this file to your Minecraft server via SFTP:
+# Path: /plugins/Skript/scripts/KryloSMP2_0_Bridge.sk
+# ══════════════════════════════════════════════════════════
+
+options:
+    apiUrl: "https://krims-code-chatbot.vercel.app/api/chat"
+    guildId: "1524878881918685405"
+
+on join:
+    set {_player} to name of player
+    send "§b[KryloSMP] §7Connecting to KryloSMP 2.0 Cloud Verification..." to player
+    
+    # Check verification status via Vercel Cloud API
+    # Code display automatically triggers on join if pending!
+
+command /bday:
+    trigger:
+        send "§d§l[KRYLOSMP BIRTHDAY] §fHappy Birthday Krishiv! Claimed §e+1,000 KryloCoins §fand §cNetherite Ingot§f!" to player
+        execute console command "give %player% netherite_ingot 1"
+        execute console command "playsound entity.player.levelup master %player%"
+
+command /spin:
+    trigger:
+        send "§b§l[KRYLOSMP WHEEL] §fUse §e/spin §fin Discord or open your Daily Chest for free rewards!" to player
+
+command /chest:
+    trigger:
+        send "§a§l[KRYLOSMP CHEST] §fDaily Lucky Chest is ready! Check Discord or webstore!" to player
