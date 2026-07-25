@@ -121,6 +121,61 @@ command /discord:
         send "{@prefix} &7Join our official Discord server: &b{@discord_link}" to player
 
 # ──────────────────────────────────────────────────────────────────────────
+# EMOTE ENGINE FOR JAVA & BEDROCK PLAYERS
+# ──────────────────────────────────────────────────────────────────────────
+command /emote [<text>]:
+    aliases: /emotes, /e
+    trigger:
+        if arg-1 is not set:
+            send "{@prefix} &6&lAVAILABLE EMOTES:" to player
+            send " &7• &e/dance &7— Disco party particles & music!" to player
+            send " &7• &e/wave &7— Wave at nearby players!" to player
+            send " &7• &e/spin &7— Spin in circles with tornado particles!" to player
+            send " &7• &e/sit &7— Sit down wherever you are!" to player
+            send " &7• &e/lay &7— Lay down on the floor!" to player
+        else if arg-1 is "dance":
+            make player execute command "/dance"
+        else if arg-1 is "wave":
+            make player execute command "/wave"
+        else if arg-1 is "spin":
+            make player execute command "/spin"
+        else if arg-1 is "sit":
+            make player execute command "/sit"
+
+command /dance:
+    trigger:
+        broadcast "{@prefix} &e%player% &a&lis busting out some moves! 🕺💃"
+        play sound "music_disc.cat" with volume 0.8 and pitch 1.0 to player
+        loop 10 times:
+            spawn 15 note particle at player's location
+            spawn 10 heart particle at player's location
+            wait 0.3 seconds
+
+command /wave:
+    trigger:
+        broadcast "{@prefix} &e%player% &a&lwaves hello to everyone! 👋"
+        play sound "entity.player.levelup" with volume 0.5 to player
+        spawn 15 villager happy particle at player's location
+
+command /spin:
+    trigger:
+        broadcast "{@prefix} &e%player% &a&lis spinning rapidly! 🌀"
+        play sound "entity.phantom.flap" with volume 0.8 to player
+        loop 8 times:
+            spawn 20 cloud particle at player's location
+            wait 0.2 seconds
+
+command /sit:
+    trigger:
+        send "{@prefix} &aYou sat down! &7(Type &e/spawn &7or move to stand up)" to player
+        apply slowness 10 without particles to player for 9999 seconds
+
+command /lay:
+    trigger:
+        send "{@prefix} &aYou are laying down! &7(Move to get back up)" to player
+        apply slowness 10 without particles to player for 9999 seconds
+
+# ──────────────────────────────────────────────────────────────────────────
 # 5. AUTOMATED DROP PARTY SYSTEM (EVERY 2 HOURS)
 # ──────────────────────────────────────────────────────────────────────────
 command /setspawn:
