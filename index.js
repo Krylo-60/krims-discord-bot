@@ -2873,7 +2873,7 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   // Command: /rank
-  if (commandName === 'rank') {
+  if (commandName === 'rank' || commandName === 'level') {
     const targetUser = interaction.options.getUser('user') || interaction.user;
     const userId = targetUser.id;
     
@@ -3158,6 +3158,41 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   // Command: /ip
+  
+  // Command: /store
+  if (commandName === 'store') {
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('🛒 KryloSMP Official Webstore')
+      .setDescription('Visit our official webstore to purchase ranks, crate keys, and server perks!\n\n🌐 **Webstore URL:** https://krylosmp-store.vercel.app')
+      .setTimestamp();
+    await interaction.reply({ embeds: [embed] }).catch(() => {});
+    return;
+  }
+
+  
+  // Command: /help
+  if (commandName === 'help') {
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('📜 KryloSMP Bot Commands')
+      .setDescription(
+        'Here are the available commands:\n\n' +
+        '• `/daily` - Claim free daily rewards & KryloCoins!\n' +
+        '• `/bday [user]` - Celebrate birthday with fireworks & double XP!\n' +
+        '• `/level` or `/rank` - View chat level and XP progress!\n' +
+        '• `/work` - Work to earn KryloCoins!\n' +
+        '• `/ip` - Show Java & Bedrock server connection details!\n' +
+        '• `/store` - View KryloSMP official webstore link!\n' +
+        '• `/pvp [user]` - Challenge a player to a 1v1 duel!\n' +
+        '• `/tournament` - Join monthly server tournaments!\n' +
+        '• `/leaderboard` - View top player rankings!'
+      )
+      .setTimestamp();
+    await interaction.reply({ embeds: [embed] }).catch(() => {});
+    return;
+  }
+
   if (commandName === 'ip') {
     const embed = new EmbedBuilder()
       .setColor(0x00F2FF)
