@@ -103,6 +103,23 @@ command /discord:
 # ──────────────────────────────────────────────────────────────────────────
 # 5. AUTOMATED DROP PARTY SYSTEM (EVERY 2 HOURS)
 # ──────────────────────────────────────────────────────────────────────────
+command /setspawn:
+    permission: krylosmp.admin
+    trigger:
+        set {krylosmp::spawn_location} to player's location
+        send "{@prefix} &a&lSPAWN SET! &7Spawn location has been set to your current location (%player's location%)." to player
+
+command /spawn:
+    trigger:
+        if {krylosmp::spawn_location} is set:
+            teleport player to {krylosmp::spawn_location}
+        else:
+            set {_spawn} to location at 0.5, 65.0, 0.5 in world "world"
+            teleport player to {_spawn}
+        send "{@prefix} &a&lTELEPORTED! &7You have been teleported to Server Spawn." to player
+        play sound "entity.enderman.teleport" with volume 1.0 to player
+        spawn 15 portal particle at player's location
+
 every 2 hours:
     broadcast "{@prefix} &e&l🎉 DROP PARTY STARTING IN 1 MINUTE AT SPAWN!"
     wait 55 seconds
