@@ -1201,28 +1201,43 @@ client.once('ready', async () => {
 
           const embed = new EmbedBuilder()
             .setColor(0x00FF66)
-            .setTitle('🔗 Link Minecraft Account')
-            .setDescription('Link your official Minecraft account to gain access to the **Verified** role, sync your nickname, and track your in-game stats directly on Discord!\n\n**Instructions:**\n1. Click **Link Account** below and enter your Minecraft username.\n2. Log in to the Minecraft server (**`KryloSmp.play.hosting`**) where your verification code will display in chat!\n3. Click **Enter Verification Code** below and enter the code you received in-game.')
+            .setTitle('🔗 Minecraft Account Linking')
+            .setDescription(
+              'Link your Minecraft account to get a chance to participate in future events and claim exclusive rewards!\n\n' +
+              '**How to Link:**\n' +
+              '1. Click **Link Account** below\n' +
+              '2. Enter your Minecraft Username (Java or Bedrock)\n' +
+              '3. Connect to **`KryloSmp.play.hosting`**\n' +
+              '4. Your account will be automatically linked & whitelisted!\n\n' +
+              '🔒 **Privacy Policy**\n' +
+              '🌐 **Server Address:** `KryloSmp.play.hosting`  |  🕹️ **Supported Versions:** Java & Bedrock 1.21.x'
+            )
             .setImage('attachment://krylosmp_banner.png');
           
           const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
               .setCustomId('start_verification')
               .setLabel('Link Account')
-              .setStyle(ButtonStyle.Success)
-              .setEmoji('🔗'),
+              .setStyle(ButtonStyle.Success),
             new ButtonBuilder()
-              .setCustomId('enter_verify_code')
-              .setLabel('Enter Code')
-              .setStyle(ButtonStyle.Primary)
-              .setEmoji('🔑')
+              .setCustomId('unlink_account')
+              .setLabel('Unlink Account')
+              .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+              .setCustomId('update_username')
+              .setLabel('Update Username')
+              .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+              .setCustomId('check_status')
+              .setLabel('Check Status')
+              .setStyle(ButtonStyle.Secondary)
           );
           const files = [];
           if (fs.existsSync('krylosmp_banner.png')) {
             files.push(new AttachmentBuilder('krylosmp_banner.png', { name: 'krylosmp_banner.png' }));
           }
           await verifyCh.send({ embeds: [embed], components: [row], files });
-          console.log(`[KryloSMP Setup] Sent verification button embed.`);
+          console.log(`[KryloSMP Setup] Sent 4-button verification embed matching layout.`);
         } else {
           console.log(`[KryloSMP Setup] Verify button already exists, skipping.`);
         }
@@ -2104,6 +2119,123 @@ client.on('interactionCreate', async (interaction) => {
         .setTimestamp();
 
       await interaction.editReply({ embeds: [cancelEmbed], components: [] });
+      return;
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // VERIFICATION 4-BUTTON PANEL INTERACTION HANDLERS
+    // ──────────────────────────────────────────────────────────────────────────
+    if (customId === 'unlink_account') {
+      await interaction.deferReply({ ephemeral: true });
+      const guildId = interaction.guild ? interaction.guild.id : '1524878881918685405';
+      try {
+        let verifiedRole = interaction.guild.roles.cache.find(r => 
+          r.name.toLowerCase().includes('verified') || 
+          r.name.toLowerCase().includes('member')
+        );
+        if (verifiedRole && interaction.member) {
+          await interaction.member.roles.remove(verifiedRole).catch(() => {});
+        }
+
+        const res = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get_config', guildId })
+        });
+        if (res.ok) {
+          const config = await res.json();
+          let linkedIgn = null;
+          if (config.verifiedUsers) {
+            for (const [ign, data] of Object.entries(config.verifiedUsers)) {
+              if (data.discordId === interaction.user.id) {
+                linkedIgn = ign;
+                delete config.verifiedUsers[ign];
+              }
+            }
+          }
+          if (linkedIgn && config.pendingCommands) {
+            config.pendingCommands.push(`whitelist remove ${linkedIgn}`);
+          }
+          await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'save_config', guildId, config })
+          });
+        }
+
+        const unlinkEmbed = new EmbedBuilder()
+          .setColor(0xFF4444)
+          .setTitle('🔴 Account Unlinked Successfully')
+          .setDescription(`Your Discord account has been unlinked from Minecraft. You can re-link anytime!`)
+          .setTimestamp();
+        await interaction.editReply({ embeds: [unlinkEmbed] });
+      } catch (err) {
+        await interaction.editReply(`❌ Error unlinking account: ${err.message}`);
+      }
+      return;
+    }
+
+    if (customId === 'update_username') {
+      // Re-trigger verification modal
+      const modal = new ModalBuilder()
+        .setCustomId('modal_start_verification')
+        .setTitle('🔄 Update Linked Minecraft Username');
+
+      const usernameInput = new TextInputBuilder()
+        .setCustomId('mc_username')
+        .setLabel('Enter your New Minecraft Username')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('e.g. Krylo_MC')
+        .setRequired(true);
+
+      modal.addComponents(new ActionRowBuilder().addComponents(usernameInput));
+      await interaction.showModal(modal);
+      return;
+    }
+
+    if (customId === 'check_status') {
+      await interaction.deferReply({ ephemeral: true });
+      const guildId = interaction.guild ? interaction.guild.id : '1524878881918685405';
+      try {
+        let linkedIgn = 'Not Linked';
+        let balance = 0;
+        const res = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get_config', guildId })
+        });
+        if (res.ok) {
+          const config = await res.json();
+          if (config.verifiedUsers) {
+            for (const [ign, data] of Object.entries(config.verifiedUsers)) {
+              if (data.discordId === interaction.user.id) {
+                linkedIgn = ign;
+                break;
+              }
+            }
+          }
+          if (config.economyData && config.economyData[interaction.user.username]) {
+            balance = config.economyData[interaction.user.username].balance || 0;
+          }
+        }
+
+        const statusEmbed = new EmbedBuilder()
+          .setColor(0x00F2FF)
+          .setTitle('🔍 Verification & Account Status')
+          .setThumbnail(`https://mc-heads.net/avatar/${encodeURIComponent(linkedIgn !== 'Not Linked' ? linkedIgn : 'Steve')}/64`)
+          .addFields(
+            { name: '👤 Discord Account', value: `<@${interaction.user.id}>`, inline: true },
+            { name: '🎮 Linked Minecraft Username', value: linkedIgn !== 'Not Linked' ? `\`${linkedIgn}\`` : '❌ `Not Linked`', inline: true },
+            { name: '💰 KryloCoins Balance', value: `\`${balance.toLocaleString()} KC\``, inline: true },
+            { name: '🌐 Server IP', value: '`KryloSmp.play.hosting`', inline: true }
+          )
+          .setFooter({ text: 'KryloSMP Account Management System ⚡' })
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [statusEmbed] });
+      } catch (err) {
+        await interaction.editReply(`❌ Error checking status: ${err.message}`);
+      }
       return;
     }
   }
