@@ -120,6 +120,14 @@ command /discord:
     trigger:
         send "{@prefix} &7Join our official Discord server: &b{@discord_link}" to player
 
+command /verify:
+    aliases: /link, /discordlink
+    trigger:
+        send "{@prefix} &6&lKRYLOSMP 1-CLICK WEB VERIFICATION" to player
+        send "{@prefix} &7Click the link below to verify your account in 1 click:" to player
+        send " &bhttps://krims-code-chatbot.vercel.app/verify?name=%player%" to player
+        send "{@prefix} &eRewards on verification: &a+500 KC &7& &a16x Diamonds! 💎" to player
+
 # ──────────────────────────────────────────────────────────────────────────
 # EMOTE ENGINE FOR JAVA & BEDROCK PLAYERS
 # ──────────────────────────────────────────────────────────────────────────

@@ -2226,21 +2226,34 @@ client.on('interactionCreate', async (interaction) => {
           const resData = await response.json();
           if (resData.ok) {
             const verifyCode = resData.code || Math.floor(10000 + Math.random() * 90000).toString();
+            const verifyWebUrl = `https://krims-code-chatbot.vercel.app/verify?name=${encodeURIComponent(mcUsernameInput)}&code=${verifyCode}&discordId=${interaction.user.id}`;
+
             const codeEmbed = new EmbedBuilder()
               .setColor(0x00F2FF)
-              .setTitle('🔐 SECURE VERIFICATION CODE GENERATED!')
+              .setTitle('🌐 KRYLOSMP 1-CLICK WEB VERIFICATION GATEWAY')
+              .setThumbnail(`https://mc-heads.net/avatar/${encodeURIComponent(mcUsernameInput)}/100`)
               .setDescription(
-                `A secure 5-digit verification code has been generated for **\`${mcUsernameInput}\`**:\n\n` +
-                `🔑 **YOUR VERIFICATION CODE:** \`${verifyCode}\`\n\n` +
-                `**Next Steps to Complete:**\n` +
-                `1. Open Minecraft and connect to **\`KryloSmp.play.hosting\`**\n` +
-                `2. Look at your in-game chat—or return here to Discord!\n` +
-                `3. Click the **Enter Code** button below and enter **\`${verifyCode}\`**!`
+                `Verification token generated for **\`${mcUsernameInput}\`**!\n\n` +
+                `🔑 **Verification Code:** \`${verifyCode}\`\n\n` +
+                `**Choose Your Verification Method:**\n` +
+                `1. 🌐 **1-CLICK WEB VERIFICATION (Recommended):** Click the **"Verify Account On Web"** button below to verify instantly in 1 click!\n` +
+                `2. 🎮 **IN-GAME CODE:** Connect to **\`KryloSmp.play.hosting\`**, click **Enter Code**, and type \`${verifyCode}\`!`
               )
-              .setFooter({ text: 'KryloSMP 2-Step Security Gate System 🛡️' })
+              .setFooter({ text: 'KryloSMP Automated Web OAuth Verification System ⚡' })
               .setTimestamp();
 
-            await interaction.editReply({ embeds: [codeEmbed] });
+            const webRow = new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setLabel('🌐 Verify Account On Web (1-Click)')
+                .setStyle(ButtonStyle.Link)
+                .setURL(verifyWebUrl),
+              new ButtonBuilder()
+                .setCustomId('btn_enter_code')
+                .setLabel('🔑 Enter 5-Digit Code')
+                .setStyle(ButtonStyle.Primary)
+            );
+
+            await interaction.editReply({ embeds: [codeEmbed], components: [webRow] });
           } else {
             await interaction.editReply(`❌ Failed: ${resData.error || 'Server error'}`);
           }
