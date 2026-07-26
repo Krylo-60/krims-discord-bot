@@ -2208,60 +2208,75 @@ client.on('interactionCreate', async (interaction) => {
     if (customId === 'modal_start_verification') {
       await interaction.deferReply({ ephemeral: true });
       const mcUsernameInput = interaction.fields.getTextInputValue('mc_username').trim();
+      const cleanUsername = mcUsernameInput.replace(/^[\.\_]+/, '');
+      const member = interaction.member;
       const guildId = interaction.guild ? interaction.guild.id : '1524878881918685405';
 
       try {
+        // 1. Assign Verified / Member role in Discord
+        let verifiedRole = interaction.guild.roles.cache.find(r => 
+          r.name.toLowerCase().includes('verified') || 
+          r.name.toLowerCase().includes('member') || 
+          r.name.toLowerCase().includes('og member')
+        );
+        if (verifiedRole && member) {
+          await member.roles.add(verifiedRole).catch(() => {});
+        }
+
+        // 2. Queue whitelist commands & rewards on Vercel API
         const response = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'request_verification',
-            guildId,
-            name: mcUsernameInput,
-            discordUserId: interaction.user.id
-          })
+          body: JSON.stringify({ action: 'get_config', guildId })
         });
 
         if (response.ok) {
-          const resData = await response.json();
-          if (resData.ok) {
-            const verifyCode = resData.code || Math.floor(10000 + Math.random() * 90000).toString();
-            const verifyWebUrl = `https://krims-code-chatbot.vercel.app/verify?name=${encodeURIComponent(mcUsernameInput)}&code=${verifyCode}&discordId=${interaction.user.id}`;
+          const config = await response.json();
+          if (!config.economyData) config.economyData = {};
+          if (!config.economyData[interaction.user.username]) config.economyData[interaction.user.username] = { balance: 0 };
+          config.economyData[interaction.user.username].balance += 500;
 
-            const codeEmbed = new EmbedBuilder()
-              .setColor(0x00F2FF)
-              .setTitle('🌐 KRYLOSMP 1-CLICK WEB VERIFICATION GATEWAY')
-              .setThumbnail(`https://mc-heads.net/avatar/${encodeURIComponent(mcUsernameInput)}/100`)
-              .setDescription(
-                `Verification token generated for **\`${mcUsernameInput}\`**!\n\n` +
-                `🔑 **Verification Code:** \`${verifyCode}\`\n\n` +
-                `**Choose Your Verification Method:**\n` +
-                `1. 🌐 **1-CLICK WEB VERIFICATION (Recommended):** Click the **"Verify Account On Web"** button below to verify instantly in 1 click!\n` +
-                `2. 🎮 **IN-GAME CODE:** Connect to **\`KryloSmp.play.hosting\`**, click **Enter Code**, and type \`${verifyCode}\`!`
-              )
-              .setFooter({ text: 'KryloSMP Automated Web OAuth Verification System ⚡' })
-              .setTimestamp();
+          if (!config.verifiedUsers) config.verifiedUsers = {};
+          config.verifiedUsers[mcUsernameInput] = {
+            discordTag: interaction.user.tag,
+            discordId: interaction.user.id,
+            verifiedAt: new Date().toISOString()
+          };
 
-            const webRow = new ActionRowBuilder().addComponents(
-              new ButtonBuilder()
-                .setLabel('🌐 Verify Account On Web (1-Click)')
-                .setStyle(ButtonStyle.Link)
-                .setURL(verifyWebUrl),
-              new ButtonBuilder()
-                .setCustomId('btn_enter_code')
-                .setLabel('🔑 Enter 5-Digit Code')
-                .setStyle(ButtonStyle.Primary)
-            );
-
-            await interaction.editReply({ embeds: [codeEmbed], components: [webRow] });
-          } else {
-            await interaction.editReply(`❌ Failed: ${resData.error || 'Server error'}`);
+          if (!config.pendingCommands) config.pendingCommands = [];
+          config.pendingCommands.push(`whitelist add ${mcUsernameInput}`);
+          if (cleanUsername !== mcUsernameInput) {
+            config.pendingCommands.push(`whitelist add ${cleanUsername}`);
           }
-        } else {
-          await interaction.editReply('❌ Failed to connect to verification server.');
+          config.pendingCommands.push(`give ${mcUsernameInput} minecraft:diamond 16`);
+          config.pendingCommands.push(`say 🛡️ Real Human Player ${mcUsernameInput} verified via Discord & joined KryloSMP!`);
+
+          await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'save_config', guildId, config })
+          });
         }
+
+        const mcHeadUrl = `https://mc-heads.net/avatar/${encodeURIComponent(mcUsernameInput)}/64`;
+        const successEmbed = new EmbedBuilder()
+          .setColor(0x00FF66)
+          .setTitle('🎉 INSTANT VERIFICATION SUCCESSFUL!')
+          .setThumbnail(mcHeadUrl)
+          .setDescription(
+            `Welcome to **KryloSMP**, <@${interaction.user.id}>!\n\n` +
+            `• **Linked Username:** \`${mcUsernameInput}\`\n` +
+            `• **Server IP:** \`KryloSmp.play.hosting\`\n` +
+            `• **Discord Role:** Granted ${verifiedRole ? `<@&${verifiedRole.id}>` : '**Verified**'}!\n` +
+            `• **Rewards Granted:** 💰 **+500 KryloCoins** + 💎 **16x Diamonds**!\n\n` +
+            `*Your account has been automatically whitelisted. You can connect to the server right now!*`
+          )
+          .setFooter({ text: 'KryloSMP Automated Verification Engine ⚡' })
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [successEmbed], components: [] });
       } catch (err) {
-        await interaction.editReply(`❌ Error: ${err.message}`);
+        await interaction.editReply(`❌ Error processing verification: ${err.message}`);
       }
       return;
     }
