@@ -2214,10 +2214,21 @@ client.on('interactionCreate', async (interaction) => {
               }
             }
           }
-          if (config.economyData && config.economyData[interaction.user.username]) {
-            balance = config.economyData[interaction.user.username].balance || 0;
+
+          // Fetch balance across IGN, Username, or User ID
+          if (config.economyData) {
+            if (linkedIgn && config.economyData[linkedIgn]) balance = config.economyData[linkedIgn].balance || 0;
+            else if (config.economyData[interaction.user.username]) balance = config.economyData[interaction.user.username].balance || 0;
+            else if (config.verifiedPlayers && config.verifiedPlayers[interaction.user.id]) balance = config.verifiedPlayers[interaction.user.id].balance || 0;
+          }
+
+          // Owner Infinite KC Override
+          if (interaction.user.id === '1414143825538191373' || (linkedIgn && linkedIgn.toLowerCase().includes('krylo'))) {
+            balance = 999999999999;
           }
         }
+
+        const balanceFormatted = balance >= 999999999 ? '♾️ Unlimited KC (Owner)' : `${balance.toLocaleString()} KC`;
 
         const statusEmbed = new EmbedBuilder()
           .setColor(0x00F2FF)
@@ -2226,7 +2237,7 @@ client.on('interactionCreate', async (interaction) => {
           .addFields(
             { name: '👤 Discord Account', value: `<@${interaction.user.id}>`, inline: true },
             { name: '🎮 Linked Minecraft Username', value: linkedIgn !== 'Not Linked' ? `\`${linkedIgn}\`` : '❌ `Not Linked`', inline: true },
-            { name: '💰 KryloCoins Balance', value: `\`${balance.toLocaleString()} KC\``, inline: true },
+            { name: '💰 KryloCoins Balance', value: `\`${balanceFormatted}\``, inline: true },
             { name: '🌐 Server IP', value: '`KryloSmp.play.hosting`', inline: true }
           )
           .setFooter({ text: 'KryloSMP Account Management System ⚡' })
