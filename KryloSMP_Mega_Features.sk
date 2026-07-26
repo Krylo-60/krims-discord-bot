@@ -205,3 +205,59 @@ every 2 hours:
         set {_loc} to location at (random number between -10 and 10), 70, (random number between -10 and 10) in world "world"
         drop 1 diamond or 2 gold ingot or 5 iron ingot or 1 golden apple at {_loc}
         wait 0.5 seconds
+
+# ──────────────────────────────────────────────────────────────────────────
+# 6. LEGENDARY CUSTOM WEAPONS ENGINE
+# ──────────────────────────────────────────────────────────────────────────
+command /weapons:
+    aliases: /customweapons
+    trigger:
+        send "{@prefix} &6&lKRYLOSMP LEGENDARY CUSTOM WEAPONS:" to player
+        send " &71. &e&l🗡️ Krylo Blade of Destiny &7— Lightning Strike & Sharp VI" to player
+        send " &72. &c&l🪓 Executioner's Waraxe &7— Armor Shatter & Blindness" to player
+        send " &73. &b&l🏹 Phoenix Flamebow &7— Explosive Flame Arrows & Power VI" to player
+        send " &74. &a&l🔱 Poseidon's Trident &7— Tsunami Water Burst & Riptide III" to player
+        send " &75. &d&l🔮 Vampiric Reaper Scythe &7— Life Steal (Heals 2 Hearts)" to player
+        send " &7&o(Obtain from /store, Mythic Crates, or Event Bosses!)" to player
+
+command /giveweapon [<text>] [<player>]:
+    permission: krylosmp.admin
+    trigger:
+        set {_target} to arg-2
+        if {_target} is not set:
+            set {_target} to player
+            
+        if arg-1 is "blade" or "kryloblade":
+            give 1 netherite sword of sharpness 6, unbreaking 4, fire aspect 2 named "&6&lKrylo Blade of Destiny" with lore "&7&oForged in Netherfire.", "&e&lABILITY: &fLightning Strike (20%% Chance)" to {_target}
+            send "{@prefix} &aGranted &6Krylo Blade of Destiny &ato %{_target}%!" to player
+            
+        else if arg-1 is "axe" or "waraxe":
+            give 1 netherite axe of sharpness 6, efficiency 5, unbreaking 4 named "&c&lExecutioner's Waraxe" with lore "&7&oDecimates enemy armor.", "&c&lABILITY: &fArmor Shatter & Blindness" to {_target}
+            send "{@prefix} &aGranted &cExecutioner's Waraxe &ato %{_target}%!" to player
+
+        else if arg-1 is "bow" or "flamebow":
+            give 1 bow of power 6, flame 1, infinity 1, punch 2, unbreaking 4 named "&b&lPhoenix Flamebow" with lore "&7&oInfused with Dragon Essence.", "&b&lABILITY: &fExplosive Flame Arrow" to {_target}
+            send "{@prefix} &aGranted &bPhoenix Flamebow &ato %{_target}%!" to player
+
+        else if arg-1 is "trident":
+            give 1 trident of impaling 5, riptide 3, unbreaking 3, mending 1 named "&a&lPoseidon's Trident" with lore "&7&oMaster of the Oceans.", "&a&lABILITY: &fTsunami Water Burst" to {_target}
+            send "{@prefix} &aGranted &aPoseidon's Trident &ato %{_target}%!" to player
+
+        else if arg-1 is "scythe":
+            give 1 netherite hoe of sharpness 5, looting 3, unbreaking 4 named "&d&lVampiric Reaper Scythe" with lore "&7&oSiphons enemy souls.", "&d&lABILITY: &fLife Steal (+2 Hearts on Hit)" to {_target}
+            send "{@prefix} &aGranted &dVampiric Reaper Scythe &ato %{_target}%!" to player
+
+# Weapon Abilities Trigger
+on damage of player:
+    if attacker is holding netherite sword named "&6&lKrylo Blade of Destiny":
+        chance of 25%:
+            strike lightning at victim's location
+            send "{@prefix} &e⚡ &lLIGHTNING STRIKE! &7Your Krylo Blade called down lightning!" to attacker
+            
+    if attacker is holding netherite axe named "&c&lExecutioner's Waraxe":
+        apply blindness 2 to victim for 3 seconds
+        apply slowness 2 to victim for 3 seconds
+
+    if attacker is holding netherite hoe named "&d&lVampiric Reaper Scythe":
+        heal attacker by 2 hearts
+        spawn 10 heart particle at attacker's location
