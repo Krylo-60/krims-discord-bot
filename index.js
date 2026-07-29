@@ -1078,7 +1078,7 @@ client.once('ready', async () => {
       const infoCh = guild.channels.cache.find(c => c.name.includes('server-info') && c.type === ChannelType.GuildText);
       if (infoCh) {
         const messages = await infoCh.messages.fetch({ limit: 20 });
-        const hasRoleBtn = messages.some(m => m.components.some(c => c.components.some(b => b.customId.startsWith('role_'))));
+        const hasRoleBtn = messages.some(m => m.components.some(c => c.components.some(b => b.customId?.startsWith('role_'))));
         if (!hasRoleBtn) {
           try {
             if (messages.size > 0) {
@@ -1755,6 +1755,19 @@ client.on('interactionCreate', async (interaction) => {
       return;
     }
 
+    if (customId === 'close_ticket') {
+      try {
+        await interaction.reply({ content: '🔒 **Closing ticket...** This channel will be deleted in 5 seconds.' });
+        await closeTicketInGoogleSheet(interaction.channel.id).catch(() => {});
+        setTimeout(async () => {
+          await interaction.channel.delete().catch(() => {});
+        }, 5000);
+      } catch (err) {
+        console.error('Error closing ticket:', err.message);
+      }
+      return;
+    }
+
     if (customId === 'open_ticket') {
       const modal = new ModalBuilder()
         .setCustomId('modal_open_ticket')
@@ -2315,12 +2328,19 @@ client.on('interactionCreate', async (interaction) => {
             { name: '🎮 Minecraft Account', value: mcUsername !== 'Not Linked' ? `\`${mcUsername}\`` : '❌ Not Linked', inline: true },
             { name: '🪙 KryloCoins', value: `\`${Math.floor(playerBalance).toLocaleString()} ⛃\``, inline: true },
             { name: '📋 Reason / Question', value: userTicketReasonText },
-            { name: '🚨 Priority Level', value: `\`${calculatedPriority}\``, inline: true }
+            { name: '🚨 Priority Level', value: `${calculatedPriority === 'No Staff Needed' ? '🟢 Standard / General' : calculatedPriority === 'High' ? '🔴 High Priority' : '🟡 Medium Priority'}`, inline: true }
           )
           .setFooter({ text: 'Type /close to resolve and delete this channel' })
           .setTimestamp();
 
-        await channel.send({ content: `<@${interaction.user.id}>`, embeds: [profileEmbed] });
+        const closeRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('close_ticket')
+            .setLabel('🔒 Close Ticket')
+            .setStyle(ButtonStyle.Danger)
+            .setEmoji('🔒')
+        );
+        await channel.send({ content: `<@${interaction.user.id}>`, embeds: [profileEmbed], components: [closeRow] });
         await interaction.editReply(`🎟️ **Ticket Opened!** Check it out here: <#${channel.id}>`);
 
         // Log to Google Sheet via SheetDB API
@@ -4067,7 +4087,7 @@ client.on('interactionCreate', async (interaction) => {
           { name: '🎮 Minecraft Account', value: mcUsername !== 'Not Linked' ? `\`${mcUsername}\`` : '❌ Not Linked', inline: true },
           { name: '🪙 KryloCoins', value: `\`${Math.floor(playerBalance).toLocaleString()} ⛃\``, inline: true },
           { name: '📋 Reason / Question', value: userTicketReasonText },
-          { name: '🚨 Priority Level', value: `\`${calculatedPriority}\``, inline: true }
+          { name: '🚨 Priority Level', value: `${calculatedPriority === 'No Staff Needed' ? '🟢 Standard / General' : calculatedPriority === 'High' ? '🔴 High Priority' : '🟡 Medium Priority'}`, inline: true }
         )
         .setFooter({ text: 'Type /close to resolve and delete this channel' })
         .setTimestamp();
@@ -5736,7 +5756,7 @@ client.on('messageCreate', async (message) => {
           { name: '🎮 Minecraft Account', value: mcUsername !== 'Not Linked' ? `\`${mcUsername}\`` : '❌ Not Linked', inline: true },
           { name: '🪙 KryloCoins', value: `\`${Math.floor(playerBalance).toLocaleString()} ⛃\``, inline: true },
           { name: '📋 Reason / Question', value: userTicketReasonText },
-          { name: '🚨 Priority Level', value: `\`${calculatedPriority}\``, inline: true }
+          { name: '🚨 Priority Level', value: `${calculatedPriority === 'No Staff Needed' ? '🟢 Standard / General' : calculatedPriority === 'High' ? '🔴 High Priority' : '🟡 Medium Priority'}`, inline: true }
         )
         .setFooter({ text: `Type ${botPrefix}close to resolve and delete this channel` })
         .setTimestamp();
