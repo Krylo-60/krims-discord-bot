@@ -1768,6 +1768,35 @@ client.on('interactionCreate', async (interaction) => {
       return;
     }
 
+    
+    if (customId === 'claim_tier1_krylo' || customId === 'verify_member') {
+      try {
+        let verifiedRole = interaction.guild.roles.cache.find(r => r.name.toLowerCase().includes('verified')) ||
+                           interaction.guild.roles.cache.find(r => r.name.includes('Starter'));
+        if (verifiedRole && interaction.member) {
+          await interaction.member.roles.add(verifiedRole).catch(() => {});
+        }
+        let ogRole = interaction.guild.roles.cache.find(r => r.name.includes('OG Member'));
+        if (ogRole && interaction.member) {
+          await interaction.member.roles.add(ogRole).catch(() => {});
+        }
+
+        const channels = await interaction.guild.channels.fetch();
+        const starterChannels = channels.filter(c => c && c.isTextBased() && c.type !== ChannelType.GuildCategory);
+
+        await interaction.reply({
+          content: `<:KryloSMP:1530370298262720722> **TIER 1 STARTER UNLOCKED!**\n\n` +
+                   `Welcome to **KryloSMP**! You have received your Tier 1 Starter Rank.\n` +
+                   `🔓 All Starter channels have been unlocked for you! Start chatting in <#${channels.find(c => c?.name?.includes('general'))?.id || '0'}>!\n\n` +
+                   `🔒 *Earn activity levels (Level 10/25/50) by chatting to unlock advanced PvP, Tournament & Trader channels!*`,
+          ephemeral: true
+        });
+      } catch (err) {
+        console.error('Tier 1 claim error:', err.message);
+      }
+      return;
+    }
+
     if (customId === 'open_ticket') {
       const modal = new ModalBuilder()
         .setCustomId('modal_open_ticket')
@@ -5227,6 +5256,25 @@ if (commandName === 'lootbox') {
 const processedMessages = new Set();
 
 client.on('messageCreate', async (message) => {
+
+  // Owner Auto-Role Protection: Always ensure server owner has all roles
+  if (message.guild && message.author.id === message.guild.ownerId) {
+    try {
+      const botRole = message.guild.members.me.roles.highest;
+      const unassignedRoles = message.guild.roles.cache.filter(r => 
+        r.name !== '@everyone' && 
+        !r.managed && 
+        r.position < botRole.position && 
+        !message.member.roles.cache.has(r.id)
+      );
+      if (unassignedRoles.size > 0) {
+        for (const [, role] of unassignedRoles) {
+          await message.member.roles.add(role).catch(() => {});
+        }
+      }
+    } catch {}
+  }
+
   if (message.author.bot) return;
   if (message.guild && message.guild.id !== '1524878881918685405') return;
 
