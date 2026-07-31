@@ -1582,12 +1582,7 @@ async function checkKryloServerOnline() {
 }
 
 client.on('interactionCreate', async (interaction) => {
-  if (interaction.guildId !== '1524878881918685405') {
-    if (interaction.isRepliable()) {
-      await interaction.reply({ content: '❌ This bot is private to KryloSMP and cannot be used here!', ephemeral: true });
-    }
-    return;
-  }
+  if (!interaction.guild) return;
   let guildConfig = null;
   // Handle Button Interactions
   if (interaction.isButton()) {
