@@ -326,6 +326,14 @@ client.once('ready', async () => {
   // Register Global Slash Commands
   const slashCommands = [
     {
+      name: 'genkey',
+      description: 'Generate a free custom API key with custom prefix (Admin only)',
+      options: [
+        { name: 'prefix', type: 3, description: 'Custom key prefix (e.g. krylo, krims)', required: false },
+        { name: 'env', type: 3, description: 'Environment (live, dev, admin)', required: false }
+      ]
+    },
+    {
       name: 'ask',
       description: 'Ask the Krims Gemini AI engine any coding query',
       options: [
@@ -776,7 +784,16 @@ client.once('ready', async () => {
   ];
 
   try {
-    await client.application.commands.set(slashCommands);
+    const uniqueCommands = [];
+    const seenNames = new Set();
+    for (const cmd of slashCommands) {
+      if (cmd && cmd.name && !seenNames.has(cmd.name)) {
+        seenNames.add(cmd.name);
+        uniqueCommands.push(cmd);
+      }
+    }
+    await client.application.commands.set(uniqueCommands);
+    console.log(`[+] ${uniqueCommands.length} unique slash commands registered globally!`);
     console.log('[+] Slash commands registered globally!');
   } catch (err) {
     console.error('[-] Failed to register slash commands:', err.message);
