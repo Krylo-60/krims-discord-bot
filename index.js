@@ -1272,7 +1272,7 @@ client.once('ready', async () => {
         // Helper to find or create/move a text channel
         const ensureChannel = async (name, parentCat, topic = '', isPrivate = false) => {
           const cleanSearch = name.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase();
-          let ch = guild.channels.cache.find(c => c.name.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase().includes(cleanSearch) && c.type === ChannelType.GuildText);
+          let ch = guild.channels.cache.find(c => c && c.name && c.name.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase().includes(cleanSearch) && c.isTextBased());
           
           const overwrites = [];
           if (isPrivate) {
