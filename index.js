@@ -6961,13 +6961,7 @@ async function handleTicketMessage(message) {
     return;
   }
 
-  // Guard 2: Skip automated responses if a staff member/moderator/admin is chatting
-  const isStaff = message.member?.permissions.has(PermissionFlagsBits.ManageChannels) || 
-                  message.member?.roles.cache.some(r => r.name.toLowerCase().includes('staff') || r.name.toLowerCase().includes('admin') || r.name.toLowerCase().includes('mod'));
-  if (isStaff) {
-    return;
-  }
-
+  // // AI bot responds to all ticket messages
   try {
     await message.channel.sendTyping();
 
