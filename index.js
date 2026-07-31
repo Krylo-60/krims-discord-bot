@@ -7116,7 +7116,7 @@ async function handleTicketMessage(message) {
         } else if (level === 'MEDIUM') {
           await message.channel.send(`⚠️ **Escalation Alert (Level: MEDIUM)**\nThis ticket has been classified as **MEDIUM**. Support team, please resolve this problem within **48 hours**.`);
         } else {
-          await message.channel.send(`ℹ️ **Ticket Status (Level: EASY / NOT FIXABLE)**\nThis ticket has been classified as **EASY** or **NOT FIXABLE**. Support team, resolve this when free (within **72 hours**).`);
+          // Status message suppressed
         }
       }
     }
