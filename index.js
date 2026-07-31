@@ -6359,43 +6359,43 @@ client.on('guildBanAdd', async (ban) => {
 // LIVE MINECRAFT STATUS UPDATE SCHEDULER
 // ═══════════════════════════════════════════════════════════
 async function startLiveStatusUpdate(guild, channel) {
-  // Update function
   const updateStatus = async () => {
     try {
       const res = await fetch('https://api.mcsrvstat.us/2/KryloSmp.play.hosting');
-      if (!res.ok) throw new Error(`mcsrvstat returned ${res.status}`);
+      if (!res.ok) throw new Error("mcsrvstat status " + res.status);
       const data = await res.json();
-      
+
       const unixTime = Math.floor(Date.now() / 1000);
       const embed = new EmbedBuilder();
 
-      if (data.online) {
-        const onlineCount = data.players.online;
-        const maxCount = data.players.max;
-        const playerList = data.players.list ? data.players.list.map(p => `• \`${p}\``).join('\n') : 'No players currently online.';
-        const motd = data.motd.clean ? data.motd.clean.join('\n') : 'KryloSMP Minecraft Server';
+      const onlineCount = (data.players && data.players.online !== undefined) ? data.players.online : 0;
+      const maxCount = (data.players && data.players.max !== undefined) ? data.players.max : 0;
+      const playerList = (data.players && data.players.list && data.players.list.length > 0) ? data.players.list.map(p => "• `" + p + "`").join("\n") : 'No players currently online.';
+      const motd = (data.motd && data.motd.clean) ? data.motd.clean.join("\n") : 'KryloSMP Minecraft Server';
 
+      const isOffline = !data.online || maxCount === 0 || motd.toLowerCase().includes('currently offline') || motd.toLowerCase().includes('server is offline');
+
+      if (!isOffline) {
         embed
           .setColor(0x00FF66)
           .setTitle('🟢 KryloSMP Server is ONLINE')
-          .setDescription(`🤖 **Live Server Tracking**\n\n**IP:** \`KryloSmp.play.hosting\`\n**Version:** \`v5.0.0\`\n\n**MOTD:**\n\`\`\`\n${motd}\n\`\`\``)
+          .setDescription("🤖 **Live Server Tracking**\n\n**IP:** `KryloSmp.play.hosting`\n**Version:** `v5.0.0`\n\n**MOTD:**\n```\n" + motd + "\n```")
           .addFields(
-            { name: `👥 Players Online (${onlineCount}/${maxCount})`, value: playerList, inline: false },
-            { name: '🕒 Last Updated', value: `<t:${unixTime}:R>`, inline: true }
+            { name: "👥 Players Online (" + onlineCount + "/" + maxCount + ")", value: playerList, inline: false },
+            { name: '🕒 Last Updated', value: "<t:" + unixTime + ":R>", inline: true }
           )
           .setFooter({ text: 'Auto-updating every 20 seconds' })
           .setTimestamp();
 
-        // Update bot activity status
-        client.user.setActivity(`KryloSMP: ${onlineCount}/${maxCount}`, { type: 0 }); // Playing
+        client.user.setActivity("KryloSMP: " + onlineCount + "/" + maxCount, { type: 0 });
       } else {
         embed
           .setColor(0xFF3333)
           .setTitle('🔴 KryloSMP Server is OFFLINE')
-          .setDescription('The server is currently stopped or restarting.')
+          .setDescription('The Minecraft server is currently stopped or restarting.')
           .addFields(
-            { name: '📡 Connection IP', value: '`KryloSmp.play.hosting`', inline: false },
-            { name: '🕒 Last Updated', value: `<t:${unixTime}:R>`, inline: true }
+            { name: '📡 Connection IP', value: "`KryloSmp.play.hosting`", inline: false },
+            { name: '🕒 Last Updated', value: "<t:" + unixTime + ":R>", inline: true }
           )
           .setFooter({ text: 'Auto-updating every 20 seconds' })
           .setTimestamp();
@@ -6403,25 +6403,20 @@ async function startLiveStatusUpdate(guild, channel) {
         client.user.setActivity('KryloSMP (Offline)', { type: 0 });
       }
 
-      // Fetch and delete any existing bot messages in this channel to clear old statuses
       try {
         const messages = await channel.messages.fetch({ limit: 10 });
         const botMessages = messages.filter(m => m.author.id === client.user.id);
         for (const [, msg] of botMessages) {
           await msg.delete().catch(() => {});
         }
-      } catch (err) {
-        console.warn('[Live Status] Failed to clean up old status messages:', err.message);
-      }
+      } catch (err) {}
 
-      // Send the new fresh status message
       await channel.send({ embeds: [embed] });
     } catch (err) {
       console.warn('[Live Status] Error updating status:', err.message);
     }
   };
 
-  // Run immediately and then schedule every 20 seconds
   await updateStatus();
   setInterval(updateStatus, 20000);
 }
@@ -7093,4 +7088,3 @@ http.createServer((req, res) => {
 }).listen(port, () => {
   console.log(`[HTTP Server] Listening on port ${port}`);
 });
-
