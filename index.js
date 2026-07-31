@@ -3570,7 +3570,31 @@ client.on('interactionCreate', async (interaction) => {
         const playerList = data.players.list ? data.players.list.join(', ') : 'None';
         const motd = data.motd.clean ? data.motd.clean.join('\n') : 'A Minecraft Server';
 
-        const embed = new EmbedBuilder()
+   
+
+        const isOfflineMotd = motd.toLowerCase().includes('currently offline') || motd.toLowerCase().includes('server is offline');
+        if (isOfflineMotd) {
+          embed
+            .setColor(0xFF3333)
+            .setTitle('🔴 KryloSMP Server is OFFLINE')
+            .setDescription('The Minecraft server is currently stopped or restarting.')
+            .addFields(
+              { name: '📡 Connection IP', value: KryloSmp.play.hosting, inline: false },
+              { name: '🕒 Last Updated', value: <t::R>, inline: true }
+            )
+            .setFooter({ text: 'Auto-updating every 20 seconds' })
+            .setTimestamp();
+
+          client.user.setActivity('KryloSMP (Offline)', { type: 0 });
+          try {
+            const messages = await channel.messages.fetch({ limit: 10 });
+            const botMessages = messages.filter(m => m.author.id === client.user.id);
+            for (const [, msg] of botMessages) { await msg.delete().catch(() => {}); }
+          } catch (err) {}
+          await channel.send({ embeds: [embed] });
+          return;
+        }
+     const embed = new EmbedBuilder()
           .setColor(0x00F2FF)
           .setTitle('🟢 KryloSMP Server Status')
           .setDescription('The server is currently online and running!')
