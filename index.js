@@ -3579,8 +3579,8 @@ client.on('interactionCreate', async (interaction) => {
             .setTitle('🔴 KryloSMP Server is OFFLINE')
             .setDescription('The Minecraft server is currently stopped or restarting.')
             .addFields(
-              { name: '📡 Connection IP', value: KryloSmp.play.hosting, inline: false },
-              { name: '🕒 Last Updated', value: <t::R>, inline: true }
+              { name: '📡 Connection IP', value: '`KryloSmp.play.hosting`', inline: false },
+              { name: '🕒 Last Updated', value: `<t:${unixTime}:R>`, inline: true }
             )
             .setFooter({ text: 'Auto-updating every 20 seconds' })
             .setTimestamp();
