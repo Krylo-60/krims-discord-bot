@@ -7011,7 +7011,7 @@ async function handleTicketMessage(message) {
       if (history.length > 10) history = history.slice(history.length - 10);
       conversationHistory.set(message.channel.id, history);
 
-      await message.reply(`🤖 **Krims Support AI:**\n${answerResult.response}`);
+      await message.reply(answerResult.response);
     } else {
       await message.reply("❌ Failed to parse AI support response.");
     }
