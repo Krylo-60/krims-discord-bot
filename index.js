@@ -5282,7 +5282,8 @@ const processedMessages = new Set();
 client.on('messageCreate', async (message) => {
 
   // Command: !postvideo <youtube_url> [title]
-  if (content.toLowerCase().startsWith(botPrefix + 'postvideo') || content.toLowerCase().startsWith('!postvideo')) {
+  const msgContent = message.content.trim();
+  if (msgContent.toLowerCase().startsWith('!postvideo')) {
     if (!message.guild) {
       await message.reply("❌ This command can only be used inside servers!");
       return;
