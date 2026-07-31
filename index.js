@@ -2653,6 +2653,37 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.reply({ content: '🔑 Here is your generated API key (ephemeral - only you can see this):', embeds: [embed], ephemeral: true });
   }
 
+  
+  if (commandName === 'startstream') {
+    if (!interaction.member?.permissions.has(PermissionFlagsBits.Administrator) && interaction.user.id !== '1414143825538191373') {
+      return interaction.reply({ content: '❌ Only administrators can start a live stream broadcast.', ephemeral: true });
+    }
+
+    const titleOpt = interaction.options.getString('title') || 'Live KryloSMP Minecraft Gameplay & Tournaments!';
+    try {
+      await startMinecraftLiveStream(interaction.guild, interaction.user, titleOpt);
+      await interaction.reply({ content: '🔴 **LIVE STREAM BROADCAST STARTED!** Notification and embed sent.', ephemeral: true });
+    } catch (e) {
+      await interaction.reply({ content: '❌ Failed to start stream: ' + e.message, ephemeral: true });
+    }
+  }
+
+  if (commandName === 'stopstream') {
+    if (!interaction.member?.permissions.has(PermissionFlagsBits.Administrator) && interaction.user.id !== '1414143825538191373') {
+      return interaction.reply({ content: '❌ Only administrators can stop a live stream broadcast.', ephemeral: true });
+    }
+
+    if (!activeStream) {
+      return interaction.reply({ content: 'ℹ️ No active live stream is currently running.', ephemeral: true });
+    }
+
+    activeStream = null;
+    client.user.setActivity('KryloSMP • krylosmp.play.hosting', { type: 0 });
+
+    await interaction.reply({ content: '🛑 **LIVE STREAM BROADCAST ENDED.** Activity status reset to default.', ephemeral: true });
+  }
+
+
   if (commandName === 'coinflip') {
     const outcome = Math.random() < 0.5 ? 'Heads' : 'Tails';
     const embed = new EmbedBuilder()
