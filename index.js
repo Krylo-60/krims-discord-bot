@@ -327,6 +327,11 @@ client.once('ready', async () => {
   // Register Global Slash Commands
   const slashCommands = [
     {
+      name: 'adminabuse',
+      description: 'Trigger the official Monthly Admin Abuse & Chaos Event (Admin only)',
+      options: [{ name: 'details', type: 3, description: 'Custom drop party details or rewards', required: false }]
+    },
+    {
       name: 'genkey',
       description: 'Generate a free custom API key with custom prefix (Admin only)',
       options: [
@@ -2681,6 +2686,22 @@ client.on('interactionCreate', async (interaction) => {
     client.user.setActivity('KryloSMP • krylosmp.play.hosting', { type: 0 });
 
     await interaction.reply({ content: '🛑 **LIVE STREAM BROADCAST ENDED.** Activity status reset to default.', ephemeral: true });
+  }
+
+
+  
+  if (commandName === 'adminabuse') {
+    if (!interaction.member?.permissions.has(PermissionFlagsBits.Administrator) && interaction.user.id !== '1414143825538191373') {
+      return interaction.reply({ content: '❌ Only administrators can trigger the Admin Abuse event.', ephemeral: true });
+    }
+
+    const noteOpt = interaction.options.getString('details') || '';
+    try {
+      await triggerAdminAbuseBroadcast(interaction.guild, interaction.user, noteOpt);
+      await interaction.reply({ content: '💥 **MONTHLY ADMIN ABUSE EVENT BROADCASTED!** Notification sent & crossposted.', ephemeral: true });
+    } catch (e) {
+      await interaction.reply({ content: '❌ Failed to trigger event: ' + e.message, ephemeral: true });
+    }
   }
 
 
