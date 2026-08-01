@@ -1,3 +1,4 @@
+import os from 'os';
 import crypto from 'crypto';
 import { Client, GuildScheduledEventEntityType, GuildScheduledEventPrivacyLevel, GatewayIntentBits, Partials, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder } from 'discord.js';
 import { KrimsClient } from '@krishivpb60/krims-code-sdk';
@@ -1601,14 +1602,16 @@ async function executeGameBoostOptimization(author) {
     const bloatApps = ['brave', 'chrome', 'msedge', 'spotify', 'epicgameslauncher', 'Steam', 'DismHost'];
     for (const app of bloatApps) {
       try {
-        exec(`powershell -Command "Stop-Process -Name '${app}' -Force -ErrorAction SilentlyContinue"`);
+        execSync(`powershell -Command "Stop-Process -Name '${app}' -Force -ErrorAction SilentlyContinue"`, { stdio: 'ignore' });
       } catch (e) {}
     }
 
     const psScript = 'Get-Process | ForEach-Object { try { [void]$_.EmptyWorkingSet() } catch {} }; [System.GC]::Collect()';
-    exec(`powershell -Command "${psScript}"`);
     try {
-      exec('powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c');
+      execSync(`powershell -Command "${psScript}"`, { stdio: 'ignore' });
+    } catch (e) {}
+    try {
+      execSync('powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c', { stdio: 'ignore' });
     } catch (e) {}
 
     const totalMemGB = (os.totalmem() / (1024 ** 3)).toFixed(2);
