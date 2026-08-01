@@ -327,6 +327,10 @@ client.once('ready', async () => {
   // Register Global Slash Commands
   const slashCommands = [
     {
+      name: 'gameboost',
+      description: 'Optimize PC RAM & close background apps for 100+ FPS Minecraft gaming'
+    },
+    {
       name: 'adminabuse',
       description: 'Trigger the official Monthly Admin Abuse & Chaos Event (Admin only)',
       options: [{ name: 'details', type: 3, description: 'Custom drop party details or rewards', required: false }]
@@ -2702,6 +2706,17 @@ client.on('interactionCreate', async (interaction) => {
       await interaction.reply({ content: '💥 **MONTHLY ADMIN ABUSE EVENT BROADCASTED!** Notification sent & crossposted.', ephemeral: true });
     } catch (e) {
       await interaction.reply({ content: '❌ Failed to trigger event: ' + e.message, ephemeral: true });
+    }
+  }
+
+
+  
+  if (commandName === 'gameboost' || commandName === 'boostpc') {
+    try {
+      const embed = await executeGameBoostOptimization(interaction.user);
+      await interaction.reply({ embeds: [embed] });
+    } catch (e) {
+      await interaction.reply({ content: '❌ Game boost error: ' + e.message, ephemeral: true });
     }
   }
 
