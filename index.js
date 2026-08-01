@@ -1599,20 +1599,22 @@ async function checkKryloServerOnline() {
 // ═══════════════════════════════════════════════════════════
 async function executeGameBoostOptimization(author) {
   try {
-    const bloatApps = ['brave', 'chrome', 'msedge', 'spotify', 'epicgameslauncher', 'Steam', 'DismHost'];
-    for (const app of bloatApps) {
+    if (process.platform === 'win32') {
+      const bloatApps = ['brave', 'chrome', 'msedge', 'spotify', 'epicgameslauncher', 'Steam', 'DismHost'];
+      for (const app of bloatApps) {
+        try {
+          execSync(`powershell -Command "Stop-Process -Name '${app}' -Force -ErrorAction SilentlyContinue"`, { stdio: 'ignore' });
+        } catch (e) {}
+      }
+
+      const psScript = 'Get-Process | ForEach-Object { try { [void]$_.EmptyWorkingSet() } catch {} }; [System.GC]::Collect()';
       try {
-        execSync(`powershell -Command "Stop-Process -Name '${app}' -Force -ErrorAction SilentlyContinue"`, { stdio: 'ignore' });
+        execSync(`powershell -Command "${psScript}"`, { stdio: 'ignore' });
+      } catch (e) {}
+      try {
+        execSync('powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c', { stdio: 'ignore' });
       } catch (e) {}
     }
-
-    const psScript = 'Get-Process | ForEach-Object { try { [void]$_.EmptyWorkingSet() } catch {} }; [System.GC]::Collect()';
-    try {
-      execSync(`powershell -Command "${psScript}"`, { stdio: 'ignore' });
-    } catch (e) {}
-    try {
-      execSync('powercfg /s 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c', { stdio: 'ignore' });
-    } catch (e) {}
 
     const totalMemGB = (os.totalmem() / (1024 ** 3)).toFixed(2);
     const freeMemGB = (os.freemem() / (1024 ** 3)).toFixed(2);
