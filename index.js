@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { Client, GatewayIntentBits, Partials, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder } from 'discord.js';
+import { Client, GuildScheduledEventEntityType, GuildScheduledEventPrivacyLevel, GatewayIntentBits, Partials, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder } from 'discord.js';
 import { KrimsClient } from '@krishivpb60/krims-code-sdk';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
@@ -1058,7 +1058,8 @@ client.once('ready', async () => {
     const GUILD_ID = '1524878881918685405';
     const guild = client.guilds.cache.get(GUILD_ID) || await client.guilds.fetch(GUILD_ID).catch(() => null);
     if (guild) {
-      console.log(`[KryloSMP Setup] Found KryloSMP guild. Ensuring button systems are active...`);
+      console.log(`await ensureMonthlyNativeDiscordEvent(guild);
+  [KryloSMP Setup] Found KryloSMP guild. Ensuring button systems are active...`);
 
       // 1. Support Ticket Button
       const supportCh = guild.channels.cache.find(c => c.name.includes('support-tickets') && c.type === ChannelType.GuildText);
