@@ -11,6 +11,8 @@ import path from 'path';
 import http from 'http';
 import Jimp from 'jimp';
 
+import { joinVoice, leaveVoice, getVoiceStatus } from './voiceEngine.mjs';
+
 dotenv.config();
 
 const client = new Client({
@@ -20,7 +22,8 @@ const client = new Client({
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.DirectMessages,
     GatewayIntentBits.GuildMessageReactions,
-    GatewayIntentBits.GuildMembers
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildVoiceStates
   ],
   partials: [
     Partials.Channel,
@@ -5356,6 +5359,17 @@ if (commandName === 'lootbox') {
     return;
 }
 
+    if (commandName === 'voice') {
+      const action = interaction.options.getString('action');
+      if (action === 'join') {
+        return joinVoice(interaction);
+      } else if (action === 'leave') {
+        return leaveVoice(interaction);
+      } else if (action === 'status') {
+        return getVoiceStatus(interaction);
+      }
+    }
+
     if (commandName === 'ask') {
     if (!aiEnabled) {
       await interaction.reply({ content: "🔒 **AI responses are disabled on this server.**", ephemeral: true });
@@ -6210,12 +6224,34 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
+  // Command: !voice / !joinvoice / !leavevoice
+  const lowerContent = content.toLowerCase().trim();
+  if (lowerContent === botPrefix + 'voice join' || lowerContent === botPrefix + 'joinvoice' || lowerContent === botPrefix + 'join') {
+    return joinVoice(message);
+  } else if (lowerContent === botPrefix + 'voice leave' || lowerContent === botPrefix + 'leavevoice' || lowerContent === botPrefix + 'leave') {
+    return leaveVoice(message);
+  } else if (lowerContent === botPrefix + 'voice' || lowerContent === botPrefix + 'voice status') {
+    return getVoiceStatus(message);
+  }
+
   // Determine if it is a Chat Prompt using dynamic prefix
   let isPrompt = false;
   let prompt = '';
 
   const prefixLower = botPrefix.toLowerCase();
-  if (content.toLowerCase().startsWith(prefixLower + 'ask ')) {
+  if (lowerContent === prefixLower + 'ask') {
+    return message.reply({
+      embeds: [{
+        color: 0x5865F2,
+        title: '🤖 How to Ask Krims Code AI',
+        description: 'You can ask Krims Code AI questions using any of the following methods:\n\n' +
+                     '• **Text Prompt**: Type `!ask <your question>` (e.g. `!ask What is Krims Code?`)\n' +
+                     '• **Slash Command**: Use `/ask prompt:<your question>`\n' +
+                     '• 🎙️ **Voice AI**: Join a Voice Channel and type `/voice join` or `!voice join` to talk directly with Krims Bot!',
+        footer: { text: 'Krims Code AI Voice & Text Engine' }
+      }]
+    });
+  } else if (content.toLowerCase().startsWith(prefixLower + 'ask ')) {
     isPrompt = true;
     prompt = content.substring(botPrefix.length + 4).trim();
   } else if (isDM && !content.startsWith('!')) {
@@ -6232,7 +6268,7 @@ client.on('messageCreate', async (message) => {
     }
 
     if (!prompt) {
-      message.reply(`⚠️ Please provide a prompt! Use: \`${botPrefix}ask <query>\``);
+      message.reply(`⚠️ Please provide a prompt! Use: \`${botPrefix}ask <query>\` or \`/voice join\` to speak!`);
       return;
     }
 

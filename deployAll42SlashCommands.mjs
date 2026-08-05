@@ -61,7 +61,8 @@ const commands = [
   new SlashCommandBuilder().setName('announce').setDescription('Broadcast announcement (Staff only)').addStringOption(opt => opt.setName('message').setDescription('Announcement message').setRequired(true)).setDefaultMemberPermissions(PermissionFlagsBits.MentionEveryone),
   new SlashCommandBuilder().setName('diagnose').setDescription('Run system diagnostics (Admin only)').setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   new SlashCommandBuilder().setName('poll').setDescription('Create a community poll').addStringOption(opt => opt.setName('question').setDescription('Poll question').setRequired(true)).addStringOption(opt => opt.setName('options').setDescription('Comma-separated options').setRequired(true)),
-  new SlashCommandBuilder().setName('giveaway').setDescription('Start a giveaway event').addStringOption(opt => opt.setName('prize').setDescription('Prize description').setRequired(true)).addStringOption(opt => opt.setName('duration').setDescription('Duration e.g. 1h, 1d').setRequired(true))
+  new SlashCommandBuilder().setName('giveaway').setDescription('Start a giveaway event').addStringOption(opt => opt.setName('prize').setDescription('Prize description').setRequired(true)).addStringOption(opt => opt.setName('duration').setDescription('Duration e.g. 1h, 1d').setRequired(true)),
+  new SlashCommandBuilder().setName('voice').setDescription('Control Krims Bot Voice AI in voice channels').addStringOption(opt => opt.setName('action').setDescription('Action: join, leave, or status').setRequired(true).addChoices({ name: 'join', value: 'join' }, { name: 'leave', value: 'leave' }, { name: 'status', value: 'status' }))
 ].map(cmd => cmd.toJSON());
 
 async function deployAllSlashCommands() {
