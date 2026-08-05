@@ -5370,6 +5370,47 @@ if (commandName === 'lootbox') {
       }
     }
 
+/**
+ * Helper to split long messages into mobile-friendly chunks (max 1900 chars)
+ */
+async function sendSafeMessage(target, text) {
+  if (!text) return;
+  if (text.length <= 1900) {
+    if (target.edit) return target.edit(text);
+    if (target.editReply) return target.editReply(text);
+    if (target.reply) return target.reply(text);
+  }
+
+  const chunks = [];
+  let current = '';
+  const lines = text.split('\n');
+
+  for (const line of lines) {
+    if ((current + '\n' + line).length > 1900) {
+      if (current) chunks.push(current);
+      current = line;
+    } else {
+      current = current ? (current + '\n' + line) : line;
+    }
+  }
+  if (current) chunks.push(current);
+
+  if (target.edit) {
+    await target.edit(chunks[0]);
+  } else if (target.editReply) {
+    await target.editReply(chunks[0]);
+  } else if (target.reply) {
+    await target.reply(chunks[0]);
+  }
+
+  const channel = target.channel;
+  for (let i = 1; i < chunks.length; i++) {
+    if (channel) {
+      await channel.send(chunks[i]);
+    }
+  }
+}
+
     if (commandName === 'ask') {
     if (!aiEnabled) {
       await interaction.reply({ content: "🔒 **AI responses are disabled on this server.**", ephemeral: true });
@@ -5438,7 +5479,7 @@ if (commandName === 'lootbox') {
         if (result.stats) {
           replyText += `\n\n*Latency: ${result.stats.latency}*`;
         }
-        await interaction.editReply(replyText);
+        await sendSafeMessage(interaction, replyText);
       } else {
         await interaction.editReply("❌ Failed to parse AI response.");
       }
@@ -6331,7 +6372,7 @@ client.on('messageCreate', async (message) => {
         if (result.stats) {
           replyText += `\n\n*Latency: ${result.stats.latency}*`;
         }
-        await typingMsg.edit(replyText);
+        await sendSafeMessage(typingMsg, replyText);
       } else {
         await typingMsg.edit("❌ Failed to parse AI response.");
       }
