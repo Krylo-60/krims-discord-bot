@@ -26,7 +26,6 @@ async function sendResponse(context, data, isDeferred = false) {
     }
     return context.reply(data);
   }
-  // Regular message object
   return context.reply(data);
 }
 
@@ -37,25 +36,24 @@ async function transcribePcmToText(pcmBuffer) {
   try {
     const sampleRate = 48000;
     
-    // Simple WAV header builder
+    // Build 16-bit PCM WAV Header
     const wavHeader = Buffer.alloc(44);
     wavHeader.write('RIFF', 0);
     wavHeader.writeUInt32LE(36 + pcmBuffer.length, 4);
     wavHeader.write('WAVE', 8);
     wavHeader.write('fmt ', 12);
-    wavHeader.writeUInt32LE(16, 16); // Subchunk1Size (16 for PCM)
-    wavHeader.writeUInt16LE(1, 20);  // AudioFormat (1 for PCM)
-    wavHeader.writeUInt16LE(1, 22);  // NumChannels (1 mono)
-    wavHeader.writeUInt32LE(sampleRate, 24); // SampleRate
-    wavHeader.writeUInt32LE(sampleRate * 2, 28); // ByteRate
-    wavHeader.writeUInt16LE(2, 32);  // BlockAlign
-    wavHeader.writeUInt16LE(16, 34); // BitsPerSample
+    wavHeader.writeUInt32LE(16, 16);
+    wavHeader.writeUInt16LE(1, 20);
+    wavHeader.writeUInt16LE(1, 22);
+    wavHeader.writeUInt32LE(sampleRate, 24);
+    wavHeader.writeUInt32LE(sampleRate * 2, 28);
+    wavHeader.writeUInt16LE(2, 32);
+    wavHeader.writeUInt16LE(16, 34);
     wavHeader.write('data', 36);
     wavHeader.writeUInt32LE(pcmBuffer.length, 40);
 
     const wavBuffer = Buffer.concat([wavHeader, pcmBuffer]);
 
-    // Wit.ai Free STT API endpoint fallback
     const witToken = process.env.WIT_AI_TOKEN || 'N3OW2W6B2IQUH2AUPW3V2TKYZVGX4X46';
     const response = await fetch('https://api.wit.ai/speech?v=20230215', {
       method: 'POST',
@@ -85,25 +83,28 @@ async function transcribePcmToText(pcmBuffer) {
 }
 
 /**
- * Generate response using Krims AI Engine
+ * Generate high-level AI response in signature Krylo & Krishiv Style
  */
 function queryKrimsAI(prompt) {
   const cleanPrompt = prompt.toLowerCase();
   
   if (cleanPrompt.includes('hello') || cleanPrompt.includes('hi') || cleanPrompt.includes('hey')) {
-    return 'Hello! I am Krims Code AI. How can I help you with your code or server today?';
+    return 'Greetings, legend! I am Krims Code AI, custom-built by Krishiv. Ready to conquer KryloSMP and write epic code today?';
   }
-  if (cleanPrompt.includes('who created') || cleanPrompt.includes('who made') || cleanPrompt.includes('creator')) {
-    return 'Krims Code AI was created by Krishiv, the lead developer and founder of Krishiv Studios!';
+  if (cleanPrompt.includes('who created') || cleanPrompt.includes('who made') || cleanPrompt.includes('creator') || cleanPrompt.includes('krishiv')) {
+    return 'Krims Code AI was masterfully designed and coded by Krishiv, the lead developer and visionary founder of Krishiv Studios!';
   }
-  if (cleanPrompt.includes('status') || cleanPrompt.includes('server')) {
-    return 'All Krims systems and Minecraft servers are online and operational!';
+  if (cleanPrompt.includes('krylo') || cleanPrompt.includes('smp') || cleanPrompt.includes('server')) {
+    return 'KryloSMP is the premier Minecraft SMP experience with custom Warlord bosses, rank upgrades, and 24/7 high-speed cloud performance!';
   }
-  if (cleanPrompt.includes('what can you do') || cleanPrompt.includes('help')) {
-    return 'I can understand your voice, execute discord slash commands, monitor servers, and answer questions!';
+  if (cleanPrompt.includes('status')) {
+    return 'All KryloSMP and Krishiv Studios cloud services are 100% operational, ultra-fast, and running at peak performance!';
+  }
+  if (cleanPrompt.includes('voice') || cleanPrompt.includes('what can you do') || cleanPrompt.includes('help')) {
+    return 'I am your AI voice assistant! I listen to your speech in real time, answer coding and server questions, and speak right back to you!';
   }
 
-  return `I heard you say: "${prompt}". Krims Code AI Voice module is fully active!`;
+  return `I heard you say: "${prompt}". Krims Code Voice Engine is operating at peak efficiency in Krylo & Krishiv Style! ⚡`;
 }
 
 /**
@@ -176,17 +177,18 @@ function listenToUser(userId, connection, textChannel, guildId) {
 
       const aiResponse = queryKrimsAI(transcribedText);
 
-      // Send text message response in channel
+      // Send text message response in channel in Krylo & Krishiv Style
       if (textChannel) {
         await textChannel.send({
           embeds: [{
-            color: 0x5865F2,
-            title: '🎤 Krims Voice AI Interaction',
+            color: 0x00F2FF, // Krylo Cyan
+            title: '⚡ 🎙️ KRIMS VOICE AI • KRYLO & KRISHIV EDITION',
+            description: '`[REAL-TIME VOICE TRANSMISSION PROCESSED]`',
             fields: [
               { name: '🗣️ Spoken Input', value: `*${transcribedText}*`, inline: false },
-              { name: '🤖 Krims AI Response', value: aiResponse, inline: false }
+              { name: '🤖 Krims AI Response', value: `> ${aiResponse}`, inline: false }
             ],
-            footer: { text: 'Krims Code Voice Engine v1.0 • Powered by Krishiv Studios' },
+            footer: { text: '👑 KryloSMP Sovereign Network • Master Coded by Krishiv ⚡' },
             timestamp: new Date().toISOString()
           }]
         }).catch(err => console.error('Failed to send text embed:', err.message));
@@ -204,7 +206,7 @@ function listenToUser(userId, connection, textChannel, guildId) {
 }
 
 /**
- * Join Voice Channel Handler (Supports Interaction & Message)
+ * Join Voice Channel Handler (Krylo & Krishiv Style)
  */
 export async function joinVoice(context) {
   const guild = context.guild;
@@ -212,7 +214,7 @@ export async function joinVoice(context) {
 
   if (!member.voice || !member.voice.channel) {
     return sendResponse(context, {
-      content: '❌ You must be connected to a Voice Channel first so Krims Bot can join you!',
+      content: '❌ **Join a Voice Channel first!** Connect to any voice channel so Krims Bot can join you.',
       ephemeral: true
     });
   }
@@ -241,7 +243,6 @@ export async function joinVoice(context) {
       listeningUsers: new Set()
     });
 
-    // Handle incoming speech events
     connection.receiver.speaking.on('start', (userId) => {
       listenToUser(userId, connection, context.channel, guild.id);
     });
@@ -250,28 +251,33 @@ export async function joinVoice(context) {
       console.log(`[Voice Engine] Joined voice channel ${voiceChannel.name} in ${guild.name}`);
     });
 
-    // Play greeting TTS
-    const greetingText = `Hello! Krims Code Voice AI is now active in ${voiceChannel.name}. Speak to me anytime!`;
+    const greetingText = `Greetings! Krims Code Voice AI is now active in ${voiceChannel.name}. Speak to me anytime, developer!`;
     await speakInVoiceChannel(guild.id, greetingText);
 
     return sendResponse(context, {
       embeds: [{
-        color: 0x57F287,
-        title: '🎙️ Voice AI Active',
-        description: `Successfully joined **${voiceChannel.name}**!\n\n**Features Enabled:**\n• 🎤 **Voice Understanding**: Speak into the channel and Krims Bot will transcribe your words.\n• 🔊 **Voice Response**: Krims Bot will answer back using Text-to-Speech.\n• 💬 **Text Mirror**: Responses are also posted in ${context.channel}.`,
-        footer: { text: 'Type /voice leave or !voice leave to disconnect Krims Bot' }
+        color: 0x00FF66, // Krylo Emerald Green
+        title: '⚡ 🎙️ KRIMS VOICE AI ONLINE • KRYLO & KRISHIV STYLE',
+        description: `Successfully locked onto **${voiceChannel.name}**!\n\n` +
+                     '**🔥 Active Master Features:**\n' +
+                     '• 🎤 **Real-Time Voice Recognition**: Speak into your microphone and Krims Bot transcribes your speech.\n' +
+                     '• 🔊 **AI Text-to-Speech Synthesis**: Krims Bot answers back in voice with crystal clear audio.\n' +
+                     '• 💬 **Live Text Mirror**: Transcriptions and responses mirrored live in ' + `${context.channel}.\n\n` +
+                     '_"Crafted with perfection by Krishiv for the Krylo Community."_',
+        footer: { text: '👑 KryloSMP Sovereign Network • Type /voice leave or !voice leave to disconnect ⚡' },
+        timestamp: new Date().toISOString()
       }]
     }, isDeferred);
   } catch (err) {
     console.error('[Voice Join Error]:', err);
     return sendResponse(context, {
-      content: `❌ Failed to join voice channel: ${err.message}`
+      content: `❌ **Voice Engine Error:** ${err.message}`
     });
   }
 }
 
 /**
- * Leave Voice Channel Handler (Supports Interaction & Message)
+ * Leave Voice Channel Handler
  */
 export async function leaveVoice(context) {
   const guild = context.guild;
@@ -289,7 +295,12 @@ export async function leaveVoice(context) {
     voiceStateMap.delete(guild.id);
 
     return sendResponse(context, {
-      content: '👋 Krims Bot disconnected from the voice channel.',
+      embeds: [{
+        color: 0xFF4444,
+        title: '👋 Voice AI Disconnected',
+        description: 'Krims Bot has safely left the voice channel. See you next time, developer!',
+        footer: { text: 'KryloSMP Sovereign Network • Coded by Krishiv ⚡' }
+      }],
       ephemeral: false
     });
   } catch (err) {
@@ -301,7 +312,7 @@ export async function leaveVoice(context) {
 }
 
 /**
- * Get Voice Status Handler (Supports Interaction & Message)
+ * Get Voice Status Handler (Krylo & Krishiv Style)
  */
 export async function getVoiceStatus(context) {
   const guild = context.guild;
@@ -311,22 +322,26 @@ export async function getVoiceStatus(context) {
     return sendResponse(context, {
       embeds: [{
         color: 0xED4245,
-        title: '🎙️ Voice AI Status',
-        description: 'Status: **Offline / Disconnected**\nUse `/voice action:join` or `!voice join` while in a voice channel to connect Krims Bot!'
+        title: '🎙️ KRIMS VOICE AI • STATUS REPORT',
+        description: 'Status: 🔴 **Offline / Standby**\n\nUse `/voice action:join` or `!voice join` while in a voice channel to summon Krims Bot!',
+        footer: { text: 'KryloSMP Sovereign Network • Coded by Krishiv ⚡' }
       }]
     });
   }
 
   return sendResponse(context, {
     embeds: [{
-      color: 0x57F287,
-      title: '🎙️ Voice AI Status',
+      color: 0x00F2FF,
+      title: '⚡ 🎙️ KRIMS VOICE AI • STATUS REPORT',
       fields: [
-        { name: 'Status', value: '🟢 **Connected & Listening**', inline: true },
-        { name: 'Channel', value: `<#${voiceState.channelId}>`, inline: true },
-        { name: 'Speech-to-Text', value: 'Wit.ai / Google Web Speech API (Active)', inline: false },
-        { name: 'Text-to-Speech', value: 'Google TTS Engine (Active)', inline: false }
-      ]
+        { name: '🌐 Operational Status', value: '🟢 **ACTIVE & LISTENING**', inline: true },
+        { name: '🔊 Channel Lock', value: `<#${voiceState.channelId}>`, inline: true },
+        { name: '🎤 Speech-to-Text Engine', value: '⚡ Wit.ai / Google Neural STT (Ultra Fast)', inline: false },
+        { name: '🗣️ Text-to-Speech Engine', value: '🔊 Google Neural TTS Synthesis', inline: false },
+        { name: '👑 Master Architecture', value: 'Custom Trained by Krishiv for KryloSMP', inline: false }
+      ],
+      footer: { text: 'KryloSMP Sovereign Network • Coded by Krishiv ⚡' },
+      timestamp: new Date().toISOString()
     }]
   });
 }
