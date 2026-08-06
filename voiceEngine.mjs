@@ -33,7 +33,7 @@ async function sendResponse(context, data, isDeferred = false) {
  * High-precision FFmpeg audio converter: 48kHz stereo PCM -> 16kHz mono WAV
  */
 function convertPcmTo16kMonoWav(pcmBuffer) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const ffmpeg = spawn(ffmpegPath, [
       '-f', 's16le',
       '-ar', '48000',
@@ -47,13 +47,12 @@ function convertPcmTo16kMonoWav(pcmBuffer) {
 
     const chunks = [];
     ffmpeg.stdout.on('data', (chunk) => chunks.push(chunk));
-    ffmpeg.stderr.on('data', () => {}); // silence stderr
+    ffmpeg.stderr.on('data', () => {});
 
     ffmpeg.on('close', (code) => {
-      if (code === 0) {
+      if (code === 0 && chunks.length > 0) {
         resolve(Buffer.concat(chunks));
       } else {
-        // Fallback: Return raw buffer wrapped in simple header if FFmpeg exits non-zero
         resolve(null);
       }
     });
@@ -108,10 +107,10 @@ function queryKrimsAI(prompt) {
   const cleanPrompt = prompt.toLowerCase().trim();
   
   if (cleanPrompt.includes('hello') || cleanPrompt.includes('hi') || cleanPrompt.includes('hey')) {
-    return 'Greetings, legend! I am Krims Code AI, custom-built by Krishiv. I am here in live 1-on-1 voice mode. What can I do for you?';
+    return 'Greetings, legend! I am Krims Code AI, custom-built by Krishiv. Live 1-on-1 voice mode is active. How can I help you today?';
   }
   if (cleanPrompt.includes('who created') || cleanPrompt.includes('who made') || cleanPrompt.includes('creator') || cleanPrompt.includes('krishiv')) {
-    return 'Krims Code AI was masterfully built and custom-trained by Krishiv, the founder of Krishiv Studios!';
+    return 'Krims Code AI was masterfully built and custom-trained by Krishiv, founder of Krishiv Studios!';
   }
   if (cleanPrompt.includes('krylo') || cleanPrompt.includes('smp') || cleanPrompt.includes('server')) {
     return 'KryloSMP is online 24/7 with custom Warlord bosses, player ranks, and high-speed cloud infrastructure!';
@@ -120,7 +119,7 @@ function queryKrimsAI(prompt) {
     return 'All KryloSMP and Krishiv Studios cloud systems are operating at 100% capacity and peak performance!';
   }
 
-  return `I heard you say: "${prompt}". Live 1-on-1 voice AI mode is active! What would you like to explore next?`;
+  return `I heard you say: "${prompt}". Live 1-on-1 voice AI mode is operating at full capacity! What shall we build next?`;
 }
 
 /**
@@ -170,12 +169,29 @@ function listenToUser(userId, connection, textChannel, guildId) {
   const audioStream = connection.receiver.subscribe(userId, {
     end: {
       behavior: EndBehaviorType.AfterSilence,
-      duration: 1000,
+      duration: 500,
     },
   });
 
   const opusDecoder = new prism.opus.Decoder({ frameSize: 960, channels: 2, rate: 48000 });
   const pcmChunks = [];
+  let isDone = false;
+
+  const cleanup = () => {
+    if (!isDone) {
+      isDone = true;
+      voiceState.listeningUsers.delete(userId);
+      clearTimeout(safetyTimeout);
+    }
+  };
+
+  // Safety timeout: max 6 seconds per speech phrase to prevent hanging
+  const safetyTimeout = setTimeout(() => {
+    try {
+      audioStream.destroy();
+    } catch (e) {}
+    cleanup();
+  }, 6000);
 
   const pcmStream = audioStream.pipe(opusDecoder);
 
@@ -184,13 +200,13 @@ function listenToUser(userId, connection, textChannel, guildId) {
   });
 
   pcmStream.on('end', async () => {
-    voiceState.listeningUsers.delete(userId);
+    cleanup();
     const pcmBuffer = Buffer.concat(pcmChunks);
     
-    // Ignore short noises (< 0.4s of PCM data: 48000 * 2 channels * 2 bytes = 192,000 bytes/sec)
-    if (pcmBuffer.length < 35000) return;
+    // Ignore short noises (< 0.25s of PCM data: 48000 * 2 channels * 2 bytes = 192,000 bytes/sec)
+    if (pcmBuffer.length < 24000) return;
 
-    console.log(`[Voice Engine 1-on-1] Processing ${pcmBuffer.length} bytes of audio from User: ${userId}`);
+    console.log(`[Voice Engine Live] Processing ${pcmBuffer.length} bytes of audio from User: ${userId}`);
 
     const transcribedText = await transcribePcmToText(pcmBuffer);
 
@@ -203,7 +219,7 @@ function listenToUser(userId, connection, textChannel, guildId) {
       if (textChannel) {
         await textChannel.send({
           embeds: [{
-            color: 0x00F2FF, // Krylo Cyan
+            color: 0x00F2FF,
             title: '⚡ 🎙️ LIVE 1-ON-1 VOICE CONVERSATION',
             description: `**Speaker:** <@${userId}>`,
             fields: [
@@ -222,8 +238,13 @@ function listenToUser(userId, connection, textChannel, guildId) {
   });
 
   pcmStream.on('error', (err) => {
-    voiceState.listeningUsers.delete(userId);
+    cleanup();
     console.error('[Voice Stream Error]:', err.message);
+  });
+
+  audioStream.on('error', (err) => {
+    cleanup();
+    console.error('[Audio Stream Error]:', err.message);
   });
 }
 
@@ -275,12 +296,12 @@ export async function joinVoice(context, isOneOnOne = false) {
       console.log(`[Voice Engine] Joined voice channel ${voiceChannel.name} in ${guild.name}`);
     });
 
-    const greetingText = `Hello <@${member.user.id}>! Live 1-on-1 Voice Call is active. I am listening to your microphone now!`;
+    // Speak initial greeting to trigger initial UDP voice handshake
     await speakInVoiceChannel(guild.id, `Hello! Live 1 on 1 voice mode is active. Speak to me anytime!`);
 
     return sendResponse(context, {
       embeds: [{
-        color: 0x00FF66, // Krylo Emerald Green
+        color: 0x00FF66,
         title: isOneOnOne ? '⚡ 📞 LIVE 1-ON-1 VOICE CALL ACTIVE' : '⚡ 🎙️ KRIMS VOICE AI ONLINE',
         description: `Successfully connected to **${voiceChannel.name}**!\n\n` +
                      `**👤 Partner:** <@${member.user.id}>\n\n` +
