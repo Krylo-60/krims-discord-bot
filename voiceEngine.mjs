@@ -5,13 +5,18 @@ import {
   createAudioResource, 
   AudioPlayerStatus, 
   VoiceConnectionStatus, 
-  EndBehaviorType 
+  EndBehaviorType,
+  entersState
 } from '@discordjs/voice';
 import prism from 'prism-media';
 import googleTTS from 'google-tts-api';
 import ffmpegPath from 'ffmpeg-static';
 import { spawn } from 'child_process';
+import fetch from 'node-fetch';
 import sodium from 'libsodium-wrappers';
+
+// Active voice state per guild
+const voiceStateMap = new Map();
 
 // Ensure WebAssembly LibSodium Decryption Engine is ready
 let sodiumReady = false;
@@ -22,9 +27,6 @@ async function initSodium() {
     console.log('[Voice Engine] LibSodium Wasm Decryption Engine Ready 🟢');
   }
 }
-
-// Active voice state per guild
-const voiceStateMap = new Map();
 
 /**
  * Helper to respond seamlessly to both Slash Interactions and Prefix Messages
@@ -148,14 +150,24 @@ export async function speakInVoiceChannel(guildId, text) {
       timeout: 10000,
     });
 
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.error('[TTS Fetch Error]:', res.status);
+      return;
+    }
+
+    const resource = createAudioResource(res.body);
     const player = createAudioPlayer();
-    const resource = createAudioResource(url);
 
     player.play(resource);
     voiceState.connection.subscribe(player);
 
     player.on(AudioPlayerStatus.Idle, () => {
       player.stop();
+    });
+
+    player.on('error', (err) => {
+      console.error('[AudioPlayer Error]:', err.message);
     });
   } catch (err) {
     console.error('[Voice Engine TTS Error]:', err.message);
@@ -195,7 +207,6 @@ function listenToUser(userId, connection, textChannel, guildId) {
     }
   };
 
-  // Safety timeout: max 6 seconds per speech phrase to prevent hanging
   const safetyTimeout = setTimeout(() => {
     try {
       audioStream.destroy();
@@ -213,7 +224,6 @@ function listenToUser(userId, connection, textChannel, guildId) {
     cleanup();
     const pcmBuffer = Buffer.concat(pcmChunks);
     
-    // Ignore short noises (< 0.25s of PCM data: 48000 * 2 channels * 2 bytes = 192,000 bytes/sec)
     if (pcmBuffer.length < 24000) return;
 
     console.log(`[Voice Engine Live] Processing ${pcmBuffer.length} bytes of audio from User: ${userId}`);
@@ -225,7 +235,6 @@ function listenToUser(userId, connection, textChannel, guildId) {
 
       const aiResponse = queryKrimsAI(transcribedText);
 
-      // Mirror live response in text channel
       if (textChannel) {
         await textChannel.send({
           embeds: [{
@@ -242,7 +251,6 @@ function listenToUser(userId, connection, textChannel, guildId) {
         }).catch(err => console.error('Failed to send text embed:', err.message));
       }
 
-      // Speak back in voice channel
       await speakInVoiceChannel(guildId, aiResponse);
     }
   });
@@ -291,6 +299,14 @@ export async function joinVoice(context, isOneOnOne = false) {
       selfMute: false
     });
 
+    // Wait until Voice Connection is 100% connected & ready before playing initial TTS greeting
+    try {
+      await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
+      console.log(`[Voice Engine] Ready state confirmed for ${voiceChannel.name}`);
+    } catch (err) {
+      console.error('[Voice Engine] Ready state timeout:', err.message);
+    }
+
     voiceStateMap.set(guild.id, {
       connection,
       channelId: voiceChannel.id,
@@ -304,11 +320,7 @@ export async function joinVoice(context, isOneOnOne = false) {
       listenToUser(userId, connection, context.channel, guild.id);
     });
 
-    connection.on(VoiceConnectionStatus.Ready, () => {
-      console.log(`[Voice Engine] Joined voice channel ${voiceChannel.name} in ${guild.name}`);
-    });
-
-    // Speak initial greeting to trigger initial UDP voice handshake
+    // Speak initial greeting immediately now that connection state is Ready!
     await speakInVoiceChannel(guild.id, `Hello! Live 1 on 1 voice mode is active. Speak to me anytime!`);
 
     return sendResponse(context, {
