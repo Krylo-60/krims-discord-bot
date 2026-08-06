@@ -6266,10 +6266,12 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // Command: !voice / !joinvoice / !leavevoice
+  // Command: !voice / !joinvoice / !leavevoice / !call / !1on1
   const lowerContent = content.toLowerCase().trim();
   if (lowerContent === botPrefix + 'voice join' || lowerContent === botPrefix + 'joinvoice' || lowerContent === botPrefix + 'join') {
-    return joinVoice(message);
+    return joinVoice(message, false);
+  } else if (lowerContent === botPrefix + 'voice call' || lowerContent === botPrefix + 'call' || lowerContent === botPrefix + '1on1' || lowerContent === botPrefix + 'voice 1on1') {
+    return joinVoice(message, true);
   } else if (lowerContent === botPrefix + 'voice leave' || lowerContent === botPrefix + 'leavevoice' || lowerContent === botPrefix + 'leave') {
     return leaveVoice(message);
   } else if (lowerContent === botPrefix + 'voice' || lowerContent === botPrefix + 'voice status') {
