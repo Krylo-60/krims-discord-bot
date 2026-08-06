@@ -4658,6 +4658,7 @@ client.on('interactionCreate', async (interaction) => {
     // 💰 GLOBAL JACKPOT POOL (/jackpot)
     // ══════════════════════════════════════════════════════════
     if (commandName === 'jackpot') {
+      await interaction.deferReply();
       const jackpotEmbed = new EmbedBuilder()
         .setColor(0xFF007F)
         .setTitle('💰 KRYLOSMP GLOBAL JACKPOT POOL')
@@ -4671,7 +4672,7 @@ client.on('interactionCreate', async (interaction) => {
         .setFooter({ text: 'KryloSMP Jackpot System 💰' })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [jackpotEmbed] });
+      await interaction.editReply({ embeds: [jackpotEmbed] });
       return;
     }
 
