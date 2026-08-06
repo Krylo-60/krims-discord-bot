@@ -316,9 +316,13 @@ export async function leaveVoice(context) {
  */
 export async function getVoiceStatus(context) {
   const guild = context.guild;
+  const connection = getVoiceConnection(guild.id);
   const voiceState = voiceStateMap.get(guild.id);
+  const botVoiceChannel = guild.members?.me?.voice?.channel;
 
-  if (!voiceState || !voiceState.connection) {
+  const isConnected = !!(connection || (voiceState && voiceState.connection) || botVoiceChannel);
+
+  if (!isConnected) {
     return sendResponse(context, {
       embeds: [{
         color: 0xED4245,
@@ -329,13 +333,15 @@ export async function getVoiceStatus(context) {
     });
   }
 
+  const channelId = botVoiceChannel?.id || voiceState?.channelId || connection?.joinConfig?.channelId;
+
   return sendResponse(context, {
     embeds: [{
       color: 0x00F2FF,
       title: '⚡ 🎙️ KRIMS VOICE AI • STATUS REPORT',
       fields: [
         { name: '🌐 Operational Status', value: '🟢 **ACTIVE & LISTENING**', inline: true },
-        { name: '🔊 Channel Lock', value: `<#${voiceState.channelId}>`, inline: true },
+        { name: '🔊 Channel Lock', value: channelId ? `<#${channelId}>` : 'Active Voice Channel', inline: true },
         { name: '🎤 Speech-to-Text Engine', value: '⚡ Wit.ai / Google Neural STT (Ultra Fast)', inline: false },
         { name: '🗣️ Text-to-Speech Engine', value: '🔊 Google Neural TTS Synthesis', inline: false },
         { name: '👑 Master Architecture', value: 'Custom Trained by Krishiv for KryloSMP', inline: false }
