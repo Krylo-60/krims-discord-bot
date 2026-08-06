@@ -11,7 +11,17 @@ import prism from 'prism-media';
 import googleTTS from 'google-tts-api';
 import ffmpegPath from 'ffmpeg-static';
 import { spawn } from 'child_process';
-import fetch from 'node-fetch';
+import sodium from 'libsodium-wrappers';
+
+// Ensure WebAssembly LibSodium Decryption Engine is ready
+let sodiumReady = false;
+async function initSodium() {
+  if (!sodiumReady) {
+    await sodium.ready;
+    sodiumReady = true;
+    console.log('[Voice Engine] LibSodium Wasm Decryption Engine Ready 🟢');
+  }
+}
 
 // Active voice state per guild
 const voiceStateMap = new Map();
@@ -270,6 +280,8 @@ export async function joinVoice(context, isOneOnOne = false) {
       await context.deferReply();
       isDeferred = true;
     }
+
+    await initSodium();
 
     const connection = joinVoiceChannel({
       channelId: voiceChannel.id,
