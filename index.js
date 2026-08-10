@@ -3117,11 +3117,22 @@ client.on('interactionCreate', async (interaction) => {
     const targetUser = interaction.options.getUser('user') || interaction.user;
     let balance = 0;
 
-    // Owner / Krylo Unlimited KC Override
-    if (targetUser.id === '1414143825538191373' || targetUser.username.toLowerCase().includes('krylo')) {
-      balance = 999999999999;
+    // 1. Dynamic Check: Server Owner via Discord Guild Owner or 👑 OWNER Role
+    const isGuildOwner = interaction.guild && interaction.guild.ownerId === targetUser.id;
+    const hasOwnerRole = interaction.member && interaction.member.roles && interaction.member.roles.cache.some(r => r.name.toUpperCase().includes('OWNER'));
+    const isDynamicOwner = isGuildOwner || hasOwnerRole;
+
+    // 2. Dynamic Check: Local Database (verifiedUsers.json)
+    if (fs.existsSync('verifiedUsers.json')) {
+      try {
+        const vData = JSON.parse(fs.readFileSync('verifiedUsers.json', 'utf8'));
+        if (vData[targetUser.id] && vData[targetUser.id].balance !== undefined) {
+          balance = vData[targetUser.id].balance;
+        }
+      } catch (e) {}
     }
 
+    // 3. Dynamic Check: Vercel Remote Economy API
     try {
       const guildId = interaction.guild ? interaction.guild.id : '1524878881918685405';
       const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
@@ -3132,19 +3143,19 @@ client.on('interactionCreate', async (interaction) => {
       if (configRes.ok) {
         const config = await configRes.json();
         if (config.economyData && config.economyData[targetUser.username]) {
-          if (balance < 999999999) balance = config.economyData[targetUser.username].balance || 0;
+          balance = config.economyData[targetUser.username].balance || balance;
         }
       }
-    } catch {}
+    } catch (e) {}
 
-    const displayBal = balance >= 999999999 ? '♾️ Unlimited KC (Owner)' : `${balance.toLocaleString()} KC`;
+    const displayBal = isDynamicOwner ? '♾️ Unlimited KC (Owner)' : `${balance.toLocaleString()} KC`;
 
     const embed = new EmbedBuilder()
       .setColor(0xFFAA00)
       .setTitle(`💳 Wallet Balance - ${targetUser.username}`)
       .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
       .addFields(
-        { name: '🪙 KryloCoins', value: `\`${displayBal}\``, inline: true },
+        { name: '🪙 KryloCoins', value: ``${displayBal}``, inline: true },
         { name: '🔗 Server Status', value: '`Linked Account`', inline: true }
       )
       .setTimestamp();
