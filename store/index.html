@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KryloSMP Official Store — Ranks, God Items & KryloCoins</title>
+    <meta name="description" content="Official KryloSMP Minecraft Web Store. Purchase Ranks, God Relics, KryloCoins (KC), and Crate Keys for krylosmp.play.hosting.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Background Glow Effects -->
+    <div class="glow-bg top-glow"></div>
+    <div class="glow-bg bottom-glow"></div>
+
+    <!-- Header Navigation -->
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="brand">
+                <span class="brand-icon">👑</span>
+                <div class="brand-text">
+                    <span class="brand-title">KRYLO<span class="highlight">SMP</span></span>
+                    <span class="brand-subtitle">STORE.KRYLOSMP.NET</span>
+                </div>
+            </div>
+
+            <nav class="nav-links">
+                <a href="#store" class="active"><span class="icon">🛒</span> Store</a>
+                <a href="#ranks"><span class="icon">👑</span> Ranks</a>
+                <a href="#relics"><span class="icon">🔱</span> God Relics</a>
+                <a href="#kc"><span class="icon">💰</span> KryloCoins</a>
+                <a href="#keys"><span class="icon">🔑</span> Crates</a>
+            </nav>
+
+            <div class="nav-actions">
+                <!-- Currency Toggle -->
+                <div class="currency-toggle" id="currencyToggle">
+                    <button class="currency-btn active" data-mode="kc">💰 KC Mode</button>
+                    <button class="currency-btn" data-mode="real">💵 Real Money ($)</button>
+                </div>
+
+                <!-- User Profile / Login -->
+                <div class="user-box" id="userBox">
+                    <button class="login-btn" id="loginBtn">
+                        <span class="user-avatar-placeholder">👤</span>
+                        <span id="usernameDisplay">Enter Username</span>
+                    </button>
+                </div>
+
+                <!-- Cart Button -->
+                <button class="cart-trigger" id="cartTrigger">
+                    <span class="cart-icon">🛒</span>
+                    <span class="cart-count" id="cartCount">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Announcement Banner -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="badge">🔥 SEASON 3 — RETEXTURED GOD RELICS IS LIVE</div>
+            <h1>UNLEASH DIVINE POWER ON <span class="gradient-text">KRYLOSMP</span></h1>
+            <p>Purchase official Ranks, 14 Retextured God Relics, +30 Permanent Hearts God Food, and KryloCoins with instant automatic in-game delivery on <strong>krylosmp.play.hosting</strong>!</p>
+            
+            <div class="server-ip-box" id="copyIpBox">
+                <span class="ip-label">SERVER IP:</span>
+                <span class="ip-address">krylosmp.play.hosting</span>
+                <button class="copy-btn" id="copyIpBtn">📋 Copy</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Username Login Modal -->
+    <div class="modal-overlay" id="userModal">
+        <div class="modal-card">
+            <button class="modal-close" id="closeUserModal">✕</button>
+            <div class="modal-header">
+                <span class="modal-icon">🎮</span>
+                <h2>MINECRAFT USERNAME</h2>
+                <p>Enter your exact Minecraft username to link purchases directly to your in-game inventory!</p>
+            </div>
+            <form id="usernameForm">
+                <div class="input-group">
+                    <input type="text" id="ignInput" placeholder="e.g. Krylo_mc" required autocomplete="off">
+                </div>
+                <div class="avatar-preview-box" id="avatarPreviewBox">
+                    <img id="modalAvatarImg" src="https://mc-heads.net/avatar/Krylo_mc/64" alt="Skin Avatar">
+                    <span id="avatarPreviewName">Krylo_mc</span>
+                </div>
+                <button type="submit" class="primary-btn full-width">Continue to Store ➔</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Store Section -->
+    <main class="store-container" id="store">
+        <!-- Category Navigation Tabs -->
+        <div class="category-tabs">
+            <button class="tab-btn active" data-category="all">🌟 All Items</button>
+            <button class="tab-btn" data-category="ranks">👑 Ranks</button>
+            <button class="tab-btn" data-category="relics">🔱 God Relics</button>
+            <button class="tab-btn" data-category="kc">💰 KryloCoins</button>
+            <button class="tab-btn" data-category="keys">🔑 Crate Keys</button>
+            <button class="tab-btn" data-category="food">🍖 God Consumables</button>
+        </div>
+
+        <!-- Store Items Grid -->
+        <div class="items-grid" id="itemsGrid">
+            <!-- Dynamically Rendered via app.js -->
+        </div>
+    </main>
+
+    <!-- Cart Drawer Slide-Over -->
+    <div class="cart-overlay" id="cartOverlay">
+        <div class="cart-drawer">
+            <div class="cart-header">
+                <h3>🛒 YOUR SHOPPING CART</h3>
+                <button class="cart-close" id="closeCart">✕</button>
+            </div>
+
+            <div class="cart-user-banner" id="cartUserBanner">
+                <img id="cartUserAvatar" src="https://mc-heads.net/avatar/Krylo_mc/32" alt="Avatar">
+                <span>Deliver to: <strong id="cartUsername">Krylo_mc</strong></span>
+            </div>
+
+            <div class="cart-items" id="cartItemsList">
+                <div class="empty-cart-msg">Your cart is empty. Add some God Relics or Ranks!</div>
+            </div>
+
+            <div class="cart-footer">
+                <div class="cart-total-row">
+                    <span>Subtotal:</span>
+                    <span class="total-price" id="cartTotalPrice">0 KC</span>
+                </div>
+                <button class="primary-btn full-width" id="checkoutBtn">Proceed to Checkout 🚀</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div class="modal-overlay" id="checkoutModal">
+        <div class="modal-card wide-modal">
+            <button class="modal-close" id="closeCheckoutModal">✕</button>
+            <div class="modal-header">
+                <span class="modal-icon">⚡</span>
+                <h2>INSTANT SERVER DELIVERY CHECKOUT</h2>
+                <p>Review your order details and confirm instant execution on <strong>krylosmp.play.hosting</strong>!</p>
+            </div>
+
+            <div class="checkout-summary">
+                <div class="checkout-player">
+                    <img id="checkoutAvatar" src="https://mc-heads.net/avatar/Krylo_mc/48" alt="Player Avatar">
+                    <div>
+                        <div class="player-name" id="checkoutPlayerName">Krylo_mc</div>
+                        <div class="player-status">🟢 ONLINE ON KRYLOSMP</div>
+                    </div>
+                </div>
+
+                <div class="checkout-items-summary" id="checkoutItemsSummary">
+                    <!-- Populated via JS -->
+                </div>
+
+                <div class="payment-method-selector" id="paymentMethodSelector">
+                    <label class="payment-option active" data-method="kc">
+                        <input type="radio" name="paymentMethod" value="kc" checked>
+                        <span class="option-title">💰 Pay with KryloCoins (KC)</span>
+                        <span class="option-sub">Deducts instantly from your in-game balance</span>
+                    </label>
+
+                    <label class="payment-option" data-method="real">
+                        <input type="radio" name="paymentMethod" value="real">
+                        <span class="option-title">💳 Pay with Real Money (PayPal / UPI / Card)</span>
+                        <span class="option-sub">Scales automatically for community real-money purchases</span>
+                    </label>
+                </div>
+
+                <button class="primary-btn full-width gold-glow-btn" id="confirmPaymentBtn">Confirm & Deliver Items 📦</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Confirmation Overlay -->
+    <div class="modal-overlay" id="successModal">
+        <div class="modal-card success-card">
+            <span class="success-icon">🎉</span>
+            <h2>PURCHASE SUCCESSFUL!</h2>
+            <p>Your items have been delivered directly to player <strong id="successPlayerName">Krylo_mc</strong> in-game!</p>
+            
+            <div class="command-executed-box">
+                <span class="box-label">INSTANT CONSOLE COMMAND EXECUTED:</span>
+                <code id="executedCommandText">/godkit Krylo_mc</code>
+            </div>
+
+            <button class="primary-btn full-width" id="closeSuccessBtn">Return to Store 🎮</button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-brand">
+                <span class="brand-icon">👑</span>
+                <span>KRYLOSMP OFFICIAL STORE</span>
+            </div>
+            <p class="footer-disclaimer">We are not affiliated with or endorsed by Mojang AB or Microsoft. KryloSMP Season 3.</p>
+            <div class="footer-links">
+                <a href="#discord">Discord</a>
+                <a href="#rules">Rules</a>
+                <a href="#support">Support</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

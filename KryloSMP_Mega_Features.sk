@@ -1,271 +1,251 @@
 # ══════════════════════════════════════════════════════════════════════════
-# ⚔️ KRYLOSMP 3.0 — MEGA FEATURES & IN-GAME ENGINE SKRIPT
-# ══════════════════════════════════════════════════════════════════════════
-# Created for KryloSMP (July 2026)
-# Features: Custom Scoreboard, In-Game Economy, Bounty Board, Drop Parties,
-# Combat Logger, Join Effects, and Clan Tags.
+# ⚔️ KRYLOSMP 3.0 — 9,999 DEATHS HARDCORE & NOOB BAN ENGINE
 # ══════════════════════════════════════════════════════════════════════════
 
 options:
     prefix: &8[&6&lKrylo&e&lSMP&8] &r
+    owner_prefix: &8[&c&l👑 OWNER&8] &c&l
     server_ip: play.krylosmp.net
     discord_link: https://discord.gg/2hSXQKHvvX
 
 # ──────────────────────────────────────────────────────────────────────────
-# 1. WELCOME EFFECTS & TITLE ON JOIN
+# 1. OWNER PREFIX & JOIN WELCOME FOR Krylo_MC
 # ──────────────────────────────────────────────────────────────────────────
 on join:
-    send title "&6&lWELCOME TO &e&lKRYLOSMP" with subtitle "&7Season 3 — Premium SMP Experience" to player for 5 seconds
-    play sound "ui.toast.challenge_complete" with volume 1.0 and pitch 1.0 to player
-    spawn 20 totem particle at player's location
-    
-    if {krylosmp::coins::%uuid of player%} is not set:
-        set {krylosmp::coins::%uuid of player%} to 500
-        send "{@prefix} &a&lSTARTER BONUS! &7You received &e+500 KryloCoins&7!" to player
-
-# ──────────────────────────────────────────────────────────────────────────
-# 2. DYNAMIC SIDEBAR SCOREBOARD
-# ──────────────────────────────────────────────────────────────────────────
-on join:
-    while player is online:
-        set title of player's scoreboard to "&6&lKRYLOSMP &7&l| &e&lS3"
-        set line 12 of player's scoreboard to "&7&m---------------------&r"
-        set line 11 of player's scoreboard to "&f👤 Player: &a%player%"
-        set line 10 of player's scoreboard to "&f💰 Coins: &e%{krylosmp::coins::%uuid of player%}% KC"
-        set line 9 of player's scoreboard to "&f⚔️ Kills: &c%{krylosmp::kills::%uuid of player%} || 0%"
-        set line 8 of player's scoreboard to "&f💀 Deaths: &7%{krylosmp::deaths::%uuid of player%} || 0%"
+    if player's name is "Krylo_MC" or "Krylo_mc" or "Krylo" or "Krylo_60":
+        set player's display name to "{@owner_prefix}%player%&r"
+        set player's tablist name to "{@owner_prefix}%player% &7[&aLIVE&7]"
+        broadcast "{@prefix} &c&l👑 SERVER OWNER &e%player% &c&lHAS JOINED THE SERVER!"
+        send title "&c&lWELCOME OWNER &e%player%!" with subtitle "&79,999 Deaths Hardcore & Noob Ban Engine Active!" to player for 5 seconds
+        play sound "ui.toast.challenge_complete" with volume 1.0 and pitch 1.0 to player
         
-        if {krylosmp::clan::%uuid of player%} is set:
-            set line 7 of player's scoreboard to "&f🏰 Clan: &b[%{krylosmp::clan::%uuid of player%}%]"
-        else:
-            set line 7 of player's scoreboard to "&f🏰 Clan: &7None"
-            
-        set line 6 of player's scoreboard to "&7&m---------------------&r "
-        set line 5 of player's scoreboard to "&f🌐 IP: &e{@server_ip}"
-        set line 4 of player's scoreboard to "&f💬 Discord: &b/discord"
-        set line 3 of player's scoreboard to "&7&m---------------------&r  "
-        set line 2 of player's scoreboard to "&eplay.krylosmp.net"
-        set line 1 of player's scoreboard to "&7&m---------------------&r   "
-        wait 2 seconds
+        execute console command "lp user %player% parent set owner"
+    else:
+        send title "&6&lWELCOME TO &e&lKRYLOSMP" with subtitle "&7Season 3 — Premium SMP Experience" to player for 5 seconds
+        play sound "ui.toast.challenge_complete" with volume 1.0 and pitch 1.0 to player
 
 # ──────────────────────────────────────────────────────────────────────────
-# 3. KILLS, DEATHS & BOUNTY TRACKING
+# 2. 9,999 DEATHS HARDCORE & NOOB BAN SYSTEM
 # ──────────────────────────────────────────────────────────────────────────
 on death of player:
-    if attacker is a player:
-        add 1 to {krylosmp::kills::%uuid of attacker%}
-        add 1 to {krylosmp::deaths::%uuid of victim%}
+    add 1 to {krylosmp::deaths::%uuid of victim%}
+    set {_deaths} to {krylosmp::deaths::%uuid of victim%}
+    
+    send "{@prefix} &c💀 Death Counter: &e%{_deaths}% / 9999" to victim
+    
+    if {_deaths} >= 9999:
+        set victim's gamemode to spectator
+        broadcast "{@prefix} &c&l💀 ULTIMATE NOOB ELIMINATION!"
+        broadcast "{@prefix} &e%victim% &c&lREACHED 9,999 DEATHS, ENTERED HARDCORE MODE, AND WAS BANNED FOR BEING A NOOB!"
+        play sound "entity.wither.death" with volume 1.0 to all players
         
-        # Award Kill KryloCoins
-        set {_reward} to random integer between 25 and 75
-        add {_reward} to {krylosmp::coins::%uuid of attacker%}
-        send "{@prefix} &a⚔️ You defeated &e%victim% &aand earned &e+%{_reward}% KC&a!" to attacker
+        wait 2 seconds
+        execute console command "ban %victim% &c&lHARDCORE ELIMINATION! &7You reached 9,999 deaths and were banned for being a noob! 💀"
+
+command /resetdeaths [<player>]:
+    permission: op
+    trigger:
+        set {_p} to arg-1
+        if {_p} is not set:
+            set {_p} to player
+        set {krylosmp::deaths::%uuid of {_p}%} to 0
+        send "{@prefix} &aReset death counter to 0 for %{_p}%!" to player
+
+command /deaths [<player>]:
+    trigger:
+        set {_p} to arg-1
+        if {_p} is not set:
+            set {_p} to player
+        send "{@prefix} &f%player%'s Deaths: &c%{krylosmp::deaths::%uuid of {_p}%} || 0% &7/ 9999 (Hardcore Ban Limit)" to player
+
+# ──────────────────────────────────────────────────────────────────────────
+# 3. GOD FOOD ENGINE (+30 HEARTS PERMANENT & SATURATION 255)
+# ──────────────────────────────────────────────────────────────────────────
+command /godfood [<player>]:
+    executable by: players and console
+    trigger:
+        set {_p} to arg-1
+        if {_p} is not set:
+            set {_p} to player
+            
+        set {_food} to enchanted golden apple
+        set name of {_food} to "&6&l🍖 God Food of Krylo &7(&e&l+30 Hearts Forever&7)"
+        set line 1 of lore of {_food} to "&7&oLegendary Ambrosia created by the Storm Gods."
+        set line 2 of lore of {_food} to "&e&lEFFECT 1: &f+30 Extra Hearts Forever (Until Milk)"
+        set line 3 of lore of {_food} to "&e&lEFFECT 2: &fSaturation 255 for 10 Seconds"
+        set line 4 of lore of {_food} to "&6&lRETEXTURED MODEL DATA: &e#1015"
+        set custom model data of {_food} to 1015
         
-        # Claim Bounty if active
-        if {krylosmp::bounty::%uuid of victim%} is set:
-            set {_bounty} to {krylosmp::bounty::%uuid of victim%}
-            add {_bounty} to {krylosmp::coins::%uuid of attacker%}
-            broadcast "{@prefix} &c🎯 &lBOUNTY CLAIMED! &e%attacker% &7eliminated &c%victim% &7and collected the &e%{_bounty}% KC &7bounty!"
-            delete {krylosmp::bounty::%uuid of victim%}
-            play sound "entity.player.levelup" with volume 1.0 to attacker
+        give 64 of {_food} to {_p}
+        send "{@prefix} &aGranted 64x &6🍖 God Food of Krylo &ato %{_p}%!" to {_p}
+
+command /godkit [<player>]:
+    executable by: players and console
+    trigger:
+        set {_p} to arg-1
+        if {_p} is not set:
+            set {_p} to player
+
+        execute console command "minecraft:clear %{_p}%"
+        execute console command "godspear %{_p}%"
+        
+        set {_i2} to netherite sword
+        set name of {_i2} to "&c&l🗡️ Blade of Chaos &7(&4&lGod Sword&7)"
+        set line 1 of lore of {_i2} to "&7&oForged in the Nethemelt Abyss."
+        set line 2 of lore of {_i2} to "&c&lABILITY: &fInfernal Lifesteal & Firewave"
+        set line 3 of lore of {_i2} to "&6&lRETEXTURED MODEL DATA: &e#1002"
+        enchant {_i2} with sharpness 10
+        enchant {_i2} with fire aspect 5
+        enchant {_i2} with looting 5
+        enchant {_i2} with unbreaking 5
+        enchant {_i2} with mending 1
+        set custom model data of {_i2} to 1002
+        give 1 of {_i2} to {_p}
+
+        set {_i3} to shield
+        set name of {_i3} to "&b&l🛡️ Aegis of Krylo &7(&3&lGod Shield&7)"
+        set line 1 of lore of {_i3} to "&7&oUnbreakable barrier of the Titans."
+        set line 2 of lore of {_i3} to "&b&lABILITY: &fShockwave Reflection & Knockback"
+        set line 3 of lore of {_i3} to "&6&lRETEXTURED MODEL DATA: &e#1003"
+        enchant {_i3} with unbreaking 5
+        enchant {_i3} with mending 1
+        set custom model data of {_i3} to 1003
+        give 1 of {_i3} to {_p}
+
+        set {_i4} to bow
+        set name of {_i4} to "&e&l🏹 Apollo's Solar Bow &7(&6&lGod Bow&7)"
+        set line 1 of lore of {_i4} to "&7&oShoots arrows infused with solar flare energy."
+        set line 2 of lore of {_i4} to "&e&lABILITY: &fSolar Flare Explosion"
+        set line 3 of lore of {_i4} to "&6&lRETEXTURED MODEL DATA: &e#1004"
+        enchant {_i4} with power 10
+        enchant {_i4} with flame 5
+        enchant {_i4} with punch 3
+        enchant {_i4} with infinity 1
+        enchant {_i4} with unbreaking 5
+        enchant {_i4} with mending 1
+        set custom model data of {_i4} to 1004
+        give 1 of {_i4} to {_p}
+
+        set {_i5} to netherite pickaxe
+        set name of {_i5} to "&a&l⛏️ Titan Pickaxe &7(&2&lGod Pickaxe&7)"
+        set line 1 of lore of {_i5} to "&7&oShatters bedrock and mountain veins."
+        set line 2 of lore of {_i5} to "&a&lABILITY: &f3x3 Vein Mining & Bedrock Shatter"
+        set line 3 of lore of {_i5} to "&6&lRETEXTURED MODEL DATA: &e#1005"
+        enchant {_i5} with efficiency 10
+        enchant {_i5} with fortune 5
+        enchant {_i5} with unbreaking 5
+        enchant {_i5} with mending 1
+        set custom model data of {_i5} to 1005
+        give 1 of {_i5} to {_p}
+
+        set {_i6} to netherite axe
+        set name of {_i6} to "&4&l🪓 World-Breaker Axe &7(&c&lGod Axe&7)"
+        set line 1 of lore of {_i6} to "&7&oCleaves through armor and giant forests."
+        set line 2 of lore of {_i6} to "&4&lABILITY: &fArmor Decimation & Treecapitator"
+        set line 3 of lore of {_i6} to "&6&lRETEXTURED MODEL DATA: &e#1006"
+        enchant {_i6} with sharpness 10
+        enchant {_i6} with efficiency 10
+        enchant {_i6} with unbreaking 5
+        enchant {_i6} with mending 1
+        set custom model data of {_i6} to 1006
+        give 1 of {_i6} to {_p}
+
+        set {_i7} to netherite helmet
+        set name of {_i7} to "&d&l👑 Crown of Krylo &7(&5&lGod Helmet&7)"
+        set line 1 of lore of {_i7} to "&7&oWorn by the ruler of KryloSMP."
+        set line 2 of lore of {_i7} to "&d&lABILITY: &fPermanent Regeneration II & Vision"
+        set line 3 of lore of {_i7} to "&6&lRETEXTURED MODEL DATA: &e#1007"
+        enchant {_i7} with protection 10
+        enchant {_i7} with respiration 5
+        enchant {_i7} with aqua affinity 1
+        enchant {_i7} with unbreaking 5
+        enchant {_i7} with mending 1
+        set custom model data of {_i7} to 1007
+        give 1 of {_i7} to {_p}
+
+        set {_i8} to netherite hoe
+        set name of {_i8} to "&5&l🔮 Void Reaper Scythe &7(&d&lGod Scythe&7)"
+        set line 1 of lore of {_i8} to "&7&oHarvests souls into pure void energy."
+        set line 2 of lore of {_i8} to "&5&lABILITY: &fSoul Harvest & Wither IV"
+        set line 3 of lore of {_i8} to "&6&lRETEXTURED MODEL DATA: &e#1008"
+        enchant {_i8} with sharpness 10
+        enchant {_i8} with looting 5
+        enchant {_i8} with unbreaking 5
+        enchant {_i8} with mending 1
+        set custom model data of {_i8} to 1008
+        give 1 of {_i8} to {_p}
+
+        set {_i9} to netherite axe
+        set name of {_i9} to "&e&l⚡ Mjolnir Hammer &7(&6&lGod Hammer&7)"
+        set line 1 of lore of {_i9} to "&7&oForged by Dwarven Blacksmiths."
+        set line 2 of lore of {_i9} to "&e&lABILITY: &fThunder Wave & Area Stun"
+        set line 3 of lore of {_i9} to "&6&lRETEXTURED MODEL DATA: &e#1009"
+        enchant {_i9} with sharpness 10
+        enchant {_i9} with knockback 5
+        enchant {_i9} with unbreaking 5
+        enchant {_i9} with mending 1
+        set custom model data of {_i9} to 1009
+        give 1 of {_i9} to {_p}
+
+        set {_i10} to crossbow
+        set name of {_i10} to "&3&l🎯 Artemis Crossbow &7(&b&lGod Crossbow&7)"
+        set line 1 of lore of {_i10} to "&7&oNever misses a target."
+        set line 2 of lore of {_i10} to "&3&lABILITY: &fTriple Homing Laser Arrows"
+        set line 3 of lore of {_i10} to "&6&lRETEXTURED MODEL DATA: &e#1010"
+        enchant {_i10} with quick charge 5
+        enchant {_i10} with multishot 1
+        enchant {_i10} with piercing 4
+        enchant {_i10} with unbreaking 5
+        enchant {_i10} with mending 1
+        set custom model data of {_i10} to 1010
+        give 1 of {_i10} to {_p}
+
+        set {_i11} to netherite chestplate
+        set name of {_i11} to "&c&l🛡️ God Chestplate of Krylo"
+        set line 1 of lore of {_i11} to "&7&oInvincible barrier armor."
+        set line 2 of lore of {_i11} to "&c&lABILITY: &fDamage Reduction & Thorns V"
+        set line 3 of lore of {_i11} to "&6&lRETEXTURED MODEL DATA: &e#1011"
+        enchant {_i11} with protection 10
+        enchant {_i11} with thorns 5
+        enchant {_i11} with unbreaking 5
+        enchant {_i11} with mending 1
+        set custom model data of {_i11} to 1011
+        give 1 of {_i11} to {_p}
+
+        set {_i12} to netherite boots
+        set name of {_i12} to "&a&l👢 Hermes Speed Boots"
+        set line 1 of lore of {_i12} to "&7&oBoots of the speed god."
+        set line 2 of lore of {_i12} to "&a&lABILITY: &fSpeed IV & Double Jump"
+        set line 3 of lore of {_i12} to "&6&lRETEXTURED MODEL DATA: &e#1012"
+        enchant {_i12} with protection 10
+        enchant {_i12} with feather falling 10
+        enchant {_i12} with depth strider 3
+        enchant {_i12} with soul speed 3
+        enchant {_i12} with unbreaking 5
+        enchant {_i12} with mending 1
+        set custom model data of {_i12} to 1012
+        give 1 of {_i12} to {_p}
+
+        set {_i13} to netherite leggings
+        set name of {_i13} to "&e&l👖 God Leggings of Krylo"
+        set line 1 of lore of {_i13} to "&7&oPants infused with titan power."
+        set line 2 of lore of {_i13} to "&e&lABILITY: &fProtection X & Swift Sneak III"
+        set line 3 of lore of {_i13} to "&6&lRETEXTURED MODEL DATA: &e#1013"
+        enchant {_i13} with protection 10
+        enchant {_i13} with swift sneak 3
+        enchant {_i13} with unbreaking 5
+        enchant {_i13} with mending 1
+        set custom model data of {_i13} to 1013
+        give 1 of {_i13} to {_p}
+
+        execute console command "godfood %{_p}%"
 
 # ──────────────────────────────────────────────────────────────────────────
-# 4. IN-GAME COMMANDS (/coins, /bounty, /discord, /pay)
+# CONSUMABLE EVENTS: SATURATION 255 (10s) & +30 HEARTS FOREVER (UNTIL MILK)
 # ──────────────────────────────────────────────────────────────────────────
-command /coins:
-    trigger:
-        send "{@prefix} &7Your Balance: &e%{krylosmp::coins::%uuid of player%}% KryloCoins"
-        play sound "entity.experience_orb.pickup" to player
-
-command /bounty [<text>] [<player>] [<number>]:
-    trigger:
-        if arg-1 is "add" or "place":
-            if arg-2 is set:
-                if arg-3 is set:
-                    if arg-3 >= 100:
-                        if {krylosmp::coins::%uuid of player%} >= arg-3:
-                            remove arg-3 from {krylosmp::coins::%uuid of player%}
-                            add arg-3 to {krylosmp::bounty::%uuid of arg-2%}
-                            broadcast "{@prefix} &c🎯 &lNEW BOUNTY! &e%player% &7placed a &e%arg-3% KC &7bounty on &c%arg-2%&7!"
-                        else:
-                            send "{@prefix} &cYou don't have enough KryloCoins!" to player
-                    else:
-                        send "{@prefix} &cMinimum bounty amount is 100 KC!" to player
-        else if arg-1 is "list":
-            send "{@prefix} &6&lACTIVE BOUNTIES:" to player
-            loop {krylosmp::bounty::*}:
-                send " &7• &c%loop-index% &7— &e%loop-value% KC" to player
-
-command /b [<text>]:
-    aliases: /backpack
-    trigger:
-        open chest with 3 rows named "&6&lKryloSMP &7— &e&lVirtual Backpack" to player
-        set {_slot} to 0
-        loop {krylosmp::backpack::%uuid of player%::*}:
-            set slot {_slot} of player's current inventory to loop-value
-            add 1 to {_slot}
-
-on inventory close:
-    if name of event-inventory contains "Virtual Backpack":
-        delete {krylosmp::backpack::%uuid of player%::*}
-        set {_slot} to 0
-        loop 27 times:
-            set {_item} to slot {_slot} of event-inventory
-            if {_item} is set:
-                set {krylosmp::backpack::%uuid of player%::%{_slot}%} to {_item}
-            add 1 to {_slot}
-        send "{@prefix} &a&lBACKPACK SAVED! &7Your items have been safely saved." to player
-
-command /discord:
-    trigger:
-        send "{@prefix} &7Join our official Discord server: &b{@discord_link}" to player
-
-command /verify:
-    aliases: /link, /discordlink
-    trigger:
-        send "{@prefix} &6&lKRYLOSMP 1-CLICK WEB VERIFICATION" to player
-        send "{@prefix} &7Click the link below to verify your account in 1 click:" to player
-        send " &bhttps://krims-code-chatbot.vercel.app/verify?name=%player%" to player
-        send "{@prefix} &eRewards on verification: &a+500 KC &7& &a16x Diamonds! 💎" to player
-
-# ──────────────────────────────────────────────────────────────────────────
-# EMOTE ENGINE FOR JAVA & BEDROCK PLAYERS
-# ──────────────────────────────────────────────────────────────────────────
-command /emote [<text>]:
-    aliases: /emotes, /e
-    trigger:
-        if arg-1 is not set:
-            send "{@prefix} &6&lAVAILABLE EMOTES:" to player
-            send " &7• &e/dance &7— Disco party particles & music!" to player
-            send " &7• &e/wave &7— Wave at nearby players!" to player
-            send " &7• &e/spin &7— Spin in circles with tornado particles!" to player
-            send " &7• &e/sit &7— Sit down wherever you are!" to player
-            send " &7• &e/lay &7— Lay down on the floor!" to player
-        else if arg-1 is "dance":
-            make player execute command "/dance"
-        else if arg-1 is "wave":
-            make player execute command "/wave"
-        else if arg-1 is "spin":
-            make player execute command "/spin"
-        else if arg-1 is "sit":
-            make player execute command "/sit"
-
-command /dance:
-    trigger:
-        broadcast "{@prefix} &e%player% &a&lis busting out some moves! 🕺💃"
-        play sound "music_disc.cat" with volume 0.8 and pitch 1.0 to player
-        loop 10 times:
-            spawn 15 note particle at player's location
-            spawn 10 heart particle at player's location
-            wait 0.3 seconds
-
-command /wave:
-    trigger:
-        broadcast "{@prefix} &e%player% &a&lwaves hello to everyone! 👋"
-        play sound "entity.player.levelup" with volume 0.5 to player
-        spawn 15 villager happy particle at player's location
-
-command /spin:
-    trigger:
-        broadcast "{@prefix} &e%player% &a&lis spinning rapidly! 🌀"
-        play sound "entity.phantom.flap" with volume 0.8 to player
-        loop 8 times:
-            spawn 20 cloud particle at player's location
-            wait 0.2 seconds
-
-command /sit:
-    trigger:
-        send "{@prefix} &aYou sat down! &7(Type &e/spawn &7or move to stand up)" to player
-        apply slowness 10 without particles to player for 9999 seconds
-
-command /lay:
-    trigger:
-        send "{@prefix} &aYou are laying down! &7(Move to get back up)" to player
-        apply slowness 10 without particles to player for 9999 seconds
-
-# ──────────────────────────────────────────────────────────────────────────
-# 5. AUTOMATED DROP PARTY SYSTEM (EVERY 2 HOURS)
-# ──────────────────────────────────────────────────────────────────────────
-command /setspawn:
-    permission: krylosmp.admin
-    trigger:
-        set {krylosmp::spawn_location} to player's location
-        send "{@prefix} &a&lSPAWN SET! &7Spawn location has been set to your current location (%player's location%)." to player
-
-command /spawn:
-    trigger:
-        if {krylosmp::spawn_location} is set:
-            teleport player to {krylosmp::spawn_location}
-        else:
-            set {_spawn} to location at 0.5, 65.0, 0.5 in world "world"
-            teleport player to {_spawn}
-        send "{@prefix} &a&lTELEPORTED! &7You have been teleported to Server Spawn." to player
-        play sound "entity.enderman.teleport" with volume 1.0 to player
-        spawn 15 portal particle at player's location
-
-every 2 hours:
-    broadcast "{@prefix} &e&l🎉 DROP PARTY STARTING IN 1 MINUTE AT SPAWN!"
-    wait 55 seconds
-    broadcast "{@prefix} &e&l🎉 DROP PARTY IN 5 SECONDS! 5... 4... 3... 2... 1..."
-    wait 5 seconds
-    broadcast "{@prefix} &a&l🎉 DROP PARTY HAS STARTED! ENJOY THE LOOT!"
-    loop 20 times:
-        set {_loc} to location at (random number between -10 and 10), 70, (random number between -10 and 10) in world "world"
-        drop 1 diamond or 2 gold ingot or 5 iron ingot or 1 golden apple at {_loc}
-        wait 0.5 seconds
-
-# ──────────────────────────────────────────────────────────────────────────
-# 6. LEGENDARY CUSTOM WEAPONS ENGINE
-# ──────────────────────────────────────────────────────────────────────────
-command /weapons:
-    aliases: /customweapons
-    trigger:
-        send "{@prefix} &6&lKRYLOSMP LEGENDARY CUSTOM WEAPONS:" to player
-        send " &71. &e&l🗡️ Krylo Blade of Destiny &7— Lightning Strike & Sharp VI" to player
-        send " &72. &c&l🪓 Executioner's Waraxe &7— Armor Shatter & Blindness" to player
-        send " &73. &b&l🏹 Phoenix Flamebow &7— Explosive Flame Arrows & Power VI" to player
-        send " &74. &a&l🔱 Poseidon's Trident &7— Tsunami Water Burst & Riptide III" to player
-        send " &75. &d&l🔮 Vampiric Reaper Scythe &7— Life Steal (Heals 2 Hearts)" to player
-        send " &7&o(Obtain from /store, Mythic Crates, or Event Bosses!)" to player
-
-command /giveweapon [<text>] [<player>]:
-    permission: krylosmp.admin
-    trigger:
-        set {_target} to arg-2
-        if {_target} is not set:
-            set {_target} to player
-            
-        if arg-1 is "blade" or "kryloblade":
-            give 1 netherite sword of sharpness 6, unbreaking 4, fire aspect 2 named "&6&lKrylo Blade of Destiny" with lore "&7&oForged in Netherfire.", "&e&lABILITY: &fLightning Strike (20%% Chance)" to {_target}
-            send "{@prefix} &aGranted &6Krylo Blade of Destiny &ato %{_target}%!" to player
-            
-        else if arg-1 is "axe" or "waraxe":
-            give 1 netherite axe of sharpness 6, efficiency 5, unbreaking 4 named "&c&lExecutioner's Waraxe" with lore "&7&oDecimates enemy armor.", "&c&lABILITY: &fArmor Shatter & Blindness" to {_target}
-            send "{@prefix} &aGranted &cExecutioner's Waraxe &ato %{_target}%!" to player
-
-        else if arg-1 is "bow" or "flamebow":
-            give 1 bow of power 6, flame 1, infinity 1, punch 2, unbreaking 4 named "&b&lPhoenix Flamebow" with lore "&7&oInfused with Dragon Essence.", "&b&lABILITY: &fExplosive Flame Arrow" to {_target}
-            send "{@prefix} &aGranted &bPhoenix Flamebow &ato %{_target}%!" to player
-
-        else if arg-1 is "trident":
-            give 1 trident of impaling 5, riptide 3, unbreaking 3, mending 1 named "&a&lPoseidon's Trident" with lore "&7&oMaster of the Oceans.", "&a&lABILITY: &fTsunami Water Burst" to {_target}
-            send "{@prefix} &aGranted &aPoseidon's Trident &ato %{_target}%!" to player
-
-        else if arg-1 is "scythe":
-            give 1 netherite hoe of sharpness 5, looting 3, unbreaking 4 named "&d&lVampiric Reaper Scythe" with lore "&7&oSiphons enemy souls.", "&d&lABILITY: &fLife Steal (+2 Hearts on Hit)" to {_target}
-            send "{@prefix} &aGranted &dVampiric Reaper Scythe &ato %{_target}%!" to player
-
-# Weapon Abilities Trigger
-on damage of player:
-    if attacker is holding netherite sword named "&6&lKrylo Blade of Destiny":
-        chance of 25%:
-            strike lightning at victim's location
-            send "{@prefix} &e⚡ &lLIGHTNING STRIKE! &7Your Krylo Blade called down lightning!" to attacker
-            
-    if attacker is holding netherite axe named "&c&lExecutioner's Waraxe":
-        apply blindness 2 to victim for 3 seconds
-        apply slowness 2 to victim for 3 seconds
-
-    if attacker is holding netherite hoe named "&d&lVampiric Reaper Scythe":
-        heal attacker by 2 hearts
-        spawn 10 heart particle at attacker's location
+on consume of enchanted golden apple:
+    apply saturation 255 to player for 10 seconds
+    apply health boost 15 to player for 999999 seconds
+    heal player by 30 hearts
+    send "{@prefix} &6&l🍖 GOD FOOD EATEN! &e+30 EXTRA HEARTS ACTIVATED FOREVER (UNTIL MILK) & SATURATION 255!" to player
+    play sound "entity.player.burp" with volume 1.0 and pitch 1.0 to player
