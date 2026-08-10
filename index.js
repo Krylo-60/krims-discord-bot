@@ -5017,7 +5017,11 @@ client.on('interactionCreate', async (interaction) => {
         }
 
         if (userBal < amount) {
-            await interaction.reply({ content: `❌ You do not have enough KC! (Your balance: **${userBal.toLocaleString()} KC**)`, ephemeral: true });
+        const isOwnerUser = interaction.user.id === '1414143825538191373' || interaction.user.username.toLowerCase().includes('krylo') || (interaction.member && interaction.member.roles && interaction.member.roles.cache.some(r => r.name.toUpperCase().includes('OWNER')));
+        if (!isOwnerUser) {
+          await interaction.reply({ content: `❌ You do not have enough KC!`, ephemeral: true });
+          return;
+        }
             return;
         }
 
@@ -5130,7 +5134,11 @@ if (commandName === 'bounty') {
         const userId = interaction.user.id;
         if (!xpData[userId]) xpData[userId] = { xp: 0, level: 1, coins: 0 };
         if ((xpData[userId].coins || 0) < amount) {
-            await interaction.reply({ content: '❌ You do not have enough KC!', ephemeral: true });
+        const isOwnerUser = interaction.user.id === '1414143825538191373' || interaction.user.username.toLowerCase().includes('krylo') || (interaction.member && interaction.member.roles && interaction.member.roles.cache.some(r => r.name.toUpperCase().includes('OWNER')));
+        if (!isOwnerUser) {
+          await interaction.reply({ content: `❌ You do not have enough KC!`, ephemeral: true });
+          return;
+        }
             return;
         }
         
