@@ -3150,7 +3150,7 @@ client.on('interactionCreate', async (interaction) => {
       .setTitle(`💳 Wallet Balance - ${targetUser.username}`)
       .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
       .addFields(
-        { name: '🪙 KryloCoins', value: ``${balance.toLocaleString()} KC``, inline: true },
+        { name: '🪙 KryloCoins', value: `\`${balance.toLocaleString()} KC\``, inline: true },
         { name: '🔗 Server Status', value: '`Linked Account`', inline: true }
       )
       .setTimestamp();
