@@ -5002,6 +5002,25 @@ client.on('interactionCreate', async (interaction) => {
 
         const parsedNum = parseInt(String(rawVal || '1000').replace(/[^0-9]/g, '')) || 1000;
         const amount = Math.max(1, parsedNum);
+        const userId = interaction.user.id;
+        let userBal = 0;
+        if (fs.existsSync('verifiedUsers.json')) {
+          try {
+            const vData = JSON.parse(fs.readFileSync('verifiedUsers.json', 'utf8'));
+            if (vData[userId] && vData[userId].balance !== undefined) {
+              userBal = vData[userId].balance;
+            }
+          } catch (e) {}
+        }
+        if (userBal === 0 && xpData[userId]) {
+          userBal = xpData[userId].coins || 0;
+        }
+
+        if (userBal < amount) {
+            await interaction.reply({ content: `❌ You do not have enough KC! (Your balance: **${userBal.toLocaleString()} KC**)`, ephemeral: true });
+            return;
+        }
+
         userClan.vault = (userClan.vault || 0) + amount;
         saveMegaData();
 
