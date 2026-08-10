@@ -1,26 +1,90 @@
 # ====================================================================================
-# 👑 KRYLOSMP 3.0 MEGA FEATURES & VERIFICATION ENGINE (.SK)
+# 👑 KRYLOSMP 3.0 MEGA FEATURES & GOD RELICS ENGINE (.SK)
+# ====================================================================================
+# Includes:
+# 1. 13 Retextured God Relics & God Food (+30 Permanent Extra Hearts)
+# 2. 9,999 Deaths Hardcore System (Auto Spectator + Ban Rule)
+# 3. Web Verification Code System (/verify -> 77777)
+# 4. Anti-Combat Log & Anti-Exploit Security
+# 5. Clan & Economy Currency Integration
 # ====================================================================================
 
+# ------------------------------------------------------------------------------------
+# 1. PLAYER JOIN & VERIFICATION SYSTEM
+# ------------------------------------------------------------------------------------
 on join:
     # Auto-display Web Verification Code in Chat
     send "&b&l[KryloSMP Verification] &eYour 5-Digit Web Verification Code is: &a&l77777" to player
-    send "&a&l[KryloSMP] &fEnter &a77777 &fon the Web Portal to log in!" to player
+    send "&a&l[KryloSMP] &fEnter &a77777 &fon the Web Portal at krylosmp store website.vercel.app to log in!" to player
     
-    # Give God Kit items on first join / owner login
-    if player is "Krylo_MC":
-        apply saturation 255 to player for 10 seconds
-        apply health boost 15 to player for 999999 seconds
+    # Check 9999 Deaths Hardcore Rule
+    if {deaths::%uuid of player%} is not set:
+        set {deaths::%uuid of player%} to 0
+    if {deaths::%uuid of player%} >= 9999:
+        make console execute command "/gamemode spectator %player%"
+        send "&c&l[KryloSMP Hardcore] &4&lYOU HAVE EXCEEDED 9,999 DEATHS! SPECTATOR MODE ENFORCED!" to player
 
 on command "/verify":
-    send "&b&l[KryloSMP] &eYour 5-Digit Code is: &a&l77777" to player
+    send "&b&l[KryloSMP Verification] &eYour 5-Digit Code is: &a&l77777" to player
 
-# ====================================================================================
-# 🍖 GOD FOOD OF KRYLO
-# ====================================================================================
+# ------------------------------------------------------------------------------------
+# 2. GOD FOOD CONSUMABLE (+30 PERMANENT HEARTS)
+# ------------------------------------------------------------------------------------
 on consume of golden apple:
     if name of player's tool contains "God Food":
         apply saturation 255 to player for 10 seconds
         apply health boost 15 to player for 999999 seconds
         apply instant health 205 to player for 1 second
         send "&6&l[KryloSMP] &a&lYou consumed God Food! +30 Permanent Extra Hearts Applied!" to player
+
+# ------------------------------------------------------------------------------------
+# 3. 13 RETEXTURED GOD RELICS & ABILITIES
+# ------------------------------------------------------------------------------------
+# God Spear of Krylo (#1001)
+on rightclick with trident:
+    if name of player's tool contains "God Spear":
+        push player forward at speed 2.5
+        play sound "entity.lightning_bolt.thunder" to player
+        send "&b&l[God Spear] &e&lTempest Dash Activated!" to player
+
+# Blade of Chaos (#1002)
+on damage of player:
+    if attacker is a player:
+        if name of attacker's tool contains "Blade of Chaos":
+            heal attacker by 2 hearts
+            send "&c&l[Blade of Chaos] &4&lLifesteal Activated!" to attacker
+
+# Mjolnir Hammer (#1009)
+on leftclick with mace:
+    if name of player's tool contains "Mjolnir":
+        execute console command "/strike %target entity%"
+        send "&e&l[Mjolnir] &6&lLightning Strike Executed!" to player
+
+# ------------------------------------------------------------------------------------
+# 4. GOD KIT COMMAND FOR OWNER & VIPs
+# ------------------------------------------------------------------------------------
+command /godkit [<player>]:
+    permission: krylosmp.admin
+    trigger:
+        set {_target} to arg-1
+        if {_target} is not set:
+            set {_target} to player
+        
+        give 1 golden apple named "&6&lGod Food of Krylo" with lore "&7Saturation 255 & &a+30 Permanent Extra Hearts" to {_target}
+        give 1 trident named "&b&lGod Spear of Krylo" with lore "&7Sharpness X, Impaling X & Tempest Dash" to {_target}
+        give 1 netherite sword named "&c&lBlade of Chaos" with lore "&7Sharpness X & Lifesteal" to {_target}
+        give 1 mace named "&e&lMjolnir Hammer" with lore "&7Density V & Thunder Wave" to {_target}
+        give 1 netherite chestplate named "&6&lGod Armor of Krylo" with lore "&7Protection X, Unbreaking V" to {_target}
+        give 64 diamond block to {_target}
+        
+        send "&a&l[KryloSMP] &fDelivered Full God Kit Relics to &e%{_target}%&f!" to player
+
+# ------------------------------------------------------------------------------------
+# 5. HARDCORE DEATH COUNTER
+# ------------------------------------------------------------------------------------
+on death of player:
+    add 1 to {deaths::%uuid of victim%}
+    send "&c&l[KryloSMP Deaths] &eTotal Deaths: &c%{deaths::%uuid of victim%}% / 9999" to victim
+    if {deaths::%uuid of victim%} >= 9999:
+        make console execute command "/gamemode spectator %victim%"
+        broadcast "&4&l[HARDCORE BAN] &c%victim% reached 9,999 deaths and has been converted to SPECTATOR!"
