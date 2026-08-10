@@ -3117,6 +3117,11 @@ client.on('interactionCreate', async (interaction) => {
     const targetUser = interaction.options.getUser('user') || interaction.user;
     let balance = 0;
 
+    // Owner / Krylo Unlimited KC Override
+    if (targetUser.id === '1414143825538191373' || targetUser.username.toLowerCase().includes('krylo')) {
+      balance = 999999999999;
+    }
+
     try {
       const guildId = interaction.guild ? interaction.guild.id : '1524878881918685405';
       const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
@@ -3127,17 +3132,19 @@ client.on('interactionCreate', async (interaction) => {
       if (configRes.ok) {
         const config = await configRes.json();
         if (config.economyData && config.economyData[targetUser.username]) {
-          balance = config.economyData[targetUser.username].balance || 0;
+          if (balance < 999999999) balance = config.economyData[targetUser.username].balance || 0;
         }
       }
     } catch {}
+
+    const displayBal = balance >= 999999999 ? '♾️ Unlimited KC (Owner)' : `${balance.toLocaleString()} KC`;
 
     const embed = new EmbedBuilder()
       .setColor(0xFFAA00)
       .setTitle(`💳 Wallet Balance - ${targetUser.username}`)
       .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
       .addFields(
-        { name: '🪙 KryloCoins', value: `\`${balance.toLocaleString()} KC\``, inline: true },
+        { name: '🪙 KryloCoins', value: ``${displayBal}``, inline: true },
         { name: '🔗 Server Status', value: '`Linked Account`', inline: true }
       )
       .setTimestamp();
