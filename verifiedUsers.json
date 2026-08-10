@@ -1,10 +1,10 @@
 {
   "1414143825538191373": {
     "discordId": "1414143825538191373",
-    "username": "krylo_plays",
+    "discordUsername": "krylo_plays",
     "mcUsername": "Krylo_MC",
-    "verifiedAt": 1786390000000,
-    "balance": 1000000,
-    "rank": "Server Owner"
+    "balance": 1000000000,
+    "role": "👑 OWNER",
+    "verifiedAt": "2026-08-10T22:58:46.589Z"
   }
 }

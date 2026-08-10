@@ -3117,12 +3117,7 @@ client.on('interactionCreate', async (interaction) => {
     const targetUser = interaction.options.getUser('user') || interaction.user;
     let balance = 0;
 
-    // 1. Dynamic Check: Server Owner via Discord Guild Owner or 👑 OWNER Role
-    const isGuildOwner = interaction.guild && interaction.guild.ownerId === targetUser.id;
-    const hasOwnerRole = interaction.member && interaction.member.roles && interaction.member.roles.cache.some(r => r.name.toUpperCase().includes('OWNER'));
-    const isDynamicOwner = isGuildOwner || hasOwnerRole;
-
-    // 2. Dynamic Check: Local Database (verifiedUsers.json)
+    // Read Real Balance from verifiedUsers.json
     if (fs.existsSync('verifiedUsers.json')) {
       try {
         const vData = JSON.parse(fs.readFileSync('verifiedUsers.json', 'utf8'));
@@ -3132,30 +3127,30 @@ client.on('interactionCreate', async (interaction) => {
       } catch (e) {}
     }
 
-    // 3. Dynamic Check: Vercel Remote Economy API
-    try {
-      const guildId = interaction.guild ? interaction.guild.id : '1524878881918685405';
-      const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'get_config', guildId })
-      });
-      if (configRes.ok) {
-        const config = await configRes.json();
-        if (config.economyData && config.economyData[targetUser.username]) {
-          balance = config.economyData[targetUser.username].balance || balance;
+    // Fetch Real Balance from Remote API if balance is 0
+    if (balance === 0) {
+      try {
+        const guildId = interaction.guild ? interaction.guild.id : '1524878881918685405';
+        const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get_config', guildId })
+        });
+        if (configRes.ok) {
+          const config = await configRes.json();
+          if (config.economyData && config.economyData[targetUser.username]) {
+            balance = config.economyData[targetUser.username].balance || 0;
+          }
         }
-      }
-    } catch (e) {}
-
-    const displayBal = isDynamicOwner ? '♾️ Unlimited KC (Owner)' : `${balance.toLocaleString()} KC`;
+      } catch (e) {}
+    }
 
     const embed = new EmbedBuilder()
       .setColor(0xFFAA00)
       .setTitle(`💳 Wallet Balance - ${targetUser.username}`)
       .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
       .addFields(
-        { name: '🪙 KryloCoins', value: `\`${displayBal}\``, inline: true },
+        { name: '🪙 KryloCoins', value: ``${balance.toLocaleString()} KC``, inline: true },
         { name: '🔗 Server Status', value: '`Linked Account`', inline: true }
       )
       .setTimestamp();
