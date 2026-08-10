@@ -5,6 +5,8 @@
     "mcUsername": "Krylo_MC",
     "balance": 1000000000,
     "role": "👑 OWNER",
+    "verificationCode": "77777",
+    "isVerified": true,
     "verifiedAt": "2026-08-10T22:58:46.589Z"
   }
 }
