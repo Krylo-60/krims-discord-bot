@@ -1383,34 +1383,34 @@ client.once('ready', async () => {
         };
 
         // Align channels under 📌 INFORMATION
-        await ensureChannel('📌・rules', infoCat, 'Official server rules and regulations.');
-        await ensureChannel('📢・announcements', infoCat, 'Official server news and announcements.');
-        await ensureChannel('📺・youtube-alerts', infoCat, 'YouTube video notifications.');
-        await ensureChannel('🌐・official-links', infoCat, 'Official web links and store.');
-        await ensureChannel('✅・verify-here', infoCat, 'Player verification gateway.');
+        await ensureChannel('📌┃rules', infoCat, 'Official server rules and regulations.');
+        await ensureChannel('📢┃server-announcements', infoCat, 'Official server news and announcements.');
+        await ensureChannel('📺┃youtube-announcements', infoCat, 'YouTube video notifications.');
+        await ensureChannel('🌐┃socials', infoCat, 'Official web links and store.');
+        await ensureChannel('✅┃verify', infoCat, 'Player verification gateway.');
 
         // Align channels under 💬 COMMUNITY
-        await ensureChannel('💬・general-chat', commCat, 'General chat and discussion.');
-        await ensureChannel('🤖・bot-commands', commCat, 'Use bot commands here.');
-        await ensureChannel('📷・media-clips', commCat, 'Post your builds and clips.');
-        await ensureChannel('💡・suggestions', commCat, 'Submit ideas and vote.');
+        await ensureChannel('💬┃general-chat', commCat, 'General chat and discussion.');
+        await ensureChannel('🤖┃bot-commands', commCat, 'Use bot commands here.');
+        await ensureChannel('📷┃media-clips', commCat, 'Post your builds and clips.');
+        await ensureChannel('💡┃suggestions', commCat, 'Submit ideas and vote.');
 
         // Align channels under 🛒 ECONOMY & STORE
-        await ensureChannel('🛒・web-store', econCat, 'Official KryloSMP store catalog.');
-        await ensureChannel('💰・jackpot-vault', econCat, 'Jackpot vault & casino.');
-        await ensureChannel('🎯・bounty-board', econCat, 'Active player bounties.');
-        await ensureChannel('🤝・item-trading', econCat, 'Player-to-player trading.');
+        await ensureChannel('🛒┃store', econCat, 'Official KryloSMP store catalog.');
+        await ensureChannel('💰┃jackpot-vault', econCat, 'Jackpot vault & casino.');
+        await ensureChannel('🎯┃bounty-board', econCat, 'Active player bounties.');
+        await ensureChannel('🤝┃item-trading', econCat, 'Player-to-player trading.');
 
         // Align channels under 🏰 FACTIONS & CLANS
         await ensureChannel('🏰・ksmp-clan-chat', clanCat, 'Official clan discussion.');
-        await ensureChannel('🏆・clan-rankings', clanCat, 'Top clans leaderboard.');
+        await ensureChannel('🏆┃clan-leaderboard', clanCat, 'Top clans leaderboard.');
 
         // Align channels under ⚔️ PVP & TOURNAMENTS
-        await ensureChannel('⚔️・pvp-arena-chat', pvpCat, 'PvP chat and duels.');
-        await ensureChannel('🏆・monthly-tournament', pvpCat, 'Monthly tournament announcements.');
+        await ensureChannel('⚔️┃pvp-chat', pvpCat, 'PvP chat and duels.');
+        await ensureChannel('🏆┃monthly-tournament', pvpCat, 'Monthly tournament announcements.');
 
         // Align channels under 🎟️ SUPPORT & TICKETS
-        await ensureChannel('🎟️・open-ticket', tktCat, 'Open support tickets.');
+        await ensureChannel('🎫┃support-tickets', tktCat, 'Open support tickets.');
 
         // Align Voice Channels
         const voiceChannels = ['🔊・General Lounge', '🔊・Gaming Squad 1', '🔊・Gaming Squad 2', '💤・afk-zone'];
