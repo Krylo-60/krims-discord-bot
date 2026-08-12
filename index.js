@@ -1835,22 +1835,57 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
 
-    if (customId === 'start_verification') {
-      const modal = new ModalBuilder()
-        .setCustomId('modal_start_verification')
-        .setTitle('Link Minecraft Account');
+    if (customId === 'start_verification' || customId === 'verify_user') {
+      let verified = {};
+      if (fs.existsSync('verifiedUsers.json')) {
+        try {
+          verified = JSON.parse(fs.readFileSync('verifiedUsers.json', 'utf-8'));
+        } catch (e) {}
+      }
 
-      const usernameInput = new TextInputBuilder()
-        .setCustomId('mc_username')
-        .setLabel('What is your Minecraft Username?')
-        .setPlaceholder('e.g. Krylo_MC')
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true);
+      let userRecord = verified[interaction.user.id];
+      let personalCode;
 
-      const row = new ActionRowBuilder().addComponents(usernameInput);
-      modal.addComponents(row);
+      if (userRecord && userRecord.verificationCode && userRecord.verificationCode !== '77777') {
+        personalCode = userRecord.verificationCode;
+      } else {
+        personalCode = Math.floor(100000 + Math.random() * 900000).toString();
+        verified[interaction.user.id] = {
+          discordId: interaction.user.id,
+          discordTag: interaction.user.tag,
+          verificationCode: personalCode,
+          minecraftUsername: userRecord?.minecraftUsername || '',
+          verified: userRecord?.verified || false,
+          createdAt: new Date().toISOString()
+        };
+        fs.writeFileSync('verifiedUsers.json', JSON.stringify(verified, null, 2));
+      }
 
-      await interaction.showModal(modal);
+      const verifyEmbed = new EmbedBuilder()
+        .setAuthor({ name: 'KryloSMP Unique Account Verification', iconURL: interaction.guild.iconURL() })
+        .setTitle('🔒 YOUR PERSONAL VERIFICATION CODE')
+        .setDescription(
+          `Hello <@${interaction.user.id}>! Here is your unique, personal verification code:
+
+` +
+          `🔑 **YOUR PERSONAL CODE**: **\`${personalCode}\`**
+
+` +
+          `**HOW TO COMPLETE YOUR VERIFICATION:**
+` +
+          `1️⃣ Copy your code: **\`${personalCode}\`**
+` +
+          `2️⃣ Enter code **\`${personalCode}\`** on the [**Player Portal**](https://krylosmp-player-portal.vercel.app/)
+` +
+          `3️⃣ Or connect to Minecraft (\`KryloSmp.play.hosting\`) and type: \`/verify ${personalCode}\`
+
+` +
+          `*This code is generated specifically for your account only and is private!*`
+        )
+        .setColor(0x00FF88)
+        .setFooter({ text: `Unique Player Code • ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() });
+
+      await interaction.reply({ embeds: [verifyEmbed], ephemeral: true });
       return;
     }
 
