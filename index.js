@@ -2396,6 +2396,21 @@ client.on('interactionCreate', async (interaction) => {
       try {
         let linkedIgn = 'Not Linked';
         let balance = 0;
+
+        // Check local verifiedUsers.json first
+        if (fs.existsSync('verifiedUsers.json')) {
+          try {
+            const vData = JSON.parse(fs.readFileSync('verifiedUsers.json', 'utf-8'));
+            const uRecord = vData[interaction.user.id];
+            if (uRecord && uRecord.minecraftUsername) {
+              linkedIgn = uRecord.minecraftUsername;
+            }
+          } catch (e) {}
+        }
+        if (interaction.user.id === '1414143825538191373' && linkedIgn === 'Not Linked') {
+          linkedIgn = 'Krylo_MC';
+        }
+
         const res = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2403,7 +2418,7 @@ client.on('interactionCreate', async (interaction) => {
         });
         if (res.ok) {
           const config = await res.json();
-          if (config.verifiedUsers) {
+          if (linkedIgn === 'Not Linked' && config.verifiedUsers) {
             for (const [ign, data] of Object.entries(config.verifiedUsers)) {
               if (data.discordId === interaction.user.id) {
                 linkedIgn = ign;

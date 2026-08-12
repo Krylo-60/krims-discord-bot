@@ -1,12 +1,11 @@
 {
   "1414143825538191373": {
     "discordId": "1414143825538191373",
-    "discordUsername": "krylo_plays",
-    "mcUsername": "Krylo_MC",
+    "discordTag": "krylo_plays",
+    "minecraftUsername": "Krylo_MC",
+    "verificationCode": "231525",
+    "verified": true,
     "balance": 1000000000,
-    "role": "👑 OWNER",
-    "verificationCode": "77777",
-    "isVerified": true,
-    "verifiedAt": "2026-08-10T22:58:46.589Z"
+    "verifiedAt": "2026-08-12T17:34:25Z"
   }
 }
