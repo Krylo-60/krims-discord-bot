@@ -1,3 +1,8 @@
+/**
+ * 👑 KRYLOSMP MASTER GOOGLE SHEETS:
+ * 1. Support & Ticket Logs Sheet: https://docs.google.com/spreadsheets/d/1F4NRwssxFxJO58uX6CTHvXqSMoEMoLhJGRI2IeghF-g/edit?gid=377764939#gid=377764939
+ * 2. Store & Verification Logs Sheet: https://docs.google.com/spreadsheets/d/1FAkYgHvcNW5ei0vf2GtXlKFjtBtdtGfmPAoUmIEQevA/edit?gid=0#gid=0
+ */
 import os from 'os';
 import crypto from 'crypto';
 import { Client, GuildScheduledEventEntityType, GuildScheduledEventPrivacyLevel, GatewayIntentBits, Partials, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder } from 'discord.js';
