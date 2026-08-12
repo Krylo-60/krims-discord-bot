@@ -1276,37 +1276,34 @@ client.once('ready', async () => {
           }
 
           const embed = new EmbedBuilder()
-            .setColor(0x00FF66)
-            .setTitle('🔗 Minecraft Account Linking')
+            .setAuthor({ name: 'KryloSMP Official Security & Whitelist Gateway', iconURL: guild.iconURL() })
+            .setTitle('⚡ KRYLOSMP 3.0 — OFFICIAL VERIFICATION PORTAL')
             .setDescription(
-              'Link your Minecraft account to get a chance to participate in future events and claim exclusive rewards!\n\n' +
-              '**How to Link:**\n' +
-              '1. Click **Link Account** below\n' +
-              '2. Enter your Minecraft Username (Java or Bedrock)\n' +
-              '3. Connect to **`KryloSmp.play.hosting`**\n' +
-              '4. Your account will be automatically linked & whitelisted!\n\n' +
-              '🔒 **Privacy Policy**\n' +
-              '🌐 **Server Address:** `KryloSmp.play.hosting`  |  🕹️ **Supported Versions:** Java & Bedrock 1.21.x'
+              `Welcome to **KryloSMP**! To protect our community from bot raids, malicious alt accounts, and spam, all new members must verify their account before accessing server channels.\n\n` +
+              `**HOW TO VERIFY & UNLOCK THE SERVER:**\n` +
+              `1️⃣ Click the **\`✅ Verify Account\`** button below.\n` +
+              `2️⃣ The bot will generate a **unique personal 6-digit code** for your account.\n` +
+              `3️⃣ Enter your code on the [**Player Portal**](https://krylosmp-player-portal.vercel.app/) or type \`/verify <code>\` inside Minecraft (\`KryloSmp.play.hosting\`).\n` +
+              `4️⃣ Your Discord account will automatically receive the **\`✅ VERIFIED PLAYER\`** role and unlock all chat & voice lounges!\n\n` +
+              `*Need assistance? Open a ticket in #🎟️・open-ticket for 24/7 AI support!*`
             )
-            .setImage('attachment://krylosmp_banner.png');
+            .setColor(0x00FF88)
+            .setFooter({ text: 'KryloSMP Network Security • Unique Player Code System Active', iconURL: guild.iconURL() })
+            .setTimestamp();
           
           const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
-              .setCustomId('start_verification')
-              .setLabel('Link Account')
+              .setCustomId('verify_user')
+              .setLabel('✅ Verify Account')
               .setStyle(ButtonStyle.Success),
             new ButtonBuilder()
-              .setCustomId('unlink_account')
-              .setLabel('Unlink Account')
-              .setStyle(ButtonStyle.Danger),
+              .setLabel('🌐 Player Portal')
+              .setStyle(ButtonStyle.Link)
+              .setURL('https://krylosmp-player-portal.vercel.app/'),
             new ButtonBuilder()
-              .setCustomId('update_username')
-              .setLabel('Update Username')
-              .setStyle(ButtonStyle.Primary),
-            new ButtonBuilder()
-              .setCustomId('check_status')
-              .setLabel('Check Status')
-              .setStyle(ButtonStyle.Secondary)
+              .setLabel('🛒 Web Store')
+              .setStyle(ButtonStyle.Link)
+              .setURL('https://krylosmp-store-website.vercel.app/')
           );
           const files = [];
           if (fs.existsSync('krylosmp_banner.png')) {
