@@ -7554,8 +7554,11 @@ async function closeTicketInGoogleSheet(channelId) {
 
 
 async function handleTicketMessage(message) {
-  // Guard 1: Restrict updates/actions strictly to the KryloSMP Discord Server
-  if (!message.guild || message.guild.id !== '1524878881918685405') {
+  // Guard 1: Ignore all bot messages to prevent loop spam
+  if (message.author.bot) return;
+
+  // Guard 2: Restrict updates/actions strictly to ticket channels in KryloSMP Server
+  if (!message.guild || !message.channel.name.startsWith('ticket-')) {
     return;
   }
 
