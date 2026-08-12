@@ -248,7 +248,7 @@ async function endCurrentDuel(guild, duelChannel) {
 
   // Remove PvP Player role from both players
   try {
-    const pvpRole = guild.roles.cache.find(r => r.name === 'PvP Player');
+    const pvpRole = guild.roles.cache.find(r => r.name === '⚔️ PvP Specialist');
     if (pvpRole) {
       const challenger = await guild.members.fetch(oldDuel.challengerId).catch(() => null);
       const challenged = await guild.members.fetch(oldDuel.challengedId).catch(() => null);
@@ -1482,11 +1482,11 @@ client.once('ready', async () => {
       // 6. Setup PvP and Tournament Roles & Channels
       console.log('[KryloSMP Setup] Setting up PvP and Tournament roles and channels...');
       
-      let pvpRole = guild.roles.cache.find(r => r.name === 'PvP Player');
+      let pvpRole = guild.roles.cache.find(r => r.name === '⚔️ PvP Specialist');
       if (!pvpRole) {
         try {
           pvpRole = await guild.roles.create({
-            name: 'PvP Player',
+            name: '⚔️ PvP Specialist',
             color: 0xFF0055,
             reason: 'Auto-created PvP command role'
           });
@@ -4440,11 +4440,11 @@ client.on('interactionCreate', async (interaction) => {
 
     await interaction.deferReply({ ephemeral: true });
 
-    let pvpRole = interaction.guild.roles.cache.find(r => r.name === 'PvP Player');
+    let pvpRole = interaction.guild.roles.cache.find(r => r.name === '⚔️ PvP Specialist');
     if (!pvpRole) {
       try {
         pvpRole = await interaction.guild.roles.create({
-          name: 'PvP Player',
+          name: '⚔️ PvP Specialist',
           color: 0xFF0055,
           reason: 'Created for PvP command'
         });
@@ -6137,11 +6137,11 @@ client.on('messageCreate', async (message) => {
       return;
     }
 
-    let pvpRole = message.guild.roles.cache.find(r => r.name === 'PvP Player');
+    let pvpRole = message.guild.roles.cache.find(r => r.name === '⚔️ PvP Specialist');
     if (!pvpRole) {
       try {
         pvpRole = await message.guild.roles.create({
-          name: 'PvP Player',
+          name: '⚔️ PvP Specialist',
           color: 0xFF0055,
           reason: 'Created for PvP command'
         });
