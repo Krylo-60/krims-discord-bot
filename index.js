@@ -1331,12 +1331,13 @@ client.once('ready', async () => {
           return cat;
         };
 
-        const infoCat = await ensureCategory('📌 INFORMATION');
-        const commCat = await ensureCategory('💬 COMMUNITY ZONE');
-        const eventCat = await ensureCategory('🎪 EVENTS & ACTIVITIES');
-        const liveCat = await ensureCategory('🎮 MINECRAFT LIVE');
-        const staffCat = await ensureCategory('📞 STAFF AREA');
-        const voiceCat = await ensureCategory('🔊 VOICE CHANNELS');
+        const infoCat = await ensureCategory('╭━━━ 📌 INFORMATION ━━━╮');
+        const commCat = await ensureCategory('╭━━━ 💬 COMMUNITY ━━━╮');
+        const econCat = await ensureCategory('╭━━━ 🛒 ECONOMY & STORE ━━━╮');
+        const clanCat = await ensureCategory('╭━━━ 🏰 FACTIONS & CLANS ━━━╮');
+        const pvpCat  = await ensureCategory('╭━━━ ⚔️ PVP & TOURNAMENTS ━━━╮');
+        const tktCat  = await ensureCategory('╭━━━ 🎟️ SUPPORT & TICKETS ━━━╮');
+        const voiceCat = await ensureCategory('╭━━━ 🔊 VOICE LOUNGES ━━━╮');
 
         // Helper to find or create/move a text channel
         const ensureChannel = async (name, parentCat, topic = '', isPrivate = false) => {
