@@ -855,13 +855,14 @@ client.once('ready', async () => {
     console.error('[-] Failed to register slash commands:', err.message);
   }
 
-  // Automatic Birthday Scheduler for July 24th (Cloud hosting safe timestamp: 1784865600000)
-  let birthdayAnnouncedYear = 0;
+  // Automatic Birthday Scheduler for July 24th (Only triggers on exact date: July 24th)
+  let birthdayAnnouncedYear = new Date().getFullYear(); // Safe initialization to prevent retroactive triggers
   setInterval(async () => {
-    const targetTimestamp = 1784865600000; // July 24th, 2026 00:00:00 EDT
-    const currentYear = new Date().getFullYear();
-      if (Date.now() >= targetTimestamp && birthdayAnnouncedYear !== currentYear) {
-        birthdayAnnouncedYear = currentYear;
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const isJuly24 = (now.getMonth() === 6 && now.getDate() === 24); // Month 6 = July (0-indexed)
+    if (isJuly24 && birthdayAnnouncedYear !== currentYear) {
+      birthdayAnnouncedYear = currentYear;
         
         console.log("[🎂 BIRTHDAY DAEMON] July 24th reached! Triggering Official Birthday Announcement...");
         try {
