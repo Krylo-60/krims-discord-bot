@@ -44,7 +44,6 @@ const dailyCooldowns = new Map();
 const workCooldowns = new Map();
 const giveawayEntries = new Map(); // giveaway message ID -> Set of user IDs
 const bountyData = new Map(); // user ID -> bounty amount in KC
-const xpData = {}; // user ID -> { xp, level, coins }
 const COOLDOWN_TIME = 10000; // 10 seconds cooldown in milliseconds
 const spamMap = new Map();
 const userStrikes = new Map();
