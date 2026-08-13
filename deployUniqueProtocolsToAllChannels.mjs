@@ -27,7 +27,7 @@ const CHANNEL_PROTOCOLS = {
           `1️⃣ **NO HACKING / CHEATING**: Unfair advantages (X-Ray, KillAura, Fly, Autoclicker > 15 CPS) result in a permanent ban.\n` +
           `2️⃣ **NO TOXICITY / SLURS**: Respect all players. Hate speech, extreme toxicity, and harassment will not be tolerated.\n` +
           `3️⃣ **NO SCAMMING REAL MONEY**: In-game item trading is allowed, but real-money scams will result in immediate blacklisting.\n` +
-          `4️⃣ **RESPECT STAFF DECISIONS**: Staff members enforce safety. If you believe a punishment was unfair, open a ticket in <#🎫┃support-tickets>.\n` +
+          `4️⃣ **RESPECT STAFF DECISIONS**: Staff members enforce safety. If you believe a punishment was unfair, open a ticket in #🎫┃support-tickets.\n` +
           `5️⃣ **FAIR PLAY IN FACTIONS**: Exploiting bugs or duping items is strictly prohibited and will trigger a world roll-back.\n\n` +
           `*Violation of rules will result in mutes, temp-bans, or permanent network blacklisting.*`
   },
@@ -105,7 +105,7 @@ const CHANNEL_PROTOCOLS = {
           `• Chat about Minecraft, SMP strategies, build ideas, and gaming\n` +
           `• Keep conversations friendly, respectful, and PG-13\n` +
           `• Avoid spamming, excessive caps, or self-promotion\n` +
-          `• Use <#🤖┃bot-commands> for bot commands to keep general clean!`
+          `• Use #🤖┃bot-commands for bot commands to keep general clean!`
   },
   'music-chat': {
     title: '🎵 KRYLOSMP MUSIC & AUDIO LOUNGE',
@@ -178,7 +178,7 @@ const CHANNEL_PROTOCOLS = {
     color: 0xFFB703,
     desc: `Track the server Jackpot pool and celebrate big wins!\n\n` +
           `🎰 **JACKPOT RULES:**\n` +
-          `• Use \`/jackpot\` in <#🤖┃bot-commands> to enter the pool\n` +
+          `• Use \`/jackpot\` in #🤖┃bot-commands to enter the pool\n` +
           `• Winner takes the entire server coin pool!`
   },
   'bounty-board': {
