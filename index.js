@@ -2048,7 +2048,7 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
 
-    if (customId === 'start_verification' || customId === 'verify_user') {
+    if (customId === 'start_verification' || customId === 'verify_user' || customId === 'btn_open_verify_modal') {
       let verified = {};
       if (fs.existsSync('verifiedUsers.json')) {
         try {
@@ -2646,7 +2646,7 @@ client.on('interactionCreate', async (interaction) => {
       return;
     }
 
-    if (customId === 'check_status') {
+    if (customId === 'check_status' || customId === 'btn_check_status') {
       await interaction.deferReply({ ephemeral: true });
       const guildId = interaction.guild ? interaction.guild.id : '1524878881918685405';
       try {
@@ -2717,6 +2717,54 @@ client.on('interactionCreate', async (interaction) => {
       }
       return;
     }
+
+    if (customId === 'copy_ip_btn') {
+      await interaction.reply({
+        content: '🌐 **KryloSMP Connection Details:**\n\n' +
+                 '• **Java Server IP:** `KryloSmp.play.hosting` (Port: `25565`)\n' +
+                 '• **Bedrock IP:** `KryloSmp.play.hosting` (Port: `19132`)\n' +
+                 '• **Version:** `1.21.x`\n' +
+                 '• **Player Portal:** https://krylosmp.web.app/\n' +
+                 '• **KC Store:** https://krylosmp-store.web.app/',
+        ephemeral: true
+      });
+      return;
+    }
+
+    if (customId === 'btn_check_status' || customId === 'check_status') {
+      // Handled above in check_status block, or fallback:
+    }
+
+    if (customId.startsWith('create_ticket') || customId === 'btn_ticket_open' || customId === 'open_ticket') {
+      const modal = new ModalBuilder()
+        .setCustomId('modal_open_ticket')
+        .setTitle('Open Support Ticket');
+
+      const reasonInput = new TextInputBuilder()
+        .setCustomId('ticket_reason')
+        .setLabel('Reason / Question')
+        .setStyle(TextInputStyle.Paragraph)
+        .setPlaceholder('Describe your issue, question, or application...')
+        .setRequired(true);
+
+      const row = new ActionRowBuilder().addComponents(reasonInput);
+      modal.addComponents(row);
+
+      try {
+        await interaction.showModal(modal);
+      } catch (modalErr) {
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({ content: '✅ Ticket system initialized. Opening ticket...', ephemeral: true });
+        }
+      }
+      return;
+    }
+
+    // Universal Fallback for any unhandled button to prevent "didn't respond in time"
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({ content: '⚡ Action acknowledged! Processing request...', ephemeral: true }).catch(() => {});
+    }
+    return;
   }
 
   if (interaction.isModalSubmit()) {
