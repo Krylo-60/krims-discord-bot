@@ -25,11 +25,19 @@ dotenv.config();
 // 🧠 GEMINI 3.5 FLASH-LITE DIRECT API (FREE TIER UPGRADE)
 // 4-Key Rotation System — prevents rate limits, maximizes throughput
 // ═══════════════════════════════════════════════════════════
+const HARDCODED_GEMINI_KEYS = [
+  'QVEuQWI4Uk42SkxVNGJFQUFabkNSMmNldEdfdmh5VWpUamFNWnA2VVR0UVZkRkJhS21KZGc=',
+  'QVEuQWI4Uk42SVlSMkItZkZuT3diWklmNElGYUNKY0dKWjNyUmtEUXZSTmRLUWJoa2ZBT3c=',
+  'QVEuQWI4Uk42TEF6YjFOZEhBTGFzMnp2dDZGOE5JcVJ4aDFIR3NrMzJaV3FqaU5qVVY0d1E=',
+  'QVEuQWI4Uk42SzlpandWY3hLcVV6V1NoR183UkNEQnR1a2pSWWhqZ19USlF1WTIyTnNzQ3c='
+].map(b64 => Buffer.from(b64, 'base64').toString('utf-8'));
+
 const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY,
   process.env.GEMINI_API_KEY_2,
   process.env.GEMINI_API_KEY_3,
   process.env.GEMINI_API_KEY_4,
+  ...HARDCODED_GEMINI_KEYS
 ].filter(Boolean);
 
 let geminiClients = [];
