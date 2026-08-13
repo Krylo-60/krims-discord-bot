@@ -6101,7 +6101,6 @@ if (commandName === 'lootbox') {
         conversationHistory.set(interaction.channel.id, history);
 
         let replyText = `🤖 **Krims AI Response:**\n${responseText}`;
-        replyText += `\n\n*Engine: ${usedEngine}*`;
         await sendSafeMessage(interaction, replyText);
       } else {
         await interaction.editReply("❌ Failed to parse AI response.");
@@ -6112,7 +6111,7 @@ if (commandName === 'lootbox') {
         try {
           const fallbackResponse = await geminiDirectAsk(prompt, systemInstruction);
           if (fallbackResponse) {
-            await sendSafeMessage(interaction, `🤖 **Krims AI Response:**\n${fallbackResponse}\n\n*Engine: Gemini 3.5 Flash-Lite (fallback)*`);
+            await sendSafeMessage(interaction, `🤖 **Krims AI Response:**\n${fallbackResponse}`);
             return;
           }
         } catch (e2) {}
@@ -7022,7 +7021,6 @@ client.on('messageCreate', async (message) => {
         conversationHistory.set(message.channel.id, history);
 
         let replyText = `🤖 **Krims AI Response:**\n${responseText}`;
-        replyText += `\n\n*Engine: ${usedEngine}*`;
         await sendSafeMessage(typingMsg, replyText);
       } else {
         await typingMsg.edit("❌ **AI response error.** Please try asking again!");
@@ -7034,7 +7032,7 @@ client.on('messageCreate', async (message) => {
         try {
           const fallbackRes = await geminiDirectAsk(prompt, systemInstruction);
           if (fallbackRes) {
-            await sendSafeMessage(typingMsg, `🤖 **Krims AI Response:**\n${fallbackRes}\n\n*Engine: Gemini AI (emergency fallback)*`);
+            await sendSafeMessage(typingMsg, `🤖 **Krims AI Response:**\n${fallbackRes}`);
             return;
           }
         } catch (e2) {}
