@@ -2021,7 +2021,8 @@ client.on('interactionCreate', async (interaction) => {
     if (customId === 'start_verification' || customId === 'enter_verify_code') {
       const verifiedRole = interaction.guild?.roles.cache.find(r => r.name === 'Verified');
       if (verifiedRole && interaction.member.roles.cache.has(verifiedRole.id)) {
-        await interaction.reply({ content: '❌ **You are already verified!**\n\nIf you need to change your Minecraft username or link a different account, please open a support ticket in <#1524882737230774332> for staff assistance.', ephemeral: true });
+        const supportCh = interaction.guild?.channels.cache.find(c => c.name.includes('ticket') || c.name.includes('support'));
+        await interaction.reply({ content: `❌ **You are already verified!**\n\nIf you need to change your Minecraft username or link a different account, please open a support ticket in ${supportCh ? `<#${supportCh.id}>` : 'support channels'} for staff assistance.`, ephemeral: true });
         return;
       }
     }
@@ -2335,12 +2336,13 @@ client.on('interactionCreate', async (interaction) => {
       }
 
       if (!mcUsername) {
+        const vCh = interaction.guild?.channels.cache.find(c => c.name.includes('verify'));
         const linkEmbed = new EmbedBuilder()
           .setColor(0xFF4444)
           .setTitle('❌ Account Not Linked')
           .setDescription('You need to **link your Minecraft account** before you can purchase items from the store!')
           .addFields(
-            { name: '📋 How to Link', value: '1. Go to <#1526685112693952568>\n2. Click **Link Minecraft Account**\n3. Enter your MC username\n4. Join the server & enter the code' }
+            { name: '📋 How to Link', value: `1. Go to ${vCh ? `<#${vCh.id}>` : 'the verify channel'}\n2. Click **Verify Account**\n3. Enter your MC username & code` }
           )
           .setFooter({ text: 'KryloSMP Store' })
           .setTimestamp();
@@ -3362,13 +3364,13 @@ client.on('interactionCreate', async (interaction) => {
     return;
   }
 
-  // Command: /bump
   if (commandName === 'bump') {
+    const cmdCh = interaction.guild?.channels.cache.find(c => c.name.includes('bot-command') || c.name.includes('general'));
     const embed = new EmbedBuilder()
       .setColor(0x00F2FF)
       .setTitle('🚀 Disboard Server Bump Helper')
       .setDescription(
-        'Type `/bump` (Disboard Bot command) in <#1526685119375478997> to bump KryloSMP to the top of Disboard homepage!\n\n' +
+        `Type \`/bump\` (Disboard Bot command) in ${cmdCh ? `<#${cmdCh.id}>` : 'bot commands channel'} to bump KryloSMP to the top of Disboard homepage!\n\n` +
         '• **Bump Cooldown:** Disboard allows bumping every **2 hours**.\n' +
         '• **Reward:** +300 KryloCoins granted to every player who bumps!'
       )
@@ -4520,7 +4522,8 @@ client.on('interactionCreate', async (interaction) => {
     // Check if player is already verified
     const verifiedRole = interaction.guild?.roles.cache.find(r => r.name === 'Verified');
     if (verifiedRole && interaction.member.roles.cache.has(verifiedRole.id)) {
-      await interaction.editReply('❌ **You are already verified!**\n\nIf you need to change your Minecraft username or link a different account, please open a support ticket in <#1524882737230774332> for staff assistance.');
+      const sCh = interaction.guild?.channels.cache.find(c => c.name.includes('ticket') || c.name.includes('support'));
+      await interaction.editReply(`❌ **You are already verified!**\n\nIf you need to change your Minecraft username or link a different account, please open a support ticket in ${sCh ? `<#${sCh.id}>` : 'support channels'} for staff assistance.`);
       return;
     }
     
