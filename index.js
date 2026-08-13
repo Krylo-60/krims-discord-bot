@@ -58,37 +58,51 @@ function rotateGeminiKey() {
 }
 
 /**
- * Direct Gemini 3.5 Flash-Lite ask function (bypasses Krims SDK)
+ * Direct Gemini ask function with model cascade:
+ *   1. gemini-3.5-flash-lite (newest, fastest, smartest)
+ *   2. gemini-2.5-flash (proven fallback)
  * Uses round-robin key rotation for maximum throughput
  */
+const GEMINI_MODEL_CASCADE = ['gemini-3.5-flash-lite', 'gemini-2.5-flash'];
+
 async function geminiDirectAsk(prompt, systemInstruction = '') {
   if (!geminiClient || geminiClients.length === 0) return null;
   
-  // Try current key, on rate limit rotate and retry
-  for (let attempt = 0; attempt < geminiClients.length; attempt++) {
-    try {
-      const response = await geminiClient.models.generateContent({
-        model: 'gemini-3.5-flash-lite',
-        contents: prompt,
-        config: {
-          systemInstruction: systemInstruction || 'You are Krims Code AI, the official KryloSMP Discord bot assistant. Be helpful, friendly, concise. Use emojis moderately. You speak in a slightly playful but professional tone.',
-          thinkingConfig: { thinkingBudget: 0 }, // Minimal thinking for speed
-        }
-      });
-      rotateGeminiKey(); // Rotate for next call
-      return response?.text || response?.candidates?.[0]?.content?.parts?.[0]?.text || null;
-    } catch (e) {
-      if (e.status === 429 || e.message?.includes('RESOURCE_EXHAUSTED')) {
-        console.warn(`[Gemini] Key ${geminiKeyIndex + 1} rate limited, rotating...`);
+  const sysInstr = systemInstruction || 'You are Krims Code AI, the official KryloSMP Discord bot assistant. Be helpful, friendly, concise. Use emojis moderately. You speak in a slightly playful but professional tone.';
+
+  // Try each model in the cascade
+  for (const modelId of GEMINI_MODEL_CASCADE) {
+    // Try current key, on rate limit rotate and retry across all keys
+    for (let attempt = 0; attempt < geminiClients.length; attempt++) {
+      try {
+        const response = await geminiClient.models.generateContent({
+          model: modelId,
+          contents: prompt,
+          config: {
+            systemInstruction: sysInstr,
+            thinkingConfig: { thinkingBudget: 0 },
+          }
+        });
         rotateGeminiKey();
-        continue;
+        const text = response?.text || response?.candidates?.[0]?.content?.parts?.[0]?.text || null;
+        if (text) {
+          console.log(`[Gemini] ✅ Response via ${modelId} (key ${geminiKeyIndex + 1})`);
+          return text;
+        }
+      } catch (e) {
+        if (e.status === 429 || e.message?.includes('RESOURCE_EXHAUSTED')) {
+          console.warn(`[Gemini] Key ${geminiKeyIndex + 1} rate limited on ${modelId}, rotating...`);
+          rotateGeminiKey();
+          continue;
+        }
+        // Model-level error → try next model in cascade
+        console.warn(`[Gemini] ${modelId} error: ${e.message} — falling back...`);
+        rotateGeminiKey();
+        break; // Break inner loop to try next model
       }
-      console.warn('[Gemini Direct] API error:', e.message);
-      rotateGeminiKey();
-      return null;
     }
   }
-  return null;
+  return null; // All models and keys exhausted → Krims SDK takes over
 }
 
 const client = new Client({
