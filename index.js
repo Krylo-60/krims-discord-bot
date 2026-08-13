@@ -1889,6 +1889,35 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.isButton()) {
     const { customId } = interaction;
 
+    // Legendary Giveaway & Daily Reward Buttons
+    if (customId === 'btn_claim_daily_kc') {
+      const now = Date.now();
+      if (!global.userDailyClaimTimes) global.userDailyClaimTimes = {};
+      const lastClaim = global.userDailyClaimTimes[interaction.user.id] || 0;
+      if (now - lastClaim < 24 * 60 * 60 * 1000) {
+        const remHours = Math.ceil((24 * 60 * 60 * 1000 - (now - lastClaim)) / (1000 * 60 * 60));
+        return interaction.reply({
+          content: `⏳ **Already Claimed!** Come back in **${remHours} hours** for your next **+1,000 KC** drop!`,
+          flags: 64
+        });
+      }
+      global.userDailyClaimTimes[interaction.user.id] = now;
+      let curBal = (economy[interaction.user.id] || 1000) + 1000;
+      economy[interaction.user.id] = curBal;
+
+      return interaction.reply({
+        content: `🎉 **+1,000 KryloCoins Added!** Your new balance is **${curBal.toLocaleString()} KC**! 💎\n*View your profile at https://krylosmp.web.app/*`,
+        flags: 64
+      });
+    }
+
+    if (customId === 'btn_enter_vip_giveaway') {
+      return interaction.reply({
+        content: `🎟️ **Giveaway Entry Confirmed!** You are registered for the **⚡ VIP Sovereign Rank + 50,000 KC** giveaway! 👑`,
+        flags: 64
+      });
+    }
+
     // Item Trade Accept / Decline Button Handling
     if (customId.startsWith('trade_accept_') || customId.startsWith('trade_decline_')) {
       const parts = customId.split('_');

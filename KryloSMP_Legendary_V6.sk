@@ -1,0 +1,127 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# 👑 KRYLOSMP LEGENDARY MASTERPIECE ENGINE (V6.0.0 - S1 RE-RELEASE)
+# ⚡ Engineered by Krylo & Krishiv • The Ultimate Minecraft Survival Network
+# ═══════════════════════════════════════════════════════════════════════════════
+
+options:
+    prefix: &8[&b&lKrylo&f&lSMP&8] &7
+    gold_prefix: &8[&6&l👑 KRYLOSMP&8] &e
+    currency: &bKryloCoins&7
+
+# ═════════════════════════════════════════════════════════════
+# 1. ⚔️ LEGENDARY CUSTOM ENCHANTS & COMBAT SYSTEM
+# ═════════════════════════════════════════════════════════════
+
+on damage of player:
+    attacker is a player:
+        # Lifesteal Enchantment Effect
+        if name of attacker's tool contains "Lifesteal":
+            set {_heal} to damage * 0.25
+            heal attacker by {_heal}
+            play sound "entity.player.burp" with volume 0.5 to attacker
+            send action bar "&c❤ &fLifesteal activated! &a+%{_heal}% HP" to attacker
+            
+        # Thunderstrike Enchantment Effect
+        if name of attacker's tool contains "Thunderstrike":
+            chance of 30%:
+                strike lightning effect at victim's location
+                damage victim by 2
+                send action bar "&e⚡ &lTHUNDERSTRIKE CRITICAL!" to attacker
+                play sound "entity.lightning_bolt.thunder" with volume 0.8 to attacker
+
+on death of player:
+    attacker is a player:
+        add 1 to {kills::%uuid of attacker%}
+        add 1 to {deaths::%uuid of victim%}
+        
+        # Reward killer with 250 KryloCoins
+        add 250 to {balance::%uuid of attacker%}
+        send "{@prefix}You defeated &e%victim% &7and claimed &b+250 {@currency}!" to attacker
+        
+        # Check Killstreak
+        add 1 to {killstreak::%uuid of attacker%}
+        set {killstreak::%uuid of victim%} to 0
+        if {killstreak::%uuid of attacker%} is 5 or 10 or 20:
+            broadcast "{@gold_prefix}&e%attacker% &7is on a &c&l%{killstreak::%uuid of attacker%}% KILLSTREAK! &6👑"
+
+# ═════════════════════════════════════════════════════════════
+# 2. ⛏️ LEGENDARY MINING (Auto-Smelt & Telepathy)
+# ═════════════════════════════════════════════════════════════
+
+on break of iron ore or deepslate iron ore:
+    if player's tool contains "Auto-Smelt" or player has permission "krylosmp.autosmelt":
+        cancel event
+        set event-block to air
+        give 1 iron ingot to player
+        give 15 to {balance::%uuid of player%}
+        play sound "entity.experience_orb.pickup" with volume 0.5 to player
+
+on break of gold ore or deepslate gold ore:
+    if player's tool contains "Auto-Smelt" or player has permission "krylosmp.autosmelt":
+        cancel event
+        set event-block to air
+        give 1 gold ingot to player
+        give 30 to {balance::%uuid of player%}
+        play sound "entity.experience_orb.pickup" with volume 0.5 to player
+
+on break of diamond ore or deepslate diamond ore:
+    give 100 to {balance::%uuid of player%}
+    send action bar "&b💎 Diamond Mined! &f+100 {@currency}" to player
+
+# ═════════════════════════════════════════════════════════════
+# 3. 🎁 DAILY STREAK & LOGIN REWARDS
+# ═════════════════════════════════════════════════════════════
+
+command /claimstreak:
+    trigger:
+        set {_diff} to difference between {laststreak::%uuid of player%} and now
+        if {_diff} is less than 24 hours:
+            send "{@prefix}&cYou already claimed your streak reward today! Come back in &e%difference between 24 hours and {_diff}%." to player
+            stop
+        
+        set {laststreak::%uuid of player%} to now
+        add 1 to {streak::%uuid of player%}
+        if {streak::%uuid of player%} > 30:
+            set {streak::%uuid of player%} to 30
+            
+        set {_reward} to {streak::%uuid of player%} * 500
+        add {_reward} to {balance::%uuid of player%}
+        
+        send "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" to player
+        send "{@gold_prefix}&a&lDAILY LOGIN STREAK CLAIMED!" to player
+        send "&7Current Streak: &6%{streak::%uuid of player%}% Days 🔥" to player
+        send "&7Reward Granted: &b+%{_reward}% {@currency}" to player
+        send "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" to player
+        play sound "ui.toast.challenge_complete" with volume 1.0 to player
+
+# ═════════════════════════════════════════════════════════════
+# 4. 👑 LEGENDARY GOD KIT & EXECUTIVE COMMANDS
+# ═════════════════════════════════════════════════════════════
+
+command /legendarykit [<text>]:
+    permission: krylosmp.legendary
+    trigger:
+        give 1 netherite helmet of protection 4 and unbreaking 3 named "&6&l👑 Krylo Sovereign Helmet" to player
+        give 1 netherite chestplate of protection 4 and unbreaking 3 named "&6&l👑 Krylo Sovereign Chestplate" to player
+        give 1 netherite leggings of protection 4 and unbreaking 3 named "&6&l👑 Krylo Sovereign Leggings" to player
+        give 1 netherite boots of protection 4, feather falling 4 and unbreaking 3 named "&6&l👑 Krylo Sovereign Boots" to player
+        give 1 netherite sword of sharpness 5, fire aspect 2, unbreaking 3, looting 3 named "&b&l⚡ Krylo God Blade (Lifesteal & Thunderstrike)" to player
+        give 1 netherite pickaxe of efficiency 5, fortune 3, unbreaking 3 named "&e&l⛏ Krylo Hyper Drill (Auto-Smelt)" to player
+        give 64 golden apple to player
+        give 16 enchanted golden apple to player
+        give 64 diamond block to player
+        send "{@gold_prefix}&a&lLEGENDARY EXECUTIVE GOD KIT EQUIPPED!" to player
+        play sound "item.totem.use" with volume 1.0 to player
+
+# ═════════════════════════════════════════════════════════════
+# 5. 🤖 DISCORD SYNC & VERIFICATION ANNOUNCER
+# ═════════════════════════════════════════════════════════════
+
+command /legendarybroadcast <text>:
+    permission: krylosmp.admin
+    trigger:
+        broadcast ""
+        broadcast "{@gold_prefix}&lOFFICIAL SERVER ANNOUNCEMENT"
+        broadcast "&f%arg-1%"
+        broadcast ""
+        play sound "entity.ender_dragon.growl" with volume 0.7 to all players
