@@ -59,7 +59,7 @@ client.once('ready', async () => {
           '🤝 **Partnership Application** — Submit your server for official partnership\n' +
           '🎬 **Media / Creator Application** — Apply for Content Creator role & rewards'
         )
-        .setFooter({ text: 'Click a button below or open a ticket in #🎫┃support-tickets' })
+        .setFooter({ text: 'Click a button below or open a ticket in #support-tickets' })
         .setTimestamp();
 
       const row = new ActionRowBuilder().addComponents(
@@ -79,10 +79,10 @@ client.once('ready', async () => {
           .setEmoji('🎬')
           .setStyle(ButtonStyle.Secondary),
         new ButtonBuilder()
-          .setLabel('Player Portal')
+          .setLabel('Online Application Hub')
           .setEmoji('🌐')
           .setStyle(ButtonStyle.Link)
-          .setURL('https://krylosmp.web.app/')
+          .setURL('https://krylosmp.web.app/apply.html')
       );
 
       await partnerCh.send({ embeds: [partnerEmbed, applyEmbed], components: [row] });
