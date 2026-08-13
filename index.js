@@ -860,7 +860,7 @@ client.once('ready', async () => {
   setInterval(async () => {
     const now = new Date();
     const currentYear = now.getFullYear();
-    const isJuly24 = (now.getMonth() === 6 && now.getDate() === 24); // Month 6 = July (0-indexed)
+    const isJuly24 = ((now.getMonth() + 1) === 7 && now.getDate() === 24); // Month 7 = July // Month 6 = July (0-indexed)
     if (isJuly24 && birthdayAnnouncedYear !== currentYear) {
       birthdayAnnouncedYear = currentYear;
         
