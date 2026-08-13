@@ -6066,18 +6066,9 @@ if (commandName === 'lootbox') {
     await interaction.deferReply();
 
     try {
-      let history = conversationHistory.get(interaction.channel.id) || [];
-      let responseText = null;
-      let usedEngine = 'Krims SDK';
-
       // 🧠 Try Gemini 3.5 Flash-Lite direct API first (faster + smarter)
       if (geminiClient) {
-        const startTime = Date.now();
         responseText = await geminiDirectAsk(prompt, systemInstruction);
-        if (responseText) {
-          usedEngine = `Gemini 3.5 Flash-Lite (${Date.now() - startTime}ms)`;
-          console.log(`[AI] /ask answered via direct Gemini in ${Date.now() - startTime}ms`);
-        }
       }
 
       // Fallback to Krims SDK if direct Gemini unavailable or failed
@@ -6090,7 +6081,6 @@ if (commandName === 'lootbox') {
         handleAIFailover(result, interaction.guild);
         if (result.ok && result.response) {
           responseText = result.response;
-          usedEngine = `Krims SDK (${result.stats?.latency || 'N/A'})`;
         }
       }
 
@@ -6982,17 +6972,9 @@ client.on('messageCreate', async (message) => {
 
     try {
       // Retrieve conversation history
-      let history = conversationHistory.get(message.channel.id) || [];
-      let responseText = null;
-      let usedEngine = 'Gemini 3.5 Flash-Lite';
-
       // 🧠 Try Gemini 3.5 Flash-Lite direct 4-key rotation first (with 2.5 Flash fallback)
       if (geminiClient) {
-        const startTime = Date.now();
         responseText = await geminiDirectAsk(prompt, systemInstruction);
-        if (responseText) {
-          usedEngine = `Gemini AI (${Date.now() - startTime}ms)`;
-        }
       }
 
       // Fallback to Krims SDK if direct Gemini unavailable or failed
@@ -7005,7 +6987,6 @@ client.on('messageCreate', async (message) => {
         handleAIFailover(result, message.guild);
         if (result.ok && result.response) {
           responseText = result.response;
-          usedEngine = `Krims SDK (${result.stats?.latency || 'N/A'})`;
         }
       }
 
