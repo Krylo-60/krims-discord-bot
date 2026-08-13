@@ -5051,25 +5051,51 @@ client.on('interactionCreate', async (interaction) => {
         userClan.members.push(targetUser.id);
         saveMegaData();
 
-        // Assign Clan Role to Target
+        // Assign Clan Role & Channel Access to Target
+        let grantedChannel = null;
         try {
           if (userClan.roleId) {
-            const member = await guild.members.fetch(targetUser.id);
-            if (member) await member.roles.add(userClan.roleId);
+            const member = await guild.members.fetch(targetUser.id).catch(() => null);
+            if (member) {
+              await member.roles.add(userClan.roleId).catch(() => {});
+            }
           }
         } catch (e) {}
 
+        if (userClan.channelId) {
+          try {
+            const ch = guild.channels.cache.get(userClan.channelId) || await guild.channels.fetch(userClan.channelId).catch(() => null);
+            if (ch) {
+              await ch.permissionOverwrites.edit(targetUser.id, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true }).catch(() => {});
+              grantedChannel = `<#${ch.id}>`;
+            }
+          } catch (e) {}
+        }
+
+        const accessLine = grantedChannel
+          ? `• Granted access to ${grantedChannel}\n`
+          : (userClan.channelId ? `• Granted access to <#${userClan.channelId}>\n` : '• Granted access to Private Clan Chat\n');
+
         const inviteEmbed = new EmbedBuilder()
           .setColor(0x00FF88)
-          .setTitle(`🎉 NEW CLAN MEMBER INJOINED!`)
+          .setTitle(`🎉 NEW CLAN MEMBER JOINED!`)
           .setDescription(`<@${targetUser.id}> joined **[${userClan.tag}] ${userClan.name}**!\n\n` +
             (userClan.roleId ? `• Granted Clan Role <@&${userClan.roleId}>\n` : '') +
-            (userClan.channelId ? `• Granted access to <#${userClan.channelId}>\n` : '') +
+            accessLine +
             `• Total Members: **${userClan.members.length}**`
           )
           .setTimestamp();
 
         await interaction.reply({ embeds: [inviteEmbed] });
+
+        if (userClan.channelId) {
+          try {
+            const ch = guild.channels.cache.get(userClan.channelId) || await guild.channels.fetch(userClan.channelId).catch(() => null);
+            if (ch && ch.isTextBased()) {
+              await ch.send({ embeds: [inviteEmbed] }).catch(() => {});
+            }
+          } catch (e) {}
+        }
         return;
       }
 
