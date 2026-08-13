@@ -6964,38 +6964,56 @@ client.on('messageCreate', async (message) => {
 
     const typingMsg = await message.reply("⚡ *Krims AI is calculating...*");
 
-    // Fast local JS evaluation for simple math/arithmetic expressions
+    // Fast local JS evaluation for simple math/arithmetic expressions (must contain arithmetic operators, not long IDs)
     const lowerPrompt = prompt.toLowerCase().trim();
     const cleanMathExpr = lowerPrompt.replace(/what is/gi, '').replace(/\?/g, '').replace(/=/g, '').trim();
     const mathRegex = /^[0-9+\-*/().\s]+$/;
-    if (mathRegex.test(cleanMathExpr) && /[0-9]/.test(cleanMathExpr)) {
+    const hasOperator = /[+\-*/]/.test(cleanMathExpr);
+    // Only evaluate as math if there is an operator OR if it's a short 1-6 digit number expression
+    if (mathRegex.test(cleanMathExpr) && /[0-9]/.test(cleanMathExpr) && (hasOperator || (cleanMathExpr.length <= 6 && !isNaN(Number(cleanMathExpr))))) {
       try {
         const mathResult = Function(`"use strict"; return (${cleanMathExpr})`)();
         const responseText = `🤖 **Krims AI Response:**\nThe answer to ${cleanMathExpr} is ${mathResult}!`;
-        await typingMsg.edit(responseText);
+        await sendSafeMessage(typingMsg, responseText);
         return;
       } catch (e) {
-        // Fall back to querying the SDK if evaluation fails
+        // Fall back to querying the AI engine if evaluation fails
       }
     }
 
     try {
       // Retrieve conversation history
       let history = conversationHistory.get(message.channel.id) || [];
+      let responseText = null;
+      let usedEngine = 'Gemini 3.5 Flash-Lite';
 
-      // Query the custom SDK with history, dynamic model, and prompt
-      const result = await sdk.ask(prompt, {
-        model: modelEngine,
-        systemInstruction: systemInstruction,
-        history: history
-      });
+      // 🧠 Try Gemini 3.5 Flash-Lite direct 4-key rotation first (with 2.5 Flash fallback)
+      if (geminiClient) {
+        const startTime = Date.now();
+        responseText = await geminiDirectAsk(prompt, systemInstruction);
+        if (responseText) {
+          usedEngine = `Gemini AI (${Date.now() - startTime}ms)`;
+        }
+      }
 
-      handleAIFailover(result, message.guild);
+      // Fallback to Krims SDK if direct Gemini unavailable or failed
+      if (!responseText) {
+        const result = await sdk.ask(prompt, {
+          model: PREFERRED_AI_MODEL,
+          systemInstruction: systemInstruction,
+          history: history
+        });
+        handleAIFailover(result, message.guild);
+        if (result.ok && result.response) {
+          responseText = result.response;
+          usedEngine = `Krims SDK (${result.stats?.latency || 'N/A'})`;
+        }
+      }
 
-      if (result.ok && result.response) {
+      if (responseText) {
         // Update local history
         history.push({ role: 'user', content: prompt });
-        history.push({ role: 'model', content: result.response });
+        history.push({ role: 'model', content: responseText });
 
         // Limit memory history to the last 10 messages (5 turns)
         if (history.length > 10) {
@@ -7003,27 +7021,25 @@ client.on('messageCreate', async (message) => {
         }
         conversationHistory.set(message.channel.id, history);
 
-        let replyText = `🤖 **Krims AI Response:**\n${result.response}`;
-        if (result.stats) {
-          replyText += `\n\n*Latency: ${result.stats.latency}*`;
-        }
+        let replyText = `🤖 **Krims AI Response:**\n${responseText}`;
+        replyText += `\n\n*Engine: ${usedEngine}*`;
         await sendSafeMessage(typingMsg, replyText);
       } else {
-        await typingMsg.edit("❌ Failed to parse AI response.");
+        await typingMsg.edit("❌ **AI response error.** Please try asking again!");
       }
     } catch (err) {
-      console.error(err);
-      // Hide raw API error details from users - show clean message
-      const isOverloaded = err.message.includes('503') || err.message.includes('UNAVAILABLE') || err.message.includes('high demand');
-      const isTimeout = err.message.includes('timeout') || err.message.includes('ECONNRESET') || err.message.includes('ENOTFOUND');
-      if (isOverloaded) {
-        await typingMsg.edit('⚡ **AI is experiencing high demand.** Please try again in a few seconds!');
-      } else if (isTimeout) {
-        await typingMsg.edit('🌐 **Connection timed out.** The AI server may be temporarily unreachable. Try again!');
-      } else {
-        await typingMsg.edit('❌ **AI is temporarily unavailable.** Please try again in a moment!');
+      console.error('[AI Chat Error]', err);
+      // Try direct Gemini as emergency fallback
+      if (geminiClient) {
+        try {
+          const fallbackRes = await geminiDirectAsk(prompt, systemInstruction);
+          if (fallbackRes) {
+            await sendSafeMessage(typingMsg, `🤖 **Krims AI Response:**\n${fallbackRes}\n\n*Engine: Gemini AI (emergency fallback)*`);
+            return;
+          }
+        } catch (e2) {}
       }
-      console.error('[AI Error]', err.message.substring(0, 200));
+      await typingMsg.edit('⚡ **AI servers busy.** Please try asking again in a few seconds!');
     }
   }
 });
@@ -7839,14 +7855,21 @@ Response format: Reply with ONLY the category name. Do not include any punctuati
 
 Ticket Reason: "${text}"`;
 
-    const result = await sdk.ask(prompt, {
-      model: 'gemini',
-      systemInstruction: 'You are an automated support ticket priority classifier. Reply with exactly "High", "Medium", or "No Staff Needed" based on the ticket reason.'
-    });
+    let responseText = null;
+    if (geminiClient) {
+      responseText = await geminiDirectAsk(prompt, 'You are an automated support ticket priority classifier. Reply with exactly "High", "Medium", or "No Staff Needed" based on the ticket reason.');
+    }
+    if (!responseText) {
+      const result = await sdk.ask(prompt, {
+        model: PREFERRED_AI_MODEL,
+        systemInstruction: 'You are an automated support ticket priority classifier. Reply with exactly "High", "Medium", or "No Staff Needed" based on the ticket reason.'
+      });
+      if (result && result.response) responseText = result.response;
+    }
 
-    if (result && result.response) {
-      const responseText = result.response.trim();
-      if (responseText.includes('High')) return 'High';
+    if (responseText) {
+      const trimmed = responseText.trim();
+      if (trimmed.includes('High')) return 'High';
       if (responseText.includes('No Staff Needed')) return 'No Staff Needed';
       if (responseText.includes('Medium')) return 'Medium';
     }
@@ -8032,13 +8055,20 @@ async function handleTicketMessage(message) {
       
       Respond with ONLY the match string (e.g., "AUTO_EXECUTE: easywhitelist add name" or "CLASSIFY: EASY").`;
 
-      const classificationResult = await sdk.ask(classificationPrompt, {
-        model: modelEngine,
-        systemInstruction: "You are a precise analyzer. Output only the requested match string without any introductory text."
-      });
+      let classificationText = null;
+      if (geminiClient) {
+        classificationText = await geminiDirectAsk(classificationPrompt, "You are a precise analyzer. Output only the requested match string without any introductory text.");
+      }
+      if (!classificationText) {
+        const classificationResult = await sdk.ask(classificationPrompt, {
+          model: PREFERRED_AI_MODEL,
+          systemInstruction: "You are a precise analyzer. Output only the requested match string without any introductory text."
+        });
+        if (classificationResult && classificationResult.response) classificationText = classificationResult.response;
+      }
 
-      if (classificationResult.ok && classificationResult.response) {
-        const resText = classificationResult.response.trim();
+      if (classificationText) {
+        const resText = classificationText.trim();
         console.log(`[Ticket Analyzer] Result: ${resText}`);
 
         if (resText.startsWith('AUTO_EXECUTE:')) {
