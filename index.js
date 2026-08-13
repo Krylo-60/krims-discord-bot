@@ -23,38 +23,72 @@ dotenv.config();
 
 // ═══════════════════════════════════════════════════════════
 // 🧠 GEMINI 3.5 FLASH-LITE DIRECT API (FREE TIER UPGRADE)
+// 4-Key Rotation System — prevents rate limits, maximizes throughput
 // ═══════════════════════════════════════════════════════════
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_KEY || null;
+const GEMINI_KEYS = [
+  process.env.GEMINI_API_KEY,
+  process.env.GEMINI_API_KEY_2,
+  process.env.GEMINI_API_KEY_3,
+  process.env.GEMINI_API_KEY_4,
+].filter(Boolean);
+
+let geminiClients = [];
+let geminiKeyIndex = 0;
 let geminiClient = null;
-if (GEMINI_API_KEY) {
-  try {
-    geminiClient = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-    console.log('[Gemini] ✅ Direct Gemini 3.5 Flash-Lite API initialized!');
-  } catch (e) {
-    console.warn('[Gemini] Failed to init direct API:', e.message);
+
+if (GEMINI_KEYS.length > 0) {
+  for (const key of GEMINI_KEYS) {
+    try {
+      geminiClients.push(new GoogleGenAI({ apiKey: key }));
+    } catch (e) {
+      console.warn('[Gemini] Failed to init key:', e.message);
+    }
   }
+  if (geminiClients.length > 0) {
+    geminiClient = geminiClients[0];
+    console.log(`[Gemini] ✅ ${geminiClients.length} Gemini 3.5 Flash-Lite API keys loaded (round-robin rotation active)!`);
+  }
+}
+
+/** Rotate to the next Gemini API key */
+function rotateGeminiKey() {
+  if (geminiClients.length <= 1) return;
+  geminiKeyIndex = (geminiKeyIndex + 1) % geminiClients.length;
+  geminiClient = geminiClients[geminiKeyIndex];
 }
 
 /**
  * Direct Gemini 3.5 Flash-Lite ask function (bypasses Krims SDK)
- * Used as fallback when SDK is down, or for faster responses
+ * Uses round-robin key rotation for maximum throughput
  */
 async function geminiDirectAsk(prompt, systemInstruction = '') {
-  if (!geminiClient) return null;
-  try {
-    const response = await geminiClient.models.generateContent({
-      model: 'gemini-3.5-flash-lite',
-      contents: prompt,
-      config: {
-        systemInstruction: systemInstruction || 'You are Krims Code AI, the official KryloSMP Discord bot assistant. Be helpful, friendly, concise. Use emojis moderately. You speak in a slightly playful but professional tone.',
-        thinkingConfig: { thinkingBudget: 0 }, // Minimal thinking for speed
+  if (!geminiClient || geminiClients.length === 0) return null;
+  
+  // Try current key, on rate limit rotate and retry
+  for (let attempt = 0; attempt < geminiClients.length; attempt++) {
+    try {
+      const response = await geminiClient.models.generateContent({
+        model: 'gemini-3.5-flash-lite',
+        contents: prompt,
+        config: {
+          systemInstruction: systemInstruction || 'You are Krims Code AI, the official KryloSMP Discord bot assistant. Be helpful, friendly, concise. Use emojis moderately. You speak in a slightly playful but professional tone.',
+          thinkingConfig: { thinkingBudget: 0 }, // Minimal thinking for speed
+        }
+      });
+      rotateGeminiKey(); // Rotate for next call
+      return response?.text || response?.candidates?.[0]?.content?.parts?.[0]?.text || null;
+    } catch (e) {
+      if (e.status === 429 || e.message?.includes('RESOURCE_EXHAUSTED')) {
+        console.warn(`[Gemini] Key ${geminiKeyIndex + 1} rate limited, rotating...`);
+        rotateGeminiKey();
+        continue;
       }
-    });
-    return response?.text || response?.candidates?.[0]?.content?.parts?.[0]?.text || null;
-  } catch (e) {
-    console.warn('[Gemini Direct] API error:', e.message);
-    return null;
+      console.warn('[Gemini Direct] API error:', e.message);
+      rotateGeminiKey();
+      return null;
+    }
   }
+  return null;
 }
 
 const client = new Client({
