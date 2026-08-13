@@ -6910,7 +6910,8 @@ client.on('messageCreate', async (message) => {
         color: 0x5865F2,
         title: '🤖 How to Ask Krims Code AI',
         description: 'You can ask Krims Code AI questions using any of the following methods:\n\n' +
-                     '• **Text Prompt**: Type `!ask <your question>` (e.g. `!ask What is Krims Code?`)\n' +
+                     '• **Mention Bot**: Tag `@Krims Code AI <your question>` in any channel!\n' +
+                     '• **Text Prompt**: Type `!ask <your question>` (e.g. `!ask What is KryloSMP?`)\n' +
                      '• **Slash Command**: Use `/ask prompt:<your question>`\n' +
                      '• 🎙️ **Voice AI**: Join a Voice Channel and type `/voice join` or `!voice join` to talk directly with Krims Bot!',
         footer: { text: 'Krims Code AI Voice & Text Engine' }
@@ -6919,6 +6920,9 @@ client.on('messageCreate', async (message) => {
   } else if (content.toLowerCase().startsWith(prefixLower + 'ask ')) {
     isPrompt = true;
     prompt = content.substring(botPrefix.length + 4).trim();
+  } else if (client.user && message.mentions.has(client.user) && !message.mentions.everyone) {
+    isPrompt = true;
+    prompt = content.replace(new RegExp(`<@!?${client.user.id}>`, 'g'), '').trim();
   } else if (isDM && !content.startsWith('!')) {
     isPrompt = true;
     prompt = content;
