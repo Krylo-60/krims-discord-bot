@@ -1,0 +1,74 @@
+[
+  {
+    "guildName": "KryloSMP",
+    "guildId": "1524878881918685405",
+    "channelName": "📢┃server-announcements",
+    "channelId": "1537229821120352288",
+    "webhookName": "👑 KryloSMP Announcements Relay",
+    "webhookId": "1537611589157523607",
+    "webhookUrl": "https://discord.com/api/webhooks/1537611589157523607/n8l_d1fFJP3cG_AHARy1fv7W8g8lLJQIWwc8W_CyHmSsDNmQK3ffw2MA0ifIbQDpDqOl"
+  },
+  {
+    "guildName": "KryloSMP",
+    "guildId": "1524878881918685405",
+    "channelName": "💬┃general-chat",
+    "channelId": "1537229834139336736",
+    "webhookName": "🎮 KryloSMP Minecraft Chat Relay",
+    "webhookId": "1537611593364410549",
+    "webhookUrl": "https://discord.com/api/webhooks/1537611593364410549/jCcFoyzTnjVQnIcubAiShXpeq_BxOEK0TD5LQOS5AVNhzrVy9ZisV6EQWcMAmMYIzmGd"
+  },
+  {
+    "guildName": "KryloSMP",
+    "guildId": "1524878881918685405",
+    "channelName": "🛡️┃mod-logs",
+    "channelId": "1524890354988617758",
+    "webhookName": "🛡 KryloSMP Executive Security Webhook",
+    "webhookId": "1537611598481461258",
+    "webhookUrl": "https://discord.com/api/webhooks/1537611598481461258/OG47k4pFOWjcQ4IbCnv2d72zcxRJxAnGs5y4ynLfi60JztKKbHYao3TA2PZd9T3j0Nwz"
+  },
+  {
+    "guildName": "Krylo's Discord server",
+    "guildId": "1420991845546332162",
+    "channelName": "📢┃server-announcements",
+    "channelId": "1537229760462069886",
+    "webhookName": "👑 KryloSMP Announcements Relay",
+    "webhookId": "1537611604743561356",
+    "webhookUrl": "https://discord.com/api/webhooks/1537611604743561356/cpw0LVvu-Kzx4h6DzSveeACkrNBh2tuX-ZIYLSXkzgmz2Z4cnSh6FsrFv33yHQFi4dGQ"
+  },
+  {
+    "guildName": "Krylo's Discord server",
+    "guildId": "1420991845546332162",
+    "channelName": "💬┃general-chat",
+    "channelId": "1420991846502498366",
+    "webhookName": "🎮 KryloSMP Minecraft Chat Relay",
+    "webhookId": "1537611608736399482",
+    "webhookUrl": "https://discord.com/api/webhooks/1537611608736399482/Gmrw_z-lyX_0YWb6-xUvQPvq5reg_Zjo6wGcgf8_Lxm3b5KZZMYGNnfJKe-OnK-zoSNz"
+  },
+  {
+    "guildName": "Krylo Fan Army 👑",
+    "guildId": "1532574925356007525",
+    "channelName": "📢┃server-announcements",
+    "channelId": "1537229878829523024",
+    "webhookName": "👑 KryloSMP Announcements Relay",
+    "webhookId": "1537611614625333318",
+    "webhookUrl": "https://discord.com/api/webhooks/1537611614625333318/-CR64ire_fDtg8dvzOFCs0XJjHppSAtN7QoF4Enh5CUKgCSYXUaBD4YdxHQvPB5sy8zl"
+  },
+  {
+    "guildName": "Krylo Fan Army 👑",
+    "guildId": "1532574925356007525",
+    "channelName": "💬┃general-chat",
+    "channelId": "1537229884944941108",
+    "webhookName": "🎮 KryloSMP Minecraft Chat Relay",
+    "webhookId": "1537611617892831404",
+    "webhookUrl": "https://discord.com/api/webhooks/1537611617892831404/mS3X2n785A4xNFWQPVXKyUQKgmRk5UA1-vTChJpcMTIfPDgA1Zty7khcnGPqjTJ77eMf"
+  },
+  {
+    "guildName": "Krylo Fan Army 👑",
+    "guildId": "1532574925356007525",
+    "channelName": "moderator-only",
+    "channelId": "1532872618246406165",
+    "webhookName": "🛡 KryloSMP Executive Security Webhook",
+    "webhookId": "1537611623034912808",
+    "webhookUrl": "https://discord.com/api/webhooks/1537611623034912808/8K90GK91L8oM1aYNCKd6lxcxOxY4Md1pvMq1_VNzbonvt2AzWl8KCeo7JXcQrtj9xjO4"
+  }
+]
