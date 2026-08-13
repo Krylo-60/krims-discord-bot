@@ -1450,7 +1450,7 @@ client.once('ready', async () => {
             new ButtonBuilder()
               .setLabel('🛒 Web Store')
               .setStyle(ButtonStyle.Link)
-              .setURL('https://krylosmp-store-website.vercel.app/')
+              .setURL('https://krylosmp-store.web.app/')
           );
           const files = [];
           if (fs.existsSync('krylosmp_banner.png')) {
@@ -7132,7 +7132,7 @@ client.on('guildMemberAdd', async (member) => {
         `3️⃣ Connect to \`KryloSmp.play.hosting\` and start playing!\n\n` +
         `💰 **Useful Commands:** \`/balance\` \`/shop\` \`/clan\` \`/pvp\` \`/fish\` \`/mine\`\n\n` +
         `🌐 **Player Portal:** https://krylosmp.web.app/\n` +
-        `🛒 **KC Store:** https://krylosmp-store-website.vercel.app/\n\n` +
+        `🛒 **KC Store:** https://krylosmp-store.web.app/\n\n` +
         `Need help? Open a ticket in #🎫┃support-tickets!`
       )
       .setColor(0x00E5FF)
