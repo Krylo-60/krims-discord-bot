@@ -18,6 +18,7 @@ import http from 'http';
 import Jimp from 'jimp';
 
 import { joinVoice, leaveVoice, getVoiceStatus } from './voiceEngine.mjs';
+import { saveUserVerification, getUserVerification, syncLocalJsonToFirebase } from './firebaseEngine.mjs';
 
 dotenv.config();
 
@@ -989,6 +990,13 @@ client.once('ready', async () => {
     await client.application.commands.set(uniqueCommands);
     console.log(`[+] ${uniqueCommands.length} unique slash commands registered globally!`);
     console.log('[+] Slash commands registered globally!');
+
+  // Sync local data to Firebase cloud
+  try {
+    await syncLocalJsonToFirebase();
+  } catch (e) {
+    console.warn('[Firebase] Startup sync error:', e.message);
+  }
   } catch (err) {
     console.error('[-] Failed to register slash commands:', err.message);
   }
