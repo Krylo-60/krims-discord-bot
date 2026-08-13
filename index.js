@@ -1888,7 +1888,11 @@ client.on('interactionCreate', async (interaction) => {
         .setColor(0x00FF88)
         .setFooter({ text: `Unique Player Code • ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() });
 
-      await interaction.reply({ embeds: [verifyEmbed], ephemeral: true });
+      if (interaction.deferred || interaction.replied) {
+        await interaction.editReply({ embeds: [verifyEmbed] });
+      } else {
+        await interaction.reply({ embeds: [verifyEmbed], flags: 64 });
+      }
       return;
     }
 
