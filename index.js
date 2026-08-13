@@ -1446,7 +1446,7 @@ client.once('ready', async () => {
             new ButtonBuilder()
               .setLabel('🌐 Player Portal')
               .setStyle(ButtonStyle.Link)
-              .setURL('https://krylosmp-player-portal.vercel.app/'),
+              .setURL('https://krylosmp.web.app/'),
             new ButtonBuilder()
               .setLabel('🛒 Web Store')
               .setStyle(ButtonStyle.Link)
@@ -7131,7 +7131,7 @@ client.on('guildMemberAdd', async (member) => {
         `2️⃣ Use \`/daily\` for free 1,000 KryloCoins every day!\n` +
         `3️⃣ Connect to \`KryloSmp.play.hosting\` and start playing!\n\n` +
         `💰 **Useful Commands:** \`/balance\` \`/shop\` \`/clan\` \`/pvp\` \`/fish\` \`/mine\`\n\n` +
-        `🌐 **Player Portal:** https://krylosmp-player-portal.vercel.app/\n` +
+        `🌐 **Player Portal:** https://krylosmp.web.app/\n` +
         `🛒 **KC Store:** https://krylosmp-store-website.vercel.app/\n\n` +
         `Need help? Open a ticket in #🎫┃support-tickets!`
       )
