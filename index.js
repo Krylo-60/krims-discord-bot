@@ -177,7 +177,7 @@ const dailyCooldowns = new Map();
 const workCooldowns = new Map();
 const giveawayEntries = new Map(); // giveaway message ID -> Set of user IDs
 const bountyData = new Map(); // user ID -> bounty amount in KC
-const COOLDOWN_TIME = 10000; // 10 seconds cooldown in milliseconds
+const COOLDOWN_TIME = 2000; // 2 seconds cooldown in milliseconds
 const spamMap = new Map();
 const userStrikes = new Map();
 
@@ -6944,7 +6944,7 @@ client.on('messageCreate', async (message) => {
 
     if (timeRemaining > 0) {
       const seconds = Math.ceil(timeRemaining / 1000);
-      await message.reply(`⏳ **Rate Limit Active!** Please wait **${seconds}s** before asking another question to protect API quotas.`);
+      await message.reply(`⏳ Please wait **${seconds}s** before sending another question!`).catch(() => {});
       return;
     }
 
@@ -7007,18 +7007,10 @@ client.on('messageCreate', async (message) => {
         await typingMsg.edit("❌ **AI response error.** Please try asking again!");
       }
     } catch (err) {
-      console.error('[AI Chat Error]', err);
-      // Try direct Gemini as emergency fallback
-      if (geminiClient) {
-        try {
-          const fallbackRes = await geminiDirectAsk(prompt, systemInstruction);
-          if (fallbackRes) {
-            await sendSafeMessage(typingMsg, `🤖 **Krims AI Response:**\n${fallbackRes}`);
-            return;
-          }
-        } catch (e2) {}
-      }
-      await typingMsg.edit('⚡ **AI servers busy.** Please try asking again in a few seconds!');
+      console.error('[AI Chat Error]', err.message || err);
+      try {
+        await typingMsg.edit('⚡ **AI is processing another request.** Please try again in a second!');
+      } catch (e) {}
     }
   }
 });
