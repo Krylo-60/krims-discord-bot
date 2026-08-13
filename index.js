@@ -5033,18 +5033,21 @@ client.on('interactionCreate', async (interaction) => {
       if (sub === 'invite' || sub === 'add') {
         const userClan = Object.values(clanData).find(c => c.members.includes(userId));
         if (!userClan) {
-          await interaction.reply({ content: '❌ You must be in a clan to invite members!', ephemeral: true });
+          if (interaction.deferred || interaction.replied) await interaction.editReply({ content: '❌ You must be in a clan to invite members!' });
+          else await interaction.reply({ content: '❌ You must be in a clan to invite members!', ephemeral: true });
           return;
         }
 
         const targetUser = interaction.options.getUser('target') || interaction.options.getUser('user');
         if (!targetUser) {
-          await interaction.reply({ content: '❌ Please specify a user to invite: `/clan action:invite target:@user`', ephemeral: true });
+          if (interaction.deferred || interaction.replied) await interaction.editReply({ content: '❌ Please specify a user to invite: `/clan action:invite target:@user`' });
+          else await interaction.reply({ content: '❌ Please specify a user to invite: `/clan action:invite target:@user`', ephemeral: true });
           return;
         }
 
         if (userClan.members.includes(targetUser.id)) {
-          await interaction.reply({ content: `❌ <@${targetUser.id}> is already in your clan!`, ephemeral: true });
+          if (interaction.deferred || interaction.replied) await interaction.editReply({ content: `❌ <@${targetUser.id}> is already in your clan!` });
+          else await interaction.reply({ content: `❌ <@${targetUser.id}> is already in your clan!`, ephemeral: true });
           return;
         }
 
@@ -5086,7 +5089,11 @@ client.on('interactionCreate', async (interaction) => {
           )
           .setTimestamp();
 
-        await interaction.reply({ embeds: [inviteEmbed] });
+        if (interaction.deferred || interaction.replied) {
+          await interaction.editReply({ embeds: [inviteEmbed] });
+        } else {
+          await interaction.reply({ embeds: [inviteEmbed] });
+        }
 
         if (userClan.channelId) {
           try {
