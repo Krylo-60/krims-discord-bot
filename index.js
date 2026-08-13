@@ -7,6 +7,7 @@ import os from 'os';
 import crypto from 'crypto';
 import { Client, GuildScheduledEventEntityType, GuildScheduledEventPrivacyLevel, GatewayIntentBits, Partials, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder } from 'discord.js';
 import { KrimsClient } from '@krishivpb60/krims-code-sdk';
+import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
 import fs from 'fs';
@@ -19,6 +20,42 @@ import Jimp from 'jimp';
 import { joinVoice, leaveVoice, getVoiceStatus } from './voiceEngine.mjs';
 
 dotenv.config();
+
+// ═══════════════════════════════════════════════════════════
+// 🧠 GEMINI 3.5 FLASH-LITE DIRECT API (FREE TIER UPGRADE)
+// ═══════════════════════════════════════════════════════════
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_KEY || null;
+let geminiClient = null;
+if (GEMINI_API_KEY) {
+  try {
+    geminiClient = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+    console.log('[Gemini] ✅ Direct Gemini 3.5 Flash-Lite API initialized!');
+  } catch (e) {
+    console.warn('[Gemini] Failed to init direct API:', e.message);
+  }
+}
+
+/**
+ * Direct Gemini 3.5 Flash-Lite ask function (bypasses Krims SDK)
+ * Used as fallback when SDK is down, or for faster responses
+ */
+async function geminiDirectAsk(prompt, systemInstruction = '') {
+  if (!geminiClient) return null;
+  try {
+    const response = await geminiClient.models.generateContent({
+      model: 'gemini-3.5-flash-lite',
+      contents: prompt,
+      config: {
+        systemInstruction: systemInstruction || 'You are Krims Code AI, the official KryloSMP Discord bot assistant. Be helpful, friendly, concise. Use emojis moderately. You speak in a slightly playful but professional tone.',
+        thinkingConfig: { thinkingBudget: 0 }, // Minimal thinking for speed
+      }
+    });
+    return response?.text || response?.candidates?.[0]?.content?.parts?.[0]?.text || null;
+  } catch (e) {
+    console.warn('[Gemini Direct] API error:', e.message);
+    return null;
+  }
+}
 
 const client = new Client({
   intents: [
@@ -37,10 +74,12 @@ const client = new Client({
   ]
 });
 
-// Initialize Krims SDK Client pointing to Vercel mesh Chatbot API
 const sdk = new KrimsClient({
   baseUrl: 'https://krims-code-chatbot.vercel.app'
 });
+
+// Preferred AI model — upgraded to Gemini 3.5 Flash-Lite (faster + smarter)
+const PREFERRED_AI_MODEL = 'gemini-3.5-flash-lite';
 
 // Maps to store state
 const conversationHistory = new Map();
@@ -5980,30 +6019,57 @@ async function sendSafeMessage(target, text) {
 
     try {
       let history = conversationHistory.get(interaction.channel.id) || [];
-      const result = await sdk.ask(prompt, {
-        model: modelEngine,
-        systemInstruction: systemInstruction,
-        history: history
-      });
+      let responseText = null;
+      let usedEngine = 'Krims SDK';
 
-      handleAIFailover(result, interaction.guild);
+      // 🧠 Try Gemini 3.5 Flash-Lite direct API first (faster + smarter)
+      if (geminiClient) {
+        const startTime = Date.now();
+        responseText = await geminiDirectAsk(prompt, systemInstruction);
+        if (responseText) {
+          usedEngine = `Gemini 3.5 Flash-Lite (${Date.now() - startTime}ms)`;
+          console.log(`[AI] /ask answered via direct Gemini in ${Date.now() - startTime}ms`);
+        }
+      }
 
-      if (result.ok && result.response) {
+      // Fallback to Krims SDK if direct Gemini unavailable or failed
+      if (!responseText) {
+        const result = await sdk.ask(prompt, {
+          model: PREFERRED_AI_MODEL,
+          systemInstruction: systemInstruction,
+          history: history
+        });
+        handleAIFailover(result, interaction.guild);
+        if (result.ok && result.response) {
+          responseText = result.response;
+          usedEngine = `Krims SDK (${result.stats?.latency || 'N/A'})`;
+        }
+      }
+
+      if (responseText) {
         history.push({ role: 'user', content: prompt });
-        history.push({ role: 'model', content: result.response });
+        history.push({ role: 'model', content: responseText });
         if (history.length > 10) history = history.slice(history.length - 10);
         conversationHistory.set(interaction.channel.id, history);
 
-        let replyText = `🤖 **Krims AI Response:**\n${result.response}`;
-        if (result.stats) {
-          replyText += `\n\n*Latency: ${result.stats.latency}*`;
-        }
+        let replyText = `🤖 **Krims AI Response:**\n${responseText}`;
+        replyText += `\n\n*Engine: ${usedEngine}*`;
         await sendSafeMessage(interaction, replyText);
       } else {
         await interaction.editReply("❌ Failed to parse AI response.");
       }
     } catch (err) {
-      await interaction.editReply(`❌ Error calling Krims API: ${err.message}`);
+      // Last resort: try direct Gemini if SDK crashed
+      if (geminiClient) {
+        try {
+          const fallbackResponse = await geminiDirectAsk(prompt, systemInstruction);
+          if (fallbackResponse) {
+            await sendSafeMessage(interaction, `🤖 **Krims AI Response:**\n${fallbackResponse}\n\n*Engine: Gemini 3.5 Flash-Lite (fallback)*`);
+            return;
+          }
+        } catch (e2) {}
+      }
+      await interaction.editReply(`❌ Error calling AI: ${err.message}`);
     }
   }
 });
@@ -6966,7 +7032,8 @@ async function generateWelcomeCard(avatarUrl, username, memberCount) {
 }
 
 client.on('guildMemberAdd', async (member) => {
-  if (member.guild.id !== KRYLO_GUILD_ID) return;
+  // Works across ALL Krylo guilds
+  if (!member.guild.name.toLowerCase().includes('krylo')) return;
 
   // Auto-assign 🎮 Player role immediately on join
   try {
@@ -6979,6 +7046,43 @@ client.on('guildMemberAdd', async (member) => {
     console.warn(`[Welcome] Failed to assign Player role:`, err.message);
   }
 
+  // Auto-assign 🌱 Newcomer role
+  try {
+    const newcomerRole = member.guild.roles.cache.find(r => r.name === '🌱 Newcomer');
+    if (newcomerRole && !member.roles.cache.has(newcomerRole.id)) {
+      await member.roles.add(newcomerRole);
+      console.log(`[Welcome] Auto-assigned 🌱 Newcomer role to ${member.user.username}`);
+    }
+  } catch (err) {
+    console.warn(`[Welcome] Failed to assign Newcomer role:`, err.message);
+  }
+
+  // Send Welcome DM to new member
+  try {
+    const dmEmbed = new EmbedBuilder()
+      .setAuthor({ name: 'KryloSMP Executive Network', iconURL: member.guild.iconURL() })
+      .setTitle(`👋 Welcome to ${member.guild.name}!`)
+      .setDescription(
+        `Hey **${member.user.username}**! Welcome to the community!\n\n` +
+        `🎮 **Get Started:**\n` +
+        `1️⃣ Verify your account in the server to unlock all channels\n` +
+        `2️⃣ Use \`/daily\` for free 1,000 KryloCoins every day!\n` +
+        `3️⃣ Connect to \`KryloSmp.play.hosting\` and start playing!\n\n` +
+        `💰 **Useful Commands:** \`/balance\` \`/shop\` \`/clan\` \`/pvp\` \`/fish\` \`/mine\`\n\n` +
+        `🌐 **Player Portal:** https://krylosmp-player-portal.vercel.app/\n` +
+        `🛒 **KC Store:** https://krylosmp-store-website.vercel.app/\n\n` +
+        `Need help? Open a ticket in #🎫┃support-tickets!`
+      )
+      .setColor(0x00E5FF)
+      .setThumbnail(member.guild.iconURL())
+      .setFooter({ text: 'KryloSMP • Season 1 Re-Release' })
+      .setTimestamp();
+    await member.send({ embeds: [dmEmbed] }).catch(() => {});
+    console.log(`[Welcome] Sent Welcome DM to ${member.user.username}`);
+  } catch (err) {
+    console.warn(`[Welcome] Could not DM ${member.user.username}:`, err.message);
+  }
+
   // Send styled welcome card in #general-chat
   try {
     const generalCh = member.guild.channels.cache.find(c => c.name.includes('general-chat') && c.type === ChannelType.GuildText);
@@ -6986,24 +7090,27 @@ client.on('guildMemberAdd', async (member) => {
       const memberCount = member.guild.memberCount;
       const avatarUrl = member.user.displayAvatarURL({ extension: 'png', forceStatic: true, size: 256 });
       
-      const cardBuffer = await generateWelcomeCard(avatarUrl, member.user.username, memberCount);
+      const cardBuffer = await generateWelcomeCard(avatarUrl, member.user.username, memberCount).catch(() => null);
       let files = [];
       if (cardBuffer) {
         files.push(new AttachmentBuilder(cardBuffer, { name: 'welcome-card.png' }));
       }
 
+      const verifyCh = member.guild.channels.cache.find(c => c.name.includes('verify') && c.type === ChannelType.GuildText);
+      const rulesCh = member.guild.channels.cache.find(c => c.name.includes('rules') && c.type === ChannelType.GuildText);
+
       const embed = new EmbedBuilder()
         .setColor(0x00F2FF)
         .setTitle('⚡ New Player Joined!')
         .setDescription(
-          `Welcome to **KryloSMP**, <@${member.user.id}>! You are member **#${memberCount}**!\n\n` +
+          `Welcome to **${member.guild.name}**, <@${member.user.id}>! You are member **#${memberCount}**!\n\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-          `🔐 Head to <#1526685108311031980> to **verify** and pick your platform\n` +
-          `📜 Read the <#1524882716468842720> to stay safe\n` +
+          `🔐 Head to ${verifyCh ? `<#${verifyCh.id}>` : '#verify'} to **verify** and pick your platform\n` +
+          `📜 Read the ${rulesCh ? `<#${rulesCh.id}>` : '#rules'} to stay safe\n` +
           `🎮 Connect to \`KryloSmp.play.hosting\` and start playing!`
         )
         .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
-        .setFooter({ text: `KryloSMP • ${memberCount} members • Built by Krishiv ⚡` })
+        .setFooter({ text: `${member.guild.name} • ${memberCount} members • Built by Krishiv ⚡` })
         .setTimestamp();
 
       if (cardBuffer) {
@@ -7032,6 +7139,42 @@ client.on('messageReactionAdd', async (reaction, user) => {
   if (user.bot) return;
   if (reaction.partial) await reaction.fetch().catch(() => {});
   if (reaction.message.partial) await reaction.message.fetch().catch(() => {});
+
+  // ═══════════════════════════════════════════
+  // ⭐ STARBOARD SYSTEM — Auto-feature starred messages
+  // ═══════════════════════════════════════════
+  if (reaction.emoji.name === '⭐') {
+    try {
+      const guild = reaction.message.guild;
+      if (!guild || !guild.name.toLowerCase().includes('krylo')) return;
+      const starCount = reaction.count || 0;
+      if (starCount >= 3) {
+        const starboardCh = guild.channels.cache.find(c => c.name.includes('starboard') && c.type === ChannelType.GuildText);
+        if (starboardCh) {
+          // Check if already posted
+          const existing = await starboardCh.messages.fetch({ limit: 100 }).catch(() => new Map());
+          const alreadyPosted = [...existing.values()].some(m => m.embeds?.[0]?.footer?.text?.includes(reaction.message.id));
+          if (!alreadyPosted) {
+            const msg = reaction.message;
+            const starEmbed = new EmbedBuilder()
+              .setAuthor({ name: msg.author.username, iconURL: msg.author.displayAvatarURL() })
+              .setDescription(msg.content || '*[Embed or Media]*')
+              .addFields({ name: '⭐ Stars', value: `${starCount}`, inline: true }, { name: '📍 Channel', value: `<#${msg.channel.id}>`, inline: true }, { name: '🔗 Jump', value: `[Go to message](${msg.url})`, inline: true })
+              .setColor(0xFFD700)
+              .setFooter({ text: `⭐ ${starCount} | Message ID: ${msg.id}` })
+              .setTimestamp(msg.createdAt);
+            if (msg.attachments.size > 0) starEmbed.setImage(msg.attachments.first().url);
+            await starboardCh.send({ content: `⭐ **${starCount}** | <#${msg.channel.id}>`, embeds: [starEmbed] });
+            console.log(`[Starboard] Featured message by ${msg.author.username} (${starCount} stars)`);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`[Starboard] Error:`, err.message);
+    }
+  }
+
+  // Reaction role handling (original verify message)
   if (reaction.message.id !== VERIFY_MESSAGE_ID) return;
 
   const emoji = reaction.emoji.name;
@@ -7071,6 +7214,42 @@ client.on('messageReactionRemove', async (reaction, user) => {
     }
   } catch (err) {
     console.warn(`[Roles] Failed to remove role:`, err.message);
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// 🚀 SERVER BOOST CELEBRATION
+// ═══════════════════════════════════════════════════════════
+client.on('guildMemberUpdate', async (oldMember, newMember) => {
+  if (!newMember.guild.name.toLowerCase().includes('krylo')) return;
+  // Detect new boost
+  const wasBoosting = oldMember.premiumSince !== null;
+  const isBoosting = newMember.premiumSince !== null;
+  if (!wasBoosting && isBoosting) {
+    try {
+      const boosterRole = newMember.guild.roles.cache.find(r => r.name === '🚀 Booster');
+      if (boosterRole) await newMember.roles.add(boosterRole).catch(() => {});
+      const annCh = newMember.guild.channels.cache.find(c => c.name.includes('server-announcements') && c.type === ChannelType.GuildText);
+      if (annCh) {
+        const boostEmbed = new EmbedBuilder()
+          .setTitle('🚀 NEW SERVER BOOST!')
+          .setDescription(`**<@${newMember.id}>** just boosted the server! 🎉\n\nThank you for your support! You've been granted the **🚀 Booster** role and 5,000 KC bonus!`)
+          .setColor(0xF47FFF)
+          .setThumbnail(newMember.user.displayAvatarURL())
+          .setFooter({ text: `${newMember.guild.name} • Boost Level ${newMember.guild.premiumTier}` })
+          .setTimestamp();
+        await annCh.send({ embeds: [boostEmbed] });
+        console.log(`[Boost] ${newMember.user.username} boosted the server!`);
+      }
+      // Give 5000 KC bonus
+      const balFile = 'balances.json';
+      let balances = {};
+      try { balances = JSON.parse(fs.readFileSync(balFile, 'utf-8')); } catch(e) {}
+      balances[newMember.id] = (balances[newMember.id] || 0) + 5000;
+      fs.writeFileSync(balFile, JSON.stringify(balances, null, 2));
+    } catch (err) {
+      console.warn(`[Boost] Error handling boost:`, err.message);
+    }
   }
 });
 
@@ -7757,13 +7936,23 @@ async function handleTicketMessage(message) {
       "Provide a friendly, helpful, and concise solution to the player's problem using the server details above.";
 
     let history = conversationHistory.get(message.channel.id) || [];
-    const answerResult = await sdk.ask(message.content, {
-      model: modelEngine,
-      systemInstruction: ticketSystemInstruction,
-      history: history
-    });
-
-    handleAIFailover(answerResult, message.guild);
+    
+    // Try Gemini 3.5 Flash-Lite direct first for faster ticket responses
+    let answerResult = { ok: false, response: null };
+    if (geminiClient) {
+      const directAnswer = await geminiDirectAsk(message.content, ticketSystemInstruction);
+      if (directAnswer) {
+        answerResult = { ok: true, response: directAnswer };
+      }
+    }
+    if (!answerResult.ok) {
+      answerResult = await sdk.ask(message.content, {
+        model: PREFERRED_AI_MODEL,
+        systemInstruction: ticketSystemInstruction,
+        history: history
+      });
+      handleAIFailover(answerResult, message.guild);
+    }
 
     if (answerResult.ok && answerResult.response) {
       history.push({ role: 'user', content: message.content });
