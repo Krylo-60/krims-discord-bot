@@ -5381,7 +5381,8 @@ if (commandName === 'trade') {
     const offer = interaction.options.getString('offer');
     
     if (player.id === interaction.user.id) {
-        await interaction.reply({ content: '❌ You cannot trade with yourself.', ephemeral: true });
+        if (interaction.deferred || interaction.replied) await interaction.editReply({ content: '❌ You cannot trade with yourself.' });
+        else await interaction.reply({ content: '❌ You cannot trade with yourself.', flags: 64 });
         return;
     }
     
@@ -5397,7 +5398,11 @@ if (commandName === 'trade') {
         new ButtonBuilder().setCustomId(`trade_decline_${interaction.user.id}_${player.id}`).setLabel('Decline').setStyle(ButtonStyle.Danger).setEmoji('❌')
     );
     
-    await interaction.reply({ content: `<@${player.id}>`, embeds: [embed], components: [row] });
+    if (interaction.deferred || interaction.replied) {
+        await interaction.editReply({ content: `<@${player.id}>`, embeds: [embed], components: [row] });
+    } else {
+        await interaction.reply({ content: `<@${player.id}>`, embeds: [embed], components: [row] });
+    }
     return;
 }
 
