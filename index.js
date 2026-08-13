@@ -2018,6 +2018,27 @@ client.on('interactionCreate', async (interaction) => {
       return;
     }
 
+    if (customId === 'app_staff' || customId === 'app_partner' || customId === 'app_creator') {
+      const ticketCh = interaction.guild?.channels.cache.find(c => c.name.includes('ticket') || c.name.includes('support'));
+      const appType = customId === 'app_staff' ? '🛡️ Staff (Moderator/Admin)' : customId === 'app_partner' ? '🤝 Server Partnership' : '🎬 Content Creator / Media';
+      
+      const appEmbed = new EmbedBuilder()
+        .setColor(customId === 'app_staff' ? 0x00FF88 : customId === 'app_partner' ? 0x5865F2 : 0xE91E63)
+        .setTitle(`📝 Applying for: ${appType}`)
+        .setDescription(
+          `To submit your official application for **${appType}**:\n\n` +
+          `1️⃣ Open a private ticket in ${ticketCh ? `<#${ticketCh.id}>` : 'the support channel'}\n` +
+          `2️⃣ Click **Open Support Ticket** and select **Application / Partnership**\n` +
+          `3️⃣ Fill out your answers or attach your Google Form submission!\n\n` +
+          `✨ **Tip:** Include your Discord tag, IGN, age, experience, and timezone for fastest review.`
+        )
+        .setFooter({ text: 'KryloSMP Application System' })
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [appEmbed], ephemeral: true });
+      return;
+    }
+
     if (customId === 'start_verification' || customId === 'enter_verify_code') {
       const verifiedRole = interaction.guild?.roles.cache.find(r => r.name === 'Verified');
       if (verifiedRole && interaction.member.roles.cache.has(verifiedRole.id)) {
