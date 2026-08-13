@@ -1697,6 +1697,48 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.isButton()) {
     const { customId } = interaction;
 
+    // Item Trade Accept / Decline Button Handling
+    if (customId.startsWith('trade_accept_') || customId.startsWith('trade_decline_')) {
+      const parts = customId.split('_');
+      const action = parts[1]; // 'accept' or 'decline'
+      const senderId = parts[2];
+      const targetId = parts[3];
+
+      if (interaction.user.id !== targetId) {
+        await interaction.reply({ content: '❌ Only the targeted player can respond to this trade offer!', flags: 64 });
+        return;
+      }
+
+      await interaction.deferUpdate();
+
+      if (action === 'accept') {
+        const acceptEmbed = new EmbedBuilder()
+          .setTitle('🤝 TRADE OFFER ACCEPTED!')
+          .setDescription(`✅ <@${targetId}> has **ACCEPTED** the trade offer from <@${senderId}>!\n\n*Please conduct your item or KryloCoin exchange safely in-game!*`)
+          .setColor(0x00FF77)
+          .setTimestamp();
+
+        await interaction.editReply({
+          content: `🎉 **Trade Accepted between <@${senderId}> and <@${targetId}>!**`,
+          embeds: [acceptEmbed],
+          components: []
+        });
+      } else {
+        const declineEmbed = new EmbedBuilder()
+          .setTitle('❌ TRADE OFFER DECLINED')
+          .setDescription(`❌ <@${targetId}> has **DECLINED** the trade offer from <@${senderId}>.`)
+          .setColor(0xFF0055)
+          .setTimestamp();
+
+        await interaction.editReply({
+          content: `❌ **Trade Offer Declined.**`,
+          embeds: [declineEmbed],
+          components: []
+        });
+      }
+      return;
+    }
+
     // PvP Accept/Decline Button Handling
     if (customId.startsWith('pvp_accept_') || customId.startsWith('pvp_decline_')) {
       const parts = customId.split('_');
