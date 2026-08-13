@@ -451,9 +451,55 @@ function startAutoUpdater() {
   }, 5 * 60 * 1000);
 }
 
+async function updateDynamicServerVoiceStats() {
+  try {
+    const res = await fetch('https://api.mcsrvstat.us/3/KryloSmp.play.hosting');
+    let isOnline = false;
+    let playerCount = 0;
+    if (res.ok) {
+      const data = await res.json();
+      const motdClean = (data.motd?.clean || []).join(' ').toLowerCase();
+      isOnline = data.online && !motdClean.includes('offline') && data.version !== 'play.hosting';
+      playerCount = data.players?.online || 0;
+    }
+
+    const statusChannelName = isOnline ? `🟢 ┃ Status: ONLINE (${playerCount})` : `🔴 ┃ Status: OFFLINE`;
+    
+    // Update bot presence
+    if (isOnline) {
+      client.user.setActivity(`KryloSMP: ${playerCount} online`, { type: 0 });
+    } else {
+      client.user.setActivity('KryloSMP (Offline)', { type: 0 });
+    }
+
+    // Update voice channels across guilds
+    const targetGuilds = ['1524878881918685405', '1420991845546332162', '1532574925356007525'];
+    for (const gid of targetGuilds) {
+      const guild = client.guilds.cache.get(gid);
+      if (!guild) continue;
+      
+      const channels = await guild.channels.fetch().catch(() => null);
+      if (!channels) continue;
+      
+      const statusCh = channels.find(c => c && c.isVoiceBased() && (c.name.includes('Status: ONLINE') || c.name.includes('Status: OFFLINE') || c.name.includes('Status:')));
+      if (statusCh && statusCh.name !== statusChannelName) {
+        await statusCh.setName(statusChannelName).catch(() => {});
+      }
+    }
+  } catch (err) {
+    console.warn('[Dynamic Stats Updater] Check error:', err.message);
+  }
+}
+
+function startDynamicStatsUpdater() {
+  updateDynamicServerVoiceStats();
+  setInterval(updateDynamicServerVoiceStats, 60 * 1000);
+}
+
 client.once('ready', async () => {
   console.log(`[+] Krims Code Discord Bot online as ${client.user.tag}`);
   startAutoUpdater();
+  startDynamicStatsUpdater();
 
   // Load XP data from persistent Vercel database
   try {
@@ -4169,10 +4215,13 @@ client.on('interactionCreate', async (interaction) => {
         console.warn('Failed to fetch DB stats:', err.message);
       }
 
-      if (data.online) {
-        const playersOnline = data.players.online;
-        const playersMax = data.players.max;
-        const playerList = data.players.list ? data.players.list.join(', ') : 'None';
+      const motdClean = (data.motd?.clean || []).join(' ').toLowerCase();
+      const isActualOnline = data.online && !motdClean.includes('offline') && data.version !== 'play.hosting';
+
+      if (isActualOnline) {
+        const playersOnline = data.players ? data.players.online : 0;
+        const playersMax = data.players ? data.players.max : 100;
+        const playerList = data.players && data.players.list ? data.players.list.join(', ') : 'None';
         const motd = data.motd.clean ? data.motd.clean.join('\n') : 'A Minecraft Server';
 
    
