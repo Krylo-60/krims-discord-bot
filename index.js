@@ -109,11 +109,18 @@ async function geminiDirectAsk(prompt, systemInstruction = '') {
  * Defined in global scope so all handlers (slash commands, messageCreate, etc.) can access it.
  */
 async function sendSafeMessage(target, text) {
-  if (!text) return;
-  if (text.length <= 1900) {
-    if (target.edit) return target.edit(text);
-    if (target.editReply) return target.editReply(text);
-    if (target.reply) return target.reply(text);
+  if (!text || !target) return;
+  try {
+    if (text.length <= 1900) {
+      if (target.edit) return await target.edit(text);
+      if (target.editReply) return await target.editReply(text);
+      if (target.reply) return await target.reply(text);
+      if (target.send) return await target.send(text);
+    }
+  } catch (e) {
+    if (target.channel && target.channel.send) {
+      return await target.channel.send(text.substring(0, 1900)).catch(() => {});
+    }
   }
 
   const chunks = [];
@@ -130,18 +137,21 @@ async function sendSafeMessage(target, text) {
   }
   if (current) chunks.push(current);
 
-  if (target.edit) {
-    await target.edit(chunks[0]);
-  } else if (target.editReply) {
-    await target.editReply(chunks[0]);
-  } else if (target.reply) {
-    await target.reply(chunks[0]);
+  try {
+    if (target.edit) await target.edit(chunks[0]);
+    else if (target.editReply) await target.editReply(chunks[0]);
+    else if (target.reply) await target.reply(chunks[0]);
+    else if (target.send) await target.send(chunks[0]);
+  } catch (e) {
+    if (target.channel && target.channel.send) {
+      await target.channel.send(chunks[0]).catch(() => {});
+    }
   }
 
-  const channel = target.channel;
+  const channel = target.channel || (target.send ? target : null);
   for (let i = 1; i < chunks.length; i++) {
-    if (channel) {
-      await channel.send(chunks[i]);
+    if (channel && channel.send) {
+      await channel.send(chunks[i]).catch(() => {});
     }
   }
 }
@@ -6116,6 +6126,8 @@ if (commandName === 'lootbox') {
 const processedMessages = new Set();
 
 client.on('messageCreate', async (message) => {
+  if (message.partial) await message.fetch().catch(() => {});
+  if (message.channel && message.channel.partial) await message.channel.fetch().catch(() => {});
 
   // Command: !postvideo <youtube_url> [title]
   const msgContent = message.content.trim();
@@ -6955,7 +6967,10 @@ client.on('messageCreate', async (message) => {
     // Set new cooldown timestamp
     userCooldowns.set(message.author.id, now);
 
-    const typingMsg = await message.reply("⚡ *Krims AI is calculating...*");
+    let typingMsg = await message.reply("⚡ *Krims AI is calculating...*").catch(async () => {
+      return await message.channel.send("⚡ *Krims AI is calculating...*").catch(() => null);
+    });
+    if (!typingMsg) typingMsg = message;
 
     // Fast local JS evaluation for simple math/arithmetic expressions (must contain arithmetic operators, not long IDs)
     const lowerPrompt = prompt.toLowerCase().trim();
