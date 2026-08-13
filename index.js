@@ -80,7 +80,6 @@ async function geminiDirectAsk(prompt, systemInstruction = '') {
           contents: prompt,
           config: {
             systemInstruction: sysInstr,
-            thinkingConfig: { thinkingBudget: 0 },
           }
         });
         rotateGeminiKey();
@@ -103,6 +102,48 @@ async function geminiDirectAsk(prompt, systemInstruction = '') {
     }
   }
   return null; // All models and keys exhausted → Krims SDK takes over
+}
+
+/**
+ * Helper to split long messages into mobile-friendly chunks (max 1900 chars)
+ * Defined in global scope so all handlers (slash commands, messageCreate, etc.) can access it.
+ */
+async function sendSafeMessage(target, text) {
+  if (!text) return;
+  if (text.length <= 1900) {
+    if (target.edit) return target.edit(text);
+    if (target.editReply) return target.editReply(text);
+    if (target.reply) return target.reply(text);
+  }
+
+  const chunks = [];
+  let current = '';
+  const lines = text.split('\n');
+
+  for (const line of lines) {
+    if ((current + '\n' + line).length > 1900) {
+      if (current) chunks.push(current);
+      current = line;
+    } else {
+      current = current ? (current + '\n' + line) : line;
+    }
+  }
+  if (current) chunks.push(current);
+
+  if (target.edit) {
+    await target.edit(chunks[0]);
+  } else if (target.editReply) {
+    await target.editReply(chunks[0]);
+  } else if (target.reply) {
+    await target.reply(chunks[0]);
+  }
+
+  const channel = target.channel;
+  for (let i = 1; i < chunks.length; i++) {
+    if (channel) {
+      await channel.send(chunks[i]);
+    }
+  }
 }
 
 const client = new Client({
@@ -5975,47 +6016,6 @@ if (commandName === 'lootbox') {
         return getVoiceStatus(interaction);
       }
     }
-
-/**
- * Helper to split long messages into mobile-friendly chunks (max 1900 chars)
- */
-async function sendSafeMessage(target, text) {
-  if (!text) return;
-  if (text.length <= 1900) {
-    if (target.edit) return target.edit(text);
-    if (target.editReply) return target.editReply(text);
-    if (target.reply) return target.reply(text);
-  }
-
-  const chunks = [];
-  let current = '';
-  const lines = text.split('\n');
-
-  for (const line of lines) {
-    if ((current + '\n' + line).length > 1900) {
-      if (current) chunks.push(current);
-      current = line;
-    } else {
-      current = current ? (current + '\n' + line) : line;
-    }
-  }
-  if (current) chunks.push(current);
-
-  if (target.edit) {
-    await target.edit(chunks[0]);
-  } else if (target.editReply) {
-    await target.editReply(chunks[0]);
-  } else if (target.reply) {
-    await target.reply(chunks[0]);
-  }
-
-  const channel = target.channel;
-  for (let i = 1; i < chunks.length; i++) {
-    if (channel) {
-      await channel.send(chunks[i]);
-    }
-  }
-}
 
     if (commandName === 'ask') {
     if (!aiEnabled) {
