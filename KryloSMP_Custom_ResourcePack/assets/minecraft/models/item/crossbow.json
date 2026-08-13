@@ -1,0 +1,14 @@
+{
+  "parent": "minecraft:item/crossbow",
+  "textures": {
+    "layer0": "minecraft:item/crossbow"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "custom_model_data": 1010
+      },
+      "model": "item/artemis_crossbow"
+    }
+  ]
+}

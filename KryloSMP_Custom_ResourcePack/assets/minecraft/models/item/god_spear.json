@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/trident",
+  "textures": {
+    "layer0": "minecraft:item/god_spear"
+  }
+}

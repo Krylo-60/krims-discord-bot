@@ -31,8 +31,8 @@ This document enables future Antigravity agents to seamlessly continue work on t
 - The `/ask` command, ticket auto-reply, and DM auto-reply all use this dual-engine pattern
 
 ### Connected Services
-- **Player Portal**: https://krylosmp-player-portal.vercel.app/
-- **KC Store** (NOT real money): https://krylosmp-store-website.vercel.app/
+- **Player Portal**: https://krylosmp.web.app/
+- **KC Store** (NOT real money): https://krylosmp-store.web.app/
 - **Minecraft Server**: KryloSmp.play.hosting (Java 25565, Bedrock 19132)
 - **Pterodactyl Panel**: https://panel.play.hosting/server/25a5d79a
 
@@ -92,7 +92,7 @@ This document enables future Antigravity agents to seamlessly continue work on t
 - ✅ Season 1 Re-Release announcement banner with buttons
 
 ### Store URL Fix
-- ✅ All `tebex.io` references replaced with `krylosmp-store-website.vercel.app`
+- ✅ All `tebex.io` references replaced with `krylosmp-store.web.app`
 - ✅ 14 live Discord embeds updated across all 3 servers
 
 ---

@@ -1,0 +1,14 @@
+{
+  "parent": "minecraft:item/shield",
+  "textures": {
+    "layer0": "minecraft:item/shield"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "custom_model_data": 1003
+      },
+      "model": "item/aegis_shield"
+    }
+  ]
+}

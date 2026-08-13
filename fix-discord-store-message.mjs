@@ -29,7 +29,7 @@ client.once('ready', async () => {
             "🔑 **Crate Keys:** Win rare gear, currency, and items in the spawn area.\n" +
             "🎨 **Custom Cosmetics:** Stand out with trails, hats, and particles!\n\n" +
             "━━━━━━━━━━━━━━━━━━━━━━━━━\n\n" +
-            "🔗 **Webstore Link:** [krylosmp-store-website.vercel.app](https://krylosmp-store-website.vercel.app)\n" +
+            "🔗 **Webstore Link:** [krylosmp-store.web.app](https://krylosmp-store.web.app)\n" +
             "*Note: Purchases are processed instantly. Please ensure you are online in-game when purchasing!*"
           );
         
@@ -37,7 +37,7 @@ client.once('ready', async () => {
           new ButtonBuilder()
             .setLabel('Visit Webstore')
             .setStyle(ButtonStyle.Link)
-            .setURL('https://krylosmp-store-website.vercel.app')
+            .setURL('https://krylosmp-store.web.app')
         );
         
         await msg.edit({ embeds: [newEmbed], components: [row] });

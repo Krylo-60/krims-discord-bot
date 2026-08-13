@@ -13,7 +13,7 @@ dotenv.config();
  * 1. Discord Category Permission Synchronization (channel.lockPermissions() for all 37+ channels)
  * 2. Role Migration & Hierarchy Alignment (Re-assign members from legacy roles to official 10 roles)
  * 3. 5-Section Unbugged Multi-Paragraph Governance Embed Posting across ALL text channels
- * 4. Web Portal & Vercel Database Economy Synchronization (krylosmp-player-portal.vercel.app)
+ * 4. Web Portal & Vercel Database Economy Synchronization (krylosmp.web.app)
  * ════════════════════════════════════════════════════════════════════════════════════════════════════
  */
 
@@ -353,7 +353,7 @@ client.once('ready', async () => {
     // ══════════════════════════════════════════════════════════
     // STEP 4: VERCEL WEB PORTAL ECONOMY SYNCHRONIZATION
     // ══════════════════════════════════════════════════════════
-    console.log('👑 4. SYNCHRONIZING WEB PORTAL ECONOMY DATABASE (krylosmp-player-portal.vercel.app)...\n');
+    console.log('👑 4. SYNCHRONIZING WEB PORTAL ECONOMY DATABASE (krylosmp.web.app)...\n');
 
     try {
       const res = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {

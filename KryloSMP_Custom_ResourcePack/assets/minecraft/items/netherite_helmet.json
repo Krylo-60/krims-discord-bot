@@ -1,0 +1,21 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:custom_model_data",
+    "cases": [
+      {
+        "when": [
+          1007
+        ],
+        "model": {
+          "type": "minecraft:model",
+          "model": "minecraft:item/crown_of_krylo"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "minecraft:item/netherite_helmet"
+    }
+  }
+}

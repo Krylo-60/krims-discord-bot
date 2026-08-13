@@ -1430,7 +1430,7 @@ client.once('ready', async () => {
               `**HOW TO VERIFY & UNLOCK THE SERVER:**\n` +
               `1️⃣ Click the **\`✅ Verify Account\`** button below.\n` +
               `2️⃣ The bot will generate a **unique personal 6-digit code** for your account.\n` +
-              `3️⃣ Enter your code on the [**Player Portal**](https://krylosmp-player-portal.vercel.app/) or type \`/verify <code>\` inside Minecraft (\`KryloSmp.play.hosting\`).\n` +
+              `3️⃣ Enter your code on the [**Player Portal**](https://krylosmp.web.app/) or type \`/verify <code>\` inside Minecraft (\`KryloSmp.play.hosting\`).\n` +
               `4️⃣ Your Discord account will automatically receive the **\`✅ VERIFIED PLAYER\`** role and unlock all chat & voice lounges!\n\n` +
               `*Need assistance? Open a ticket in #🎟️・open-ticket for 24/7 AI support!*`
             )
@@ -2066,7 +2066,7 @@ client.on('interactionCreate', async (interaction) => {
 ` +
           `1️⃣ Copy your code: **\`${personalCode}\`**
 ` +
-          `2️⃣ Enter code **\`${personalCode}\`** on the [**Player Portal**](https://krylosmp-player-portal.vercel.app/)
+          `2️⃣ Enter code **\`${personalCode}\`** on the [**Player Portal**](https://krylosmp.web.app/)
 ` +
           `3️⃣ Or connect to Minecraft (\`KryloSmp.play.hosting\`) and type: \`/verify ${personalCode}\`
 
