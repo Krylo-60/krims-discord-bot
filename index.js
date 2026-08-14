@@ -2107,12 +2107,68 @@ client.on('interactionCreate', async (interaction) => {
         for (const [, r] of rolesToRemove) {
           await interaction.member.roles.remove(r).catch(() => {});
         }
-        const targetRole = interaction.guild.roles.cache.find(r => r.name === targetRoleName);
+        let targetRole = interaction.guild.roles.cache.find(r => r.name === targetRoleName);
+        if (!targetRole) {
+          targetRole = await interaction.guild.roles.create({ name: targetRoleName }).catch(() => null);
+        }
         if (targetRole) {
           await interaction.member.roles.add(targetRole).catch(() => {});
           return interaction.reply({ content: `🎨 **Name Color Updated!** You now have the **${targetRoleName}** color role!`, flags: 64 });
         }
       }
+    }
+
+    // --- Self-Assign Notification and Community Roles ---
+    if (customId.startsWith('selfrole_')) {
+      const selfRoleMap = {
+        selfrole_announcement: { name: '📢 Announcements', ping: true },
+        selfrole_giveaway: { name: '🎁 Giveaways', ping: true },
+        selfrole_event: { name: '🎪 Events', ping: true },
+        selfrole_builder: { name: '🏰 Builder', ping: false },
+        selfrole_pvp: { name: '⚔️ PvP Warrior', ping: false }
+      };
+      const roleInfo = selfRoleMap[customId];
+      if (roleInfo) {
+        let role = interaction.guild.roles.cache.find(r => r.name.toLowerCase().includes(roleInfo.name.toLowerCase().replace(/[^a-z]/gi, '')));
+        if (!role) {
+          role = await interaction.guild.roles.create({ name: roleInfo.name, mentionable: roleInfo.ping }).catch(() => null);
+        }
+        if (role) {
+          if (interaction.member.roles.cache.has(role.id)) {
+            await interaction.member.roles.remove(role).catch(() => {});
+            return interaction.reply({ content: `➖ **Role Removed!** You no longer have the **${role.name}** role.`, flags: 64 });
+          } else {
+            await interaction.member.roles.add(role).catch(() => {});
+            return interaction.reply({ content: `➕ **Role Added!** You now have the **${role.name}** role!`, flags: 64 });
+          }
+        }
+      }
+    }
+
+    // --- Bump Reminder, Check Rank, Partnership FAQ Buttons ---
+    if (customId === 'btn_bump_reminder') {
+      return interaction.reply({
+        content: `🔔 **Bump Reminder Set!** Run \`/bump\` right now to boost KryloSMP and earn **+500 KryloCoins**! Make sure to run it every 2 hours! 🚀`,
+        flags: 64
+      });
+    }
+
+    if (customId === 'btn_check_rank') {
+      const bal = economy[interaction.user.id] || 1000;
+      const xp = userXp[interaction.user.id] || 0;
+      const lvl = Math.floor(Math.sqrt(xp / 100)) + 1;
+      const nextXp = (lvl * lvl) * 100;
+      return interaction.reply({
+        content: `📈 **Your KryloSMP Progression Stats**\n• **Chat Level:** Level ${lvl} ⭐\n• **Experience Points (XP):** ${xp} / ${nextXp} XP\n• **Wallet Balance:** **${bal.toLocaleString()} KC** 💎\n• **Web Profile:** https://krylosmp.web.app/`,
+        flags: 64
+      });
+    }
+
+    if (customId === 'btn_partner_info') {
+      return interaction.reply({
+        content: `🤝 **KryloSMP Partnership Guidelines**\n• **Requirements:** 100+ Discord members or 100+ YouTube subscribers.\n• **How to Apply:** Click the *Apply for Partnership* button to submit your link!\n• **Turnaround:** Executive staff reviews all applications within 24 hours.`,
+        flags: 64
+      });
     }
 
     // Item Trade Accept / Decline Button Handling
@@ -6483,6 +6539,13 @@ const processedMessages = new Set();
 client.on('messageCreate', async (message) => {
   if (message.partial) await message.fetch().catch(() => {});
   if (message.channel && message.channel.partial) await message.channel.fetch().catch(() => {});
+  if (!message.guild) return;
+
+  // Auto-reaction voting for suggestions
+  if (message.channel.name && message.channel.name.includes('suggestion') && !message.author.bot) {
+    await message.react('✅').catch(() => {});
+    await message.react('❌').catch(() => {});
+  }
 
   // Command: !postvideo <youtube_url> [title]
   const msgContent = message.content.trim();
