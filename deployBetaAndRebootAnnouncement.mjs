@@ -12,7 +12,7 @@ const client = new Client({
 const GUILD_IDS = ['1524878881918685405', '1420991845546332162', '1532574925356007525'];
 
 client.once('ready', async () => {
-  console.log(`[+] Logged in as ${client.user.tag} — Deploying Season 1 Reset & Beta Program...`);
+  console.log(`[+] Logged in as ${client.user.tag} — Updating Beta Announcements (Pioneer Tag)...`);
 
   for (const guildId of GUILD_IDS) {
     try {
@@ -20,29 +20,21 @@ client.once('ready', async () => {
       if (!guild) continue;
       console.log(`\n========================================\n👑 Processing Guild: ${guild.name} (${guild.id})\n========================================`);
 
-      // 1. Ensure '🧪 Beta Tester' role exists
-      let betaRole = guild.roles.cache.find(r => r.name.toLowerCase().includes('beta tester') || r.name.toLowerCase().includes('founder'));
-      if (!betaRole) {
-        betaRole = await guild.roles.create({
-          name: '🧪 Beta Tester',
-          color: 0x00FFCC,
-          hoist: true,
-          mentionable: true,
-          reason: 'Official KryloSMP Beta Tester / Founder Role'
-        }).catch(err => {
-          console.error('Role create error:', err.message);
-          return null;
-        });
-        if (betaRole) console.log(`   [+] Created Role: 🧪 Beta Tester`);
-      } else {
-        console.log(`   [✓] Role already exists: ${betaRole.name}`);
-      }
-
       const channels = await guild.channels.fetch();
 
-      // 2. Post Announcement in #server-announcements
+      // 1. Update Announcement in #server-announcements
       const annCh = channels.find(c => c && c.type === ChannelType.GuildText && (c.name.includes('announcement') || c.name.includes('news')));
       if (annCh) {
+        // Delete previous announcement if it mentioned Founder
+        const msgs = await annCh.messages.fetch({ limit: 10 }).catch(() => null);
+        if (msgs) {
+          for (const [, m] of msgs) {
+            if (m.author.id === client.user.id && m.embeds.some(e => e.title?.includes('SEASON 1 FRESH REBOOT'))) {
+              await m.delete().catch(() => {});
+            }
+          }
+        }
+
         const annEmbed = new EmbedBuilder()
           .setColor(0xFF4757)
           .setAuthor({ name: '👑 KryloSMP Official Administration', iconURL: 'https://mc-heads.net/avatar/Krylo_MC/64' })
@@ -58,7 +50,7 @@ client.once('ready', async () => {
             `• **Target Public Release:** The grand public opening will launch once we assemble our **5+ Founding Beta Players**!\n\n` +
             `🧪 **WANT EARLY ACCESS? JOIN THE BETA TEAM:**\n` +
             `We are accepting applications for our **Core Beta Roster**! Click the button below to join:\n` +
-            `✨ **Beta Perks:** Early whitelist access, exclusive **[Founder]** in-game tag, and **10,000 KC Starter Bonus** at grand launch!\n` +
+            `✨ **Beta Perks:** Early whitelist access, exclusive **[Pioneer]** in-game tag, and **10,000 KC Starter Bonus** at grand launch!\n` +
             `━━━━━━━━━━━━━━━━━━━━━━━━━`
           )
           .setImage('https://krylosmp.web.app/banner.jpg')
@@ -78,12 +70,22 @@ client.once('ready', async () => {
         );
 
         await annCh.send({ embeds: [annEmbed], components: [annRow] });
-        console.log(`   [✅] Posted Season 1 Reboot Announcement in #${annCh.name}`);
+        console.log(`   [✅] Re-posted Season 1 Reboot Announcement in #${annCh.name}`);
       }
 
-      // 3. Post Beta Whitelist Hub in #server-info
+      // 2. Update Beta Whitelist Hub in #server-info
       const infoCh = channels.find(c => c && c.type === ChannelType.GuildText && c.name.includes('server-info'));
       if (infoCh) {
+        // Delete previous beta hub
+        const msgs = await infoCh.messages.fetch({ limit: 10 }).catch(() => null);
+        if (msgs) {
+          for (const [, m] of msgs) {
+            if (m.author.id === client.user.id && m.embeds.some(e => e.title?.includes('BECOME AN OFFICIAL KRYLOSMP BETA TESTER'))) {
+              await m.delete().catch(() => {});
+            }
+          }
+        }
+
         const betaEmbed = new EmbedBuilder()
           .setColor(0x00FFCC)
           .setAuthor({ name: '🧪 KryloSMP Beta Program', iconURL: 'https://mc-heads.net/avatar/Krylo_MC/64' })
@@ -91,16 +93,16 @@ client.once('ready', async () => {
           .setDescription(
             `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
             `Help shape the future of **KryloSMP Season 1**!\n\n` +
-            `We are looking for at least **5 dedicated founding players** to test early builds, report bugs, test combat balance, and explore new custom features.\n\n` +
-            `🎁 **EXCLUSIVE FOUNDING REWARDS:**\n` +
+            `We are looking for at least **5 dedicated beta players** to test early builds, report bugs, test combat balance, and explore new custom features.\n\n` +
+            `🎁 **EXCLUSIVE BETA TESTER REWARDS:**\n` +
             `• 🧪 **🧪 Beta Tester** Discord role & private test channel access\n` +
             `• 📜 **Early Whitelist Access** to the server during development\n` +
-            `• 👑 **Permanent [Founder]** cosmetic title on public release day\n` +
+            `• ⚔️ **Permanent [Pioneer]** cosmetic title on public release day\n` +
             `• 💰 **10,000 KryloCoins Bonus** deposited straight to your wallet\n` +
             `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
             `👇 *Click below to claim your Beta Tester spot!*`
           )
-          .setFooter({ text: 'KryloSMP Founder Initiative • Limited Beta Slots Available' })
+          .setFooter({ text: 'KryloSMP Pioneer Initiative • Limited Beta Slots Available' })
           .setTimestamp();
 
         const betaRow = new ActionRowBuilder().addComponents(
@@ -112,7 +114,7 @@ client.once('ready', async () => {
         );
 
         await infoCh.send({ embeds: [betaEmbed], components: [betaRow] });
-        console.log(`   [✅] Deployed Beta Hub in #${infoCh.name}`);
+        console.log(`   [✅] Deployed Updated Beta Hub in #${infoCh.name}`);
       }
 
     } catch (err) {
@@ -120,7 +122,7 @@ client.once('ready', async () => {
     }
   }
 
-  console.log('\n🎉 ALL ANNOUNCEMENTS & BETA HUBS DEPLOYED!');
+  console.log('\n🎉 ALL UPDATES DEPLOYED!');
   process.exit(0);
 });
 
