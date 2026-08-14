@@ -1989,6 +1989,132 @@ client.on('interactionCreate', async (interaction) => {
       });
     }
 
+    // --- Interactive Store & Economy Buttons ---
+    if (customId === 'shop_check_balance') {
+      const bal = economy[interaction.user.id] || 1000;
+      const lvl = Math.floor(Math.sqrt((userXp[interaction.user.id] || 0) / 100)) + 1;
+      return interaction.reply({
+        content: `💰 **Player Account Summary**\n• **KryloCoins Balance:** **${bal.toLocaleString()} KC** 💎\n• **Chat Level:** Level ${lvl}\n• **Web Profile:** https://krylosmp.web.app/`,
+        flags: 64
+      });
+    }
+
+    if (customId === 'shop_buy_vip') {
+      let bal = economy[interaction.user.id] || 1000;
+      if (bal < 50000) {
+        return interaction.reply({ content: `❌ **Insufficient Funds!** You need **50,000 KC** (You have **${bal.toLocaleString()} KC**). Play games or run \`/daily\`!`, flags: 64 });
+      }
+      economy[interaction.user.id] = bal - 50000;
+      const vipRole = interaction.guild.roles.cache.find(r => r.name.toLowerCase().includes('vip'));
+      if (vipRole) await interaction.member.roles.add(vipRole).catch(() => {});
+      return interaction.reply({ content: `👑 **Purchase Successful!** You unlocked **💎 VIP Sovereign Rank**! Your new balance is **${(bal - 50000).toLocaleString()} KC**.`, flags: 64 });
+    }
+
+    if (customId === 'shop_buy_netherite') {
+      let bal = economy[interaction.user.id] || 1000;
+      if (bal < 25000) {
+        return interaction.reply({ content: `❌ **Insufficient Funds!** You need **25,000 KC** (You have **${bal.toLocaleString()} KC**).`, flags: 64 });
+      }
+      economy[interaction.user.id] = bal - 25000;
+      return interaction.reply({ content: `⚔️ **Purchase Successful!** 64x Netherite Ingot Kit voucher registered to your account! Link your IGN at https://krylosmp.web.app/ to claim in-game!`, flags: 64 });
+    }
+
+    if (customId === 'shop_buy_gacha') {
+      let bal = economy[interaction.user.id] || 1000;
+      if (bal < 10000) {
+        return interaction.reply({ content: `❌ **Insufficient Funds!** You need **10,000 KC** (You have **${bal.toLocaleString()} KC**).`, flags: 64 });
+      }
+      economy[interaction.user.id] = bal - 10000;
+      const rewards = [
+        { name: '🔥 Mythic Fire Sword Voucher', bonus: 5000 },
+        { name: '👑 25,000 KC Jackpot Prize!', bonus: 25000 },
+        { name: '💎 50x God Apples Voucher', bonus: 8000 },
+        { name: '🛡️ Sovereign Shield Skin', bonus: 12000 }
+      ];
+      const win = rewards[Math.floor(Math.random() * rewards.length)];
+      economy[interaction.user.id] += win.bonus;
+      return interaction.reply({ content: `🎁 **MYSTERY CRATE OPENED!**\n🎉 You pulled: **${win.name}**! (+${win.bonus.toLocaleString()} KC added to your balance).`, flags: 64 });
+    }
+
+    // --- Interactive Minigame Buttons ---
+    if (customId === 'btn_play_slots') {
+      let bal = economy[interaction.user.id] || 1000;
+      if (bal < 500) {
+        return interaction.reply({ content: `❌ **Need 500 KC to spin slots!** Run \`/daily\` or work to earn coins.`, flags: 64 });
+      }
+      economy[interaction.user.id] = bal - 500;
+      const icons = ['💎', '👑', '⚡', '🍒', '7️⃣'];
+      const r1 = icons[Math.floor(Math.random() * icons.length)];
+      const r2 = icons[Math.floor(Math.random() * icons.length)];
+      const r3 = icons[Math.floor(Math.random() * icons.length)];
+
+      if (r1 === r2 && r2 === r3) {
+        const winAmount = 5000;
+        economy[interaction.user.id] += winAmount;
+        return interaction.reply({ content: `🎰 **[ ${r1} | ${r2} | ${r3} ]** 🎰\n🎉 **JACKPOT!** You matched 3 and won **+${winAmount.toLocaleString()} KC**! Balance: **${(economy[interaction.user.id]).toLocaleString()} KC** 👑`, flags: 64 });
+      } else if (r1 === r2 || r2 === r3 || r1 === r3) {
+        const winAmount = 1000;
+        economy[interaction.user.id] += winAmount;
+        return interaction.reply({ content: `🎰 **[ ${r1} | ${r2} | ${r3} ]** 🎰\n✨ **Nice Spin!** Matched 2! You won **+${winAmount.toLocaleString()} KC**! Balance: **${(economy[interaction.user.id]).toLocaleString()} KC**`, flags: 64 });
+      } else {
+        return interaction.reply({ content: `🎰 **[ ${r1} | ${r2} | ${r3} ]** 🎰\n❌ No match! You lost 500 KC. New balance: **${(economy[interaction.user.id]).toLocaleString()} KC**. Spin again!`, flags: 64 });
+      }
+    }
+
+    if (customId === 'btn_play_coinflip') {
+      let bal = economy[interaction.user.id] || 1000;
+      if (bal < 500) {
+        return interaction.reply({ content: `❌ **Need 500 KC to flip!**`, flags: 64 });
+      }
+      economy[interaction.user.id] = bal - 500;
+      const win = Math.random() >= 0.5;
+      if (win) {
+        economy[interaction.user.id] += 1000;
+        return interaction.reply({ content: `🪙 **Coin landed on HEADS!**\n🎉 You doubled your coins and won **+1,000 KC**! Balance: **${(economy[interaction.user.id]).toLocaleString()} KC**!`, flags: 64 });
+      } else {
+        return interaction.reply({ content: `🪙 **Coin landed on TAILS!**\n❌ Lost 500 KC. Balance: **${(economy[interaction.user.id]).toLocaleString()} KC**. Try again!`, flags: 64 });
+      }
+    }
+
+    if (customId === 'btn_hourly_work') {
+      const now = Date.now();
+      if (!global.userWorkTimes) global.userWorkTimes = {};
+      const lastWork = global.userWorkTimes[interaction.user.id] || 0;
+      if (now - lastWork < 60 * 60 * 1000) {
+        const remMins = Math.ceil((60 * 60 * 1000 - (now - lastWork)) / (1000 * 60));
+        return interaction.reply({ content: `⏳ **Take a breather!** You can work again in **${remMins} minutes**!`, flags: 64 });
+      }
+      global.userWorkTimes[interaction.user.id] = now;
+      let cur = (economy[interaction.user.id] || 1000) + 2500;
+      economy[interaction.user.id] = cur;
+      return interaction.reply({ content: `💼 **Shift Completed!** You earned **+2,500 KryloCoins**! New balance: **${cur.toLocaleString()} KC** 💰`, flags: 64 });
+    }
+
+    // --- Color Roles Handlers ---
+    if (customId.startsWith('color_')) {
+      const colorMap = {
+        color_crimson: '🔴 Crimson Red',
+        color_cyan: '🔵 Cyber Cyan',
+        color_gold: '🟡 Imperial Gold',
+        color_violet: '🟣 Neon Violet',
+        color_green: '🟢 Emerald Green',
+        color_pink: '🌸 Sakura Pink'
+      };
+      const targetRoleName = colorMap[customId];
+      if (targetRoleName) {
+        const allColorNames = Object.values(colorMap);
+        const rolesToRemove = interaction.member.roles.cache.filter(r => allColorNames.includes(r.name));
+        for (const [, r] of rolesToRemove) {
+          await interaction.member.roles.remove(r).catch(() => {});
+        }
+        const targetRole = interaction.guild.roles.cache.find(r => r.name === targetRoleName);
+        if (targetRole) {
+          await interaction.member.roles.add(targetRole).catch(() => {});
+          return interaction.reply({ content: `🎨 **Name Color Updated!** You now have the **${targetRoleName}** color role!`, flags: 64 });
+        }
+      }
+    }
+
     // Item Trade Accept / Decline Button Handling
     if (customId.startsWith('trade_accept_') || customId.startsWith('trade_decline_')) {
       const parts = customId.split('_');
