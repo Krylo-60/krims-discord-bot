@@ -2171,6 +2171,20 @@ client.on('interactionCreate', async (interaction) => {
       });
     }
 
+    if (customId === 'btn_join_beta_roster') {
+      let betaRole = interaction.guild.roles.cache.find(r => r.name.toLowerCase().includes('beta tester') || r.name.toLowerCase().includes('founder'));
+      if (!betaRole) {
+        betaRole = await interaction.guild.roles.create({ name: '🧪 Beta Tester', color: 0x00FFCC, hoist: true }).catch(() => null);
+      }
+      if (betaRole) {
+        await interaction.member.roles.add(betaRole).catch(() => {});
+      }
+      return interaction.reply({
+        content: `🧪 **WELCOME TO THE KRYLOSMP BETA ROSTER!**\n\n✅ You have been awarded the **🧪 Beta Tester** role!\n📜 **Whitelist Priority:** Your account has been registered for the private development whitelist.\n🎁 **Launch Day Rewards:** You will receive **+10,000 KryloCoins** and the exclusive **[Founder]** tag when Season 1 officially opens! 👑\n\n*Make sure to drop your Minecraft In-Game Name (IGN) in <#${interaction.channelId}> or DM staff so we can whitelist you!*`,
+        flags: 64
+      });
+    }
+
     // Item Trade Accept / Decline Button Handling
     if (customId.startsWith('trade_accept_') || customId.startsWith('trade_decline_')) {
       const parts = customId.split('_');
