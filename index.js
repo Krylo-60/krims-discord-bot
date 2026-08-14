@@ -1885,6 +1885,70 @@ async function executeGameBoostOptimization(author) {
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.guild) return;
   let guildConfig = null;
+
+  // Handle String Select Menu Interactions (Support Desk)
+  if (interaction.isStringSelectMenu()) {
+    const { customId, values } = interaction;
+    if (customId === 'select_open_ticket') {
+      const category = values[0];
+      const categoryMap = {
+        ticket_report: { label: '🛡️ Player Report', color: 0xFF4444 },
+        ticket_store: { label: '💎 Store & Billing Support', color: 0x9D4EDD },
+        ticket_bug: { label: '🐛 Bug / Exploit Bounty', color: 0xFF9E00 },
+        ticket_media: { label: '🤝 Creator & Partnership', color: 0x5865F2 },
+        ticket_general: { label: '❓ General Assistance', color: 0x00F2FF }
+      };
+
+      const sel = categoryMap[category] || { label: '❓ Support Ticket', color: 0x00F2FF };
+
+      try {
+        const ticketCat = interaction.guild.channels.cache.find(c => c.type === ChannelType.GuildCategory && (c.name.includes('SUPPORT') || c.name.includes('TICKET')));
+        const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const ticketCh = await interaction.guild.channels.create({
+          name: `ticket-${cleanUsername}`,
+          type: ChannelType.GuildText,
+          parent: ticketCat ? ticketCat.id : null,
+          permissionOverwrites: [
+            { id: interaction.guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+            { id: interaction.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.AttachFiles] },
+            { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.Administrator] }
+          ]
+        });
+
+        const ticketWelcomeEmbed = new EmbedBuilder()
+          .setColor(sel.color)
+          .setAuthor({ name: `👑 KryloSMP Ticket: ${sel.label}`, iconURL: interaction.user.displayAvatarURL() })
+          .setTitle(`🎫 Ticket Created: ${sel.label}`)
+          .setDescription(
+            `Hello <@${interaction.user.id}>! A member of the **KryloSMP Staff Team** will assist you shortly.\n\n` +
+            `📋 **Ticket Details:**\n` +
+            `• **Category:** ${sel.label}\n` +
+            `• **Opened By:** <@${interaction.user.id}>\n\n` +
+            `💬 Please explain your request in detail. If reporting a player or bug, attach screenshots or video links below!`
+          )
+          .setFooter({ text: 'Click the button below when your issue is resolved.' })
+          .setTimestamp();
+
+        const closeBtn = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('close_ticket')
+            .setLabel('🔒 Close Ticket')
+            .setStyle(ButtonStyle.Danger)
+        );
+
+        await ticketCh.send({ content: `<@${interaction.user.id}>`, embeds: [ticketWelcomeEmbed], components: [closeBtn] });
+
+        return interaction.reply({
+          content: `✅ **Ticket Opened!** Your private support channel is ready: <#${ticketCh.id}>`,
+          flags: 64
+        });
+      } catch (err) {
+        console.error('Error creating select ticket:', err.message);
+        return interaction.reply({ content: '❌ Failed to create ticket. Please contact staff directly.', flags: 64 });
+      }
+    }
+  }
+
   // Handle Button Interactions
   if (interaction.isButton()) {
     const { customId } = interaction;
@@ -1914,6 +1978,13 @@ client.on('interactionCreate', async (interaction) => {
     if (customId === 'btn_enter_vip_giveaway') {
       return interaction.reply({
         content: `🎟️ **Giveaway Entry Confirmed!** You are registered for the **⚡ VIP Sovereign Rank + 50,000 KC** giveaway! 👑`,
+        flags: 64
+      });
+    }
+
+    if (customId === 'btn_refresh_clan_stats') {
+      return interaction.reply({
+        content: `🔄 **Clan Standings Refreshed!** Top Rank: **[KRYLO] Krylo Army** with **1,000,000,000 KC** vault balance! 🏰\n*View full leaderboard at https://krylosmp.web.app/*`,
         flags: 64
       });
     }
