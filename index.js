@@ -4848,25 +4848,38 @@ client.on('interactionCreate', async (interaction) => {
   // Command: /suggest
   if (commandName === 'suggest') {
     const idea = interaction.options.getString('idea');
-    const suggestCh = interaction.guild.channels.cache.find(c => c.name.includes('suggestions') && c.type === ChannelType.GuildText);
+    const suggestCh = interaction.guild.channels.cache.find(c => c.name.includes('suggestion') && c.type === ChannelType.GuildText);
 
     if (!suggestCh) {
       await interaction.reply({ content: '❌ No suggestions channel found!', ephemeral: true });
       return;
     }
 
-    const embed = new EmbedBuilder()
-      .setColor(0x5865F2)
-      .setTitle('💡 New Suggestion')
+    const publicEmbed = new EmbedBuilder()
+      .setColor(0x00E5FF)
+      .setAuthor({ name: '🎭 Anonymous Community Member', iconURL: 'https://mc-heads.net/avatar/MHF_Question/64' })
+      .setTitle('💡 New Server Suggestion')
       .setDescription(idea)
-      .setFooter({ text: `Suggested by ${interaction.user.username}` })
+      .setFooter({ text: '🎭 Anonymous Suggestion • React below to vote! (Identity hidden from public)' })
       .setTimestamp();
 
-    const msg = await suggestCh.send({ embeds: [embed] });
-    await msg.react('👍');
-    await msg.react('👎');
+    const msg = await suggestCh.send({ embeds: [publicEmbed] });
+    await msg.react('👍').catch(() => {});
+    await msg.react('👎').catch(() => {});
 
-    await interaction.reply({ content: `✅ Your suggestion was posted in ${suggestCh}!`, ephemeral: true });
+    // Private Staff Audit Log
+    const modLogCh = interaction.guild.channels.cache.find(c => (c.name.includes('mod-log') || c.name.includes('mod_log') || c.name.includes('staff')) && c.type === ChannelType.GuildText);
+    if (modLogCh) {
+      const staffEmbed = new EmbedBuilder()
+        .setColor(0xFF4757)
+        .setAuthor({ name: '🕵️ [STAFF AUDIT] Suggestion Submitter Identity', iconURL: interaction.user.displayAvatarURL({ dynamic: true }) })
+        .setDescription(`👤 **Submitter:** <@${interaction.user.id}> (\`${interaction.user.tag}\` • ID: \`${interaction.user.id}\`)\n\n💡 **Suggestion Content:**\n> ${idea}\n\n🔗 **Public Message:** [Jump to Suggestion](${msg.url})`)
+        .setFooter({ text: 'Staff Eyes Only • Public identity kept secret' })
+        .setTimestamp();
+      await modLogCh.send({ embeds: [staffEmbed] }).catch(() => {});
+    }
+
+    await interaction.reply({ content: `✅ **Your suggestion was posted anonymously in ${suggestCh}!**\n*(Your identity is kept completely secret from regular players; only staff can see who submitted it in audit logs).*`, ephemeral: true });
     return;
   }
 
@@ -6658,24 +6671,39 @@ client.on('messageCreate', async (message) => {
   // Process message XP leveling
   await handleMessageXP(message);
 
-  // Auto-Format Suggestions Channel
-  if (message.guild && message.channel.name.includes('suggestions')) {
+  // Auto-Format Suggestions Channel (Anonymous Public + Staff Audit Log)
+  if (message.guild && (message.channel.name.includes('suggestions') || message.channel.name.includes('suggestion'))) {
     try {
+      const originalContent = message.content;
+      const author = message.author;
       await message.delete().catch(() => {});
+
       const suggestEmbed = new EmbedBuilder()
-        .setColor(0xFFAA00)
-        .setTitle('💡 New Server Suggestion')
-        .setDescription(message.content)
+        .setColor(0x00E5FF)
+        .setTitle('💡 New Community Suggestion')
+        .setDescription(originalContent)
         .setAuthor({
-          name: message.author.tag,
-          iconURL: message.author.displayAvatarURL({ dynamic: true })
+          name: '🎭 Anonymous Player',
+          iconURL: 'https://mc-heads.net/avatar/MHF_Question/64'
         })
-        .setFooter({ text: `Suggested by ${message.author.username} • React to vote!` })
+        .setFooter({ text: '🎭 Anonymous Suggestion • React below to vote! (Identity hidden from public)' })
         .setTimestamp();
 
-      const msg = await message.channel.send({ embeds: [suggestEmbed] });
-      await msg.react('👍');
-      await msg.react('👎');
+      const publicMsg = await message.channel.send({ embeds: [suggestEmbed] });
+      await publicMsg.react('👍').catch(() => {});
+      await publicMsg.react('👎').catch(() => {});
+
+      // Private Staff Audit Log to #mod-logs
+      const modLogCh = message.guild.channels.cache.find(c => (c.name.includes('mod-log') || c.name.includes('mod_log') || c.name.includes('staff')) && c.type === ChannelType.GuildText);
+      if (modLogCh) {
+        const staffAuditEmbed = new EmbedBuilder()
+          .setColor(0xFF4757)
+          .setAuthor({ name: '🕵️ [STAFF AUDIT] Suggestion Submitter Identity', iconURL: author.displayAvatarURL({ dynamic: true }) })
+          .setDescription(`👤 **Submitter:** <@${author.id}> (\`${author.tag}\` • ID: \`${author.id}\`)\n\n💡 **Suggestion Content:**\n> ${originalContent}\n\n🔗 **Public Message:** [Jump to Suggestion](${publicMsg.url})`)
+          .setFooter({ text: 'Staff Eyes Only • Public identity kept secret' })
+          .setTimestamp();
+        await modLogCh.send({ embeds: [staffAuditEmbed] }).catch(() => {});
+      }
     } catch (err) {
       console.warn('[Suggestions] Failed to auto-format suggestion:', err.message);
     }
