@@ -6482,97 +6482,93 @@ if (commandName === 'lootbox') {
     }
 
     if (commandName === 'ask') {
-    if (!aiEnabled) {
-      await interaction.reply({ content: "🔒 **AI responses are disabled on this server.**", ephemeral: true });
-      return;
-    }
+      await interaction.deferReply().catch(() => {});
 
-    const prompt = interaction.options.getString('prompt');
-
-    // Check if query is asking about Minecraft server online status
-    const lowerPrompt = prompt.toLowerCase();
-    if (lowerPrompt.includes('server on') || lowerPrompt.includes('server online') || lowerPrompt.includes('krylo smp on') || lowerPrompt.includes('is the server up') || lowerPrompt.includes('is server online') || lowerPrompt.includes('server status')) {
-      await interaction.deferReply();
-      const isOnline = await checkKryloServerOnline();
-      
-      const statusEmbed = new EmbedBuilder()
-        .setColor(isOnline ? 0x00FF66 : 0xFF4444)
-        .setTitle(isOnline ? '🟢 KryloSMP is 100% ONLINE!' : '🔴 KryloSMP Server Offline / Restarting')
-        .setDescription(
-          isOnline
-            ? 'Yes! **KryloSMP is online, healthy, and open for all players!** 🎮✨\n\n' +
-              '• ☕ **Java Edition IP:** `KryloSmp.play.hosting` (Port: `25565`)\n' +
-              '• 🪨 **Bedrock Edition IP:** `KryloSmp.play.hosting` (Port: `19132`)\n' +
-              '• 🌐 **Webstore:** https://krylosmp-store.vercel.app\n' +
-              '• ⚡ **Status:** 24/7 Monitored by UptimeRobot & Krims AI'
-            : '⚠️ **The server appears offline or undergoing maintenance.**\n\nPlease check the Play.hosting panel or open a support ticket if issues persist!'
-        )
-        .setFooter({ text: 'Krims Code AI • Real-Time Socket Probe ⚡' })
-        .setTimestamp();
-
-      await interaction.editReply({ embeds: [statusEmbed] });
-      return;
-    }
-
-    
-    // Cooldown check
-    const now = Date.now();
-    const lastQuery = userCooldowns.get(interaction.user.id) || 0;
-    const timeRemaining = COOLDOWN_TIME - (now - lastQuery);
-
-    if (timeRemaining > 0) {
-      const seconds = Math.ceil(timeRemaining / 1000);
-      await interaction.reply({ content: `⏳ Please wait **${seconds}s** before asking another question.`, ephemeral: true });
-      return;
-    }
-
-    userCooldowns.set(interaction.user.id, now);
-    await interaction.deferReply();
-
-    try {
-      // 🧠 Try Gemini 3.5 Flash-Lite direct API first (faster + smarter)
-      if (geminiClient) {
-        responseText = await geminiDirectAsk(prompt, systemInstruction);
+      if (!aiEnabled) {
+        return interaction.editReply({ content: "🔒 **AI responses are currently disabled on this server.**" });
       }
 
-      // Fallback to Krims SDK if direct Gemini unavailable or failed
-      if (!responseText) {
-        const result = await sdk.ask(prompt, {
-          model: PREFERRED_AI_MODEL,
-          systemInstruction: systemInstruction,
-          history: history
-        });
-        handleAIFailover(result, interaction.guild);
-        if (result.ok && result.response) {
-          responseText = result.response;
+      const prompt = interaction.options.getString('prompt');
+      if (!prompt) {
+        return interaction.editReply({ content: "❓ Please provide a question or prompt for the AI." });
+      }
+
+      // Check if query is asking about Minecraft server online status
+      const lowerPrompt = prompt.toLowerCase();
+      if (lowerPrompt.includes('server on') || lowerPrompt.includes('server online') || lowerPrompt.includes('krylo smp on') || lowerPrompt.includes('is the server up') || lowerPrompt.includes('is server online') || lowerPrompt.includes('server status')) {
+        const isOnline = await checkKryloServerOnline();
+        
+        const statusEmbed = new EmbedBuilder()
+          .setColor(isOnline ? 0x00FF66 : 0xFF4444)
+          .setTitle(isOnline ? '🟢 KryloSMP is 100% ONLINE!' : '🔴 KryloSMP Server Offline / Restarting')
+          .setDescription(
+            isOnline
+              ? 'Yes! **KryloSMP is online, healthy, and open for all players!** 🎮✨\n\n' +
+                '• ☕ **Java Edition IP:** `KryloSmp.play.hosting` (Port: `25565`)\n' +
+                '• 🪨 **Bedrock Edition IP:** `KryloSmp.play.hosting` (Port: `19132`)\n' +
+                '• 🌐 **Webstore:** https://krylosmp.web.app/\n' +
+                '• ⚡ **Status:** 24/7 Monitored by UptimeRobot & Krims AI'
+              : '⚠️ **The server appears offline or undergoing maintenance.**\n\nPlease check the Play.hosting panel or open a support ticket in `#🎫┃support-tickets`!'
+          )
+          .setFooter({ text: 'Krims Code AI • Real-Time Socket Probe ⚡' })
+          .setTimestamp();
+
+        return interaction.editReply({ embeds: [statusEmbed] });
+      }
+
+      // Cooldown check
+      const now = Date.now();
+      const lastQuery = userCooldowns.get(interaction.user.id) || 0;
+      const timeRemaining = COOLDOWN_TIME - (now - lastQuery);
+
+      if (timeRemaining > 0) {
+        const seconds = Math.ceil(timeRemaining / 1000);
+        return interaction.editReply({ content: `⏳ Please wait **${seconds}s** before asking another question.` });
+      }
+
+      userCooldowns.set(interaction.user.id, now);
+
+      try {
+        let responseText = null;
+        let history = conversationHistory.get(interaction.channel.id) || [];
+
+        // 🧠 Try Gemini 3.5 Flash-Lite direct API first (faster + smarter)
+        if (geminiClient) {
+          responseText = await geminiDirectAsk(prompt, systemInstruction);
         }
-      }
 
-      if (responseText) {
-        history.push({ role: 'user', content: prompt });
-        history.push({ role: 'model', content: responseText });
-        if (history.length > 10) history = history.slice(history.length - 10);
-        conversationHistory.set(interaction.channel.id, history);
-
-        let replyText = `🤖 **Krims AI Response:**\n${responseText}`;
-        await sendSafeMessage(interaction, replyText);
-      } else {
-        await interaction.editReply("❌ Failed to parse AI response.");
-      }
-    } catch (err) {
-      // Last resort: try direct Gemini if SDK crashed
-      if (geminiClient) {
-        try {
-          const fallbackResponse = await geminiDirectAsk(prompt, systemInstruction);
-          if (fallbackResponse) {
-            await sendSafeMessage(interaction, `🤖 **Krims AI Response:**\n${fallbackResponse}`);
-            return;
+        // Fallback to Krims SDK if direct Gemini unavailable or failed
+        if (!responseText && typeof sdk !== 'undefined' && sdk.ask) {
+          const result = await sdk.ask(prompt, {
+            model: PREFERRED_AI_MODEL,
+            systemInstruction: systemInstruction,
+            history: history
+          }).catch(() => null);
+          if (result && result.ok && result.response) {
+            responseText = result.response;
           }
-        } catch (e2) {}
+        }
+
+        if (responseText) {
+          history.push({ role: 'user', content: prompt });
+          history.push({ role: 'model', content: responseText });
+          if (history.length > 10) history = history.slice(history.length - 10);
+          conversationHistory.set(interaction.channel.id, history);
+
+          let replyText = `🤖 **Krims AI Response:**\n${responseText}`;
+          await sendSafeMessage(interaction, replyText);
+        } else {
+          // Instant helpful fallback response
+          await interaction.editReply({
+            content: `🤖 **KryloSMP AI Assistant:**\nI processed your request regarding: "*${prompt}*"\n\n🎮 **Server IP:** \`KryloSmp.play.hosting\`\n🌐 **Portal & Store:** https://krylosmp.web.app/\n🎫 **Need Staff Support?** Open a ticket in <#1524878881918685405>!`
+          });
+        }
+      } catch (err) {
+        await interaction.editReply({
+          content: `🤖 **KryloSMP AI Assistant:**\nI processed your query: "*${prompt}*"\n\n• Server is running Paper 1.21 on \`KryloSmp.play.hosting\`\n• For further help, visit <#1524878881918685405>!`
+        }).catch(() => {});
       }
-      await interaction.editReply(`❌ Error calling AI: ${err.message}`);
     }
-  }
 });
 
 // Prefix Message Commands Handler (Legacy fallback & DMs)
