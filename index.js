@@ -2185,6 +2185,22 @@ client.on('interactionCreate', async (interaction) => {
       });
     }
 
+    if (customId === 'btn_agree_rules') {
+      let verRole = interaction.guild.roles.cache.find(r => r.name.toLowerCase().includes('verified') || r.name.toLowerCase().includes('member'));
+      if (!verRole) {
+        verRole = await interaction.guild.roles.create({ name: '✅ Verified', color: 0x00FF88 }).catch(() => null);
+      }
+      if (verRole) {
+        await interaction.member.roles.add(verRole).catch(() => {});
+      }
+      let cur = (economy[interaction.user.id] || 1000) + 500;
+      economy[interaction.user.id] = cur;
+      return interaction.reply({
+        content: `✅ **Rules Agreement Confirmed!**\n\n🛡️ You have been awarded the **✅ Verified** role and unlocked all channels!\n💰 **Bonus:** +500 KryloCoins have been credited to your wallet (Total: **${cur.toLocaleString()} KC**)! 💎`,
+        flags: 64
+      });
+    }
+
     // Item Trade Accept / Decline Button Handling
     if (customId.startsWith('trade_accept_') || customId.startsWith('trade_decline_')) {
       const parts = customId.split('_');
