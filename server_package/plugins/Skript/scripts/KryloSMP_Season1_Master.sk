@@ -1,0 +1,185 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 👑 KRYLOSMP SEASON 1 — MASTER SYSTEM SKRIPT
+# Designed for Krylo & Season 1 Pioneer Beta
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+variables:
+    {krylocoins::%player%} = 1000
+    {clan::%player%} = "None"
+    {bounty::%player%} = 0
+    {rank::%player%} = "Member"
+
+# ─── ON FIRST JOIN / LOGIN ───
+on join:
+    if {krylocoins::%player%} is not set:
+        set {krylocoins::%player%} to 1000
+        set {clan::%player%} to "None"
+        if player is "Krylo_MC" or "Krylo" or "Krylo_plays":
+            set {rank::%player%} to "Owner"
+        else:
+            set {rank::%player%} to "Member"
+        send "&6&l[KryloSMP] &aWelcome to &e&lKryloSMP Season 1 Beta&a!" to player
+        send "&6&l[KryloSMP] &7You received a starter bonus of &e1,000 KryloCoins&7!" to player
+
+    # Auto Owner Tag
+    if player is "Krylo_MC" or "Krylo" or "Krylo_plays":
+        set {rank::%player%} to "Owner"
+
+    # Tablist & Scoreboard update
+    set player's tab list header to "&6&l👑 KRYLOSMP &8┃ &e&lSEASON 1 BETA%nl%&7Server IP: &bKryloSmp.play.hosting"
+    set player's tab list footer to "&7Online: &a%number of all players% &8┃ &7Store: &ekrylosmp.web.app"
+
+# ─── CHAT FORMATTING ───
+on chat:
+    if {rank::%player%} is "Owner":
+        set chat format to "&6&l[👑 OWNER] &e%player's display name%&8: &f%message%"
+    else if {rank::%player%} is "Staff" or {rank::%player%} is "Admin":
+        set chat format to "&c&l[🛡️ STAFF] &f%player's display name%&8: &f%message%"
+    else if {rank::%player%} is "Pioneer" or {rank::%player%} is "Beta":
+        set chat format to "&b&l[⚔️ PIONEER] &b%player's display name%&8: &f%message%"
+    else if {rank::%player%} is "VIP":
+        set chat format to "&d&l[💎 VIP] &d%player's display name%&8: &f%message%"
+    else:
+        set chat format to "&7%player's display name%&8: &f%message%"
+
+# ─── ECONOMY COMMANDS ───
+command /balance [<player>]:
+    aliases: /bal, /money, /kc
+    trigger:
+        if arg-1 is not set:
+            send "&6&l[KryloCoins] &7Your wallet balance: &e%{krylocoins::%player%}% KC &6💎" to player
+        else:
+            send "&6&l[KryloCoins] &e%arg-1%'s &7balance: &e%{krylocoins::%arg-1%}% KC &6💎" to player
+
+command /pay <player> <number>:
+    trigger:
+        if arg-1 is player:
+            send "&cYou cannot pay yourself!" to player
+            stop
+        if arg-2 is less than 1:
+            send "&cEnter a valid positive number!" to player
+            stop
+        if {krylocoins::%player%} is less than arg-2:
+            send "&cInsufficient KryloCoins! You have %{krylocoins::%player%}% KC." to player
+            stop
+        remove arg-2 from {krylocoins::%player%}
+        add arg-2 to {krylocoins::%arg-1%}
+        send "&6&l[KryloCoins] &7You sent &e%arg-2% KC &7to &a%arg-1%&7!" to player
+        send "&6&l[KryloCoins] &7You received &e%arg-2% KC &7from &a%player%&7!" to arg-1
+
+command /eco <text> <player> <number>:
+    permission: op
+    trigger:
+        if arg-1 is "give" or "add":
+            add arg-3 to {krylocoins::%arg-2%}
+            send "&aGave %arg-3% KC to %arg-2%! New balance: %{krylocoins::%arg-2%}% KC" to player
+        else if arg-1 is "take" or "remove":
+            remove arg-3 from {krylocoins::%arg-2%}
+            send "&cRemoved %arg-3% KC from %arg-2%! New balance: %{krylocoins::%arg-2%}% KC" to player
+        else if arg-1 is "set":
+            set {krylocoins::%arg-2%} to arg-3
+            send "&eSet %arg-2%'s KC to %arg-3%!" to player
+
+# ─── SPAWN & RTP COMMANDS ───
+command /setspawn:
+    permission: op
+    trigger:
+        set {krylo::spawn} to player's location
+        send "&6&l[KryloSMP] &aSpawn location saved at your current position!" to player
+
+command /spawn:
+    trigger:
+        if {krylo::spawn} is set:
+            teleport player to {krylo::spawn}
+            send "&6&l[KryloSMP] &aTeleported to Server Spawn!" to player
+        else:
+            send "&cSpawn location has not been set yet! Use /setspawn as OP." to player
+
+command /rtp:
+    cooldown: 60 seconds
+    cooldown message: &cPlease wait %remaining time% before using /rtp again!
+    trigger:
+        set {_x} to random integer between -2500 and 2500
+        set {_z} to random integer between -2500 and 2500
+        set {_loc} to location at {_x}, 120, {_z} in world "world"
+        teleport player to {_loc}
+        send "&6&l[KryloSMP] &aTeleported into the wilderness! (X: %{_x}%, Z: %{_z}%)" to player
+
+# ─── CRATES & GACHA ───
+command /crates:
+    aliases: /crate, /gacha
+    trigger:
+        send "&6━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" to player
+        send "&6&l   👑 KRYLOSMP MYSTERY CRATES" to player
+        send "&6━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" to player
+        send "&e• /buycrate standard &7— Costs &e2,500 KC" to player
+        send "&6• /buycrate mythic &7— Costs &e10,000 KC" to player
+        send "&6━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" to player
+
+command /buycrate <text>:
+    trigger:
+        if arg-1 is "standard":
+            if {krylocoins::%player%} is less than 2500:
+                send "&cYou need 2,500 KC for a Standard Crate! Check /bal." to player
+                stop
+            remove 2500 from {krylocoins::%player%}
+            give player 16 iron ingot
+            give player 16 cooked beef
+            give player 4 diamond
+            send "&a&l[CRATE UNBOXED] &7You received &e16 Iron, 16 Steaks, and 4 Diamonds&7!" to player
+        else if arg-1 is "mythic":
+            if {krylocoins::%player%} is less than 10000:
+                send "&cYou need 10,000 KC for a Mythic Crate! Check /bal." to player
+                stop
+            remove 10000 from {krylocoins::%player%}
+            give player 1 netherite ingot
+            give player 8 enchanted golden apple
+            give player 1 diamond sword of sharpness 5
+            broadcast "&6&l[MYTHIC CRATE] &e%player% &7just opened a &6Mythic Crate &7and pulled &dNetherite & God Apples&7!"
+        else:
+            send "&cUsage: /buycrate standard OR /buycrate mythic" to player
+
+# ─── CLAN SYSTEM ───
+command /clan [<text>] [<text>]:
+    trigger:
+        if arg-1 is not set or arg-1 is "help":
+            send "&6━━━━━━━━━━ 🏰 KRYLOSMP CLANS ━━━━━━━━━━" to player
+            send "&e/clan create <tag> &7— Create your clan (Costs 5,000 KC)" to player
+            send "&e/clan invite <player> &7— Invite player to your clan" to player
+            send "&e/clan info &7— View your clan info" to player
+            send "&e/clan deposit <amount> &7— Deposit coins into clan vault" to player
+            send "&6━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" to player
+        else if arg-1 is "create":
+            if arg-2 is not set:
+                send "&cSpecify a clan tag! Example: /clan create KRYLO" to player
+                stop
+            if {krylocoins::%player%} is less than 5000:
+                send "&cYou need 5,000 KC to create a clan!" to player
+                stop
+            remove 5000 from {krylocoins::%player%}
+            set {clan::%player%} to arg-2
+            set {clanvault::%arg-2%} to 0
+            broadcast "&6&l[CLANS] &e%player% &7has founded a new clan: &6[%arg-2%]&7!"
+        else if arg-1 is "deposit":
+            set {_amt} to arg-2 parsed as number
+            if {_amt} is less than 1:
+                send "&cEnter a valid number!" to player
+                stop
+            if {krylocoins::%player%} is less than {_amt}:
+                send "&cInsufficient KC balance!" to player
+                stop
+            set {_c} to {clan::%player%}
+            if {_c} is "None":
+                send "&cYou are not in a clan! Create one with /clan create." to player
+                stop
+            remove {_amt} from {krylocoins::%player%}
+            add {_amt} to {clanvault::%{_c}%}
+            send "&aDeposited %{_amt}% KC into clan [%{_c}%] vault! (Total: %{clanvault::%{_c}%}% KC)" to player
+
+# ─── RANK ASSIGNMENT COMMAND (FOR OP / OWNER) ───
+command /setrank <player> <text>:
+    permission: op
+    trigger:
+        set {rank::%arg-1%} to arg-2
+        send "&aSet %arg-1%'s rank to %arg-2%!" to player
+        send "&6&l[KryloSMP] &aYour in-game rank was updated to: &e%arg-2%&a!" to arg-1
