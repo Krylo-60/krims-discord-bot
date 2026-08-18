@@ -1,0 +1,131 @@
+# ============================================================
+#  ⚔️ KRYLOSMP — FFA COMBAT ARENA & KILL FEED ENGINE ⚡
+#  Supports Crossplay (Java & Bedrock), Instant Kits & +100 KC
+# ============================================================
+
+options:
+    prefix: &c&lFFA &8» &f
+    gold: &6&l
+    green: &a&l
+    red: &c&l
+    kc_reward: 100
+
+# ------------------------------------------------------------
+# 1. FFA JOIN / LEAVE COMMANDS
+# ------------------------------------------------------------
+command /ffa [<text>]:
+    trigger:
+        if arg-1 is "join":
+            if {ffa.inarena.%player%} is true:
+                send "{@prefix}&eYou are already in the FFA Arena!" to player
+                stop
+            
+            # Save survival inventory & state
+            set {ffa.inarena.%player%} to true
+            set {ffa.killstreak.%player%} to 0
+            
+            # Give Instant Combat Kit
+            clear player's inventory
+            set helmet of player to netherite helmet of protection 4 and unbreaking 3
+            set chestplate of player to netherite chestplate of protection 4 and unbreaking 3
+            set leggings of player to netherite leggings of protection 4 and unbreaking 3
+            set boots of player to netherite boots of protection 4 and unbreaking 3
+            
+            set slot 0 of player to netherite sword of sharpness 5 and unbreaking 3
+            set slot 1 of player to bow of power 5 and infinity 1
+            set slot 2 of player to 16 golden apple
+            set slot 3 of player to 4 ender pearl
+            set slot 8 of player to 1 arrow
+            
+            heal player
+            feed player
+            
+            # Teleport to Arena or Spawn offset
+            if {ffa.arena.location} is set:
+                teleport player to {ffa.arena.location}
+            else:
+                set {_arenaLoc} to location(100, 100, 100, player's world)
+                teleport player to {_arenaLoc}
+            
+            play sound "item.armor.equip_netherite" at player with volume 1 and pitch 1.2
+            send title "&c&lFFA ARENA" with subtitle "&eFight & win &a+100 KryloCoins &eper kill!" to player for 2 seconds
+            send "{@prefix}&aYou entered the FFA Combat Arena! Type &b/spawn &ato leave safely." to player
+
+        else if arg-1 is "leave":
+            if {ffa.inarena.%player%} is not true:
+                send "{@prefix}&cYou are not in the FFA Arena!" to player
+                stop
+            
+            delete {ffa.inarena.%player%}
+            delete {ffa.killstreak.%player%}
+            clear player's inventory
+            
+            if {krylo.spawn.location} is set:
+                teleport player to {krylo.spawn.location}
+            else:
+                teleport player to world spawn of player's world
+                
+            send "{@prefix}&aYou left the FFA Arena and returned to Spawn." to player
+
+        else if arg-1 is "setarena":
+            if player has permission "op":
+                set {ffa.arena.location} to player's location
+                send "{@prefix}&aFFA Arena spawn location set to your current coordinates!" to player
+            else:
+                send "&cNo permission!" to player
+
+        else:
+            send "{@prefix}&7Commands: &b/ffa join &7| &b/ffa leave &7| &c/spawn" to player
+
+# ------------------------------------------------------------
+# 2. FFA COMBAT DEATH & KILL FEED MECHANICS
+# ------------------------------------------------------------
+on death of player:
+    if {ffa.inarena.%victim%} is true:
+        # Prevent item drops in FFA
+        clear drops
+        
+        # Check killer
+        if attacker is a player:
+            if {ffa.inarena.%attacker%} is true:
+                # Add Killstreak
+                add 1 to {ffa.killstreak.%attacker%}
+                
+                # Reward KryloCoins
+                add {@kc_reward} to {krylocoins.%attacker%}
+                
+                # In-Game Broadcast
+                broadcast "&c⚔️ &l[FFA]&r &c%attacker% &7slayed &c%victim% &8(&a+100 KC&8) &7• Streak: &e%{ffa.killstreak.%attacker%}%"
+                
+                # Play Killer Sound
+                play sound "entity.player.levelup" at attacker with volume 1 and pitch 1.5
+                send attacker title "&a&l+100 KC" with subtitle "&eKillstreak: &6%{ffa.killstreak.%attacker%}%" for 1 second
+                
+                # Heal killer slightly
+                heal attacker by 4 hearts
+        else:
+            broadcast "&c⚔️ &l[FFA]&r &c%victim% &7died in combat."
+
+on respawn:
+    if {ffa.inarena.%player%} is true:
+        wait 1 tick
+        # Re-equip kit instantly
+        clear player's inventory
+        set helmet of player to netherite helmet of protection 4 and unbreaking 3
+        set chestplate of player to netherite chestplate of protection 4 and unbreaking 3
+        set leggings of player to netherite leggings of protection 4 and unbreaking 3
+        set boots of player to netherite boots of protection 4 and unbreaking 3
+        
+        set slot 0 of player to netherite sword of sharpness 5 and unbreaking 3
+        set slot 1 of player to bow of power 5 and infinity 1
+        set slot 2 of player to 16 golden apple
+        set slot 3 of player to 4 ender pearl
+        set slot 8 of player to 1 arrow
+        
+        heal player
+        feed player
+        
+        if {ffa.arena.location} is set:
+            teleport player to {ffa.arena.location}
+        
+        send "{@prefix}&eRespawned in FFA Arena with fresh gear! Go get your revenge!" to player

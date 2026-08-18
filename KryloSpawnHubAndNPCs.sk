@@ -1,0 +1,190 @@
+# ============================================================
+#  👑 KRYLOSMP — SPAWN HUB, NPCS & SAFE-ZONE MASTER SYSTEM ⚡
+#  Designed for Java & Bedrock Crossplay (1.20.x - 1.21.x)
+# ============================================================
+
+options:
+    prefix: &b&lKrylo&f&lSMP &8» &f
+    accent: &b
+    gold: &6&l
+    green: &a&l
+    red: &c&l
+    discord: https://discord.gg/xYmyPxSx7u
+    store: https://krylosmp-store.web.app
+
+# ------------------------------------------------------------
+# 1. INSTANT SPAWN HUB GENERATOR (/buildspawn)
+# ------------------------------------------------------------
+command /buildspawn:
+    permission: op
+    permission message: &cOnly KryloSMP Executives and Admins can build the spawn!
+    trigger:
+        set {_center} to player's location
+        send "{@prefix}&eGenerating &bKrylo Crystal Spawn Hub &eat your location..." to player
+        
+        # Build 21x21 Circular Platform
+        loop integers from -10 to 10:
+            set {_x} to loop-value-1
+            loop integers from -10 to 10:
+                set {_z} to loop-value-2
+                set {_dist} to sqrt({_x}^2 + {_z}^2)
+                
+                if {_dist} <= 10:
+                    set {_loc} to location({_x}, -1, {_z}, player's world)
+                    add {_center}'s x-coordinate to {_loc}'s x-coordinate
+                    add {_center}'s z-coordinate to {_loc}'s z-coordinate
+                    add {_center}'s y-coordinate to {_loc}'s y-coordinate
+                    
+                    if {_dist} >= 9:
+                        set block at {_loc} to sea lantern
+                        set block at location 1 block above {_loc} to cyan stained glass pane
+                    else if {_dist} >= 7:
+                        set block at {_loc} to dark prismarine
+                    else if {_dist} >= 3:
+                        set block at {_loc} to smooth quartz block
+                    else:
+                        set block at {_loc} to light blue stained glass
+                        set block at location 1 block below {_loc} to sea lantern
+        
+        # Build Center Beacon Base
+        set {_centerBase} to location 1 block below {_center}
+        set block at {_centerBase} to beacon
+        set block at location 1 block below {_centerBase} to netherite block
+        
+        # Build 4 NPC Pedestals
+        # Pedestal 1: Shop (North)
+        set {_p1} to location(0, 0, -6, player's world)
+        add {_center}'s x-coordinate to {_p1}'s x-coordinate
+        add {_center}'s y-coordinate to {_p1}'s y-coordinate
+        add {_center}'s z-coordinate to {_p1}'s z-coordinate
+        set block at {_p1} to gold block
+        set block at location 1 block below {_p1} to sea lantern
+
+        # Pedestal 2: FFA Arena (East)
+        set {_p2} to location(6, 0, 0, player's world)
+        add {_center}'s x-coordinate to {_p2}'s x-coordinate
+        add {_center}'s y-coordinate to {_p2}'s y-coordinate
+        add {_center}'s z-coordinate to {_p2}'s z-coordinate
+        set block at {_p2} to redstone block
+        set block at location 1 block below {_p2} to sea lantern
+
+        # Pedestal 3: SkyBlock (South)
+        set {_p3} to location(0, 0, 6, player's world)
+        add {_center}'s x-coordinate to {_p3}'s x-coordinate
+        add {_center}'s y-coordinate to {_p3}'s y-coordinate
+        add {_center}'s z-coordinate to {_p3}'s z-coordinate
+        set block at {_p3} to emerald block
+        set block at location 1 block below {_p3} to sea lantern
+
+        # Pedestal 4: Info / Discord (West)
+        set {_p4} to location(-6, 0, 0, player's world)
+        add {_center}'s x-coordinate to {_p4}'s x-coordinate
+        add {_center}'s y-coordinate to {_p4}'s y-coordinate
+        add {_center}'s z-coordinate to {_p4}'s z-coordinate
+        set block at {_p4} to lapis block
+        set block at location 1 block below {_p4} to sea lantern
+
+        # Set Server Spawn Points
+        set {krylo.spawn.location} to {_center}
+        set world spawn of player's world to {_center}
+        
+        play sound "entity.player.levelup" at player with volume 1 and pitch 1.2
+        send "{@prefix}&a&lSPAWN HUB GENERATED SUCCESSFULLY!" to player
+        send "&7• Center Location: &f%{_center}%" to player
+        send "&7• 4 Pedestals ready for NPCs: &e[Shop] &c[FFA] &a[SkyBlock] &9[Discord]" to player
+
+# ------------------------------------------------------------
+# 2. PLAYER /SPAWN COMMAND
+# ------------------------------------------------------------
+command /spawn:
+    trigger:
+        if {krylo.spawn.location} is not set:
+            set {krylo.spawn.location} to world spawn of player's world
+        
+        if player has permission "krylo.bypass":
+            teleport player to {krylo.spawn.location}
+            send "{@prefix}&aTeleported to Spawn Hub!" to player
+            play sound "entity.enderman.teleport" at player
+            stop
+            
+        send "{@prefix}&eTeleporting to spawn in &b3 seconds&e... &7(Don't move!)" to player
+        set {_startLoc} to player's location
+        set {teleporting.%player%} to true
+        wait 3 seconds
+        
+        if {teleporting.%player%} is true:
+            if distance between player's location and {_startLoc} < 0.5:
+                teleport player to {krylo.spawn.location}
+                send title "&b&lKRYLOSMP" with subtitle "&eWelcome to Spawn!" to player for 2 seconds
+                play sound "entity.enderman.teleport" at player with volume 1 and pitch 1.2
+                delete {teleporting.%player%}
+            else:
+                send "{@prefix}&cTeleportation cancelled because you moved!" to player
+                delete {teleporting.%player%}
+
+on damage:
+    if {teleporting.%victim%} is true:
+        delete {teleporting.%victim%}
+        send "{@prefix}&cTeleportation cancelled due to combat!" to victim
+
+# ------------------------------------------------------------
+# 3. INTERACTIVE SPAWN NPC CLICK RESPONSES & DIALOGUES
+# ------------------------------------------------------------
+command /npcinteraction <text>:
+    trigger:
+        set {_type} to arg-1
+        
+        if {_type} is "shop":
+            play sound "entity.experience_orb.pickup" at player with volume 1 and pitch 1.5
+            send "" to player
+            send "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" to player
+            send "  &6&l👑 KRYLO STORE & SERVER PERKS" to player
+            send "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" to player
+            send "  &7Click an option below or run &b/shop&7:" to player
+            send "  &e➤ &l[WEB STORE]&r &7- &n{@store}" to player
+            send "  &b➤ &l[IN-GAME GUI]&r &7- Click to open &e/shop" to player
+            send "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" to player
+            send "" to player
+            make player execute command "/shop"
+
+        else if {_type} is "ffa":
+            play sound "item.armor.equip_netherite" at player with volume 1 and pitch 1.0
+            send "" to player
+            send "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" to player
+            send "  &c&l⚔️ KRYLO FFA COMBAT ARENA" to player
+            send "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" to player
+            send "  &7Jump into instant combat with Netherite kits!" to player
+            send "  &7• &a+100 KryloCoins &7per kill" to player
+            send "  &7• Instant respawn & killstreak rewards" to player
+            send "  &e➤ Teleporting to Arena in 2 seconds..." to player
+            send "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" to player
+            send "" to player
+            wait 2 seconds
+            make player execute command "/ffa join"
+
+        else if {_type} is "skyblock":
+            play sound "block.portal.travel" at player with volume 0.8 and pitch 1.4
+            send "" to player
+            send "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" to player
+            send "  &a&l🏝️ KRYLO SKYBLOCK ADVENTURE" to player
+            send "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" to player
+            send "  &7Create your own private floating island!" to player
+            send "  &7• Level up your island & unlock custom minions" to player
+            send "  &7• Invite friends & trade with custom generators" to player
+            send "  &b➤ Opening Island Control Menu (/is)..." to player
+            send "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" to player
+            send "" to player
+            make player execute command "/is"
+
+        else if {_type} is "discord":
+            play sound "entity.villager.celebrate" at player with volume 1 and pitch 1.0
+            send "" to player
+            send "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" to player
+            send "  &9&l🌐 KRYLOSMP OFFICIAL DISCORD & RULES" to player
+            send "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" to player
+            send "  &7• &bDiscord Invite:&f {@discord}" to player
+            send "  &7• &bServer IP:&f KryloSmp.play.hosting:25565" to player
+            send "  &7• &bBedrock Port:&f 19132" to player
+            send "  &7• &bPlayer Portal:&f https://krylosmp.web.app" to player
+            send "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" to player
+            send "" to player
