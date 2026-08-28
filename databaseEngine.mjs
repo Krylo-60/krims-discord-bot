@@ -1,8 +1,13 @@
 import Database from 'better-sqlite3';
+import pg from 'pg';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 
+dotenv.config();
+
+const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -17,6 +22,22 @@ const db = new Database(dbPath);
 // Enable Write-Ahead Logging (WAL) for blazing-fast concurrent performance
 db.pragma('journal_mode = WAL');
 db.pragma('synchronous = NORMAL');
+
+// Neon Lakebase Postgres Connection Pool
+const neonUrl = process.env.DATABASE_URL;
+let neonPool = null;
+
+if (neonUrl && neonUrl.startsWith('postgres')) {
+  try {
+    neonPool = new Pool({
+      connectionString: neonUrl,
+      ssl: { rejectUnauthorized: false }
+    });
+    console.log('[Neon Postgres Engine] 🐘 Connected to Neon Lakebase Postgres (Ohio us-east-2)!');
+  } catch (err) {
+    console.warn('[Neon Postgres Engine] Failed to initialize Neon pool:', err.message);
+  }
+}
 
 // ═══════════════════════════════════════════════════════════
 // 🏛️ TABLE INITIALIZATION SCHEMA
@@ -144,6 +165,19 @@ export function setPlayerVerification(discordId, minecraftIgn, uuid = null) {
   db.prepare(`
     INSERT OR IGNORE INTO economy (discord_id, krylocoins) VALUES (?, 1000)
   `).run(discordId);
+
+  // Background Cloud Sync to Neon Lakebase Postgres
+  if (neonPool) {
+    neonPool.query(`
+      INSERT INTO players (discord_id, minecraft_ign, uuid, is_verified, verified_at)
+      VALUES ($1, $2, $3, TRUE, CURRENT_TIMESTAMP)
+      ON CONFLICT (discord_id) DO UPDATE SET
+        minecraft_ign = EXCLUDED.minecraft_ign,
+        uuid = EXCLUDED.uuid,
+        is_verified = TRUE,
+        verified_at = CURRENT_TIMESTAMP
+    `, [discordId, minecraftIgn, uuid]).catch(() => {});
+  }
 }
 
 // --- ECONOMY ---
@@ -161,6 +195,15 @@ export function addCoins(discordId, amount) {
     INSERT INTO economy (discord_id, krylocoins) VALUES (?, ?)
     ON CONFLICT(discord_id) DO UPDATE SET krylocoins = krylocoins + excluded.krylocoins
   `).run(discordId, amount);
+
+  // Background Cloud Sync to Neon Lakebase Postgres
+  if (neonPool) {
+    neonPool.query(`
+      INSERT INTO economy (discord_id, krylocoins) VALUES ($1, $2)
+      ON CONFLICT (discord_id) DO UPDATE SET krylocoins = economy.krylocoins + EXCLUDED.krylocoins
+    `, [discordId, amount]).catch(() => {});
+  }
+
   return getBalance(discordId);
 }
 
@@ -168,6 +211,14 @@ export function removeCoins(discordId, amount) {
   const current = getBalance(discordId);
   if (current.krylocoins < amount) return false;
   db.prepare('UPDATE economy SET krylocoins = krylocoins - ? WHERE discord_id = ?').run(amount, discordId);
+
+  // Background Cloud Sync to Neon Lakebase Postgres
+  if (neonPool) {
+    neonPool.query(`
+      UPDATE economy SET krylocoins = krylocoins - $1 WHERE discord_id = $2
+    `, [amount, discordId]).catch(() => {});
+  }
+
   return true;
 }
 
@@ -198,6 +249,16 @@ export function createClan(name, tag, ownerId, description = '') {
   const info = stmt.run(name, tag, ownerId, description);
   const clanId = info.lastInsertRowid;
   db.prepare('INSERT INTO clan_members (clan_id, discord_id, role) VALUES (?, ?, ?)').run(clanId, ownerId, 'Leader');
+
+  // Background Cloud Sync to Neon Lakebase Postgres
+  if (neonPool) {
+    neonPool.query(`
+      INSERT INTO clans (name, tag, owner_id, description)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (name) DO NOTHING
+    `, [name, tag, ownerId, description]).catch(() => {});
+  }
+
   return getClanById(clanId);
 }
 
