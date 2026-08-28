@@ -1,0 +1,45 @@
+services:
+  # 🤖 1. Discord Bot & Web Store Webhook Service
+  - type: web
+    name: krylosmp-discord-bot
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: krylosmp-postgres-db
+          property: connectionString
+      - key: DISCORD_TOKEN
+        sync: false
+      - key: CLIENT_ID
+        sync: false
+      - key: GUILD_ID
+        value: "1538225337048236082"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY_2
+        sync: false
+      - key: GEMINI_API_KEY_3
+        sync: false
+      - key: GEMINI_API_KEY_4
+        sync: false
+      - key: PTERODACTYL_TOKEN
+        sync: false
+      - key: FALIX_API_KEY
+        sync: false
+
+# 🐘 2. Managed PostgreSQL Cloud Database on Render
+databases:
+  - name: krylosmp-postgres-db
+    databaseName: krylosmp
+    user: krylo_admin
+    plan: free
+    region: oregon
+    ipAllowList: [] # Allows connections from anywhere (bot + external tools)

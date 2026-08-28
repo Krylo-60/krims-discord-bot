@@ -18,12 +18,17 @@ const firebaseConfig = {
 let app = null;
 let db = null;
 
-try {
-  app = initializeApp(firebaseConfig);
-  db = getFirestore(app);
-  console.log('[Firebase Engine] ✅ Initialized Firebase Firestore for project: krylosmp');
-} catch (err) {
-  console.warn('[Firebase Engine] Failed to initialize Firebase:', err.message);
+// Firebase Firestore Cloud Sync is optional — SQLite is the primary local fast database
+if (process.env.ENABLE_FIREBASE_SYNC === 'true') {
+  try {
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    console.log('[Firebase Engine] ✅ Initialized Firebase Firestore for project: krylosmp');
+  } catch (err) {
+    console.warn('[Firebase Engine] Firebase disabled:', err.message);
+  }
+} else {
+  console.log('[Firebase Engine] 🔒 Primary fast storage: Local SQLite Database active (krylosmp.db)');
 }
 
 /**
@@ -58,7 +63,7 @@ export async function saveUserVerification(discordId, data) {
     console.log(`[Firebase Engine] Saved verification record for <@${discordId}> (${data.minecraftUsername || 'Pending'})`);
     return true;
   } catch (err) {
-    console.warn('[Firebase Engine] Error saving verification:', err.message);
+    // Firestore API not enabled or offline — local SQLite is active
     return false;
   }
 }

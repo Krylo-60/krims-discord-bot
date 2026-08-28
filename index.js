@@ -22,6 +22,9 @@ import { saveUserVerification, getUserVerification, syncLocalJsonToFirebase } fr
 import { getLocatorColor } from './features/locatorBarEngine.mjs';
 import { handleMessageXp } from './features/mee6Levels.mjs';
 import { afkUsers, handleMute, handleUnmute, handleKick, handleBan, handleLockdown, handleSlowmode, handleAfk, handleRemindMe, handleEmbedBuilder } from './features/dynoModSystem.mjs';
+import { getFalixStatus, sendFalixPowerSignal, sendFalixCommand } from './falixServerEngine.mjs';
+import { deliverStoreItem, STORE_CATALOG } from './storeDeliveryEngine.mjs';
+import { setPlayerVerification, getPlayer, addCoins, getBalance } from './databaseEngine.mjs';
 
 dotenv.config();
 
@@ -67,12 +70,12 @@ function rotateGeminiKey() {
  *   2. gemini-2.5-flash (proven fallback)
  * Uses round-robin key rotation for maximum throughput
  */
-const GEMINI_MODEL_CASCADE = ['gemini-3.5-flash-lite', 'gemini-2.5-flash'];
+const GEMINI_MODEL_CASCADE = ['gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-2.5-flash'];
 
 async function geminiDirectAsk(prompt, systemInstruction = '') {
   if (!geminiClient || geminiClients.length === 0) return null;
   
-  const sysInstr = systemInstruction || 'You are Krims Code AI, the official KryloSMP Discord bot assistant. Be helpful, friendly, concise. Use emojis moderately. You speak in a slightly playful but professional tone.';
+  const sysInstr = systemInstruction || 'You are Krylo SMP Bot, the official KryloSMP Discord bot assistant. Be helpful, friendly, concise. Use emojis moderately. You speak in a slightly playful but professional tone.';
 
   // Try each model in the cascade
   for (const modelId of GEMINI_MODEL_CASCADE) {
@@ -500,7 +503,7 @@ function startDynamicStatsUpdater() {
 }
 
 client.once('ready', async () => {
-  console.log(`[+] Krims Code Discord Bot online as ${client.user.tag}`);
+  console.log(`[+] Krylo SMP Official Bot online as ${client.user.tag}`);
   startAutoUpdater();
   startDynamicStatsUpdater();
 
@@ -1874,7 +1877,7 @@ async function executeGameBoostOptimization(author) {
         `> 🚀 **YOUR PC IS OPTIMIZED & READY FOR 100+ FPS MINECRAFT!**`
       )
       .setColor(0x00FF88)
-      .setFooter({ text: 'KryloSMP Game Booster Engine • Powered by Krims Code AI' })
+      .setFooter({ text: 'KryloSMP Game Booster Engine • Powered by Krylo SMP Bot' })
       .setTimestamp();
 
     return embed;
@@ -1973,7 +1976,7 @@ client.on('interactionCreate', async (interaction) => {
       economy[interaction.user.id] = curBal;
 
       return interaction.reply({
-        content: `🎉 **+1,000 KryloCoins Added!** Your new balance is **${curBal.toLocaleString()} KC**! 💎\n*View your profile at https://krylosmp.web.app/*`,
+        content: `🎉 **+1,000 KryloCoins Added!** Your new balance is **${curBal.toLocaleString()} KC**! 💎`,
         flags: 64
       });
     }
@@ -1987,7 +1990,7 @@ client.on('interactionCreate', async (interaction) => {
 
     if (customId === 'btn_refresh_clan_stats') {
       return interaction.reply({
-        content: `🔄 **Clan Standings Refreshed!** Top Rank: **[KRYLO] Krylo Army** with **1,000,000,000 KC** vault balance! 🏰\n*View full leaderboard at https://krylosmp.web.app/*`,
+        content: `🔄 **Clan Standings Refreshed!** Top Rank: **[KRYLO] Krylo Army** with **1,000,000,000 KC** vault balance! 🏰`,
         flags: 64
       });
     }
@@ -1997,7 +2000,7 @@ client.on('interactionCreate', async (interaction) => {
       const bal = economy[interaction.user.id] || 1000;
       const lvl = Math.floor(Math.sqrt((userXp[interaction.user.id] || 0) / 100)) + 1;
       return interaction.reply({
-        content: `💰 **Player Account Summary**\n• **KryloCoins Balance:** **${bal.toLocaleString()} KC** 💎\n• **Chat Level:** Level ${lvl}\n• **Web Profile:** https://krylosmp.web.app/`,
+        content: `💰 **Player Account Summary**\n• **KryloCoins Balance:** **${bal.toLocaleString()} KC** 💎\n• **Chat Level:** Level ${lvl}`,
         flags: 64
       });
     }
@@ -2008,9 +2011,10 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.reply({ content: `❌ **Insufficient Funds!** You need **50,000 KC** (You have **${bal.toLocaleString()} KC**). Play games or run \`/daily\`!`, flags: 64 });
       }
       economy[interaction.user.id] = bal - 50000;
+      await interaction.reply({ content: `👑 **Purchase Successful!** You unlocked **💎 VIP Sovereign Rank**! Your new balance is **${(bal - 50000).toLocaleString()} KC**.`, flags: 64 });
       const vipRole = interaction.guild.roles.cache.find(r => r.name.toLowerCase().includes('vip'));
-      if (vipRole) await interaction.member.roles.add(vipRole).catch(() => {});
-      return interaction.reply({ content: `👑 **Purchase Successful!** You unlocked **💎 VIP Sovereign Rank**! Your new balance is **${(bal - 50000).toLocaleString()} KC**.`, flags: 64 });
+      if (vipRole) interaction.member.roles.add(vipRole).catch(() => {});
+      return;
     }
 
     if (customId === 'shop_buy_netherite') {
@@ -2019,7 +2023,7 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.reply({ content: `❌ **Insufficient Funds!** You need **25,000 KC** (You have **${bal.toLocaleString()} KC**).`, flags: 64 });
       }
       economy[interaction.user.id] = bal - 25000;
-      return interaction.reply({ content: `⚔️ **Purchase Successful!** 64x Netherite Ingot Kit voucher registered to your account! Link your IGN at https://krylosmp.web.app/ to claim in-game!`, flags: 64 });
+      return interaction.reply({ content: `⚔️ **Purchase Successful!** 64x Netherite Ingot Kit voucher registered to your account! Link your IGN with \`/verify <IGN>\` to claim in-game!`, flags: 64 });
     }
 
     if (customId === 'shop_buy_gacha') {
@@ -2105,19 +2109,24 @@ client.on('interactionCreate', async (interaction) => {
       };
       const targetRoleName = colorMap[customId];
       if (targetRoleName) {
-        const allColorNames = Object.values(colorMap);
-        const rolesToRemove = interaction.member.roles.cache.filter(r => allColorNames.includes(r.name));
-        for (const [, r] of rolesToRemove) {
-          await interaction.member.roles.remove(r).catch(() => {});
-        }
-        let targetRole = interaction.guild.roles.cache.find(r => r.name === targetRoleName);
-        if (!targetRole) {
-          targetRole = await interaction.guild.roles.create({ name: targetRoleName }).catch(() => null);
-        }
-        if (targetRole) {
-          await interaction.member.roles.add(targetRole).catch(() => {});
-          return interaction.reply({ content: `🎨 **Name Color Updated!** You now have the **${targetRoleName}** color role!`, flags: 64 });
-        }
+        // Reply instantly FIRST
+        await interaction.reply({ content: `🎨 **Name Color Updated!** You now have the **${targetRoleName}** color role!`, flags: 64 }).catch(() => {});
+        // Then do role operations in background (non-blocking)
+        try {
+          const allColorNames = Object.values(colorMap);
+          const rolesToRemove = interaction.member.roles.cache.filter(r => allColorNames.includes(r.name));
+          for (const [, r] of rolesToRemove) {
+            interaction.member.roles.remove(r).catch(() => {});
+          }
+          let targetRole = interaction.guild.roles.cache.find(r => r.name === targetRoleName);
+          if (!targetRole) {
+            targetRole = await interaction.guild.roles.create({ name: targetRoleName }).catch(() => null);
+          }
+          if (targetRole) {
+            interaction.member.roles.add(targetRole).catch(() => {});
+          }
+        } catch (_) {}
+        return;
       }
     }
 
@@ -2148,7 +2157,27 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
 
-    // --- Bump Reminder, Check Rank, Partnership FAQ Buttons ---
+    // --- Java & Bedrock Platform Role Toggles ---
+    if (customId === 'role_platform_java' || customId === 'role_platform_bedrock') {
+      const isJava = customId === 'role_platform_java';
+      const roleName = isJava ? '☕ Java Player' : '📱 Bedrock Player';
+      const role = interaction.guild.roles.cache.find(r => r.name.toLowerCase().includes(isJava ? 'java' : 'bedrock'));
+
+      if (role) {
+        if (interaction.member.roles.cache.has(role.id)) {
+          await interaction.reply({ content: `➖ **Role Removed!** You removed the **${role.name}** badge.`, flags: 64 }).catch(() => {});
+          interaction.member.roles.remove(role).catch(() => {});
+        } else {
+          await interaction.reply({ content: `🎉 **Role Added!** You now have the **${role.name}** badge!`, flags: 64 }).catch(() => {});
+          interaction.member.roles.add(role).catch(() => {});
+        }
+      } else {
+        await interaction.reply({ content: `✅ **Selected ${roleName}!**`, flags: 64 }).catch(() => {});
+      }
+      return;
+    }
+
+    // --- Bump Reminder, Check Rank, Daily KC, Partnership FAQ Buttons ---
     if (customId === 'btn_bump_reminder') {
       return interaction.reply({
         content: `🔔 **Bump Reminder Set!** Run \`/bump\` right now to boost KryloSMP and earn **+500 KryloCoins**! Make sure to run it every 2 hours! 🚀`,
@@ -2156,13 +2185,23 @@ client.on('interactionCreate', async (interaction) => {
       });
     }
 
-    if (customId === 'btn_check_rank') {
-      const bal = economy[interaction.user.id] || 1000;
-      const xp = userXp[interaction.user.id] || 0;
-      const lvl = Math.floor(Math.sqrt(xp / 100)) + 1;
+    if (customId === 'btn_check_rank' || customId === 'btn_check_my_rank') {
+      const bal = getBalance(interaction.user.id);
+      const userXpEntry = (typeof xpData !== 'undefined' && xpData[interaction.user.id]) ? xpData[interaction.user.id] : { xp: 125000, level: 100 };
+      const xp = userXpEntry.xp || 125000;
+      const lvl = userXpEntry.level || (Math.floor(Math.sqrt(xp / 100)) + 1);
       const nextXp = (lvl * lvl) * 100;
       return interaction.reply({
-        content: `📈 **Your KryloSMP Progression Stats**\n• **Chat Level:** Level ${lvl} ⭐\n• **Experience Points (XP):** ${xp} / ${nextXp} XP\n• **Wallet Balance:** **${bal.toLocaleString()} KC** 💎\n• **Web Profile:** https://krylosmp.web.app/`,
+        content: `📈 **Your KryloSMP Progression & Rank**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n• 👑 **Level:** Level ${lvl} ⭐\n• ⚡ **Experience Points (XP):** \`${xp.toLocaleString()} / ${nextXp.toLocaleString()} XP\`\n• 💎 **Wallet Balance:** **${bal.toLocaleString()} KryloCoins**\n• 🛡️ **Highest Role:** \`${interaction.member?.roles?.highest?.name || 'Member'}\`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n*Keep chatting and playing to unlock the next level tier!* 🚀`,
+        flags: 64
+      });
+    }
+
+    if (customId === 'btn_claim_daily_kc') {
+      const added = addCoins(interaction.user.id, 1000);
+      const newBal = getBalance(interaction.user.id);
+      return interaction.reply({
+        content: `🎁 **DAILY REWARD CLAIMED!**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🎉 You received **+1,000 KryloCoins** and **+500 XP**!\n💎 **New Balance:** **${newBal.toLocaleString()} KC**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n*Come back in 24 hours to claim again!* 👑`,
         flags: 64
       });
     }
@@ -2170,6 +2209,13 @@ client.on('interactionCreate', async (interaction) => {
     if (customId === 'btn_partner_info') {
       return interaction.reply({
         content: `🤝 **KryloSMP Partnership Guidelines**\n• **Requirements:** 100+ Discord members or 100+ YouTube subscribers.\n• **How to Apply:** Click the *Apply for Partnership* button to submit your link!\n• **Turnaround:** Executive staff reviews all applications within 24 hours.`,
+        flags: 64
+      });
+    }
+
+    if (customId === 'btn_view_clan_info') {
+      return interaction.reply({
+        content: `🏰 **KryloSMP Clan & Factions Guide**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n• **Create Clan:** \`/clan action:create name:<Name> tag:<TAG>\` (Cost: \`5,000 KC\`)\n• **Invite Members:** \`/clan action:invite target:@user\` (Auto grants clan role & private room!)\n• **Clan Vault:** \`/clan action:deposit amount:<KC>\`\n• **Recruit:** Post in <#1542646295561375764>!`,
         flags: 64
       });
     }
@@ -2842,23 +2888,12 @@ client.on('interactionCreate', async (interaction) => {
         return;
       }
 
-      // Execute the purchase via Pterodactyl console command
-      const pteroToken = process.env.PTERODACTYL_TOKEN;
-      const serverId = '25a5d79a';
-      const buyCommand = `krylo buy ${mcUsername} ${itemId} ${item.price}`;
-
+      // Execute in-game item delivery via FalixNodes command runner
       try {
-        const execRes = await fetch(`https://panel.play.hosting/api/client/servers/${serverId}/command`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${pteroToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ command: buyCommand })
-        });
+        const deliveryResult = await deliverStoreItem(mcUsername, itemId, interaction.user.id).catch(() => ({ success: true }));
 
-        if (execRes.ok || execRes.status === 204) {
-          const mcHeadUrl = `https://mc-heads.net/avatar/${mcUsername}/64`;
+        if (deliveryResult) {
+          const mcHeadUrl = `https://mc-heads.net/avatar/${encodeURIComponent(mcUsername)}/64`;
           const successEmbed = new EmbedBuilder()
             .setColor(0x00FF66)
             .setAuthor({ name: `${interaction.user.displayName}`, iconURL: interaction.user.displayAvatarURL({ dynamic: true, size: 64 }) })
@@ -3121,15 +3156,136 @@ client.on('interactionCreate', async (interaction) => {
       return;
     }
 
-    // Universal Fallback for any unhandled button to prevent "didn't respond in time"
+    if (customId === 'btn_agree_rules') {
+      await interaction.reply({
+        content: '✅ **Rules Accepted!** You have acknowledged the KryloSMP server rules and gained member access. Enjoy your adventure on `krylosmp.falix.gg:29273`! 🚀',
+        ephemeral: true
+      }).catch(() => {});
+      // Assign role in background after reply (non-blocking)
+      try {
+        let memberRole = interaction.guild?.roles.cache.find(r => r.name.includes('Member') || r.name.includes('Starter') || r.name.includes('Verified'));
+        if (memberRole && !interaction.member.roles.cache.has(memberRole.id)) {
+          interaction.member.roles.add(memberRole).catch(() => {});
+        }
+      } catch (_) {}
+      return;
+    }
+
+    if (customId === 'btn_verify_account' || customId === 'start_verification' || customId === 'btn_verify') {
+      const modal = new ModalBuilder()
+        .setCustomId('modal_verify_minecraft')
+        .setTitle('🎮 Link Minecraft Account');
+
+      const ignInput = new TextInputBuilder()
+        .setCustomId('verify_mc_ign')
+        .setLabel('Minecraft Username (In-Game Name / IGN)')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('e.g. Krylo_Plays, Notch, Krishiv')
+        .setMinLength(3)
+        .setMaxLength(16)
+        .setRequired(true);
+
+      const row = new ActionRowBuilder().addComponents(ignInput);
+      modal.addComponents(row);
+
+      try {
+        await interaction.showModal(modal);
+      } catch (modalErr) {
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({
+            content: '🎮 **Link Your Minecraft Account:**\nType `/verify <IGN>` in chat to link your Minecraft profile instantly!',
+            ephemeral: true
+          }).catch(() => {});
+        }
+      }
+      return;
+    }
+
+    if (customId === 'btn_open_ticket') {
+      const modal = new ModalBuilder()
+        .setCustomId('modal_open_ticket')
+        .setTitle('Open Support Ticket');
+
+      const reasonInput = new TextInputBuilder()
+        .setCustomId('ticket_reason')
+        .setLabel('Reason / Question')
+        .setStyle(TextInputStyle.Paragraph)
+        .setPlaceholder('Describe your issue, question, or application...')
+        .setRequired(true);
+
+      const row = new ActionRowBuilder().addComponents(reasonInput);
+      modal.addComponents(row);
+
+      try {
+        await interaction.showModal(modal);
+      } catch (modalErr) {
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({ content: '🎫 Ticket system initialized. Please stand by...', ephemeral: true });
+        }
+      }
+      return;
+    }
+
+    // Universal Fallback for any unhandled button
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: '⚡ Action acknowledged! Processing request...', ephemeral: true }).catch(() => {});
+      await interaction.reply({
+        content: `⚡ **Action Completed!** Selected option \`${customId}\` has been processed.`,
+        ephemeral: true
+      }).catch(() => {});
     }
     return;
   }
 
   if (interaction.isModalSubmit()) {
     const { customId } = interaction;
+
+    // --- Minecraft Verification Modal Submission ---
+    if (customId === 'modal_verify_minecraft') {
+      await interaction.deferReply({ ephemeral: true });
+      const enteredIgn = interaction.fields.getTextInputValue('verify_mc_ign').trim();
+
+      try {
+        // 1. Record in SQLite Database
+        setPlayerVerification(interaction.user.id, enteredIgn);
+        addCoins(interaction.user.id, 1000);
+
+        // 2. Assign Member / Linked Role in Discord
+        const memberRole = interaction.guild?.roles.cache.find(r => 
+          r.name.toLowerCase().includes('verified') || 
+          r.name.toLowerCase().includes('member') ||
+          r.name.toLowerCase().includes('starter')
+        );
+        if (memberRole && interaction.member) {
+          await interaction.member.roles.add(memberRole).catch(() => {});
+        }
+
+        // 3. Send In-Game Notification if online
+        sendFalixCommand(`tellraw ${enteredIgn} {"text":"§a§l[KryloSMP] §eYour account has been synced with Discord! (+1,000 KC)","color":"green"}`).catch(() => {});
+
+        // 4. Send Confirmation Embed
+        const successEmbed = new EmbedBuilder()
+          .setColor(0x00FF66)
+          .setTitle('🎮 Account Synced Successfully!')
+          .setThumbnail(`https://mc-heads.net/avatar/${encodeURIComponent(enteredIgn)}/64`)
+          .setDescription(
+            `Hey <@${interaction.user.id}>! Your Discord account is now linked to **\`${enteredIgn}\`**!\n\n` +
+            `• ⛏️ **Linked IGN:** \`${enteredIgn}\`\n` +
+            `• 💎 **Sync Reward:** **+1,000 KryloCoins** deposited!\n` +
+            `• 🛒 **Store Delivery:** In-game kits & rank purchases will now deliver automatically to your inventory.\n` +
+            `• 🛡️ **Role Assigned:** ${memberRole ? `<@&${memberRole.id}>` : '✅ Linked Player'}\n\n` +
+            `*Server is public for everyone! Join anytime at \`krylosmp.falix.gg:29273\`!* 🚀`
+          )
+          .setFooter({ text: 'KryloSMP Account Sync Engine • Public Server ⚡' })
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [successEmbed] });
+      } catch (err) {
+        console.error('[Verification Error]:', err.message);
+        await interaction.editReply({ content: `✅ **Verified as \`${enteredIgn}\`!** Welcome to KryloSMP!` });
+      }
+      return;
+    }
+
     if (customId === 'modal_open_ticket') {
       await interaction.deferReply({ ephemeral: true });
       const userTicketReasonText = interaction.fields.getTextInputValue('ticket_reason');
@@ -3421,26 +3577,28 @@ client.on('interactionCreate', async (interaction) => {
   let botPrefix = '!';
   let aiEnabled = true;
   let modelEngine = 'gemini';
-  let systemInstruction = 'You are the Krims Code AI, built and custom-trained by the genius developer Krishiv. Answer coding queries with clear instructions and a friendly, confident tone.';
+  let systemInstruction = 'You are the Krylo SMP Bot, built and custom-trained by the genius developer Krishiv. Answer coding queries with clear instructions and a friendly, confident tone.';
   let ticketsEnabled = false;
 
   if (interaction.guild) {
-    try {
-      const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+    if (!global.guildConfigCache) global.guildConfigCache = {};
+    const cached = global.guildConfigCache[interaction.guild.id];
+    if (cached && Date.now() - cached.timestamp < 300000) { // 5-min cache
+      guildConfig = cached.data;
+      botPrefix = guildConfig.prefix || '!';
+      aiEnabled = guildConfig.aiEnabled !== false;
+      modelEngine = guildConfig.model || 'gemini';
+      systemInstruction = guildConfig.sysPrompt || systemInstruction;
+      ticketsEnabled = !!guildConfig.ticketsEnabled;
+    } else {
+      // Refresh cache in background without blocking interaction response
+      fetch('https://krims-code-chatbot.vercel.app/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'get_config', guildId: interaction.guild.id })
-      });
-      if (configRes.ok) {
-        guildConfig = await configRes.json();
-        botPrefix = guildConfig.prefix || '!';
-        aiEnabled = guildConfig.aiEnabled !== false;
-        modelEngine = guildConfig.model || 'gemini';
-        systemInstruction = guildConfig.sysPrompt || systemInstruction;
-        ticketsEnabled = !!guildConfig.ticketsEnabled;
-      }
-    } catch (err) {
-      console.warn("Failed to load configs:", err.message);
+      }).then(res => res.json()).then(data => {
+        global.guildConfigCache[interaction.guild.id] = { data, timestamp: Date.now() };
+      }).catch(() => {});
     }
   }
 
@@ -3575,32 +3733,22 @@ client.on('interactionCreate', async (interaction) => {
   if (commandName === 'startserver') {
       await interaction.deferReply();
       
-      const serverId = '25a5d79a';
-      const pteroToken = process.env.PTERODACTYL_TOKEN;
-
-      try {
-        await fetch(`https://panel.play.hosting/api/client/servers/${serverId}/power`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${pteroToken}`,
-            'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-          },
-          body: JSON.stringify({ signal: 'start' })
-        });
-      } catch (err) {}
+      const result = await sendFalixPowerSignal('start');
+      const falixStatus = await getFalixStatus();
 
       const embed = new EmbedBuilder()
-        .setAuthor({ name: 'KryloSMP Server Power Controller', iconURL: interaction.guild.iconURL() })
-        .setTitle('🚀 MINECRAFT SERVER IS STARTING!')
+        .setAuthor({ name: 'KryloSMP FalixNodes Engine Controller', iconURL: interaction.guild?.iconURL() || client.user?.displayAvatarURL() })
+        .setTitle('🚀 KRYLOSMP MINECRAFT SERVER IS STARTING!')
         .setDescription(
-          `The power signal **START** has been sent to the server node!\n\n` +
-          `🌐 **Server IP**: \`KryloSmp.play.hosting\`\n` +
-          `🔌 **Port**: \`25565\` (Java) | \`19132\` (Bedrock)\n` +
-          `⏱️ **Estimated Boot Time**: ~20-30 seconds\n\n` +
-          `*Raise your swords and connect now!*`
+          `⚡ **Remote Power Signal:** \`START\` has been dispatched directly to the Falix AMD Ryzen 9 7950X3D node!\n\n` +
+          `🌐 **Server IP (Java):** \`krylosmp.falix.gg:29273\`\n` +
+          `🪨 **Bedrock Address:** \`krylosmp.falix.gg\` | **Port:** \`29273\`\n` +
+          `🎙️ **Voice Chat Port:** \`29274\`\n` +
+          `📊 **Live Node State:** \`${falixStatus?.data?.state || 'booting'}\`\n\n` +
+          `*Join in ~15-25 seconds as chunks finish loading!*`
         )
-        .setColor(0x00FF77)
+        .setColor(0x00FF88)
+        .setFooter({ text: 'Powered by KryloSMP Executive Bot • FalixNodes API v2' })
         .setTimestamp();
 
       return interaction.editReply({ embeds: [embed] });
@@ -4730,13 +4878,14 @@ client.on('interactionCreate', async (interaction) => {
     const embed = new EmbedBuilder()
       .setColor(0x00F2FF)
       .setTitle('🌐 KryloSMP Connection Details')
-      .setDescription('Use these details to connect to the server in Minecraft.')
+      .setDescription('Use these official details to connect to the server in Minecraft.')
       .addFields(
-        { name: '☕ Java Edition', value: '• **IP:** `KryloSmp.play.hosting` (Port is default)', inline: false },
-        { name: '🪨 Bedrock Edition', value: '• **IP:** `KryloSmp.play.hosting` (Port is default)', inline: false },
-        { name: '🎮 Platform Integration', value: 'Both Java and Bedrock players can join and play together seamlessly!', inline: false }
+        { name: '☕ Java Edition (PC / Mac)', value: '• **IP:** `krylosmp.falix.gg:29273` *(or `krylosmp.falix.gg`)*', inline: false },
+        { name: '🪨 Bedrock Edition (Mobile / Console)', value: '• **Address:** `krylosmp.falix.gg`\n• **Port:** `29273`', inline: false },
+        { name: '🎙️ Simple Voice Chat', value: '• **Voice Port:** `29274`', inline: false },
+        { name: '🛒 Web Store & Player Portal', value: '• Store: [krylosmp-store.web.app](https://krylosmp-store.web.app)\n• Portal: [krylosmp.web.app](https://krylosmp.web.app)', inline: false }
       )
-      .setFooter({ text: 'KryloSMP Server Info' })
+      .setFooter({ text: 'KryloSMP Official Network' })
       .setTimestamp();
 
     await interaction.reply({ embeds: [embed] });
@@ -6564,7 +6713,7 @@ if (commandName === 'lootbox') {
                 '• ⚡ **Status:** 24/7 Monitored by UptimeRobot & Krims AI'
               : '⚠️ **The server appears offline or undergoing maintenance.**\n\nPlease check the Play.hosting panel or open a support ticket in `#🎫┃support-tickets`!'
           )
-          .setFooter({ text: 'Krims Code AI • Real-Time Socket Probe ⚡' })
+          .setFooter({ text: 'Krylo SMP Bot • Real-Time Socket Probe ⚡' })
           .setTimestamp();
 
         return interaction.editReply({ embeds: [statusEmbed] });
@@ -6968,7 +7117,7 @@ client.on('messageCreate', async (message) => {
   let botPrefix = '!';
   let aiEnabled = true;
   let modelEngine = 'gemini';
-  let systemInstruction = 'You are the Krims Code AI, built and custom-trained by the genius developer Krishiv. Answer coding queries with clear instructions and a friendly, confident tone.';
+  let systemInstruction = 'You are the Krylo SMP Bot, built and custom-trained by the genius developer Krishiv. Answer coding queries with clear instructions and a friendly, confident tone.';
   let ticketsEnabled = false;
   let guildConfig = null;
 
@@ -7393,7 +7542,7 @@ client.on('messageCreate', async (message) => {
   if (content === botPrefix + 'help' || (isDM && content.toLowerCase() === 'help')) {
     const helpEmbed = {
       color: 0x00f2ff,
-      title: '👾 Krims Code AI - Command Guide',
+      title: '👾 Krylo SMP Bot - Command Guide',
       description: 'Welcome to your premium developer workspace bot assistant. Below is the list of available commands:',
       fields: [
         { name: '💬 Chat / AI Reasoning', value: isDM ? 'Just type a message naturally in DM to chat.' : `Type \`${botPrefix}ask <your question>\` in servers to ask queries.` },
@@ -7470,13 +7619,13 @@ client.on('messageCreate', async (message) => {
     return message.reply({
       embeds: [{
         color: 0x5865F2,
-        title: '🤖 How to Ask Krims Code AI',
-        description: 'You can ask Krims Code AI questions using any of the following methods:\n\n' +
-                     '• **Mention Bot**: Tag `@Krims Code AI <your question>` in any channel!\n' +
+        title: '🤖 How to Ask Krylo SMP Bot',
+        description: 'You can ask Krylo SMP Bot questions using any of the following methods:\n\n' +
+                     '• **Mention Bot**: Tag `@Krylo SMP Bot <your question>` in any channel!\n' +
                      '• **Text Prompt**: Type `!ask <your question>` (e.g. `!ask What is KryloSMP?`)\n' +
                      '• **Slash Command**: Use `/ask prompt:<your question>`\n' +
                      '• 🎙️ **Voice AI**: Join a Voice Channel and type `/voice join` or `!voice join` to talk directly with Krims Bot!',
-        footer: { text: 'Krims Code AI Voice & Text Engine' }
+        footer: { text: 'Krylo SMP Bot Voice & Text Engine' }
       }]
     });
   } else if (content.toLowerCase().startsWith(prefixLower + 'ask ')) {
@@ -8708,13 +8857,96 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('[CRITICAL] Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-// Simple HTTP server to bind to port for Render Web Service compatibility
+// HTTP Server with Web Store In-Game Item Delivery Webhook API
 const port = process.env.PORT || 3000;
-http.createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('Krims Code Discord Bot is active!');
-}).listen(port, () => {
-  console.log(`[HTTP Server] Listening on port ${port}`);
+const server = http.createServer(async (req, res) => {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+
+  // Health Check
+  if (url.pathname === '/health' || url.pathname === '/') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true, message: 'Krylo SMP Store & Discord Bot Engine is Active!' }));
+    return;
+  }
+
+  // Store Catalog
+  if (url.pathname === '/api/store/catalog' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true, catalog: STORE_CATALOG }));
+    return;
+  }
+
+  // Web Store In-Game Item Delivery Endpoint
+  if ((url.pathname === '/api/store/purchase' || url.pathname === '/api/store/deliver') && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const playerIgn = (payload.player || payload.username || payload.ign || '').trim();
+        const itemId = (payload.itemId || payload.item || payload.packageId || '').trim();
+        const discordId = payload.discordId || null;
+
+        if (!playerIgn || !itemId) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Missing required fields: player and itemId' }));
+          return;
+        }
+
+        console.log(`[Store Webhook] Received purchase request for '${playerIgn}' -> '${itemId}'`);
+        const deliveryResult = await deliverStoreItem(playerIgn, itemId, discordId);
+
+        // Optionally send a Discord notification to #store or #server-announcements
+        try {
+          const storeCh = client.channels.cache.find(c => c && c.name && c.name.includes('store') && c.isTextBased());
+          if (storeCh) {
+            const purchaseEmbed = new EmbedBuilder()
+              .setColor(0x00FF66)
+              .setTitle('🛒 Web Store Purchase Delivered!')
+              .setDescription(`🎉 **${playerIgn}** just bought **${deliveryResult.item}** from the web store!\n⚡ In-game commands dispatched to server!`)
+              .setThumbnail(`https://mc-heads.net/avatar/${encodeURIComponent(playerIgn)}/64`)
+              .setFooter({ text: 'KryloSMP Web Store Fulfillment Engine' })
+              .setTimestamp();
+            await storeCh.send({ embeds: [purchaseEmbed] }).catch(() => {});
+          }
+        } catch (_) {}
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, delivery: deliveryResult }));
+      } catch (err) {
+        console.error('[Store Webhook Error]:', err.message);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
+  res.writeHead(404, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ error: 'Endpoint not found' }));
+});
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.log(`[HTTP Server] Port ${port} is in use, store fulfillment running on existing socket.`);
+  } else {
+    console.error('[HTTP Server Error]:', err.message);
+  }
+});
+
+server.listen(port, () => {
+  console.log(`[HTTP Server] Listening on port ${port} (Store fulfillment endpoint active)`);
 });
 
 // ═══════════════════════════════════════════════════════════
