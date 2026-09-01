@@ -9289,6 +9289,63 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // 🛡️ OFFICIAL STAFF WEB CONTROL CENTER REAL-TIME API
+  // ═══════════════════════════════════════════════════════════
+  if (url.pathname === '/api/staff/status' && req.method === 'GET') {
+    const status = await getFalixStatus();
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+    res.end(JSON.stringify(status));
+    return;
+  }
+
+  if (url.pathname === '/api/staff/power' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const signal = payload.signal || payload.action || 'start';
+        console.log(`[Staff Power API] Dispatching power signal '${signal}' to Falix Server...`);
+        const result = await sendFalixPowerSignal(signal);
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ ok: true, signal, result }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
+    });
+    return;
+  }
+
+  if (url.pathname === '/api/staff/execute' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const cmd = (payload.command || payload.cmd || '').trim();
+        const staff = payload.staff || 'Staff-Web';
+
+        if (!cmd) {
+          res.writeHead(400, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ ok: false, error: 'Command required' }));
+          return;
+        }
+
+        console.log(`[Staff Console API] Staff '${staff}' executing command: /${cmd}`);
+        const result = await sendFalixCommand(cmd);
+
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ ok: true, command: cmd, staff, result }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+      }
+    });
+    return;
+  }
+
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Endpoint not found' }));
 });
