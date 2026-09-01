@@ -12,133 +12,215 @@ const BASE_URL = 'https://client.falixnodes.net/api/v2';
 // 🛒 OFFICIAL 100% MATCHED STORE CATALOG & COMMAND MAPPINGS
 // ═══════════════════════════════════════════════════════════
 export const STORE_CATALOG = {
-  // --- RANKS ---
-  'rank_sovereign': {
+  // --- 👑 100% REAL PRESTIGE RANKS ---
+  'rank-sovereign': {
     name: '👑 Sovereign Rank',
-    price: 100000,
+    price: 50000,
     category: 'Rank',
     commands: [
       'lp user {player} parent set sovereign',
+      'lp user {player} permission set essentials.fly true',
+      'lp user {player} permission set essentials.god true',
       'eco give {player} 50000',
-      'coins give {player} 50000',
       'broadcast &6&l⚡ &e{player} &7just unlocked &6&l👑 SOVEREIGN RANK &7from the Web Store!'
     ]
   },
-  'rank_executive': {
-    name: '💎 Executive Rank',
-    price: 60000,
-    category: 'Rank',
-    commands: [
-      'lp user {player} parent set executive',
-      'eco give {player} 30000',
-      'coins give {player} 30000',
-      'broadcast &b&l⚡ &e{player} &7just unlocked &b&l💎 EXECUTIVE RANK &7from the Web Store!'
-    ]
-  },
-  'rank_mvp_plus': {
-    name: '🔮 MVP+ Rank',
+  'rank-overlord': {
+    name: '⚡ Overlord Rank',
     price: 40000,
     category: 'Rank',
     commands: [
-      'lp user {player} parent set mvp_plus',
-      'eco give {player} 20000',
-      'coins give {player} 20000',
-      'broadcast &d&l⚡ &e{player} &7just unlocked &d&l🔮 MVP+ RANK &7from the Web Store!'
+      'lp user {player} parent set overlord',
+      'lp user {player} permission set essentials.feed true',
+      'lp user {player} permission set essentials.heal true',
+      'eco give {player} 30000',
+      'broadcast &e&l⚡ &e{player} &7just unlocked &e&l⚡ OVERLORD RANK &7from the Web Store!'
     ]
   },
-  'rank_mvp': {
-    name: '⭐ MVP Rank',
-    price: 25000,
+  'rank-warlord': {
+    name: '⚔️ Warlord Rank',
+    price: 30000,
     category: 'Rank',
     commands: [
-      'lp user {player} parent set mvp',
-      'eco give {player} 15000',
-      'coins give {player} 15000',
-      'broadcast &e&l⚡ &e{player} &7just unlocked &e&l⭐ MVP RANK &7from the Web Store!'
+      'lp user {player} parent set warlord',
+      'lp user {player} permission set essentials.repair true',
+      'eco give {player} 20000',
+      'broadcast &c&l⚡ &e{player} &7just unlocked &c&l⚔️ WARLORD RANK &7from the Web Store!'
     ]
   },
-  'rank_vip': {
-    name: '🟢 VIP Rank',
+  'rank-champion': {
+    name: '💎 Champion Rank',
+    price: 20000,
+    category: 'Rank',
+    commands: [
+      'lp user {player} parent set champion',
+      'lp user {player} permission set essentials.craft true',
+      'lp user {player} permission set essentials.enderchest true',
+      'eco give {player} 10000',
+      'broadcast &b&l⚡ &e{player} &7just unlocked &b&l💎 CHAMPION RANK &7from the Web Store!'
+    ]
+  },
+  'rank-knight': {
+    name: '🛡️ Knight Rank',
     price: 15000,
     category: 'Rank',
     commands: [
-      'lp user {player} parent set vip',
-      'eco give {player} 10000',
-      'coins give {player} 10000',
-      'broadcast &a&l⚡ &e{player} &7just unlocked &a&l🟢 VIP RANK &7from the Web Store!'
+      'lp user {player} parent set knight',
+      'lp user {player} permission set essentials.near true',
+      'eco give {player} 5000',
+      'broadcast &9&l⚡ &e{player} &7just unlocked &9&l🛡️ KNIGHT RANK &7from the Web Store!'
+    ]
+  },
+  'rank-scout': {
+    name: '🏹 Scout Rank',
+    price: 8000,
+    category: 'Rank',
+    commands: [
+      'lp user {player} parent set scout',
+      'eco give {player} 2500',
+      'broadcast &a&l⚡ &e{player} &7just unlocked &a&l🏹 SCOUT RANK &7from the Web Store!'
     ]
   },
 
-  // --- CRATE KEYS ---
-  'keys_godly': {
-    name: '👑 5x Godly Crate Keys',
-    price: 35000,
+  // --- 🗝️ 100% REAL 3D CRATE KEYS ---
+  'crates-godly': {
+    name: '👑 10x Godly Crate Keys',
+    price: 12000,
     category: 'Crates',
     commands: [
-      'crazycrates give physical GodlyCrate 5 {player}',
-      'broadcast &6&l⚡ &e{player} &7received &65x 👑 Godly Keys &7from the Web Store!'
+      'crazycrates give physical GodlyCrate 10 {player}',
+      'broadcast &6&l⚡ &e{player} &7received &610x 👑 Godly Keys &7from the Web Store!'
     ]
   },
-  'keys_mythic': {
+  'crates-mythic': {
     name: '🔮 10x Mythic Crate Keys',
-    price: 25000,
+    price: 7500,
     category: 'Crates',
     commands: [
       'crazycrates give physical MythicCrate 10 {player}',
       'broadcast &d&l⚡ &e{player} &7received &d10x 🔮 Mythic Keys &7from the Web Store!'
     ]
   },
-  'keys_legendary': {
-    name: '🔴 10x Legendary Crate Keys',
-    price: 18000,
-    category: 'Crates',
-    commands: [
-      'crazycrates give physical LegendaryCrate 10 {player}'
-    ]
-  },
-  'keys_epic': {
-    name: '🟣 15x Epic Crate Keys',
-    price: 12000,
-    category: 'Crates',
-    commands: [
-      'crazycrates give physical EpicCrate 15 {player}'
-    ]
-  },
-  'keys_rare': {
-    name: '🔵 20x Rare Crate Keys',
-    price: 8000,
-    category: 'Crates',
-    commands: [
-      'crazycrates give physical RareCrate 20 {player}'
-    ]
-  },
-  'keys_common': {
-    name: '🟢 30x Common Crate Keys',
+  'crates-legendary': {
+    name: '⚔️ 10x Legendary Keys',
     price: 5000,
     category: 'Crates',
     commands: [
-      'crazycrates give physical CommonCrate 30 {player}'
+      'crazycrates give physical LegendaryCrate 10 {player}',
+      'broadcast &e&l⚡ &e{player} &7received &e10x ⚔️ Legendary Keys &7from the Web Store!'
+    ]
+  },
+  'crates-epic': {
+    name: '💎 10x Epic Crate Keys',
+    price: 3500,
+    category: 'Crates',
+    commands: [
+      'crazycrates give physical EpicCrate 10 {player}'
+    ]
+  },
+  'crates-rare': {
+    name: '🛡️ 10x Rare Crate Keys',
+    price: 2000,
+    category: 'Crates',
+    commands: [
+      'crazycrates give physical RareCrate 10 {player}'
+    ]
+  },
+  'crates-common': {
+    name: '📦 15x Common Keys',
+    price: 1000,
+    category: 'Crates',
+    commands: [
+      'crazycrates give physical CommonCrate 15 {player}'
+    ]
+  },
+  'crates-megabundle': {
+    name: '🌟 Sovereign Mega Crate Bundle',
+    price: 18000,
+    category: 'Crates',
+    commands: [
+      'crazycrates give physical GodlyCrate 3 {player}',
+      'crazycrates give physical MythicCrate 3 {player}',
+      'crazycrates give physical LegendaryCrate 3 {player}',
+      'crazycrates give physical EpicCrate 3 {player}',
+      'crazycrates give physical RareCrate 3 {player}',
+      'crazycrates give physical CommonCrate 3 {player}',
+      'broadcast &6&l🌟 &e{player} &7unlocked the &6&lSOVEREIGN MEGA CRATE BUNDLE (18x Keys)&7!'
     ]
   },
 
-  // --- LAND & UTILITY PACKS ---
-  'claim_blocks_10k': {
-    name: '🛡️ 10,000 Land Claim Blocks',
+  // --- 🏰 100% REAL CLAIM BLOCKS ---
+  'claims-mega': {
+    name: '🏰 +10,000 Mega Territory Blocks',
     price: 25000,
     category: 'Utilities',
     commands: [
       'adjustbonusclaimblocks {player} 10000',
-      'broadcast &6&l🛡️ &e{player} &7expanded their land claim by &6&l10,000 Claim Blocks&7!'
+      'broadcast &6&l🏰 &e{player} &7expanded their territory by &6+10,000 Claim Blocks&7!'
     ]
   },
-  'elytra_master_pack': {
-    name: '🪽 Elytra Wings & Rockets Pack',
-    price: 15000,
+  'claims-empire': {
+    name: '🏰 +5,000 Empire Claim Blocks',
+    price: 18000,
     category: 'Utilities',
     commands: [
-      'give {player} elytra 1',
-      'give {player} firework_rocket 192',
-      'broadcast &b&l🪽 &e{player} &7unlocked the &b&lElytra Flight Gear Pack&7!'
+      'adjustbonusclaimblocks {player} 5000',
+      'broadcast &6&l🏰 &e{player} &7expanded their territory by &6+5,000 Claim Blocks&7!'
+    ]
+  },
+  'claims-kingdom': {
+    name: '🏰 +2,500 Kingdom Blocks',
+    price: 10000,
+    category: 'Utilities',
+    commands: [
+      'adjustbonusclaimblocks {player} 2500',
+      'broadcast &6&l🏰 &e{player} &7expanded their territory by &6+2,500 Claim Blocks&7!'
+    ]
+  },
+  'claims-starter': {
+    name: '⛺ +1,000 Starter Claim Blocks',
+    price: 4500,
+    category: 'Utilities',
+    commands: [
+      'adjustbonusclaimblocks {player} 1000'
+    ]
+  },
+
+  // --- ✨ 100% REAL COSMETICS & PERKS ---
+  'perk-fly': {
+    name: '🕊️ Lifetime /fly Flight License',
+    price: 25000,
+    category: 'Perks',
+    commands: [
+      'lp user {player} permission set essentials.fly true',
+      'broadcast &b&l🕊️ &e{player} &7unlocked &b&lLIFETIME /FLY PERMISSION&7!'
+    ]
+  },
+  'perk-tag': {
+    name: '🏷️ Custom Chat Tag License',
+    price: 15000,
+    category: 'Perks',
+    commands: [
+      'lp user {player} permission set deluxetags.tag.* true',
+      'broadcast &d&l🏷️ &e{player} &7unlocked &d&lCUSTOM CHAT TAG CREATION&7!'
+    ]
+  },
+  'perk-vaults': {
+    name: '🎒 +3 Virtual Player Vaults (/pv)',
+    price: 10000,
+    category: 'Perks',
+    commands: [
+      'lp user {player} permission set playervaults.amount.3 true',
+      'broadcast &e&l🎒 &e{player} &7unlocked &e&l+3 VIRTUAL VAULTS (/pv 1-3)&7!'
+    ]
+  },
+  'perk-booster': {
+    name: '⚡ 2x Economy & XP Booster (24h)',
+    price: 8000,
+    category: 'Perks',
+    commands: [
+      'eco give {player} 8000',
+      'broadcast &a&l⚡ &e{player} &7activated a &a&l2x ECONOMY BOOSTER&7!'
     ]
   },
 

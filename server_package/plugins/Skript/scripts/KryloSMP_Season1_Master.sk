@@ -198,6 +198,97 @@ command /setrank <player> <text>:
         send "&aSet %arg-1%'s rank to %arg-2%!" to player
         send "&6&lKryloSMP &8» &aYour in-game rank was updated to: &e%arg-2%&a!" to arg-1
 
+# ─── ⚔️ 100% REAL IN-GAME RANK KITS & COMMAND PERKS ───
+command /kit [<text>]:
+    trigger:
+        if arg-1 is not set:
+            send "&6━━━━━━━━━━ 📦 KRYLOSMP OFFICIAL KITS ━━━━━━━━━━" to player
+            send "&e/kit sovereign &7— Sovereign Rank Kit (Godly Tier)" to player
+            send "&e/kit overlord &7— Overlord Rank Kit (Executive Tier)" to player
+            send "&e/kit warlord &7— Warlord Rank Kit (Combat Tier)" to player
+            send "&e/kit champion &7— Champion Rank Kit (Diamond Tier)" to player
+            send "&e/kit knight &7— Knight Rank Kit (Iron Tier)" to player
+            send "&e/kit scout &7— Scout Rank Kit (Starter Tier)" to player
+            send "&6━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" to player
+            stop
+
+        if arg-1 is "sovereign":
+            if {rank::%player%} is not "Owner" or "Sovereign" or "Director":
+                send "&cYou must have the Sovereign Rank to claim this kit! Unlock at /store." to player
+                stop
+            give player 1 netherite helmet of protection 4 and unbreaking 3 and mending
+            give player 1 netherite chestplate of protection 4 and unbreaking 3 and mending
+            give player 1 netherite leggings of protection 4 and unbreaking 3 and mending
+            give player 1 netherite boots of protection 4 and unbreaking 3 and mending
+            give player 1 netherite sword of sharpness 5 and fire aspect 2 and looting 3 and unbreaking 3 and mending
+            give player 16 enchanted golden apple
+            give player 4 totem of undying
+            give player 1 elytra
+            give player 64 firework rocket
+            send "&6&l[KITS] &aYou successfully claimed the &6&l👑 SOVEREIGN GOD KIT&a!" to player
+
+        else if arg-1 is "overlord":
+            if {rank::%player%} is not "Owner" or "Sovereign" or "Overlord" or "Director":
+                send "&cYou must have the Overlord Rank to claim this kit!" to player
+                stop
+            give player 1 netherite helmet of protection 3
+            give player 1 netherite chestplate of protection 3
+            give player 1 netherite leggings of protection 3
+            give player 1 netherite boots of protection 3
+            give player 1 diamond sword of sharpness 5 and fire aspect 2
+            give player 8 enchanted golden apple
+            give player 2 totem of undying
+            send "&e&l[KITS] &aYou successfully claimed the &e&l⚡ OVERLORD KIT&a!" to player
+
+        else if arg-1 is "warlord":
+            if {rank::%player%} is not "Owner" or "Sovereign" or "Overlord" or "Warlord" or "Director" or "Admin":
+                send "&cYou must have the Warlord Rank to claim this kit!" to player
+                stop
+            give player 1 diamond helmet of protection 4
+            give player 1 diamond chestplate of protection 4
+            give player 1 diamond leggings of protection 4
+            give player 1 diamond boots of protection 4
+            give player 1 diamond sword of sharpness 4
+            give player 4 enchanted golden apple
+            give player 1 totem of undying
+            send "&c&l[KITS] &aYou successfully claimed the &c&l⚔️ WARLORD KIT&a!" to player
+
+        else if arg-1 is "champion":
+            if {rank::%player%} is not "Owner" or "Sovereign" or "Overlord" or "Warlord" or "Champion" or "Director" or "Admin":
+                send "&cYou must have the Champion Rank to claim this kit!" to player
+                stop
+            give player 1 diamond helmet of protection 3
+            give player 1 diamond chestplate of protection 3
+            give player 1 diamond leggings of protection 3
+            give player 1 diamond boots of protection 3
+            give player 1 diamond sword of sharpness 3
+            give player 16 golden apple
+            send "&b&l[KITS] &aYou successfully claimed the &b&l💎 CHAMPION KIT&a!" to player
+
+        else if arg-1 is "knight":
+            if {rank::%player%} is not "Owner" or "Sovereign" or "Overlord" or "Warlord" or "Champion" or "Knight" or "Director" or "Admin" or "Mod":
+                send "&cYou must have the Knight Rank to claim this kit!" to player
+                stop
+            give player 1 iron helmet of protection 2
+            give player 1 iron chestplate of protection 2
+            give player 1 iron leggings of protection 2
+            give player 1 iron boots of protection 2
+            give player 1 iron sword of sharpness 2
+            give player 8 golden apple
+            give player 32 cooked beef
+            send "&9&l[KITS] &aYou successfully claimed the &9&l🛡️ KNIGHT KIT&a!" to player
+
+        else if arg-1 is "scout":
+            give player 1 chainmail helmet
+            give player 1 chainmail chestplate
+            give player 1 chainmail leggings
+            give player 1 chainmail boots
+            give player 1 stone sword of sharpness 1
+            give player 1 bow of power 1
+            give player 64 arrow
+            give player 32 cooked beef
+            send "&a&l[KITS] &aYou successfully claimed the &a&l🏹 SCOUT KIT&a!" to player
+
 # ─── CUSTOM KRYLOSMP BROADCAST & SAY COMMANDS (PREFIX: KryloSMP) ───
 command /ksay <text>:
     permission: op
