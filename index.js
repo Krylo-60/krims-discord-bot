@@ -9299,6 +9299,28 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if ((url.pathname === '/api/staff/players' || url.pathname === '/api/server/live') && req.method === 'GET') {
+    try {
+      const pingRes = await fetch('https://api.mcstatus.io/v2/status/java/krylosmp.falix.gg:29273');
+      const data = await pingRes.json();
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.end(JSON.stringify({
+        online: data.online,
+        host: 'krylosmp.falix.gg',
+        port: 29273,
+        playersOnline: data.players?.online || 0,
+        playersMax: data.players?.max || 1000,
+        playerList: data.players?.list || [],
+        motd: data.motd?.clean || 'KryloSMP Season 1',
+        version: data.version?.name_clean || 'Paper 1.21.x'
+      }));
+    } catch (e) {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.end(JSON.stringify({ online: false, playersOnline: 0, playersMax: 1000, playerList: [], error: e.message }));
+    }
+    return;
+  }
+
   if (url.pathname === '/api/staff/power' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
