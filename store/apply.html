@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👑 KryloSMP Executive Application Portal | Season 1 Re-Release</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        :root {
+            --primary: #00F2FF;
+            --gold: #FFD700;
+            --admin-red: #FF4500;
+            --partner-blue: #5865F2;
+            --creator-pink: #E91E63;
+            --bg-card: rgba(13, 17, 23, 0.9);
+            --border-glow: rgba(0, 242, 255, 0.25);
+        }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #07090e;
+            color: #f0f6fc;
+            overflow-x: hidden;
+        }
+        .apply-container {
+            max-width: 960px;
+            margin: 40px auto 80px;
+            padding: 0 24px;
+        }
+        .executive-header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+        .executive-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(0, 242, 255, 0.15) 100%);
+            border: 1px solid rgba(255, 215, 0, 0.4);
+            color: var(--gold);
+            padding: 6px 18px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+            margin-bottom: 16px;
+        }
+        .hero-title-large {
+            font-size: 2.8rem;
+            font-weight: 900;
+            line-height: 1.2;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+        .gold-cyan-gradient {
+            background: linear-gradient(135deg, #FFD700 0%, #00F2FF 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .executive-desc {
+            color: #8b949e;
+            font-size: 1.05rem;
+            max-width: 700px;
+            margin: 0 auto 25px;
+            line-height: 1.6;
+        }
+        .nav-tabs-executive {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+        .exec-tab-btn {
+            background: rgba(22, 27, 34, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #c9d1d9;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .exec-tab-btn:hover {
+            border-color: var(--primary);
+            color: #fff;
+            transform: translateY(-2px);
+        }
+        .exec-tab-btn.active {
+            background: linear-gradient(135deg, rgba(0, 242, 255, 0.2) 0%, rgba(0, 119, 255, 0.2) 100%);
+            border: 1px solid var(--primary);
+            color: #00F2FF;
+            box-shadow: 0 0 25px rgba(0, 242, 255, 0.25);
+        }
+        .form-card-executive {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glow);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+            position: relative;
+        }
+        .form-card-executive::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #FFD700 0%, #00F2FF 50%, #7928CA 100%);
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+        }
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+            margin: 25px 0;
+        }
+        .form-section-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--gold);
+            margin-bottom: 16px;
+        }
+        .form-group {
+            margin-bottom: 22px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #e6edf3;
+            margin-bottom: 8px;
+        }
+        .form-group label span.req { color: #ff5555; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            background: rgba(7, 9, 14, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 13px 16px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: all 0.25s ease;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.25);
+            background: rgba(10, 14, 22, 0.95);
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .btn-submit-exec {
+            width: 100%;
+            background: linear-gradient(135deg, #00F2FF 0%, #0077FF 100%);
+            color: #07090e;
+            font-weight: 900;
+            font-size: 1.1rem;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 6px 25px rgba(0, 242, 255, 0.35);
+        }
+        .btn-submit-exec:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 35px rgba(0, 242, 255, 0.55);
+        }
+        .btn-portal-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .btn-google-form {
+            background: rgba(0, 242, 255, 0.12);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+        .btn-google-sheets {
+            background: rgba(46, 160, 67, 0.15);
+            border: 1px solid #2ea043;
+            color: #3fb950;
+        }
+        .oath-box {
+            background: rgba(255, 215, 0, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.25);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 22px;
+        }
+        @media (max-width: 768px) {
+            .form-row { grid-template-columns: 1fr; gap: 0; }
+            .hero-title-large { font-size: 2.1rem; }
+            .form-card-executive { padding: 22px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-effects">
+        <div class="cyber-grid"></div>
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
+    </div>
+
+    <header class="navbar">
+        <div class="nav-brand">
+            <span class="brand-logo">👑</span>
+            <div class="brand-text">
+                <span class="brand-title">KryloSMP</span>
+                <span class="brand-subtitle">Executive Network • Season 1 Re-Release</span>
+            </div>
+        </div>
+
+        <div class="nav-actions">
+            <a href="index.html" class="tab-btn" style="text-decoration: none; padding: 8px 16px;">📊 Player Database</a>
+            <a href="https://krylosmp-store.web.app/" target="_blank" class="tab-btn" style="text-decoration: none; padding: 8px 16px;">🛒 KC Store</a>
+            <div class="nav-status">
+                <span class="pulse-dot"></span>
+                <span class="status-text">Server: <strong>ONLINE</strong></span>
+                <span class="ip-badge">krylosmp.falix.gg:29273</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="apply-container">
+        <div class="executive-header">
+            <div class="executive-badge">👑 SEPARATE APPLICATION PORTALS</div>
+            <h1 class="hero-title-large">KryloSMP <span class="gold-cyan-gradient">Dedicated Applications</span></h1>
+            <p class="executive-desc">
+                Select your specific application category below. Each position has its own dedicated review pipeline and linked database.
+            </p>
+        </div>
+
+        <div class="nav-tabs-executive">
+            <button class="exec-tab-btn active" id="tab-mod" onclick="switchExecTab('mod')">🛡️ Moderator Application</button>
+            <button class="exec-tab-btn" id="tab-admin" onclick="switchExecTab('admin')">⚡ Admin Application</button>
+            <button class="exec-tab-btn" id="tab-partner" onclick="switchExecTab('partner')">🤝 Partnership Application</button>
+            <button class="exec-tab-btn" id="tab-creator" onclick="switchExecTab('creator')">🎬 Creator & YouTube</button>
+        </div>
+
+        <!-- 1. 🛡️ SEPARATE MODERATOR APPLICATION -->
+        <div id="panel-mod" class="form-tab-panel active">
+            <div class="form-card-executive">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 15px;">
+                    <div>
+                        <h2 style="font-size: 1.4rem; color: var(--primary); margin-bottom: 4px;">🛡️ Dedicated Moderator Application</h2>
+                        <p style="color: #8b949e; font-size: 0.9rem;">Chat moderation, mute/warn enforcement, player support, and grief reporting.</p>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <a href="https://docs.google.com/forms/d/e/1FAIpQLSe4TZ-9wQCuXjm1sXA0BOMld9kl-bIRtHP2jG02tEBrImYPWg/viewform" target="_blank" class="btn-portal-action btn-google-form">📋 Open Google Form</a>
+                    </div>
+                </div>
+
+                <div class="section-divider"></div>
+
+                <form onsubmit="submitExecutiveApplication(event, 'Moderator')">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Discord Username & Tag <span class="req">*</span></label>
+                            <input type="text" required placeholder="e.g. krylo_mod">
+                        </div>
+                        <div class="form-group">
+                            <label>Minecraft In-Game Name (IGN) <span class="req">*</span></label>
+                            <input type="text" required placeholder="e.g. Krylo_MC (Java/Bedrock)">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Your Age (Must be 13+) <span class="req">*</span></label>
+                            <input type="number" min="13" max="99" required placeholder="e.g. 15">
+                        </div>
+                        <div class="form-group">
+                            <label>Weekly Active Moderation Hours <span class="req">*</span></label>
+                            <select required>
+                                <option value="5-10 hours">5 - 10 hours per week</option>
+                                <option value="10-20 hours" selected>10 - 20 hours per week</option>
+                                <option value="20+ hours">20+ hours per week</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Previous Chat & In-Game Moderation Experience <span class="req">*</span></label>
+                        <textarea rows="3" required placeholder="List servers you moderated on and commands used."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Scenario: Player Spamming Toxic Slurs in #general-chat <span class="req">*</span></label>
+                        <textarea rows="3" required placeholder="Outline your exact warning, timeout, and mute procedure."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Why do you want to be a MODERATOR specifically on KryloSMP? <span class="req">*</span></label>
+                        <textarea rows="3" required placeholder="What motivates you to protect the KryloSMP community?"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn-submit-exec">🛡️ Submit Moderator Application</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 2. ⚡ SEPARATE ADMIN APPLICATION -->
+        <div id="panel-admin" class="form-tab-panel" style="display: none;">
+            <div class="form-card-executive" style="border-color: rgba(255, 69, 0, 0.4);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 15px;">
+                    <div>
+                        <h2 style="font-size: 1.4rem; color: #FF4500; margin-bottom: 4px;">⚡ Dedicated Administrator Application</h2>
+                        <p style="color: #8b949e; font-size: 0.9rem;">Senior leadership: staff escalations, CoreProtect rollbacks, anti-cheat, and permissions.</p>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <a href="https://docs.google.com/forms/d/e/1FAIpQLScbDPgJr4nxLLfFqJfTURSlG6aMXP-2oVpwMazTIGb3n9MbuQ/viewform" target="_blank" class="btn-portal-action btn-google-form" style="border-color: #FF4500; color: #FF4500;">📋 Open Google Form</a>
+                    </div>
+                </div>
+
+                <div class="section-divider"></div>
+
+                <form onsubmit="submitExecutiveApplication(event, 'Administrator')">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Discord Username & Tag <span class="req">*</span></label>
+                            <input type="text" required placeholder="e.g. krylo_admin">
+                        </div>
+                        <div class="form-group">
+                            <label>Minecraft In-Game Name (IGN) <span class="req">*</span></label>
+                            <input type="text" required placeholder="e.g. Krylo_Admin">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Your Age (Must be 15+ for Admin) <span class="req">*</span></label>
+                            <input type="number" min="15" max="99" required placeholder="e.g. 17">
+                        </div>
+                        <div class="form-group">
+                            <label>Weekly Active Commitment <span class="req">*</span></label>
+                            <select required>
+                                <option value="10-20 hours">10 - 20 hours per week</option>
+                                <option value="20-30 hours" selected>20 - 30 hours per week (Executive)</option>
+                                <option value="30+ hours">30+ hours per week (Full Time)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Senior Staff / Leadership Experience <span class="req">*</span></label>
+                        <textarea rows="3" required placeholder="Describe previous administrative duties, teams managed, and server networks."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Technical Competency (CoreProtect, EssentialsX, Permissions) <span class="req">*</span></label>
+                        <textarea rows="3" required placeholder="Explain your familiarity with /co i, /co rollback, LuckPerms, and AutoMod."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>High-Stakes Investigation Scenario <span class="req">*</span></label>
+                        <textarea rows="3" required placeholder="An influential player is accused of X-ray or duplication glitch. Detail your step-by-step investigation and rollback procedure."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Why should Krishiv & Krylo trust you with Administrator access? <span class="req">*</span></label>
+                        <textarea rows="3" required placeholder="Explain your maturity, technical reliability, and trustworthiness."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn-submit-exec" style="background: linear-gradient(135deg, #FF4500 0%, #FF8C00 100%);">⚡ Submit Administrator Application</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 3. 🤝 SEPARATE PARTNERSHIP APPLICATION -->
+        <div id="panel-partner" class="form-tab-panel" style="display: none;">
+            <div class="form-card-executive" style="border-color: rgba(88, 101, 242, 0.4);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 15px;">
+                    <div>
+                        <h2 style="font-size: 1.4rem; color: #5865F2; margin-bottom: 4px;">🤝 Dedicated Partnership Application</h2>
+                        <p style="color: #8b949e; font-size: 0.9rem;">Cross-promotion in #partnerships, joint tournament hosting, and community collaboration.</p>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <a href="https://docs.google.com/forms/d/e/1FAIpQLSfMeMUj0OWdnH-mpMvdiFbkRywoT7WMXpxYsSdDgPixtKAX7w/viewform" target="_blank" class="btn-portal-action btn-google-form" style="border-color: #5865F2; color: #5865F2;">📋 Open Google Form</a>
+                    </div>
+                </div>
+
+                <div class="section-divider"></div>
+
+                <form onsubmit="submitExecutiveApplication(event, 'Partnership')">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Discord Tag & Owner Status <span class="req">*</span></label>
+                            <input type="text" required placeholder="e.g. Owner#0001 (Server Owner)">
+                        </div>
+                        <div class="form-group">
+                            <label>Community / Server Name <span class="req">*</span></label>
+                            <input type="text" required placeholder="e.g. Galaxy SMP">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Permanent Discord Invite Link <span class="req">*</span></label>
+                            <input type="url" required placeholder="https://discord.gg/yourinvite">
+                        </div>
+                        <div class="form-group">
+                            <label>Total Member Count (Excluding bots - Min 50+) <span class="req">*</span></label>
+                            <input type="number" min="30" required placeholder="e.g. 150">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Partnership Type <span class="req">*</span></label>
+                        <select required>
+                            <option value="Cross-Promotion">Standard Cross-Promotion (Ad Swap)</option>
+                            <option value="Event Collaboration">Joint Event / Tournament Collaboration</option>
+                            <option value="Creator Spotlight">Creator / Network Spotlight</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Official Server Advertisement Text (Markdown) <span class="req">*</span></label>
+                        <textarea rows="4" required placeholder="Provide the exact promotional text to be posted in our #🤝┃partnerships channel."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn-submit-exec" style="background: linear-gradient(135deg, #5865F2 0%, #3B82F6 100%);">🤝 Submit Partnership Request</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 4. 🎬 SEPARATE CREATOR APPLICATION -->
+        <div id="panel-creator" class="form-tab-panel" style="display: none;">
+            <div class="form-card-executive" style="border-color: rgba(233, 30, 99, 0.4);">
+                <div style="margin-bottom: 15px;">
+                    <h2 style="font-size: 1.4rem; color: #E91E63; margin-bottom: 4px;">🎬 Dedicated Content Creator & Media Rank</h2>
+                    <p style="color: #8b949e; font-size: 0.9rem;">Exclusive in-game prefixes, store rewards, stream pings, and video promotion.</p>
+                </div>
+
+                <div class="section-divider"></div>
+
+                <form onsubmit="submitExecutiveApplication(event, 'Creator')">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Discord Tag & In-Game Name <span class="req">*</span></label>
+                            <input type="text" required placeholder="e.g. krylo_yt (IGN: Krylo_MC)">
+                        </div>
+                        <div class="form-group">
+                            <label>Primary Content Platform <span class="req">*</span></label>
+                            <select required>
+                                <option value="YouTube">YouTube</option>
+                                <option value="TikTok">TikTok</option>
+                                <option value="Twitch">Twitch</option>
+                                <option value="Kick">Kick</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Channel / Profile URL <span class="req">*</span></label>
+                            <input type="url" required placeholder="https://youtube.com/@yourchannel">
+                        </div>
+                        <div class="form-group">
+                            <label>Current Subscribers / Followers <span class="req">*</span></label>
+                            <input type="number" min="25" required placeholder="e.g. 500">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Link to Video / Stream on KryloSMP <span class="req">*</span></label>
+                        <input type="url" required placeholder="https://youtube.com/watch?v=... or TikTok link">
+                    </div>
+
+                    <button type="submit" class="btn-submit-exec" style="background: linear-gradient(135deg, #E91E63 0%, #FF5722 100%);">🎬 Submit Creator Application</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- SUCCESS CONFIRMATION RECEIPT -->
+        <div id="successBox" class="form-card-executive" style="display: none; text-align: center; padding: 50px 30px;">
+            <div style="font-size: 4rem; margin-bottom: 15px;">👑</div>
+            <h2 style="font-size: 2rem; color: #00FF88; margin-bottom: 12px;">Application Successfully Logged!</h2>
+            <p style="color: #c9d1d9; max-width: 600px; margin: 0 auto 20px; font-size: 1.05rem; line-height: 1.6;">
+                Your application has been received by the <strong>KryloSMP Executive Administration System</strong> and logged in the dedicated database.
+            </p>
+            <div style="background: rgba(0, 242, 255, 0.1); border: 1px solid rgba(0, 242, 255, 0.3); border-radius: 12px; padding: 15px; max-width: 400px; margin: 0 auto 25px;">
+                <span style="font-size: 0.85rem; color: #8b949e; text-transform: uppercase; letter-spacing: 1px;">Official Reference ID:</span><br>
+                <strong id="appRefId" style="font-size: 1.4rem; color: var(--primary); font-family: 'Space Grotesk', sans-serif;">#EXEC-89421</strong>
+            </div>
+            <button class="btn-submit-exec" onclick="resetForm()" style="max-width: 260px; margin: 0 auto;">Submit Another</button>
+        </div>
+    </main>
+
+    <script>
+        function switchExecTab(type, updateHash = true) {
+            document.querySelectorAll('.form-tab-panel').forEach(p => { p.style.display = 'none'; p.classList.remove('active'); });
+            document.querySelectorAll('.nav-tabs-executive .exec-tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('successBox').style.display = 'none';
+
+            let panelId = 'panel-mod';
+            let btnId = 'tab-mod';
+            let hashName = 'moderator';
+
+            if (type === 'admin' || type === 'administrator') {
+                panelId = 'panel-admin';
+                btnId = 'tab-admin';
+                hashName = 'admin';
+            } else if (type === 'partner' || type === 'partnership') {
+                panelId = 'panel-partner';
+                btnId = 'tab-partner';
+                hashName = 'partner';
+            } else if (type === 'creator' || type === 'youtube' || type === 'media') {
+                panelId = 'panel-creator';
+                btnId = 'tab-creator';
+                hashName = 'creator';
+            } else {
+                panelId = 'panel-mod';
+                btnId = 'tab-mod';
+                hashName = 'moderator';
+            }
+
+            const panel = document.getElementById(panelId);
+            if (panel) {
+                panel.style.display = 'block';
+                panel.classList.add('active');
+            }
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                btn.classList.add('active');
+            }
+
+            if (updateHash) {
+                history.replaceState(null, null, '#' + hashName);
+            }
+        }
+
+        function handleHashRouting() {
+            const hash = window.location.hash.toLowerCase().replace('#', '');
+            if (hash) {
+                if (hash === 'admin' || hash === 'administrator') {
+                    switchExecTab('admin', false);
+                } else if (hash === 'partner' || hash === 'partnership') {
+                    switchExecTab('partner', false);
+                } else if (hash === 'creator' || hash === 'youtube' || hash === 'media') {
+                    switchExecTab('creator', false);
+                } else if (hash === 'mod' || hash === 'moderator' || hash === 'staff') {
+                    switchExecTab('mod', false);
+                }
+                const formsArea = document.querySelector('.nav-tabs-executive');
+                if (formsArea) formsArea.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        window.addEventListener('hashchange', handleHashRouting);
+
+        async function submitExecutiveApplication(e, type) {
+            e.preventDefault();
+            const refId = '#EXEC-' + Math.floor(10000 + Math.random() * 90000);
+            document.getElementById('appRefId').innerText = refId;
+
+            document.querySelectorAll('.form-tab-panel').forEach(p => { p.style.display = 'none'; });
+            document.getElementById('successBox').style.display = 'block';
+            window.scrollTo({ top: 120, behavior: 'smooth' });
+        }
+
+        function resetForm() {
+            document.getElementById('successBox').style.display = 'none';
+            document.getElementById('panel-mod').style.display = 'block';
+            document.getElementById('panel-mod').classList.add('active');
+        }
+
+        async function checkLiveMinecraftServerStatus() {
+            try {
+                const res = await fetch('https://api.mcsrvstat.us/3/krylosmp.falix.gg:29273');
+                if (res.ok) {
+                    const data = await res.json();
+                    const motdClean = (data.motd?.clean || []).join(' ').toLowerCase();
+                    const isActualOnline = data.online && !motdClean.includes('offline') && data.version !== 'play.hosting';
+                    
+                    const statusTexts = document.querySelectorAll('.status-text');
+                    const pulseDots = document.querySelectorAll('.pulse-dot');
+                    
+                    if (isActualOnline) {
+                        statusTexts.forEach(el => el.innerHTML = `Server: <strong style="color: #00FF88;">ONLINE</strong> (${data.players?.online || 0} online)`);
+                        pulseDots.forEach(el => {
+                            el.style.background = '#00FF88';
+                            el.style.boxShadow = '0 0 10px rgba(0, 255, 136, 0.6)';
+                        });
+                    } else {
+                        statusTexts.forEach(el => el.innerHTML = `Server: <strong style="color: #FF4444;">OFFLINE</strong>`);
+                        pulseDots.forEach(el => {
+                            el.style.background = '#FF4444';
+                            el.style.boxShadow = '0 0 10px rgba(255, 68, 68, 0.6)';
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('Status check error:', e);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            handleHashRouting();
+            checkLiveMinecraftServerStatus();
+            setInterval(checkLiveMinecraftServerStatus, 30000);
+        });
+    </script>
+</body>
+</html>

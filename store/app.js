@@ -333,7 +333,7 @@ function setupEventListeners() {
 
     // Copy IP Box
     copyIpBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText('krylosmp.play.hosting');
+        navigator.clipboard.writeText('krylosmp.falix.gg:29273');
         copyIpBtn.textContent = '✅ Copied!';
         setTimeout(() => copyIpBtn.textContent = '📋 Copy', 2000);
     });

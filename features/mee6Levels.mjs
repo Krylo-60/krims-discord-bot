@@ -87,21 +87,31 @@ export async function handleMessageXp(message, client) {
   const oldLevelInfo = calculateLevelFromXp(oldTotal);
   const newLevelInfo = calculateLevelFromXp(newTotal);
 
-  xpData[guildId][userId].level = newLevelInfo.level;
-  saveXpData();
-
-  // Level Up Trigger!
-  if (newLevelInfo.level > oldLevelInfo.level) {
+  // Level Up Trigger — only announce if this level has NEVER been announced before!
+  const announcedLevel = xpData[guildId][userId].announced_level || 0;
+  if (newLevelInfo.level > announcedLevel) {
     const lvl = newLevelInfo.level;
-    const embed = new EmbedBuilder()
-      .setColor(0x00E5FF)
-      .setTitle(`🎉 LEVEL UP! — LEVEL ${lvl} REACHED!`)
-      .setDescription(`GG **<@${userId}>**! You just leveled up to **Level ${lvl}** in **${message.guild.name}**! 🚀\nKeep chatting and participating in voice lounges to climb the leaderboard.`)
-      .setThumbnail(message.author.displayAvatarURL({ dynamic: true }))
-      .setFooter({ text: 'KryloSMP MEE6 Progression Engine' })
-      .setTimestamp();
+    xpData[guildId][userId].announced_level = lvl;
+    saveXpData();
 
-    message.channel.send({ content: `<@${userId}>`, embeds: [embed] }).catch(() => {});
+    // Route all level-up celebrations EXCLUSIVELY to #📊┃levels-and-rewards so chat stays clean!
+    let targetChannel = message.guild.channels.cache.find(c => 
+      c.name.includes('levels-and-rewards') || 
+      c.name.includes('level-up') ||
+      c.name.includes('levels')
+    );
+
+    if (targetChannel) {
+      const embed = new EmbedBuilder()
+        .setColor(0x00E5FF)
+        .setTitle(`🎉 LEVEL UP! — LEVEL ${lvl} REACHED!`)
+        .setDescription(`GG **<@${userId}>**! You just leveled up to **Level ${lvl}** in **${message.guild.name}**! 🚀\nKeep chatting and participating in voice lounges to climb the leaderboard.`)
+        .setThumbnail(message.author.displayAvatarURL({ dynamic: true }))
+        .setFooter({ text: 'KryloSMP MEE6 Progression Engine' })
+        .setTimestamp();
+
+      targetChannel.send({ content: `<@${userId}>`, embeds: [embed] }).catch(() => {});
+    }
 
     // Role rewards
     try {

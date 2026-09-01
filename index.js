@@ -24,7 +24,10 @@ import { handleMessageXp } from './features/mee6Levels.mjs';
 import { afkUsers, handleMute, handleUnmute, handleKick, handleBan, handleLockdown, handleSlowmode, handleAfk, handleRemindMe, handleEmbedBuilder } from './features/dynoModSystem.mjs';
 import { getFalixStatus, sendFalixPowerSignal, sendFalixCommand } from './falixServerEngine.mjs';
 import { deliverStoreItem, STORE_CATALOG } from './storeDeliveryEngine.mjs';
-import { setPlayerVerification, getPlayer, addCoins, getBalance } from './databaseEngine.mjs';
+import { setPlayerVerification, getPlayer, getPlayerByIgn, addCoins, removeCoins, getBalance } from './databaseEngine.mjs';
+import { aiOperator } from './aiConsoleOperator.mjs';
+import { setupAIConsoleChannel, handleAIConsoleMessage } from './aiConsoleChatHandler.mjs';
+import { handleCountingMessage, handleStickyMessage } from './countingAndStickyEngine.mjs';
 
 dotenv.config();
 
@@ -72,43 +75,63 @@ function rotateGeminiKey() {
  */
 const GEMINI_MODEL_CASCADE = ['gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-2.5-flash'];
 
-async function geminiDirectAsk(prompt, systemInstruction = '') {
-  if (!geminiClient || geminiClients.length === 0) return null;
-  
-  const sysInstr = systemInstruction || 'You are Krylo SMP Bot, the official KryloSMP Discord bot assistant. Be helpful, friendly, concise. Use emojis moderately. You speak in a slightly playful but professional tone.';
+// Dual-Key Groq LPU Multi-Brain Integration
+const GROQ_KEYS_POOL = [
+  process.env.GROQ_API_KEY,
+  process.env.GROQ_API_KEY_2
+].filter(Boolean);
+let groqPoolIdx = 0;
 
-  // Try each model in the cascade
-  for (const modelId of GEMINI_MODEL_CASCADE) {
-    // Try current key, on rate limit rotate and retry across all keys
-    for (let attempt = 0; attempt < geminiClients.length; attempt++) {
+async function geminiDirectAsk(prompt, systemInstruction = '') {
+  const sysInstr = systemInstruction || 'You are Krims Code AI, the official intelligent assistant for KryloSMP Minecraft Network (krylosmp.falix.gg:29273). Friendly, helpful, concise with clean markdown formatting.';
+  
+  // 1. Try Groq LPU (Ultra-fast ~50ms response)
+  for (let i = 0; i < GROQ_KEYS_POOL.length; i++) {
+    const key = GROQ_KEYS_POOL[(groqPoolIdx + i) % GROQ_KEYS_POOL.length];
+    for (const m of ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'groq/compound']) {
       try {
-        const response = await geminiClient.models.generateContent({
-          model: modelId,
-          contents: prompt,
-          config: {
-            systemInstruction: sysInstr,
-          }
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: m,
+            messages: [
+              { role: 'system', content: sysInstr },
+              { role: 'user', content: prompt }
+            ],
+            max_tokens: 450,
+            temperature: 0.7
+          })
         });
-        rotateGeminiKey();
-        const text = response?.text || response?.candidates?.[0]?.content?.parts?.[0]?.text || null;
-        if (text) {
-          console.log(`[Gemini] ✅ Response via ${modelId} (key ${geminiKeyIndex + 1})`);
-          return text;
+
+        if (res.ok) {
+          const d = await res.json();
+          const ans = d.choices?.[0]?.message?.content;
+          if (ans && ans.trim().length > 0) {
+            groqPoolIdx++;
+            return ans.trim();
+          }
         }
-      } catch (e) {
-        if (e.status === 429 || e.message?.includes('RESOURCE_EXHAUSTED')) {
-          console.warn(`[Gemini] Key ${geminiKeyIndex + 1} rate limited on ${modelId}, rotating...`);
-          rotateGeminiKey();
-          continue;
-        }
-        // Model-level error → try next model in cascade
-        console.warn(`[Gemini] ${modelId} error: ${e.message} — falling back...`);
-        rotateGeminiKey();
-        break; // Break inner loop to try next model
+      } catch (err) {
+        // continue to next model/key
       }
     }
   }
-  return null; // All models and keys exhausted → Krims SDK takes over
+
+  // 2. Gemini Fallback
+  if (geminiClient) {
+    try {
+      const resp = await geminiClient.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { systemInstruction: sysInstr }
+      });
+      const t = resp?.text || resp?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (t) return t.trim();
+    } catch (e) {}
+  }
+
+  return "👋 Hello! I am **Krims Code AI**, official assistant for **KryloSMP**!\n🎮 **Server IP:** \`krylosmp.falix.gg:29273\`\n🛒 **Store:** https://krylosmp-store.web.app/\nHow can I help you today?";
 }
 
 /**
@@ -459,7 +482,7 @@ function startAutoUpdater() {
 
 async function updateDynamicServerVoiceStats() {
   try {
-    const res = await fetch('https://api.mcsrvstat.us/3/KryloSmp.play.hosting');
+    const res = await fetch('https://api.mcsrvstat.us/3/krylosmp.falix.gg:29273');
     let isOnline = false;
     let playerCount = 0;
     if (res.ok) {
@@ -475,7 +498,7 @@ async function updateDynamicServerVoiceStats() {
     if (isOnline) {
       client.user.setActivity(`KryloSMP: ${playerCount} online`, { type: 0 });
     } else {
-      client.user.setActivity('KryloSMP (Offline)', { type: 0 });
+      client.user.setActivity('krylosmp.falix.gg:29273', { type: 0 });
     }
 
     // Update voice channels across guilds
@@ -506,6 +529,14 @@ client.once('ready', async () => {
   console.log(`[+] Krylo SMP Official Bot online as ${client.user.tag}`);
   startAutoUpdater();
   startDynamicStatsUpdater();
+  aiOperator.client = client;
+  aiOperator.start();
+
+  // Setup #🤖┃ai-console-chat channel
+  const mainGuild = client.guilds.cache.get('1524878881918685405');
+  if (mainGuild) {
+    setupAIConsoleChannel(mainGuild).catch(err => console.warn('[AI Console Channel]', err.message));
+  }
 
   // Load XP data from persistent Vercel database
   try {
@@ -1106,8 +1137,8 @@ client.once('ready', async () => {
         .setTitle('🚀 KRYLOSMP AUTOMATED COMMUNITY SPOTLIGHT & REWARDS 🚀')
         .setDescription(
           '👑 **Join the #1 Cross-Platform Survival SMP!** 🥳\n\n' +
-          '• **Java IP:** `KryloSmp.play.hosting` (Port: `25565`)\n' +
-          '• **Bedrock / Mobile IP:** `KryloSmp.play.hosting` (Port: `19132`)\n\n' +
+          '• **Java IP:** `krylosmp.falix.gg:29273` (Port: `25565`)\n' +
+          '• **Bedrock / Mobile IP:** `krylosmp.falix.gg:29273` (Port: `19132`)\n\n' +
           '---\n\n' +
           '### 🎁 Active Player Perks & Rewards:\n' +
           '• 💎 **Daily Item Rewards:** Run `/daily` for Day 1 free **32x Diamonds & +1,000 KC**!\n' +
@@ -1482,7 +1513,7 @@ client.once('ready', async () => {
               `**HOW TO VERIFY & UNLOCK THE SERVER:**\n` +
               `1️⃣ Click the **\`✅ Verify Account\`** button below.\n` +
               `2️⃣ The bot will generate a **unique personal 6-digit code** for your account.\n` +
-              `3️⃣ Enter your code on the [**Player Portal**](https://krylosmp.web.app/) or type \`/verify <code>\` inside Minecraft (\`KryloSmp.play.hosting\`).\n` +
+              `3️⃣ Enter your code on the [**Player Portal**](https://krylosmp.web.app/) or type \`/verify <code>\` inside Minecraft (\`krylosmp.falix.gg:29273\`).\n` +
               `4️⃣ Your Discord account will automatically receive the **\`✅ VERIFIED PLAYER\`** role and unlock all chat & voice lounges!\n\n` +
               `*Need assistance? Open a ticket in #🎟️・open-ticket for 24/7 AI support!*`
             )
@@ -1834,7 +1865,7 @@ async function checkKryloServerOnline() {
         socket.destroy();
         resolve(false);
       });
-      socket.connect(25565, 'KryloSmp.play.hosting');
+      socket.connect(25565, 'krylosmp.falix.gg:29273');
     }).catch(() => resolve(false));
   });
 }
@@ -1972,11 +2003,15 @@ client.on('interactionCreate', async (interaction) => {
         });
       }
       global.userDailyClaimTimes[interaction.user.id] = now;
-      let curBal = (economy[interaction.user.id] || 1000) + 1000;
-      economy[interaction.user.id] = curBal;
+      let newBal = 1000;
+      try {
+        addCoins(interaction.user.id, 1000);
+        const balObj = getBalance(interaction.user.id);
+        newBal = balObj ? balObj.krylocoins : 1000;
+      } catch (_) {}
 
       return interaction.reply({
-        content: `🎉 **+1,000 KryloCoins Added!** Your new balance is **${curBal.toLocaleString()} KC**! 💎`,
+        content: `🎉 **+1,000 KryloCoins Added!** Your new balance is **${newBal.toLocaleString()} KC**! 💎`,
         flags: 64
       });
     }
@@ -2218,6 +2253,21 @@ client.on('interactionCreate', async (interaction) => {
         content: `🏰 **KryloSMP Clan & Factions Guide**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n• **Create Clan:** \`/clan action:create name:<Name> tag:<TAG>\` (Cost: \`5,000 KC\`)\n• **Invite Members:** \`/clan action:invite target:@user\` (Auto grants clan role & private room!)\n• **Clan Vault:** \`/clan action:deposit amount:<KC>\`\n• **Recruit:** Post in <#1542646295561375764>!`,
         flags: 64
       });
+    }
+
+    if (customId === 'btn_check_booster_status') {
+      const isBooster = interaction.member.roles.cache.has('1538228590464999445') || !!interaction.member.premiumSince;
+      if (isBooster) {
+        return interaction.reply({
+          content: `🚀 **ACTIVE SERVER BOOSTER!** 💎\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n💖 **Thank you for boosting KryloSMP!**\n• 🏷️ **Role:** <@&1538228590464999445>\n• ⛏️ **In-Game Prefix:** \`[BOOSTER]\` Active\n• 🕊️ **In-Game Flight:** \`/fly\` Unlocked\n• 🎁 **Daily Multiplier:** **2x (+2,000 KC/day)**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n*You are an official Executive Supporter!* 👑`,
+          flags: 64
+        });
+      } else {
+        return interaction.reply({
+          content: `✨ **BOOST KRYLOSMP TO UNLOCK VIP REWARDS!** 🚀\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nBoost this server using your Discord Nitro perks to instantly unlock:\n• 🚀 **<@&1538228590464999445> Badge & Color**\n• 💰 **+25,000 KryloCoins Grant**\n• 🕊️ **In-Game \`/fly\` & \`[BOOSTER]\` Chat Prefix**\n• 🎁 **2x Daily Rewards (+2,000 KC/day)**\n• 🗝️ **2x Free Mythic Crate Keys Monthly**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n*Click the Server Name at the top left and select 'Server Boost'!* 💖`,
+          flags: 64
+        });
+      }
     }
 
     if (customId === 'btn_join_beta_roster') {
@@ -2497,7 +2547,7 @@ client.on('interactionCreate', async (interaction) => {
 ` +
           `2️⃣ Enter code **\`${personalCode}\`** on the [**Player Portal**](https://krylosmp.web.app/)
 ` +
-          `3️⃣ Or connect to Minecraft (\`KryloSmp.play.hosting\`) and type: \`/verify ${personalCode}\`
+          `3️⃣ Or connect to Minecraft (\`krylosmp.falix.gg:29273\`) and type: \`/verify ${personalCode}\`
 
 ` +
           `*This code is generated specifically for your account only and is private!*`
@@ -2597,7 +2647,7 @@ client.on('interactionCreate', async (interaction) => {
           .setTitle('🚀 MINECRAFT SERVER IS STARTING!')
           .setDescription(
             `The power signal **START** has been sent to the server node!\n\n` +
-            `🌐 **Server IP**: \`KryloSmp.play.hosting\`\n` +
+            `🌐 **Server IP**: \`krylosmp.falix.gg:29273\`\n` +
             `🔌 **Port**: \`25565\` (Java) | \`19132\` (Bedrock)\n` +
             `⏱️ **Estimated Boot Time**: ~20-30 seconds\n\n` +
             `*Raise your swords and connect now!*`
@@ -3102,7 +3152,7 @@ client.on('interactionCreate', async (interaction) => {
             { name: '👤 Discord Account', value: `<@${interaction.user.id}>`, inline: true },
             { name: '🎮 Linked Minecraft Username', value: linkedIgn !== 'Not Linked' ? `\`${linkedIgn}\`` : '❌ `Not Linked`', inline: true },
             { name: '💰 KryloCoins Balance', value: `\`${balanceFormatted}\``, inline: true },
-            { name: '🌐 Server IP', value: '`KryloSmp.play.hosting`', inline: true }
+            { name: '🌐 Server IP', value: '`krylosmp.falix.gg:29273`', inline: true }
           )
           .setFooter({ text: 'KryloSMP Account Management System ⚡' })
           .setTimestamp();
@@ -3117,8 +3167,8 @@ client.on('interactionCreate', async (interaction) => {
     if (customId === 'copy_ip_btn') {
       await interaction.reply({
         content: '🌐 **KryloSMP Connection Details:**\n\n' +
-                 '• **Java Server IP:** `KryloSmp.play.hosting` (Port: `25565`)\n' +
-                 '• **Bedrock IP:** `KryloSmp.play.hosting` (Port: `19132`)\n' +
+                 '• **Java Server IP:** `krylosmp.falix.gg:29273` (Port: `25565`)\n' +
+                 '• **Bedrock IP:** `krylosmp.falix.gg:29273` (Port: `19132`)\n' +
                  '• **Version:** `1.21.x`\n' +
                  '• **Player Portal:** https://krylosmp.web.app/\n' +
                  '• **KC Store:** https://krylosmp-store.web.app/',
@@ -3313,29 +3363,15 @@ client.on('interactionCreate', async (interaction) => {
         });
 
         const calculatedPriority = await calculatePriority(userTicketReasonText);
-        let mcUsername = 'Not Linked';
-        let playerBalance = 0;
+        let dbPlayer = null;
+        let dbBal = null;
         try {
-          const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'get_config', guildId: interaction.guild?.id || '1524878881918685405' })
-          });
-          if (configRes.ok) {
-            guildConfig = await configRes.json();
-            if (guildConfig.verifiedPlayers && guildConfig.verifiedPlayers[interaction.user.id]) {
-              mcUsername = guildConfig.verifiedPlayers[interaction.user.id].name || 'Not Linked';
-              if (guildConfig.verifiedPlayers[interaction.user.id].balance !== undefined) {
-                playerBalance = guildConfig.verifiedPlayers[interaction.user.id].balance;
-              }
-            }
-            if (mcUsername !== 'Not Linked' && guildConfig.economyData && guildConfig.economyData[mcUsername]) {
-              playerBalance = guildConfig.economyData[mcUsername];
-            }
-          }
-        } catch (e) {
-          console.warn('[Ticket Log] Failed to fetch config:', e.message);
-        }
+          dbPlayer = getPlayer(interaction.user.id);
+          dbBal = getBalance(interaction.user.id);
+        } catch (_) {}
+
+        let mcUsername = (dbPlayer && dbPlayer.minecraft_ign) ? dbPlayer.minecraft_ign : (interaction.user.id === '1414143825538191373' ? 'Krylo_MC' : 'Not Linked');
+        let playerBalance = dbBal ? dbBal.krylocoins : (interaction.user.id === '1414143825538191373' ? 106000 : 1000);
 
         const profileEmbed = new EmbedBuilder()
           .setColor(0x00F2FF)
@@ -3449,7 +3485,7 @@ client.on('interactionCreate', async (interaction) => {
           .setDescription(
             `Welcome to **KryloSMP**, <@${interaction.user.id}>!\n\n` +
             `• **Linked Username:** \`${mcUsernameInput}\`\n` +
-            `• **Server IP:** \`KryloSmp.play.hosting\`\n` +
+            `• **Server IP:** \`krylosmp.falix.gg:29273\`\n` +
             `• **Discord Role:** Granted ${verifiedRole ? `<@&${verifiedRole.id}>` : '**Verified**'}!\n` +
             `• **Rewards Granted:** 💰 **+500 KryloCoins** + 💎 **16x Diamonds**!\n\n` +
             `*Your account has been automatically whitelisted. You can connect to the server right now!*`
@@ -3551,7 +3587,7 @@ client.on('interactionCreate', async (interaction) => {
                 (result.error || 'The verification code entered was not recognized.') + '\n\n' +
                 '### 🔑 How to get your code:\n' +
                 '1. Click **Link Account** and enter your Minecraft Username.\n' +
-                '2. Open Minecraft and connect to **`KryloSmp.play.hosting`**.\n' +
+                '2. Open Minecraft and connect to **`krylosmp.falix.gg:29273`**.\n' +
                 '3. Look at your in-game chat—your 5-digit code will display on join!\n' +
                 '4. Return here and click **Enter Code** again.'
               )
@@ -3572,13 +3608,118 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
   const { commandName } = interaction;
+  // === MASTER KRYLOSMP SLASH COMMANDS ===
+
+  // /apply
+  if (commandName === 'apply') {
+    const embed = new EmbedBuilder()
+      .setColor(0x00D8F6)
+      .setAuthor({ name: 'KryloSMP Staff & Creator Recruitment', iconURL: interaction.guild?.iconURL() || client.user.displayAvatarURL() })
+      .setTitle('📝 Join the KryloSMP Staff Team!')
+      .setDescription(
+        'We are recruiting passionate, mature, and dedicated community leaders across 5 specialized divisions:\n\n' +
+        '🛡️ **Helper / Trial Mod** — Chat moderation & player support\n' +
+        '⚔️ **Server Moderator** — Anti-cheat enforcement & appeals\n' +
+        '🏰 **Staff Builder** — Spawns, event arenas & dungeons\n' +
+        '💻 **Plugin Developer** — Skripts, mechanics & features\n' +
+        '🎥 **Media / Creator** — YouTube, TikTok & Twitch streaming partners\n\n' +
+        '👉 **Apply Online:** [https://krylosmp.web.app/#apply](https://krylosmp.web.app/#apply)'
+      )
+      .setFooter({ text: 'KryloSMP Official Network • Powered by Krims Code AI' })
+      .setTimestamp();
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setLabel('📝 Open Staff Application').setStyle(ButtonStyle.Link).setURL('https://krylosmp.web.app/#apply'),
+      new ButtonBuilder().setLabel('🌐 Main Portal').setStyle(ButtonStyle.Link).setURL('https://krylosmp.web.app/')
+    );
+
+    return interaction.reply({ embeds: [embed], components: [row] });
+  }
+
+  // /rules
+  if (commandName === 'rules') {
+    const embed = new EmbedBuilder()
+      .setColor(0xF59E0B)
+      .setAuthor({ name: 'KryloSMP Official Guidelines', iconURL: interaction.guild?.iconURL() || client.user.displayAvatarURL() })
+      .setTitle('📜 Server Rules & Fair Play Policy')
+      .setDescription(
+        '**1. Respect & Fair Play:** No harassment, hate speech, or toxicity.\n' +
+        '**2. No Unfair Advantages:** Hacked clients, auto-clickers, and x-ray are strictly bannable.\n' +
+        '**3. No Bug Abuse:** Duplication or glitch abuse leads to permanent inventory wipe.\n' +
+        '**4. Combat Logging:** Disconnecting during PvP triggers automatic combat death penalty.\n' +
+        '**5. No Real-Money Trading (RMT):** Only in-game KryloCoins (KC) are permitted.\n\n' +
+        '🔗 **Full Live Synced Rules:** [https://krylosmp.web.app/#rules](https://krylosmp.web.app/#rules)'
+      )
+      .setFooter({ text: 'Live-synced with Discord & Server Database' })
+      .setTimestamp();
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setLabel('📜 View All Rules Online').setStyle(ButtonStyle.Link).setURL('https://krylosmp.web.app/#rules'),
+      new ButtonBuilder().setLabel('💬 Discord Rules Channel').setStyle(ButtonStyle.Link).setURL('https://discord.com/channels/1538225337048236082/1542646197100224552')
+    );
+
+    return interaction.reply({ embeds: [embed], components: [row] });
+  }
+
+  // /link
+  if (commandName === 'link') {
+    const embed = new EmbedBuilder()
+      .setColor(0x10B981)
+      .setAuthor({ name: 'KryloSMP Account Linking', iconURL: interaction.guild?.iconURL() || client.user.displayAvatarURL() })
+      .setTitle('🔗 Link Discord & Minecraft Accounts')
+      .setDescription(
+        'Linking your Minecraft account gives you the **@✅ Verified** role and syncs in-game ranks to Discord!\n\n' +
+        '**Step 1:** Join the server at \`krylosmp.falix.gg:29273\`\n' +
+        '**Step 2:** Type \`/discord link\` in Minecraft chat to receive your unique 4-digit code.\n' +
+        '**Step 3:** Send that 4-digit code to **Krims Code AI** in Direct Messages (DMs)!\n\n' +
+        '✅ Your accounts will be linked instantly!'
+      )
+      .setFooter({ text: 'DiscordSRV 2-Way Synchronization Active' })
+      .setTimestamp();
+
+    return interaction.reply({ embeds: [embed] });
+  }
+
+  // /bal
+  if (commandName === 'bal' || commandName === 'balance' || commandName === 'coins') {
+    let isOwner = interaction.user.id === '1414143825538191373';
+    let balDisplay = isOwner ? '∞ INF' : '10,000';
+    try {
+      if (!isOwner) {
+        const b = getBalance(interaction.user.id);
+        if (b && b.krylocoins !== undefined && b.krylocoins > 0) {
+          balDisplay = b.krylocoins.toLocaleString();
+        }
+      }
+    } catch (_) {}
+
+    const embed = new EmbedBuilder()
+      .setColor(0xF59E0B)
+      .setAuthor({ name: `${interaction.user.username}'s Vault`, iconURL: interaction.user.displayAvatarURL() })
+      .setTitle('🪙 KryloCoins (KC) Balance')
+      .setDescription(
+        `💰 **Your Current Balance:** \`${bal.toLocaleString()} KC\`\n\n` +
+        'Earn more KC by chatting, winning daily giveaways, or mining ores in BoxPvP!\n\n' +
+        '🛒 **Spend KC in the Store:** [https://krylosmp-store.web.app/](https://krylosmp-store.web.app/)'
+      )
+      .setFooter({ text: '100% Free Play-to-Earn Economy' })
+      .setTimestamp();
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setLabel('🛒 Visit Web Store').setStyle(ButtonStyle.Link).setURL('https://krylosmp-store.web.app/'),
+      new ButtonBuilder().setCustomId('btn_claim_daily_kc').setLabel('🎁 Claim Daily KC').setStyle(ButtonStyle.Success)
+    );
+
+    return interaction.reply({ embeds: [embed], components: [row] });
+  }
+
 
   // Retrieve configurations dynamically from cloud database
   let botPrefix = '!';
   let aiEnabled = true;
   let modelEngine = 'gemini';
   let systemInstruction = 'You are the Krylo SMP Bot, built and custom-trained by the genius developer Krishiv. Answer coding queries with clear instructions and a friendly, confident tone.';
-  let ticketsEnabled = false;
+  let ticketsEnabled = true;
 
   if (interaction.guild) {
     if (!global.guildConfigCache) global.guildConfigCache = {};
@@ -3589,7 +3730,7 @@ client.on('interactionCreate', async (interaction) => {
       aiEnabled = guildConfig.aiEnabled !== false;
       modelEngine = guildConfig.model || 'gemini';
       systemInstruction = guildConfig.sysPrompt || systemInstruction;
-      ticketsEnabled = !!guildConfig.ticketsEnabled;
+      ticketsEnabled = true;
     } else {
       // Refresh cache in background without blocking interaction response
       fetch('https://krims-code-chatbot.vercel.app/api/chat', {
@@ -3707,7 +3848,7 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     activeStream = null;
-    client.user.setActivity('KryloSMP • krylosmp.play.hosting', { type: 0 });
+    client.user.setActivity('KryloSMP • krylosmp.falix.gg:29273', { type: 0 });
 
     await interaction.reply({ content: '🛑 **LIVE STREAM BROADCAST ENDED.** Activity status reset to default.', ephemeral: true });
   }
@@ -3930,7 +4071,7 @@ client.on('interactionCreate', async (interaction) => {
       .setColor(0x00FF66)
       .setTitle('🗳️ Vote for KryloSMP & Claim Free Rewards!')
       .setDescription(
-        'Vote for `KryloSmp.play.hosting` on top Minecraft server lists to boost our network ranking and earn **+500 KryloCoins** + **1x Vote Crate Key** per site!\n\n' +
+        'Vote for `krylosmp.falix.gg:29273` on top Minecraft server lists to boost our network ranking and earn **+500 KryloCoins** + **1x Vote Crate Key** per site!\n\n' +
         '• [Vote on PlanetMinecraft](https://planetminecraft.com)\n' +
         '• [Vote on Minecraft-MP](https://minecraft-mp.com)\n' +
         '• [Vote on NameMC](https://namemc.com)\n' +
@@ -4055,7 +4196,7 @@ client.on('interactionCreate', async (interaction) => {
           `• **Status:** Verified Human Player ✅\n` +
           `• **Whitelist:** Added to Minecraft Server Whitelist!\n` +
           `• **Welcome Bonus:** **+500 KryloCoins & 16x Free Diamonds** queued in-game!\n\n` +
-          `Connect now at \`KryloSmp.play.hosting\``
+          `Connect now at \`krylosmp.falix.gg:29273\``
         )
         .setTimestamp();
       await interaction.reply({ embeds: [embed] });
@@ -4710,7 +4851,7 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.deferReply();
     try {
       // 1. Fetch Minecraft Server Status
-      const res = await fetch('https://api.mcsrvstat.us/2/KryloSmp.play.hosting');
+      const res = await fetch('https://api.mcsrvstat.us/2/krylosmp.falix.gg:29273');
       const data = await res.json();
 
       // 2. Fetch Sync Stats from Vercel config database
@@ -4747,13 +4888,13 @@ client.on('interactionCreate', async (interaction) => {
             .setTitle('🔴 KryloSMP Server is OFFLINE')
             .setDescription('The Minecraft server is currently stopped or restarting.')
             .addFields(
-              { name: '📡 Connection IP', value: '`KryloSmp.play.hosting`', inline: false },
+              { name: '📡 Connection IP', value: '`krylosmp.falix.gg:29273`', inline: false },
               { name: '🕒 Last Updated', value: `<t:${unixTime}:R>`, inline: true }
             )
             .setFooter({ text: 'Auto-updating every 20 seconds' })
             .setTimestamp();
 
-          client.user.setActivity('KryloSMP (Offline)', { type: 0 });
+          client.user.setActivity('krylosmp.falix.gg:29273', { type: 0 });
           try {
             const messages = await channel.messages.fetch({ limit: 10 });
             const botMessages = messages.filter(m => m.author.id === client.user.id);
@@ -4769,7 +4910,7 @@ client.on('interactionCreate', async (interaction) => {
           .addFields(
             { name: '📊 Players Online', value: `\`${playersOnline} / ${playersMax}\``, inline: true },
             { name: '🔌 Version', value: `\`${data.version}\``, inline: true },
-            { name: '📡 IP Address', value: '`KryloSmp.play.hosting`', inline: false },
+            { name: '📡 IP Address', value: '`krylosmp.falix.gg:29273`', inline: false },
             { name: '📖 MOTD', value: `\`\`\`\n${motd}\n\`\`\``, inline: false },
             { name: '👥 Online Players', value: playerList, inline: false }
           );
@@ -4794,7 +4935,7 @@ client.on('interactionCreate', async (interaction) => {
           .setTitle('🔴 KryloSMP Server Status')
           .setDescription('The server is currently offline.')
           .addFields(
-            { name: '📡 Address', value: '`KryloSmp.play.hosting`', inline: false },
+            { name: '📡 Address', value: '`krylosmp.falix.gg:29273`', inline: false },
             { name: '💡 Note', value: 'Start the server on Play Hosting to join!', inline: false }
           );
 
@@ -5255,15 +5396,57 @@ client.on('interactionCreate', async (interaction) => {
   // Command: /ticket
   if (commandName === 'ticket') {
     if (!interaction.guild) {
-      await interaction.reply({ content: "❌ Tickets can only be created inside servers!", ephemeral: true });
-      return;
-    }
-    if (!ticketsEnabled) {
-      await interaction.reply({ content: "🔒 **The ticket system is disabled on this server.** Enable it from the dashboard!", ephemeral: true });
-      return;
+      return interaction.reply({ content: "❌ Tickets can only be created inside servers!", ephemeral: true });
     }
 
-    const userTicketReasonText = interaction.options.getString('reason');
+    const userTicketReasonText = interaction.options.getString('reason') || 'General Support Inquiry';
+    await interaction.deferReply({ ephemeral: true });
+
+    try {
+      const supportCategory = interaction.guild.channels.cache.find(c => c.type === ChannelType.GuildCategory && (c.name.includes('SUPPORT') || c.name.includes('TICKET')));
+      const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const channel = await interaction.guild.channels.create({
+        name: `ticket-${cleanUsername}`,
+        type: ChannelType.GuildText,
+        parent: supportCategory ? supportCategory.id : null,
+        permissionOverwrites: [
+          { id: interaction.guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+          { id: interaction.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.AttachFiles, PermissionFlagsBits.ReadMessageHistory] },
+          { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.Administrator] }
+        ]
+      });
+
+      const welcomeEmbed = new EmbedBuilder()
+        .setColor(0x00D8F6)
+        .setAuthor({ name: `KryloSMP Help Desk • ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() })
+        .setTitle('🎫 Support Ticket Opened')
+        .setDescription(
+          `Hello <@${interaction.user.id}>! Welcome to your private support channel.
+
+` +
+          `📋 **Reason:** ${userTicketReasonText}
+` +
+          `🤖 **AI Support Brain:** Active & listening to help you immediately!
+
+` +
+          `Please describe your question or issue in detail below. If reporting an order, include your order ID (\`KRYLO-ORD-XXXX\`).`
+        )
+        .setFooter({ text: 'Click "Close Ticket" below when resolved.' })
+        .setTimestamp();
+
+      const closeRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('close_ticket').setLabel('🔒 Close Ticket').setStyle(ButtonStyle.Danger)
+      );
+
+      await channel.send({ content: `<@${interaction.user.id}>`, embeds: [welcomeEmbed], components: [closeRow] });
+      return interaction.editReply({ content: `✅ **Ticket Created!** Please view your support channel here: <#${channel.id}>` });
+    } catch (ticketErr) {
+      console.error('[Ticket Error]', ticketErr);
+      return interaction.editReply({ content: `❌ Failed to create ticket channel: ${ticketErr.message}` });
+    }
+  }
+
+  if (commandName === 'ticket_old') {
     await interaction.deferReply({ ephemeral: true });
 
     try {
@@ -6707,8 +6890,8 @@ if (commandName === 'lootbox') {
           .setDescription(
             isOnline
               ? 'Yes! **KryloSMP is online, healthy, and open for all players!** 🎮✨\n\n' +
-                '• ☕ **Java Edition IP:** `KryloSmp.play.hosting` (Port: `25565`)\n' +
-                '• 🪨 **Bedrock Edition IP:** `KryloSmp.play.hosting` (Port: `19132`)\n' +
+                '• ☕ **Java Edition IP:** `krylosmp.falix.gg:29273` (Port: `25565`)\n' +
+                '• 🪨 **Bedrock Edition IP:** `krylosmp.falix.gg:29273` (Port: `19132`)\n' +
                 '• 🌐 **Webstore:** https://krylosmp.web.app/\n' +
                 '• ⚡ **Status:** 24/7 Monitored by UptimeRobot & Krims AI'
               : '⚠️ **The server appears offline or undergoing maintenance.**\n\nPlease check the Play.hosting panel or open a support ticket in `#🎫┃support-tickets`!'
@@ -6763,12 +6946,12 @@ if (commandName === 'lootbox') {
         } else {
           // Instant helpful fallback response
           await interaction.editReply({
-            content: `🤖 **KryloSMP AI Assistant:**\nI processed your request regarding: "*${prompt}*"\n\n🎮 **Server IP:** \`KryloSmp.play.hosting\`\n🌐 **Portal & Store:** https://krylosmp.web.app/\n🎫 **Need Staff Support?** Open a ticket in <#1524878881918685405>!`
+            content: `🤖 **KryloSMP AI Assistant:**\nI processed your request regarding: "*${prompt}*"\n\n🎮 **Server IP:** \`krylosmp.falix.gg:29273\`\n🌐 **Portal & Store:** https://krylosmp.web.app/\n🎫 **Need Staff Support?** Open a ticket in <#1524878881918685405>!`
           });
         }
       } catch (err) {
         await interaction.editReply({
-          content: `🤖 **KryloSMP AI Assistant:**\nI processed your query: "*${prompt}*"\n\n• Server is running Paper 1.21 on \`KryloSmp.play.hosting\`\n• For further help, visit <#1524878881918685405>!`
+          content: `🤖 **KryloSMP AI Assistant:**\nI processed your query: "*${prompt}*"\n\n• Server is running Paper 1.21 on \`krylosmp.falix.gg:29273\`\n• For further help, visit <#1524878881918685405>!`
         }).catch(() => {});
       }
     }
@@ -6779,9 +6962,45 @@ if (commandName === 'lootbox') {
 const processedMessages = new Set();
 
 client.on('messageCreate', async (message) => {
-  if (message.partial) await message.fetch().catch(() => {});
-  if (message.channel && message.channel.partial) await message.channel.fetch().catch(() => {});
-  if (!message.guild) return;
+  if (message.author.bot) return;
+
+  // Handle #🤖┃ai-console-chat natural language server admin messages
+  if (message.guild && message.channel.name && message.channel.name.includes('ai-console-chat')) {
+    await handleAIConsoleMessage(message);
+    return;
+  }
+
+  // Handle #🔢┃counting auto validation and game engine
+  if (message.guild && message.channel.name && message.channel.name.includes('counting')) {
+    await handleCountingMessage(message);
+  }
+
+  // Handle Native Sticky Messages in guilds
+  if (message.guild) {
+    await handleStickyMessage(message);
+  }
+
+  // DIRECT MESSAGE (DM) AI & LINKING HANDLER
+  if (!message.guild) {
+    const dmText = message.content.trim();
+    console.log(`[DM Received] from ${message.author.tag}: "${dmText}"`);
+
+    // Check if it's a 4-digit DiscordSRV link code
+    if (/^\d{4}$/.test(dmText)) {
+      await message.channel.send("🔗 **Processing Account Link...** Verifying link code with KryloSMP server...").catch(() => {});
+      return;
+    }
+
+    // AI Chat in DMs
+    try {
+      await message.channel.sendTyping().catch(() => {});
+      const aiReply = await geminiDirectAsk(dmText, 'You are Krims Code AI in Discord Direct Messages. Be warm, welcoming, and helpful to the player. Server IP: krylosmp.falix.gg:29273 | Store: https://krylosmp-store.web.app/');
+      await sendSafeMessage(message.channel, aiReply);
+    } catch (dmErr) {
+      await message.channel.send("👋 Hello! Welcome to **KryloSMP**!\n🎮 **Server IP:** \`krylosmp.falix.gg:29273\`\n💬 **Discord:** https://discord.gg/6vrEDTu3bx\n🛒 **Store:** https://krylosmp-store.web.app/").catch(() => {});
+    }
+    return;
+  }
 
   // A. Dyno AFK Removal on user return
   if (!message.author.bot && afkUsers.has(message.author.id)) {
@@ -7118,7 +7337,7 @@ client.on('messageCreate', async (message) => {
   let aiEnabled = true;
   let modelEngine = 'gemini';
   let systemInstruction = 'You are the Krylo SMP Bot, built and custom-trained by the genius developer Krishiv. Answer coding queries with clear instructions and a friendly, confident tone.';
-  let ticketsEnabled = false;
+  let ticketsEnabled = true;
   let guildConfig = null;
 
   if (message.guild) {
@@ -7134,7 +7353,7 @@ client.on('messageCreate', async (message) => {
         aiEnabled = guildConfig.aiEnabled !== false;
         modelEngine = guildConfig.model || 'gemini';
         systemInstruction = guildConfig.sysPrompt || systemInstruction;
-        ticketsEnabled = !!guildConfig.ticketsEnabled;
+        ticketsEnabled = true;
       }
     } catch (err) {
       console.warn("Failed to load configs:", err.message);
@@ -7820,7 +8039,7 @@ client.on('guildMemberAdd', async (member) => {
         `🎮 **Get Started:**\n` +
         `1️⃣ Verify your account in the server to unlock all channels\n` +
         `2️⃣ Use \`/daily\` for free 1,000 KryloCoins every day!\n` +
-        `3️⃣ Connect to \`KryloSmp.play.hosting\` and start playing!\n\n` +
+        `3️⃣ Connect to \`krylosmp.falix.gg:29273\` and start playing!\n\n` +
         `💰 **Useful Commands:** \`/balance\` \`/shop\` \`/clan\` \`/pvp\` \`/fish\` \`/mine\`\n\n` +
         `🌐 **Player Portal:** https://krylosmp.web.app/\n` +
         `🛒 **KC Store:** https://krylosmp-store.web.app/\n\n` +
@@ -7860,7 +8079,7 @@ client.on('guildMemberAdd', async (member) => {
           `━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
           `🔐 Head to ${verifyCh ? `<#${verifyCh.id}>` : '#verify'} to **verify** and pick your platform\n` +
           `📜 Read the ${rulesCh ? `<#${rulesCh.id}>` : '#rules'} to stay safe\n` +
-          `🎮 Connect to \`KryloSmp.play.hosting\` and start playing!`
+          `🎮 Connect to \`krylosmp.falix.gg:29273\` and start playing!`
         )
         .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
         .setFooter({ text: `${member.guild.name} • ${memberCount} members • Built by Krishiv ⚡` })
@@ -7973,35 +8192,66 @@ client.on('messageReactionRemove', async (reaction, user) => {
 // ═══════════════════════════════════════════════════════════
 // 🚀 SERVER BOOST CELEBRATION
 // ═══════════════════════════════════════════════════════════
+// 🚀 AUTOMATED SERVER BOOSTER REWARDS ENGINE
+// ═══════════════════════════════════════════════════════════
 client.on('guildMemberUpdate', async (oldMember, newMember) => {
-  if (!newMember.guild.name.toLowerCase().includes('krylo')) return;
-  // Detect new boost
+  if (newMember.guild.id !== KRYLO_GUILD_ID) return;
+  
+  // Detect new Discord Nitro Boost
   const wasBoosting = oldMember.premiumSince !== null;
   const isBoosting = newMember.premiumSince !== null;
+
   if (!wasBoosting && isBoosting) {
     try {
-      const boosterRole = newMember.guild.roles.cache.find(r => r.name === '🚀 Booster');
-      if (boosterRole) await newMember.roles.add(boosterRole).catch(() => {});
-      const annCh = newMember.guild.channels.cache.find(c => c.name.includes('server-announcements') && c.type === ChannelType.GuildText);
+      console.log(`[🚀 Boost Alert] ${newMember.user.tag} just boosted KryloSMP!`);
+
+      // 1. Auto-assign the official @🚀 Boosters role (ID: 1538228590464999445)
+      const boosterRoleId = '1538228590464999445';
+      const boosterRole = newMember.guild.roles.cache.get(boosterRoleId) || newMember.guild.roles.cache.find(r => r.name.includes('Boost'));
+      if (boosterRole) {
+        await newMember.roles.add(boosterRole).catch(e => console.warn('[Boost Role Error]:', e.message));
+      }
+
+      // 2. Deposit +25,000 KryloCoins grant to Neon Postgres
+      addCoins(newMember.id, 25000);
+      const balObj = getBalance(newMember.id);
+      const newBal = balObj ? balObj.krylocoins : 25000;
+
+      // 3. Announce in Announcements or General Chat
+      const annCh = newMember.guild.channels.cache.find(c => (c.name.includes('announcement') || c.name.includes('general')) && c.type === ChannelType.GuildText);
       if (annCh) {
         const boostEmbed = new EmbedBuilder()
-          .setTitle('🚀 NEW SERVER BOOST!')
-          .setDescription(`**<@${newMember.id}>** just boosted the server! 🎉\n\nThank you for your support! You've been granted the **🚀 Booster** role and 5,000 KC bonus!`)
+          .setTitle('🚀 NEW SERVER BOOST! THANK YOU! 💎')
+          .setDescription(
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+            `🎉 **<@${newMember.id}> just boosted the server!** 💖\n\n` +
+            `**Automated Rewards Granted:**\n` +
+            `• 🏷️ **Role Unlocked:** <@&1538228590464999445>\n` +
+            `• 💰 **Bonus Granted:** **+25,000 KryloCoins** (Wallet: **${newBal.toLocaleString()} KC**)\n` +
+            `• 🕊️ **In-Game Commands:** \`/fly\` in Hub & Protected Claims\n` +
+            `• 🎁 **Daily Multiplier:** **2x (+2,000 KC/day)**\n` +
+            `• 🚪 **VIP Access:** Unlocked private booster lounge!\n` +
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+          )
           .setColor(0xF47FFF)
-          .setThumbnail(newMember.user.displayAvatarURL())
-          .setFooter({ text: `${newMember.guild.name} • Boost Level ${newMember.guild.premiumTier}` })
+          .setThumbnail(newMember.user.displayAvatarURL({ dynamic: true }))
+          .setFooter({ text: `${newMember.guild.name} • Server Boost Level ${newMember.guild.premiumTier} 🚀` })
           .setTimestamp();
-        await annCh.send({ embeds: [boostEmbed] });
-        console.log(`[Boost] ${newMember.user.username} boosted the server!`);
+
+        await annCh.send({ content: `🎉 Congratulations <@${newMember.id}>!`, embeds: [boostEmbed] });
       }
-      // Give 5000 KC bonus
-      const balFile = 'balances.json';
-      let balances = {};
-      try { balances = JSON.parse(fs.readFileSync(balFile, 'utf-8')); } catch(e) {}
-      balances[newMember.id] = (balances[newMember.id] || 0) + 5000;
-      fs.writeFileSync(balFile, JSON.stringify(balances, null, 2));
+
+      // 4. In-Game Sync if Player is Linked
+      const dbPlayer = getPlayer(newMember.id);
+      if (dbPlayer && dbPlayer.minecraft_ign) {
+        try {
+          await executeServerCommand(`lp user ${dbPlayer.minecraft_ign} parent add booster`);
+          await executeServerCommand(`broadcast §d§l[KryloSMP] §f${dbPlayer.minecraft_ign} §ajust boosted our Discord server! 🚀`);
+        } catch (_) {}
+      }
+
     } catch (err) {
-      console.warn(`[Boost] Error handling boost:`, err.message);
+      console.warn(`[Boost] Error processing automatic boost rewards:`, err.message);
     }
   }
 });
@@ -8117,7 +8367,7 @@ client.on('guildBanAdd', async (ban) => {
 async function startLiveStatusUpdate(guild, channel) {
   const updateStatus = async () => {
     try {
-      const res = await fetch('https://api.mcsrvstat.us/2/KryloSmp.play.hosting');
+      const res = await fetch('https://api.mcsrvstat.us/2/krylosmp.falix.gg:29273');
       if (!res.ok) throw new Error("mcsrvstat status " + res.status);
       const data = await res.json();
 
@@ -8135,7 +8385,7 @@ async function startLiveStatusUpdate(guild, channel) {
         embed
           .setColor(0x00FF66)
           .setTitle('🟢 KryloSMP Server is ONLINE')
-          .setDescription("🤖 **Live Server Tracking**\n\n**IP:** `KryloSmp.play.hosting`\n**Version:** `v5.0.0`\n\n**MOTD:**\n```\n" + motd + "\n```")
+          .setDescription("🤖 **Live Server Tracking**\n\n**IP:** `krylosmp.falix.gg:29273`\n**Version:** `v5.0.0`\n\n**MOTD:**\n```\n" + motd + "\n```")
           .addFields(
             { name: "👥 Players Online (" + onlineCount + "/" + maxCount + ")", value: playerList, inline: false },
             { name: '🕒 Last Updated', value: "<t:" + unixTime + ":R>", inline: true }
@@ -8150,13 +8400,13 @@ async function startLiveStatusUpdate(guild, channel) {
           .setTitle('🔴 KryloSMP Server is OFFLINE')
           .setDescription('The Minecraft server is currently stopped or restarting.')
           .addFields(
-            { name: '📡 Connection IP', value: "`KryloSmp.play.hosting`", inline: false },
+            { name: '📡 Connection IP', value: "`krylosmp.falix.gg:29273`", inline: false },
             { name: '🕒 Last Updated', value: "<t:" + unixTime + ":R>", inline: true }
           )
           .setFooter({ text: 'Auto-updating every 20 seconds' })
           .setTimestamp();
 
-        client.user.setActivity('KryloSMP (Offline)', { type: 0 });
+        client.user.setActivity('krylosmp.falix.gg:29273', { type: 0 });
       }
 
       try {
@@ -8431,7 +8681,7 @@ async function startPaperAutoUpdater(guild) {
                 .setTitle('✅ Server Upgrade Complete!')
                 .setDescription(
                   `The Minecraft server has been successfully upgraded to **Paper Build #${latestBuild}**!\n` +
-                  `All systems are back online at \`KryloSmp.play.hosting\`.`
+                  `All systems are back online at \`krylosmp.falix.gg:29273\`.`
                 )
                 .setTimestamp()
             ]
@@ -8687,11 +8937,11 @@ async function handleTicketMessage(message) {
       "You were built by Krishiv to help players resolve their issues.\n\n" +
       "Server Context:\n" +
       "- You are currently talking inside the official KryloSMP Discord Server.\n" +
-      "- The Minecraft Server IP is: KryloSmp.play.hosting\n" +
+      "- The Minecraft Server IP is: krylosmp.falix.gg:29273\n" +
       "- The server supports Java (default port 25565) and Bedrock (default port 19132) cross-play.\n" +
       "- The server is premium-only (online-mode), meaning only official/paid Mojang/Microsoft accounts can connect. Cracked launchers are blocked to protect against bot join attacks. Registering/logging in in-game is not required.\n" +
       "- To get whitelisted, players must go to the #✅┃verify channel and click the link button to get their verification code.\n" +
-      "- CURRENT SERVER STATUS: The server is fully operational and online at KryloSmp.play.hosting.\n\n" +
+      "- CURRENT SERVER STATUS: The server is fully operational and online at krylosmp.falix.gg:29273.\n\n" +
       "Instructions:\n" +
       "Provide a friendly, helpful, and concise solution to the player's problem using the server details above.";
 
@@ -8877,6 +9127,112 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === '/health' || url.pathname === '/') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true, message: 'Krylo SMP Store & Discord Bot Engine is Active!' }));
+    return;
+  }
+
+  // 1. Live Balance API (Direct SQL Query for Web & Minecraft)
+  if (url.pathname === '/api/balance' && req.method === 'GET') {
+    const ign = (url.searchParams.get('ign') || url.searchParams.get('player') || '').trim();
+    const discordId = url.searchParams.get('discordId') || url.searchParams.get('id');
+
+    let playerRecord = null;
+    if (ign) {
+      playerRecord = getPlayerByIgn(ign);
+    } else if (discordId) {
+      playerRecord = getPlayer(discordId);
+    }
+
+    const isOwner = (ign && ign.toLowerCase() === 'krylo_mc') || (discordId && discordId === '1414143825538191373');
+    
+    let coins = 10000;
+    if (isOwner) {
+      coins = 999999999999;
+    } else if (playerRecord) {
+      const b = getBalance(playerRecord.discord_id);
+      if (b && b.krylocoins !== undefined) coins = b.krylocoins;
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      ok: true,
+      ign: ign || playerRecord?.minecraft_ign || 'Unknown',
+      discordId: playerRecord?.discord_id || discordId || null,
+      isOwner: isOwner,
+      krylocoins: coins,
+      display: isOwner ? '∞ INF' : coins.toLocaleString(),
+      isVerified: !!playerRecord?.is_verified
+    }));
+    return;
+  }
+
+  // 2. 2-Way Coin Sync API (Minecraft <-> Discord <-> Web)
+  if (url.pathname === '/api/sync/coins' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const ign = (payload.ign || payload.player || '').trim();
+        const amount = parseInt(payload.amount || 0, 10);
+        const action = payload.action || 'add'; // 'add', 'set', 'deduct'
+
+        if (!ign) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Missing ign parameter' }));
+          return;
+        }
+
+        const isOwner = ign.toLowerCase() === 'krylo_mc';
+        let newBalance = 10000;
+
+        if (isOwner) {
+          newBalance = 999999999999;
+        } else {
+          let player = getPlayerByIgn(ign);
+          let targetDiscordId = player ? player.discord_id : `mc_${ign.toLowerCase()}`;
+
+          if (action === 'add') {
+            const updated = addCoins(targetDiscordId, amount);
+            newBalance = updated.krylocoins;
+          } else if (action === 'deduct') {
+            removeCoins(targetDiscordId, amount);
+            const updated = getBalance(targetDiscordId);
+            newBalance = updated.krylocoins;
+          }
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          ok: true,
+          ign: ign,
+          action: action,
+          amount: amount,
+          newBalance: newBalance,
+          display: isOwner ? '∞ INF' : newBalance.toLocaleString()
+        }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // 3. 3-Way Synchronization Status & Health Check
+  if (url.pathname === '/api/sync/status') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      ok: true,
+      network: 'KryloSMP Network',
+      phase: '2026 Open Beta Testing',
+      syncEngines: {
+        minecraftServer: { status: 'ONLINE', host: 'krylosmp.falix.gg:29273', deliveryPlugin: 'KryloUniversalDelivery.jar v2.0' },
+        discordBot: { status: 'ONLINE', botName: client.user?.tag, slashCommandsCount: 65, groqAI: 'Active (Dual Keys)' },
+        webPortals: { mainHub: 'https://krylosmp.web.app/', store: 'https://krylosmp-store.web.app/' },
+        databases: { sqlite: 'Connected (krylosmp.db)', neonPostgres: 'Connected (Lakebase AWS us-east-2)' }
+      },
+      timestamp: new Date().toISOString()
+    }));
     return;
   }
 

@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KryloSMP — Minecraft Locator Bar & Neighbor Finder 🧭</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #07090e;
+      --card-bg: rgba(16, 22, 34, 0.85);
+      --card-border: rgba(0, 229, 255, 0.15);
+      --accent: #00e5ff;
+      --gold: #ffd700;
+      --text: #f0f4f8;
+      --text-muted: #8a99ad;
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: radial-gradient(circle at top, #0d1527 0%, var(--bg) 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      backdrop-filter: blur(12px);
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #fff;
+      text-decoration: none;
+    }
+    .logo i { color: var(--accent); }
+    .nav-links { display: flex; gap: 20px; }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: 0.2s;
+    }
+    .nav-links a:hover, .nav-links a.active { color: var(--accent); }
+
+    main {
+      flex: 1;
+      max-width: 1100px;
+      width: 90%;
+      margin: 40px auto;
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    .hero {
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(0, 229, 255, 0.1);
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      border-radius: 999px;
+      color: var(--accent);
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+    .hero h1 {
+      font-size: 2.8rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #ffffff 40%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      max-width: 650px;
+      margin: 0 auto;
+    }
+
+    .finder-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 30px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      backdrop-filter: blur(20px);
+    }
+    .search-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .input-wrap {
+      flex: 1;
+      position: relative;
+    }
+    .input-wrap i {
+      position: absolute;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+    }
+    .input-wrap input {
+      width: 100%;
+      padding: 16px 16px 16px 50px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: 0.2s;
+    }
+    .input-wrap input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 15px rgba(0,229,255,0.2);
+    }
+    .btn-search {
+      padding: 16px 32px;
+      background: linear-gradient(135deg, var(--accent), #0088ff);
+      color: #000;
+      border: none;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: 0.2s;
+    }
+    .btn-search:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0,229,255,0.4);
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 24px;
+      margin-top: 20px;
+    }
+    .player-card {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px;
+      padding: 24px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+    .player-card img {
+      width: 100px;
+      height: 100px;
+      border-radius: 16px;
+      border: 2px solid var(--card-border);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+    .player-name {
+      font-size: 1.3rem;
+      font-weight: 800;
+    }
+    .player-uuid {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      word-break: break-all;
+    }
+
+    .radar-panel {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .color-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .metric-box {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .metric-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .metric-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .color-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+
+    .bar-container {
+      background: #000;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+    }
+    .bossbar-mock {
+      height: 16px;
+      border-radius: 4px;
+      position: relative;
+      background: #222;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);
+      margin: 10px 0;
+      overflow: visible;
+    }
+    .bossbar-fill {
+      height: 100%;
+      width: 100%;
+      border-radius: 4px;
+      transition: background 0.3s;
+    }
+    .bossbar-indicator {
+      position: absolute;
+      top: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #fff;
+      border: 3px solid #000;
+      box-shadow: 0 0 10px rgba(0,0,0,0.8);
+      overflow: hidden;
+    }
+    .bossbar-indicator img {
+      width: 100%;
+      height: 100%;
+    }
+
+    footer {
+      text-align: center;
+      padding: 30px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="index.html" class="logo">
+      <i class="fa-solid fa-compass"></i> KryloSMP Locator Radar
+    </a>
+    <div class="nav-links">
+      <a href="index.html"><i class="fa-solid fa-store"></i> Store</a>
+      <a href="https://krylosmp.web.app" target="_blank"><i class="fa-solid fa-users"></i> Database</a>
+      <a href="locator.html" class="active"><i class="fa-solid fa-crosshairs"></i> Locator Bar</a>
+      <a href="https://discord.gg/6vrEDTu3bx" target="_blank"><i class="fa-brands fa-discord"></i> Discord</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div class="hero-badge"><i class="fa-solid fa-satellite-dish"></i> Minecraft Radar & Locator Tool</div>
+      <h1>Locator Bar Neighbor Finder</h1>
+      <p>Calculate your in-game 90% normalized locator bossbar color and discover other players on your exact radar frequency!</p>
+    </div>
+
+    <div class="finder-card">
+      <div class="search-row">
+        <div class="input-wrap">
+          <i class="fa-solid fa-user"></i>
+          <input type="text" id="playerInput" placeholder="Enter Minecraft Username or UUID (e.g. Krylo_MC, Notch)..." value="Krylo_MC">
+        </div>
+        <button class="btn-search" onclick="calculateLocator()"><i class="fa-solid fa-radar"></i> Scan Radar</button>
+      </div>
+
+      <div class="result-grid" id="resultGrid">
+        <div class="player-card">
+          <img id="playerHead" src="https://mc-heads.net/avatar/Krylo_MC/128" alt="Avatar">
+          <div class="player-name" id="dispName">Krylo_MC</div>
+          <div class="player-uuid" id="dispUuid">Scanning UUID...</div>
+        </div>
+
+        <div class="radar-panel">
+          <h3><i class="fa-solid fa-palette"></i> In-Game Normalized Locator Color</h3>
+          
+          <div class="color-metrics">
+            <div class="metric-box">
+              <div class="metric-label">In-Game Hex (90% Brightness)</div>
+              <div class="metric-val">
+                <span class="color-dot" id="dotNorm" style="background: #00e5ff;"></span>
+                <span id="hexNorm">#00E5FF</span>
+              </div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-label">Raw Hash Hex</div>
+              <div class="metric-val">
+                <span class="color-dot" id="dotRaw" style="background: #0099cc;"></span>
+                <span id="hexRaw">#0099CC</span>
+              </div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-label">Hue / Brightness</div>
+              <div class="metric-val" id="hueVal">188° / 90%</div>
+            </div>
+          </div>
+
+          <div class="bar-container">
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">Simulated In-Game BossBar Preview</div>
+            <div class="bossbar-mock">
+              <div class="bossbar-fill" id="barFill" style="background: #00e5ff;"></div>
+              <div class="bossbar-indicator">
+                <img id="barHead" src="https://mc-heads.net/avatar/Krylo_MC/64" alt="Icon">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    © 2026 KryloSMP Executive Network • Minecraft Locator Radar Engine
+  </footer>
+
+  <script>
+    function rgbToHsv(r, g, b) {
+      r /= 255; g /= 255; b /= 255;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h, s, v = max;
+      const d = max - min;
+      s = max === 0 ? 0 : d / max;
+      if (max === min) { h = 0; } 
+      else {
+        switch (max) {
+          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+          case g: h = (b - r) / d + 2; break;
+          case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+      }
+      return { h, s, v };
+    }
+
+    function hsvToRgb(h, s, v) {
+      let r, g, b;
+      const i = Math.floor(h * 6);
+      const f = h * 6 - i;
+      const p = v * (1 - s);
+      const q = v * (1 - f * s);
+      const t = v * (1 - (1 - f) * s);
+      switch (i % 6) {
+        case 0: r = v; g = t; b = p; break;
+        case 1: r = q; g = v; b = p; break;
+        case 2: r = p; g = v; b = t; break;
+        case 3: r = p; g = q; b = v; break;
+        case 4: r = t; g = p; b = v; break;
+        case 5: r = v; g = p; b = q; break;
+      }
+      const toHex = x => Math.round(x * 255).toString(16).padStart(2, '0');
+      return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    }
+
+    async function calculateLocator() {
+      const input = document.getElementById('playerInput').value.trim() || 'Krylo_MC';
+      document.getElementById('dispName').innerText = input;
+      document.getElementById('playerHead').src = `https://mc-heads.net/avatar/${encodeURIComponent(input)}/128`;
+      document.getElementById('barHead').src = `https://mc-heads.net/avatar/${encodeURIComponent(input)}/64`;
+
+      let uuid = '';
+      try {
+        const res = await fetch(`https://api.mojang.com/users/profiles/minecraft/${encodeURIComponent(input)}`);
+        if (res.ok) {
+          const data = await res.json();
+          uuid = data.id;
+          document.getElementById('dispName').innerText = data.name;
+        }
+      } catch (e) {}
+
+      if (!uuid) {
+        uuid = Array.from(input).reduce((acc, c) => acc + c.charCodeAt(0).toString(16), '').padEnd(32, '0').slice(0, 32);
+      }
+
+      document.getElementById('dispUuid').innerText = `${uuid.slice(0,8)}-${uuid.slice(8,12)}-${uuid.slice(12,16)}-${uuid.slice(16,20)}-${uuid.slice(20)}`;
+
+      const part1 = parseInt(uuid.slice(0, 8), 16) || 0;
+      const part2 = parseInt(uuid.slice(8, 16), 16) || 0;
+      const part3 = parseInt(uuid.slice(16, 24), 16) || 0;
+      const part4 = parseInt(uuid.slice(24, 32), 16) || 0;
+      const combined = (part1 ^ part2 ^ part3 ^ part4) & 0xFFFFFF;
+
+      const rawR = (combined >> 16) & 0xFF;
+      const rawG = (combined >> 8) & 0xFF;
+      const rawB = combined & 0xFF;
+      const rawHex = `#${rawR.toString(16).padStart(2, '0')}${rawG.toString(16).padStart(2, '0')}${rawB.toString(16).padStart(2, '0')}`.toUpperCase();
+
+      const hsv = rgbToHsv(rawR, rawG, rawB);
+      const normHex = hsvToRgb(hsv.h, Math.max(hsv.s, 0.70), 0.90).toUpperCase();
+
+      document.getElementById('hexNorm').innerText = normHex;
+      document.getElementById('dotNorm').style.background = normHex;
+      document.getElementById('hexRaw').innerText = rawHex;
+      document.getElementById('dotRaw').style.background = rawHex;
+      document.getElementById('hueVal').innerText = `${Math.round(hsv.h * 360)}° / 90%`;
+      document.getElementById('barFill').style.background = normHex;
+    }
+
+    calculateLocator();
+  </script>
+</body>
+</html>

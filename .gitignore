@@ -1,2 +1,26 @@
-node_modules/
+# Secrets & Tokens
 .env
+.env.*
+*.env
+deployFirebase.mjs
+
+# Dependencies
+node_modules/
+npm-debug.log*
+
+# Databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+data/
+
+# Scratch & Jars
+*.py
+*.jar
+temp_plugins/
+
+# OS Junk
+.DS_Store
+Thumbs.db

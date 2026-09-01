@@ -25,6 +25,7 @@
     "jimp": "^0.22.12",
     "libsodium-wrappers": "^0.8.4",
     "mineflayer": "^4.37.1",
+    "mysql2": "^3.24.2",
     "node-fetch": "^3.3.2",
     "opusscript": "^0.0.8",
     "pg": "^8.23.0",

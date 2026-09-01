@@ -1,0 +1,250 @@
+<!-- 
+=============================================================================
+👑 KRYLOSMP SEASON 2 DUAL-CURRENCY STORE BACKUP
+This file preserves the complete Dual-Mode architecture (KryloCoins + Real Money USD
+via Cards, PayPal, UPI QR, and Crypto) ready to activate for Season 2!
+=============================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>KryloSMP Season 2 — Dual-Currency Real Money & KC Store</title>
+  <link rel="icon" type="image/png" href="server-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;600;700;800;900&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="index.css?v=11.0">
+</head>
+<body>
+
+  <!-- Top Announcement Bar -->
+  <div class="top-announcement-bar">
+    <div class="top-bar-inner">
+      <div class="top-bar-left">
+        <span class="pulse-fire">⚡</span>
+        <span><strong>SEASON 2 DUAL STORE:</strong> Pay with <strong>KryloCoins (KC)</strong> or <strong>Real Money ($ USD / PayPal / Cards / UPI)</strong> with instant in-game delivery!</span>
+      </div>
+      <div class="top-bar-right">
+        <a href="index.html" class="top-ticket-btn" style="background: rgba(0,255,136,0.15); border-color: rgba(0,255,136,0.4); color: #00FF88;">
+          <i class="fa-solid fa-arrow-left"></i> Season 1 Store
+        </a>
+        <a href="https://discord.gg/6vrEDTu3bx" target="_blank" class="top-ticket-btn">
+          <i class="fa-solid fa-ticket"></i> Discord Support
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Header Navigation -->
+  <header>
+    <div class="nav-container">
+      <a href="#home" class="brand-logo-wrap">
+        <img src="server-icon.png" alt="KryloSMP Logo" class="brand-logo-img">
+        <div class="brand-title-box">
+          <span class="brand-name">Krylo<span class="brand-highlight">SMP</span></span>
+          <span class="brand-sub">SEASON 2 STORE</span>
+        </div>
+      </a>
+      
+      <nav class="desktop-nav">
+        <a href="#store" class="nav-pill active"><i class="fa-solid fa-store"></i> Store</a>
+        <a href="#ranks" class="nav-pill" onclick="filterProducts('ranks')"><i class="fa-solid fa-crown"></i> Ranks</a>
+        <a href="#crates" class="nav-pill" onclick="filterProducts('crates')"><i class="fa-solid fa-box-open"></i> Crates</a>
+        <a href="#gems" class="nav-pill" onclick="filterProducts('gems')"><i class="fa-solid fa-coins"></i> Coin Packs</a>
+        <a href="index.html" class="nav-pill" style="color: #00FF88;"><i class="fa-solid fa-seedling"></i> Season 1 (KC Only)</a>
+        <a href="https://discord.gg/6vrEDTu3bx" target="_blank" class="nav-pill nav-pill-discord"><i class="fa-brands fa-discord"></i> Discord</a>
+      </nav>
+
+      <div class="header-right">
+        <div class="server-status-pill" onclick="copyServerIp()" title="Click to copy Server IP">
+          <span class="pulse-dot-green"></span>
+          <span class="ip-address-text">krylosmp.falix.gg:29273</span>
+          <span class="badge-online">ONLINE</span>
+        </div>
+        
+        <div class="user-profile-badge" id="userProfileHeader" onclick="openLoginModal()" title="Manage linked account">
+          <img src="https://mc-heads.net/avatar/Krylo_MC/32" id="headerUserAvatar" class="header-avatar" alt="Avatar">
+          <div class="header-user-info">
+            <span class="header-ign" id="headerUserLabel">Krylo_MC</span>
+            <small class="header-wallet-kc" id="headerWalletLabel">106,000 KC</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Store Hero Banner -->
+  <main>
+    <section class="hero-freshsmp" id="home">
+      <div class="hero-banner-card">
+        <img src="official_banner.jpg" alt="KryloSMP Official Banner" class="hero-bg-banner">
+        <div class="hero-overlay-content">
+          <span class="hero-tag"><i class="fa-solid fa-crown"></i> SEASON 2 DUAL CURRENCY • REAL MONEY & KC</span>
+          <h1 class="hero-store-title">KryloSMP Official Store</h1>
+          <p class="hero-store-desc"><strong>"Built to Inspire. Built to Dominate."</strong> Unlock custom ranks, legendary crate keys, combat god-kits, and coin vaults with instant delivery straight to your inventory.</p>
+
+          <!-- Currency Mode Switcher -->
+          <div class="currency-hero-switcher">
+            <span class="curr-switch-title"><i class="fa-solid fa-money-bill-transfer"></i> Select Store Currency:</span>
+            <div class="curr-pill-group">
+              <button class="curr-toggle-btn active" id="currBtnKC" onclick="setCurrencyMode('KC')">
+                <span class="curr-btn-icon">🪙</span>
+                <div class="curr-btn-text">
+                  <strong>KryloCoins (KC)</strong>
+                  <small>Play-to-Earn In-Game Wallet</small>
+                </div>
+              </button>
+              <button class="curr-toggle-btn" id="currBtnUSD" onclick="setCurrencyMode('USD')">
+                <span class="curr-btn-icon">💵</span>
+                <div class="curr-btn-text">
+                  <strong>Real Money ($ USD)</strong>
+                  <small>PayPal, Cards, UPI & Apple Pay</small>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Platform Selector -->
+          <div class="platform-selector">
+            <button class="plat-btn active" id="platJava" onclick="setPlatform('java')">
+              <i class="fa-brands fa-java"></i> Java Edition (krylosmp.falix.gg:29273)
+            </button>
+            <button class="plat-btn" id="platBedrock" onclick="setPlatform('bedrock')">
+              <i class="fa-solid fa-cube"></i> Bedrock (krylosmp.falix.gg:29273)
+            </button>
+          </div>
+
+          <!-- Quick Username Bind -->
+          <div class="username-bind-container">
+            <div class="input-with-icon">
+              <i class="fa-solid fa-gamepad"></i>
+              <input type="text" id="mcUsernameInput" placeholder="Enter Minecraft IGN (e.g. Krylo_MC)..." autocomplete="off" value="Krylo_MC">
+            </div>
+            <button class="btn-bind-action" onclick="bindUsername()">
+              <i class="fa-solid fa-arrow-right-to-bracket"></i> Sync Account
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STORE SECTION -->
+    <section class="store-catalog" id="store">
+      <div class="section-title-wrap">
+        <span class="sub-badge"><i class="fa-solid fa-gem"></i> SEASON 2 DUAL STORE</span>
+        <h2>Explore Store Packages</h2>
+        <p id="storeCatalogSubtitle">Currently browsing in <strong class="text-highlight" id="currencySubtitleText">KryloCoins (KC)</strong> mode:</p>
+      </div>
+
+      <div class="category-tabs-fresh">
+        <button class="cat-btn active" id="tabAll" onclick="filterProducts('all')"><i class="fa-solid fa-layer-group"></i> All Packages</button>
+        <button class="cat-btn" id="tabRanks" onclick="filterProducts('ranks')"><i class="fa-solid fa-crown"></i> Server Ranks</button>
+        <button class="cat-btn" id="tabCrates" onclick="filterProducts('crates')"><i class="fa-solid fa-box-open"></i> Crates & Keys</button>
+        <button class="cat-btn" id="tabGems" onclick="filterProducts('gems')"><i class="fa-solid fa-coins"></i> KryloCoin Packs</button>
+        <button class="cat-btn" id="tabCombat" onclick="filterProducts('combat')"><i class="fa-solid fa-shield-halved"></i> Combat Kits</button>
+      </div>
+
+      <div class="products-grid-fresh" id="productsGrid"></div>
+    </section>
+  </main>
+
+  <!-- Checkout & Product Modal -->
+  <div class="modal-overlay" id="productModal">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeProductModal()"><i class="fa-solid fa-xmark"></i></button>
+      <div class="modal-header">
+        <div class="product-modal-icon" id="modalProductIcon"><i class="fa-solid fa-crown"></i></div>
+        <h3 id="modalProductTitle">Package Details</h3>
+        <span class="modal-price" id="modalProductPrice">$4.99 USD</span>
+      </div>
+      <div class="modal-body">
+        <p id="modalProductDesc">Includes perks, commands, and rank cosmetic multipliers.</p>
+        <div class="perks-list" id="modalPerksList"></div>
+
+        <div class="player-link-confirm">
+          <label>Delivering To Minecraft Account:</label>
+          <div class="confirm-user-badge">
+            <img src="https://mc-heads.net/avatar/Krylo_MC" id="modalUserAvatar" alt="User">
+            <span id="modalUsername">Krylo_MC</span>
+          </div>
+        </div>
+
+        <div class="payment-method-box" id="paymentMethodBox" style="display: none;">
+          <label class="pay-method-label"><i class="fa-solid fa-credit-card"></i> Choose Payment Method:</label>
+          <div class="pay-methods-grid">
+            <div class="pay-method-card active" id="payCard" onclick="selectPayMethod('card')">
+              <i class="fa-regular fa-credit-card"></i>
+              <span>Card / Debit</span>
+            </div>
+            <div class="pay-method-card" id="payPaypal" onclick="selectPayMethod('paypal')">
+              <i class="fa-brands fa-paypal"></i>
+              <span>PayPal</span>
+            </div>
+            <div class="pay-method-card" id="payUpi" onclick="selectPayMethod('upi')">
+              <i class="fa-solid fa-qrcode"></i>
+              <span>UPI / QR</span>
+            </div>
+            <div class="pay-method-card" id="payCrypto" onclick="selectPayMethod('crypto')">
+              <i class="fa-brands fa-bitcoin"></i>
+              <span>Crypto</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-confirm-purchase" id="btnMainCheckout" onclick="executeCheckout()">
+          <i class="fa-solid fa-bolt"></i> Complete Purchase
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Receipt Modal -->
+  <div class="modal-overlay" id="receiptModal">
+    <div class="modal-card receipt-card">
+      <button class="modal-close" onclick="closeReceiptModal()"><i class="fa-solid fa-xmark"></i></button>
+      <div class="receipt-header">
+        <div class="receipt-success-icon"><i class="fa-solid fa-circle-check"></i></div>
+        <h3>Payment Successful!</h3>
+        <p>Your package has been delivered straight into your Minecraft inventory.</p>
+      </div>
+      <div class="receipt-body">
+        <div class="receipt-row">
+          <span>Order ID:</span>
+          <strong id="receiptOrderId">#KRYLO-94812</strong>
+        </div>
+        <div class="receipt-row">
+          <span>Item:</span>
+          <strong id="receiptItemName">VIP Rank</strong>
+        </div>
+        <div class="receipt-row">
+          <span>Recipient:</span>
+          <strong id="receiptIgn">Krylo_MC</strong>
+        </div>
+        <div class="receipt-row">
+          <span>Amount Paid:</span>
+          <strong id="receiptPrice" style="color: #00FF88;">$4.99 USD</strong>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-confirm-login" onclick="closeReceiptModal()"><i class="fa-solid fa-check"></i> Awesome!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <footer>
+    <div class="footer-bottom">
+      <p>© 2026 KryloSMP Network. Season 2 Dual-Currency Platform.</p>
+    </div>
+  </footer>
+
+  <script src="index.js?v=11.0"></script>
+</body>
+</html>

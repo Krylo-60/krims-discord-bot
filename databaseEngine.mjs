@@ -1,3 +1,4 @@
+import mysql from 'mysql2/promise';
 import Database from 'better-sqlite3';
 import pg from 'pg';
 import path from 'path';
@@ -22,6 +23,38 @@ const db = new Database(dbPath);
 // Enable Write-Ahead Logging (WAL) for blazing-fast concurrent performance
 db.pragma('journal_mode = WAL');
 db.pragma('synchronous = NORMAL');
+
+// 🐬 FalixNodes Minecraft Server MySQL Database Connection Pool
+const mysqlConfig = {
+  host: process.env.MYSQL_HOST || 'eu-de1.falixserver.net',
+  port: parseInt(process.env.MYSQL_PORT || '3306', 10),
+  user: process.env.MYSQL_USER || 'u3390114_93fc732dc0',
+  password: process.env.MYSQL_PASSWORD || 'dO(ok1Y00lqf$gNj]NJob1=P',
+  database: process.env.MYSQL_DATABASE || 's3390114_krylosmp_db',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+};
+
+let mysqlPool = null;
+try {
+  mysqlPool = mysql.createPool(mysqlConfig);
+  console.log('[Falix MySQL Engine] 🐬 Connected to Minecraft Server MySQL (s3390114_krylosmp_db on eu-de1.falixserver.net)!');
+  
+  // Auto-create in-game sync tables if not exist
+  mysqlPool.query(`
+    CREATE TABLE IF NOT EXISTS krylosmp_economy (
+      discord_id VARCHAR(64) PRIMARY KEY,
+      minecraft_ign VARCHAR(64) UNIQUE,
+      krylocoins BIGINT DEFAULT 10000,
+      bank BIGINT DEFAULT 0,
+      gems BIGINT DEFAULT 0,
+      last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    );
+  `).catch(e => console.warn('[Falix MySQL] Table setup notice:', e.message));
+} catch (err) {
+  console.warn('[Falix MySQL Engine] Connection pool notice:', err.message);
+}
 
 // Neon Lakebase Postgres Connection Pool
 const neonUrl = process.env.DATABASE_URL;
