@@ -1,0 +1,177 @@
+Crate:
+  CrateType: Wheel
+  StartingKeys: 0
+  InGUI: true
+  Slot: 17
+  OpeningBroadCast: true
+  BroadCast: "&6&l⚡ %player% &7just opened a &6👑 GODLY CRATE&7! &6&l⚡ ULTRA RARE!!"
+  Item: CHEST
+  Custom-Model-Data: 1001
+  Glowing: true
+  Name: "&6👑 Godly Crate"
+  Lore:
+    - "&7Right-click to preview rewards!"
+    - "&7Use a &6👑 Godly Key &7to open!"
+    - "&6&lThe rarest crate in KryloSMP!"
+    - "&cOnly obtainable from events & the store!"
+  Preview:
+    Name: "&6👑 Godly Crate Preview"
+    Toggle: true
+  PhysicalKey:
+    Name: "&6👑 Godly Key"
+    Lore:
+      - "&7Use this key on a Godly Crate!"
+      - "&7Tier: &6&lGODLY"
+      - "&cThe rarest key in KryloSMP!"
+    Item: TRIPWIRE_HOOK
+    Custom-Model-Data: 2001
+    Glowing: true
+
+  Prizes:
+    "1":
+      DisplayName: "&6🪙 100,000 KryloCoins"
+      DisplayItem: GOLD_BLOCK
+      DisplayAmount: 8
+      Lore:
+        - "&7An absolutely legendary KC fortune!"
+        - "&6&lYOU'RE RICH!"
+      MaxRange: 100
+      Chance: 15
+      Commands:
+        - "eco give %player% 100000"
+        - "broadcast &6&l⚡ &e%player% &7won &6100,000 KryloCoins &7from a &6👑 Godly Crate&7!"
+
+    "2":
+      DisplayName: "&6⚔️ GODLY Netherite Sword"
+      DisplayItem: NETHERITE_SWORD
+      DisplayAmount: 1
+      Lore:
+        - "&7The most powerful weapon on KryloSMP."
+        - "&6Sharp V, Fire II, Looting III, Sweeping III, Knockback II"
+        - "&6Unbreaking III, Mending"
+      MaxRange: 100
+      Chance: 8
+      Items:
+        - "Item:NETHERITE_SWORD, Amount:1, Name:&6⚔️ Godly Blade of Krylo, SHARPNESS:5, FIRE_ASPECT:2, UNBREAKING:3, LOOTING:3, SWEEPING_EDGE:3, KNOCKBACK:2, MENDING:1"
+
+    "3":
+      DisplayName: "&6🛡️ GODLY Full Armor Set"
+      DisplayItem: NETHERITE_CHESTPLATE
+      DisplayAmount: 1
+      Lore:
+        - "&7Every piece has Prot IV, Thorns III, Unbreaking III, Mending."
+        - "&6&lThe ultimate god set."
+      MaxRange: 100
+      Chance: 5
+      Items:
+        - "Item:NETHERITE_HELMET, Amount:1, Name:&6👑 Godly Crown, PROTECTION:4, UNBREAKING:3, MENDING:1, THORNS:3, RESPIRATION:3, AQUA_AFFINITY:1"
+        - "Item:NETHERITE_CHESTPLATE, Amount:1, Name:&6🛡️ Godly Chestplate, PROTECTION:4, UNBREAKING:3, MENDING:1, THORNS:3"
+        - "Item:NETHERITE_LEGGINGS, Amount:1, Name:&6🛡️ Godly Greaves, PROTECTION:4, UNBREAKING:3, MENDING:1, THORNS:3, SWIFT_SNEAK:3"
+        - "Item:NETHERITE_BOOTS, Amount:1, Name:&6🛡️ Godly Treads, PROTECTION:4, UNBREAKING:3, MENDING:1, THORNS:3, DEPTH_STRIDER:3, FEATHER_FALLING:4, SOUL_SPEED:3"
+
+    "4":
+      DisplayName: "&6❤️ +3 Heart Canisters"
+      DisplayItem: NETHER_STAR
+      DisplayAmount: 3
+      Lore:
+        - "&7Permanently gain +3 hearts!"
+        - "&c&lInsane Lifesteal Advantage!"
+      MaxRange: 100
+      Chance: 3
+      Commands:
+        - "lifesteal hearts add %player% 3"
+        - "broadcast &6&l⚡ &e%player% &7gained &c+3 Hearts &7from a &6👑 Godly Crate&7!"
+
+    "5":
+      DisplayName: "&6🍎 64x Enchanted Golden Apples"
+      DisplayItem: ENCHANTED_GOLDEN_APPLE
+      DisplayAmount: 64
+      Lore:
+        - "&7A full stack of god apples."
+      MaxRange: 100
+      Chance: 10
+      Items:
+        - "Item:ENCHANTED_GOLDEN_APPLE, Amount:64"
+
+    "6":
+      DisplayName: "&6🛡️ 32x Totems of Undying"
+      DisplayItem: TOTEM_OF_UNDYING
+      DisplayAmount: 32
+      Lore:
+        - "&7You will NEVER die."
+      MaxRange: 100
+      Chance: 8
+      Items:
+        - "Item:TOTEM_OF_UNDYING, Amount:32"
+
+    "7":
+      DisplayName: "&6🦅 Godly Elytra + 256x Fireworks"
+      DisplayItem: ELYTRA
+      DisplayAmount: 1
+      Lore:
+        - "&7Fly forever with maximum fuel."
+      MaxRange: 100
+      Chance: 6
+      Items:
+        - "Item:ELYTRA, Amount:1, Name:&6🦅 Godly Wings of Krylo, UNBREAKING:3, MENDING:1"
+        - "Item:FIREWORK_ROCKET, Amount:256"
+
+    "8":
+      DisplayName: "&6⛏️ GODLY Tool Set (Pick + Axe + Shovel)"
+      DisplayItem: NETHERITE_PICKAXE
+      DisplayAmount: 1
+      Lore:
+        - "&7Every tool maxed out."
+      MaxRange: 100
+      Chance: 7
+      Items:
+        - "Item:NETHERITE_PICKAXE, Amount:1, Name:&6⛏️ Godly Pick, EFFICIENCY:5, FORTUNE:3, UNBREAKING:3, MENDING:1"
+        - "Item:NETHERITE_AXE, Amount:1, Name:&6🪓 Godly Axe, SHARPNESS:5, EFFICIENCY:5, UNBREAKING:3, MENDING:1"
+        - "Item:NETHERITE_SHOVEL, Amount:1, Name:&6🔧 Godly Shovel, EFFICIENCY:5, SILK_TOUCH:1, UNBREAKING:3, MENDING:1"
+
+    "9":
+      DisplayName: "&6🗝️ 3x Mythic Crate Keys"
+      DisplayItem: TRIPWIRE_HOOK
+      DisplayAmount: 3
+      Lore:
+        - "&7Bonus mythic keys!"
+      MaxRange: 100
+      Chance: 12
+      Commands:
+        - "crazycrates give physical %player% MythicCrate 3"
+
+    "10":
+      DisplayName: "&6⚡ 3x XP Booster (14 Days)"
+      DisplayItem: EXPERIENCE_BOTTLE
+      DisplayAmount: 1
+      Lore:
+        - "&7Triple XP for 2 weeks!"
+      MaxRange: 100
+      Chance: 9
+      Commands:
+        - "booster give %player% 3x 14d"
+
+    "11":
+      DisplayName: "&6🏷️ Exclusive [GODLY] Chat Tag"
+      DisplayItem: NAME_TAG
+      DisplayAmount: 1
+      Lore:
+        - "&7An exclusive glowing chat prefix."
+        - "&6Only from the Godly Crate!"
+      MaxRange: 100
+      Chance: 10
+      Commands:
+        - "lp user %player% permission set prefix.godly true"
+        - "broadcast &6&l⚡ &e%player% &7unlocked the &6[GODLY] &7tag from a &6👑 Godly Crate&7!"
+
+    "12":
+      DisplayName: "&6💰 Full Shulker of Netherite Ingots"
+      DisplayItem: NETHERITE_INGOT
+      DisplayAmount: 27
+      Lore:
+        - "&7A shulker box full of raw netherite!"
+        - "&6&lThe ultimate wealth flex."
+      MaxRange: 100
+      Chance: 4
+      Items:
+        - "Item:NETHERITE_INGOT, Amount:27"

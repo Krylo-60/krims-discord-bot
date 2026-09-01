@@ -1,0 +1,128 @@
+Crate:
+  CrateType: CSGO
+  StartingKeys: 0
+  InGUI: true
+  Slot: 12
+  OpeningBroadCast: true
+  BroadCast: "&9%player% &7just opened a &9🔵 Rare Crate&7!"
+  Item: CHEST
+  Custom-Model-Data: 1005
+  Glowing: true
+  Name: "&9🔵 Rare Crate"
+  Lore:
+    - "&7Right-click to preview rewards!"
+    - "&7Use a &9🔵 Rare Key &7to open!"
+  Preview:
+    Name: "&9🔵 Rare Crate Preview"
+    Toggle: true
+  PhysicalKey:
+    Name: "&9🔵 Rare Key"
+    Lore:
+      - "&7Use this key on a Rare Crate!"
+      - "&7Tier: &9Rare"
+    Item: TRIPWIRE_HOOK
+    Custom-Model-Data: 2005
+    Glowing: true
+
+  Prizes:
+    "1":
+      DisplayName: "&9🪙 5,000 KryloCoins"
+      DisplayItem: GOLD_INGOT
+      DisplayAmount: 1
+      Lore:
+        - "&7A decent KC reward!"
+      MaxRange: 100
+      Chance: 25
+      Commands:
+        - "eco give %player% 5000"
+
+    "2":
+      DisplayName: "&9⚔️ Diamond Sword (Sharp III)"
+      DisplayItem: DIAMOND_SWORD
+      DisplayAmount: 1
+      Lore:
+        - "&7A powerful diamond blade."
+      MaxRange: 100
+      Chance: 20
+      Items:
+        - "Item:DIAMOND_SWORD, Amount:1, Name:&9⚔️ Rare Blade, SHARPNESS:3, UNBREAKING:2, FIRE_ASPECT:1"
+
+    "3":
+      DisplayName: "&9🛡️ Diamond Armor Set (Prot II)"
+      DisplayItem: DIAMOND_CHESTPLATE
+      DisplayAmount: 1
+      Lore:
+        - "&7Full diamond armor with Prot II."
+      MaxRange: 100
+      Chance: 15
+      Items:
+        - "Item:DIAMOND_HELMET, Amount:1, PROTECTION:2, UNBREAKING:2"
+        - "Item:DIAMOND_CHESTPLATE, Amount:1, PROTECTION:2, UNBREAKING:2"
+        - "Item:DIAMOND_LEGGINGS, Amount:1, PROTECTION:2, UNBREAKING:2"
+        - "Item:DIAMOND_BOOTS, Amount:1, PROTECTION:2, UNBREAKING:2"
+
+    "4":
+      DisplayName: "&9🍎 16x Golden Apples"
+      DisplayItem: GOLDEN_APPLE
+      DisplayAmount: 16
+      Lore:
+        - "&7A solid stash of gapples."
+      MaxRange: 100
+      Chance: 22
+      Items:
+        - "Item:GOLDEN_APPLE, Amount:16"
+
+    "5":
+      DisplayName: "&9🍎 4x Enchanted Golden Apples"
+      DisplayItem: ENCHANTED_GOLDEN_APPLE
+      DisplayAmount: 4
+      Lore:
+        - "&7God apples for clutch moments!"
+      MaxRange: 100
+      Chance: 10
+      Items:
+        - "Item:ENCHANTED_GOLDEN_APPLE, Amount:4"
+
+    "6":
+      DisplayName: "&9💎 32x Diamonds"
+      DisplayItem: DIAMOND
+      DisplayAmount: 32
+      Lore:
+        - "&7A bag of shiny diamonds."
+      MaxRange: 100
+      Chance: 18
+      Items:
+        - "Item:DIAMOND, Amount:32"
+
+    "7":
+      DisplayName: "&9⛏️ Diamond Pickaxe (Eff IV, Fortune II)"
+      DisplayItem: DIAMOND_PICKAXE
+      DisplayAmount: 1
+      Lore:
+        - "&7Mine like a pro."
+      MaxRange: 100
+      Chance: 16
+      Items:
+        - "Item:DIAMOND_PICKAXE, Amount:1, Name:&9⛏️ Rare Pick, EFFICIENCY:4, FORTUNE:2, UNBREAKING:2"
+
+    "8":
+      DisplayName: "&9🏹 Power III Infinity Bow"
+      DisplayItem: BOW
+      DisplayAmount: 1
+      Lore:
+        - "&7Infinite arrows, infinite power."
+      MaxRange: 100
+      Chance: 14
+      Items:
+        - "Item:BOW, Amount:1, Name:&9🏹 Rare Bow, POWER:3, INFINITY:1, UNBREAKING:2"
+
+    "9":
+      DisplayName: "&9🛡️ 2x Totems of Undying"
+      DisplayItem: TOTEM_OF_UNDYING
+      DisplayAmount: 2
+      Lore:
+        - "&7Cheat death twice!"
+      MaxRange: 100
+      Chance: 12
+      Items:
+        - "Item:TOTEM_OF_UNDYING, Amount:2"

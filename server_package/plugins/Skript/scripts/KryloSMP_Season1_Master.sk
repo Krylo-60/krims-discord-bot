@@ -16,18 +16,21 @@ on join:
         set {clan::%player%} to "None"
         if player is "Krylo_MC" or "Krylo" or "Krylo_plays":
             set {rank::%player%} to "Owner"
+            set {clan::%player%} to "KryloArmy"
+            set {krylocoins::%player%} to 106000
         else:
             set {rank::%player%} to "Member"
         send "&6&l[KryloSMP] &aWelcome to &e&lKryloSMP Season 1 Beta&a!" to player
         send "&6&l[KryloSMP] &7You received a starter bonus of &e1,000 KryloCoins&7!" to player
 
-    # Auto Owner Tag
+    # Auto Owner Tag & Official Clan
     if player is "Krylo_MC" or "Krylo" or "Krylo_plays":
         set {rank::%player%} to "Owner"
+        set {clan::%player%} to "KryloArmy"
 
     # Tablist & Scoreboard update
-    set player's tab list header to "&6&l👑 KRYLOSMP &8┃ &e&lSEASON 1 BETA%nl%&7Server IP: &bKryloSmp.play.hosting"
-    set player's tab list footer to "&7Online: &a%number of all players% &8┃ &7Store: &ekrylosmp.web.app"
+    set player's tab list header to "&6&l👑 KRYLOSMP &8┃ &e&lSEASON 1%nl%&7Server IP: &bkrylosmp.falix.gg:29273"
+    set player's tab list footer to "&7Online: &a%number of all players% &8┃ &7Store: &ekrylosmp-store.web.app"
 
 # ─── CHAT FORMATTING ───
 on chat:

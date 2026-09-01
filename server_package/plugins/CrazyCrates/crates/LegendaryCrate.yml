@@ -1,0 +1,130 @@
+Crate:
+  CrateType: Casino
+  StartingKeys: 0
+  InGUI: true
+  Slot: 15
+  OpeningBroadCast: true
+  BroadCast: "&c%player% &7just opened a &c🔴 Legendary Crate&7! &c&lINSANE!"
+  Item: CHEST
+  Custom-Model-Data: 1003
+  Glowing: true
+  Name: "&c🔴 Legendary Crate"
+  Lore:
+    - "&7Right-click to preview rewards!"
+    - "&7Use a &c🔴 Legendary Key &7to open!"
+    - "&c&lExtremely Rare Loot!"
+  Preview:
+    Name: "&c🔴 Legendary Crate Preview"
+    Toggle: true
+  PhysicalKey:
+    Name: "&c🔴 Legendary Key"
+    Lore:
+      - "&7Use this key on a Legendary Crate!"
+      - "&7Tier: &c&lLegendary"
+    Item: TRIPWIRE_HOOK
+    Custom-Model-Data: 2003
+    Glowing: true
+
+  Prizes:
+    "1":
+      DisplayName: "&c🪙 30,000 KryloCoins"
+      DisplayItem: GOLD_BLOCK
+      DisplayAmount: 1
+      Lore:
+        - "&7An enormous fortune!"
+      MaxRange: 100
+      Chance: 20
+      Commands:
+        - "eco give %player% 30000"
+
+    "2":
+      DisplayName: "&c⚔️ Netherite Sword (Sharp V, Fire II)"
+      DisplayItem: NETHERITE_SWORD
+      DisplayAmount: 1
+      Lore:
+        - "&7The weapon of legends."
+      MaxRange: 100
+      Chance: 12
+      Items:
+        - "Item:NETHERITE_SWORD, Amount:1, Name:&c⚔️ Legendary Blade, SHARPNESS:5, FIRE_ASPECT:2, UNBREAKING:3, LOOTING:3, MENDING:1"
+
+    "3":
+      DisplayName: "&c🛡️ Netherite Armor Set (Prot IV)"
+      DisplayItem: NETHERITE_CHESTPLATE
+      DisplayAmount: 1
+      Lore:
+        - "&7Full god armor — the ultimate defense."
+      MaxRange: 100
+      Chance: 8
+      Items:
+        - "Item:NETHERITE_HELMET, Amount:1, Name:&c🛡️ Legendary Helm, PROTECTION:4, UNBREAKING:3, MENDING:1"
+        - "Item:NETHERITE_CHESTPLATE, Amount:1, Name:&c🛡️ Legendary Chest, PROTECTION:4, UNBREAKING:3, MENDING:1"
+        - "Item:NETHERITE_LEGGINGS, Amount:1, Name:&c🛡️ Legendary Legs, PROTECTION:4, UNBREAKING:3, MENDING:1"
+        - "Item:NETHERITE_BOOTS, Amount:1, Name:&c🛡️ Legendary Boots, PROTECTION:4, UNBREAKING:3, MENDING:1"
+
+    "4":
+      DisplayName: "&c🍎 32x Enchanted Golden Apples"
+      DisplayItem: ENCHANTED_GOLDEN_APPLE
+      DisplayAmount: 32
+      Lore:
+        - "&7A king's stash of god apples!"
+      MaxRange: 100
+      Chance: 10
+      Items:
+        - "Item:ENCHANTED_GOLDEN_APPLE, Amount:32"
+
+    "5":
+      DisplayName: "&c🛡️ 12x Totems of Undying"
+      DisplayItem: TOTEM_OF_UNDYING
+      DisplayAmount: 12
+      Lore:
+        - "&7Nearly unkillable!"
+      MaxRange: 100
+      Chance: 12
+      Items:
+        - "Item:TOTEM_OF_UNDYING, Amount:12"
+
+    "6":
+      DisplayName: "&c🦅 Elytra + 64x Fireworks"
+      DisplayItem: ELYTRA
+      DisplayAmount: 1
+      Lore:
+        - "&7Take to the skies!"
+      MaxRange: 100
+      Chance: 6
+      Items:
+        - "Item:ELYTRA, Amount:1, Name:&c🦅 Legendary Wings, UNBREAKING:3, MENDING:1"
+        - "Item:FIREWORK_ROCKET, Amount:64"
+
+    "7":
+      DisplayName: "&c❤️ +1 Heart Canister"
+      DisplayItem: NETHER_STAR
+      DisplayAmount: 1
+      Lore:
+        - "&7Permanently gain +1 heart!"
+      MaxRange: 100
+      Chance: 5
+      Commands:
+        - "lifesteal hearts add %player% 1"
+
+    "8":
+      DisplayName: "&c🗝️ 3x Epic Crate Keys"
+      DisplayItem: TRIPWIRE_HOOK
+      DisplayAmount: 3
+      Lore:
+        - "&7Bonus keys for more loot!"
+      MaxRange: 100
+      Chance: 15
+      Commands:
+        - "crazycrates give physical %player% EpicCrate 3"
+
+    "9":
+      DisplayName: "&c⚡ 2x XP Booster (3 Days)"
+      DisplayItem: EXPERIENCE_BOTTLE
+      DisplayAmount: 1
+      Lore:
+        - "&7Double all XP for 3 days!"
+      MaxRange: 100
+      Chance: 14
+      Commands:
+        - "booster give %player% 2x 3d"

@@ -1,0 +1,143 @@
+Crate:
+  CrateType: Wonder
+  StartingKeys: 0
+  InGUI: true
+  Slot: 16
+  OpeningBroadCast: true
+  BroadCast: "&d%player% &7just opened a &d🔮 Mythic Crate&7! &d&l✨ MYTHIC LOOT!"
+  Item: CHEST
+  Custom-Model-Data: 1002
+  Glowing: true
+  Name: "&d🔮 Mythic Crate"
+  Lore:
+    - "&7Right-click to preview rewards!"
+    - "&7Use a &d🔮 Mythic Key &7to open!"
+    - "&d&lMythical Tier Rewards!"
+  Preview:
+    Name: "&d🔮 Mythic Crate Preview"
+    Toggle: true
+  PhysicalKey:
+    Name: "&d🔮 Mythic Key"
+    Lore:
+      - "&7Use this key on a Mythic Crate!"
+      - "&7Tier: &d&lMythic"
+    Item: TRIPWIRE_HOOK
+    Custom-Model-Data: 2002
+    Glowing: true
+
+  Prizes:
+    "1":
+      DisplayName: "&d🪙 50,000 KryloCoins"
+      DisplayItem: GOLD_BLOCK
+      DisplayAmount: 4
+      Lore:
+        - "&7An absolutely insane KC drop!"
+      MaxRange: 100
+      Chance: 18
+      Commands:
+        - "eco give %player% 50000"
+
+    "2":
+      DisplayName: "&d⚔️ Mythic God Sword"
+      DisplayItem: NETHERITE_SWORD
+      DisplayAmount: 1
+      Lore:
+        - "&7The strongest sword in existence."
+        - "&dSharpness V, Fire II, Looting III, Sweeping III"
+      MaxRange: 100
+      Chance: 10
+      Items:
+        - "Item:NETHERITE_SWORD, Amount:1, Name:&d⚔️ Mythic Blade, SHARPNESS:5, FIRE_ASPECT:2, UNBREAKING:3, LOOTING:3, SWEEPING_EDGE:3, MENDING:1"
+
+    "3":
+      DisplayName: "&d🛡️ Mythic God Armor Set"
+      DisplayItem: NETHERITE_CHESTPLATE
+      DisplayAmount: 1
+      Lore:
+        - "&7Full Prot IV + Thorns III Netherite."
+        - "&dThe ultimate defense."
+      MaxRange: 100
+      Chance: 6
+      Items:
+        - "Item:NETHERITE_HELMET, Amount:1, Name:&d🛡️ Mythic Crown, PROTECTION:4, UNBREAKING:3, MENDING:1, THORNS:3, RESPIRATION:3, AQUA_AFFINITY:1"
+        - "Item:NETHERITE_CHESTPLATE, Amount:1, Name:&d🛡️ Mythic Chestplate, PROTECTION:4, UNBREAKING:3, MENDING:1, THORNS:3"
+        - "Item:NETHERITE_LEGGINGS, Amount:1, Name:&d🛡️ Mythic Greaves, PROTECTION:4, UNBREAKING:3, MENDING:1, THORNS:3, SWIFT_SNEAK:3"
+        - "Item:NETHERITE_BOOTS, Amount:1, Name:&d🛡️ Mythic Treads, PROTECTION:4, UNBREAKING:3, MENDING:1, THORNS:3, DEPTH_STRIDER:3, FEATHER_FALLING:4"
+
+    "4":
+      DisplayName: "&d🍎 64x Enchanted Golden Apples"
+      DisplayItem: ENCHANTED_GOLDEN_APPLE
+      DisplayAmount: 64
+      Lore:
+        - "&7A full stack of god apples!"
+      MaxRange: 100
+      Chance: 7
+      Items:
+        - "Item:ENCHANTED_GOLDEN_APPLE, Amount:64"
+
+    "5":
+      DisplayName: "&d❤️ +2 Heart Canisters"
+      DisplayItem: NETHER_STAR
+      DisplayAmount: 2
+      Lore:
+        - "&7Permanently gain +2 hearts!"
+      MaxRange: 100
+      Chance: 4
+      Commands:
+        - "lifesteal hearts add %player% 2"
+
+    "6":
+      DisplayName: "&d🦅 Elytra + 128x Fireworks"
+      DisplayItem: ELYTRA
+      DisplayAmount: 1
+      Lore:
+        - "&7Soar across the realm!"
+      MaxRange: 100
+      Chance: 5
+      Items:
+        - "Item:ELYTRA, Amount:1, Name:&d🦅 Mythic Wings, UNBREAKING:3, MENDING:1"
+        - "Item:FIREWORK_ROCKET, Amount:128"
+
+    "7":
+      DisplayName: "&d🛡️ 16x Totems of Undying"
+      DisplayItem: TOTEM_OF_UNDYING
+      DisplayAmount: 16
+      Lore:
+        - "&7Practically immortal!"
+      MaxRange: 100
+      Chance: 10
+      Items:
+        - "Item:TOTEM_OF_UNDYING, Amount:16"
+
+    "8":
+      DisplayName: "&d⛏️ Mythic God Pickaxe"
+      DisplayItem: NETHERITE_PICKAXE
+      DisplayAmount: 1
+      Lore:
+        - "&7The ultimate mining machine."
+      MaxRange: 100
+      Chance: 9
+      Items:
+        - "Item:NETHERITE_PICKAXE, Amount:1, Name:&d⛏️ Mythic Pick, EFFICIENCY:5, FORTUNE:3, UNBREAKING:3, MENDING:1"
+
+    "9":
+      DisplayName: "&d🗝️ 2x Legendary Crate Keys"
+      DisplayItem: TRIPWIRE_HOOK
+      DisplayAmount: 2
+      Lore:
+        - "&7Bonus legendary keys!"
+      MaxRange: 100
+      Chance: 14
+      Commands:
+        - "crazycrates give physical %player% LegendaryCrate 2"
+
+    "10":
+      DisplayName: "&d⚡ 2x XP Booster (7 Days)"
+      DisplayItem: EXPERIENCE_BOTTLE
+      DisplayAmount: 1
+      Lore:
+        - "&7Double all XP for a full week!"
+      MaxRange: 100
+      Chance: 12
+      Commands:
+        - "booster give %player% 2x 7d"

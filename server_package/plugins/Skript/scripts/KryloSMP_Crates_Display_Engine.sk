@@ -1,0 +1,46 @@
+# ==============================================================================
+# 👑 KryloSMP Season 1 - In-World 3D Crate Display & Hologram Automation Engine
+# Leaves all vanilla player chests untouched while rendering 3D Spawn Crates
+# ==============================================================================
+
+options:
+  prefix: &6&l[CRATES]&r
+
+command /spawncrates:
+  permission: op
+  description: Spawns in-world 3D Crate Displays and DecentHolograms for all 6 tiers
+  trigger:
+    send "{@prefix} &eCleaning previous crate display entities..." to player
+    execute console command "minecraft:kill @e[tag=krylo_crate_display]"
+
+    send "{@prefix} &aSpawning 6 custom 3D Crate Displays at spawn..." to player
+    
+    # 1. 👑 Godly Crate (CMD: 1001)
+    execute console command "execute positioned ~-5 ~ ~ run summon item_display ~ ~0.5 ~ {Tags:[""krylo_crate_display"",""godly_crate""],transformation:{left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],translation:[0f,0f,0f],scale:[1f,1f,1f]},item:{id:""minecraft:chest"",Count:1b,components:{""minecraft:custom_model_data"":1001}}}"
+    execute console command "dh h create godly_crate_holo ~-5 ~2.2 ~ &6&l👑 GODLY CRATE#&7Right-Click with &6Godly Key#&e&l[PREVIEW REWARDS]"
+
+    # 2. 🔮 Mythic Crate (CMD: 1002)
+    execute console command "execute positioned ~-3 ~ ~ run summon item_display ~ ~0.5 ~ {Tags:[""krylo_crate_display"",""mythic_crate""],transformation:{left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],translation:[0f,0f,0f],scale:[1f,1f,1f]},item:{id:""minecraft:chest"",Count:1b,components:{""minecraft:custom_model_data"":1002}}}"
+    execute console command "dh h create mythic_crate_holo ~-3 ~2.2 ~ &d&l🔮 MYTHIC CRATE#&7Right-Click with &dMythic Key#&e&l[PREVIEW REWARDS]"
+
+    # 3. ⚔️ Legendary Crate (CMD: 1003)
+    execute console command "execute positioned ~-1 ~ ~ run summon item_display ~ ~0.5 ~ {Tags:[""krylo_crate_display"",""legendary_crate""],transformation:{left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],translation:[0f,0f,0f],scale:[1f,1f,1f]},item:{id:""minecraft:chest"",Count:1b,components:{""minecraft:custom_model_data"":1003}}}"
+    execute console command "dh h create legendary_crate_holo ~-1 ~2.2 ~ &e&l⚔️ LEGENDARY CRATE#&7Right-Click with &eLegendary Key#&e&l[PREVIEW REWARDS]"
+
+    # 4. 💎 Epic Crate (CMD: 1004)
+    execute console command "execute positioned ~1 ~ ~ run summon item_display ~ ~0.5 ~ {Tags:[""krylo_crate_display"",""epic_crate""],transformation:{left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],translation:[0f,0f,0f],scale:[1f,1f,1f]},item:{id:""minecraft:chest"",Count:1b,components:{""minecraft:custom_model_data"":1004}}}"
+    execute console command "dh h create epic_crate_holo ~1 ~2.2 ~ &b&l💎 EPIC CRATE#&7Right-Click with &bEpic Key#&e&l[PREVIEW REWARDS]"
+
+    # 5. 🛡️ Rare Crate (CMD: 1005)
+    execute console command "execute positioned ~3 ~ ~ run summon item_display ~ ~0.5 ~ {Tags:[""krylo_crate_display"",""rare_crate""],transformation:{left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],translation:[0f,0f,0f],scale:[1f,1f,1f]},item:{id:""minecraft:chest"",Count:1b,components:{""minecraft:custom_model_data"":1005}}}"
+    execute console command "dh h create rare_crate_holo ~3 ~2.2 ~ &9&l🛡️ RARE CRATE#&7Right-Click with &9Rare Key#&e&l[PREVIEW REWARDS]"
+
+    # 6. 📦 Common Crate (CMD: 1006)
+    execute console command "execute positioned ~5 ~ ~ run summon item_display ~ ~0.5 ~ {Tags:[""krylo_crate_display"",""common_crate""],transformation:{left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],translation:[0f,0f,0f],scale:[1f,1f,1f]},item:{id:""minecraft:chest"",Count:1b,components:{""minecraft:custom_model_data"":1006}}}"
+    execute console command "dh h create common_crate_holo ~5 ~2.2 ~ &f&l📦 COMMON CRATE#&7Right-Click with &fCommon Key#&e&l[PREVIEW REWARDS]"
+
+    send "{@prefix} &a&lSUCCESS! &7All 6 Custom 3D Crates & DecentHolograms deployed!" to player
+
+# Auto-Reload & Persistence on Server Start
+on skript load:
+  broadcast "{@prefix} &eCustom 3D Crate Display Engine v1.0 &aActive &7(Vanilla chests isolated)."

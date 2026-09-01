@@ -1,0 +1,119 @@
+Crate:
+  CrateType: Casino
+  StartingKeys: 0
+  InGUI: true
+  Slot: 14
+  OpeningBroadCast: true
+  BroadCast: "&5%player% &7just opened a &5🟣 Epic Crate&7!"
+  Item: CHEST
+  Custom-Model-Data: 1004
+  Glowing: true
+  Name: "&5🟣 Epic Crate"
+  Lore:
+    - "&7Right-click to preview rewards!"
+    - "&7Use a &5🟣 Epic Key &7to open!"
+  Preview:
+    Name: "&5🟣 Epic Crate Preview"
+    Toggle: true
+  PhysicalKey:
+    Name: "&5🟣 Epic Key"
+    Lore:
+      - "&7Use this key on an Epic Crate!"
+      - "&7Tier: &5Epic"
+    Item: TRIPWIRE_HOOK
+    Custom-Model-Data: 2004
+    Glowing: true
+
+  Prizes:
+    "1":
+      DisplayName: "&5🪙 15,000 KryloCoins"
+      DisplayItem: GOLD_BLOCK
+      DisplayAmount: 1
+      Lore:
+        - "&7A massive KC payout!"
+      MaxRange: 100
+      Chance: 22
+      Commands:
+        - "eco give %player% 15000"
+
+    "2":
+      DisplayName: "&5⚔️ Netherite Sword (Sharp IV)"
+      DisplayItem: NETHERITE_SWORD
+      DisplayAmount: 1
+      Lore:
+        - "&7A devastating netherite blade."
+      MaxRange: 100
+      Chance: 15
+      Items:
+        - "Item:NETHERITE_SWORD, Amount:1, Name:&5⚔️ Epic Blade, SHARPNESS:4, FIRE_ASPECT:2, UNBREAKING:3, LOOTING:3"
+
+    "3":
+      DisplayName: "&5🛡️ Diamond Armor Set (Prot III)"
+      DisplayItem: DIAMOND_CHESTPLATE
+      DisplayAmount: 1
+      Lore:
+        - "&7Near-god tier diamond armor."
+      MaxRange: 100
+      Chance: 14
+      Items:
+        - "Item:DIAMOND_HELMET, Amount:1, Name:&5🛡️ Epic Helm, PROTECTION:3, UNBREAKING:3, MENDING:1"
+        - "Item:DIAMOND_CHESTPLATE, Amount:1, Name:&5🛡️ Epic Chest, PROTECTION:3, UNBREAKING:3, MENDING:1"
+        - "Item:DIAMOND_LEGGINGS, Amount:1, Name:&5🛡️ Epic Legs, PROTECTION:3, UNBREAKING:3, MENDING:1"
+        - "Item:DIAMOND_BOOTS, Amount:1, Name:&5🛡️ Epic Boots, PROTECTION:3, UNBREAKING:3, MENDING:1"
+
+    "4":
+      DisplayName: "&5🍎 16x Enchanted Golden Apples"
+      DisplayItem: ENCHANTED_GOLDEN_APPLE
+      DisplayAmount: 16
+      Lore:
+        - "&7A stack of clutch god apples!"
+      MaxRange: 100
+      Chance: 8
+      Items:
+        - "Item:ENCHANTED_GOLDEN_APPLE, Amount:16"
+
+    "5":
+      DisplayName: "&5🛡️ 6x Totems of Undying"
+      DisplayItem: TOTEM_OF_UNDYING
+      DisplayAmount: 6
+      Lore:
+        - "&7Survive the impossible!"
+      MaxRange: 100
+      Chance: 12
+      Items:
+        - "Item:TOTEM_OF_UNDYING, Amount:6"
+
+    "6":
+      DisplayName: "&5⛏️ Netherite Pickaxe (Eff V, Fortune III)"
+      DisplayItem: NETHERITE_PICKAXE
+      DisplayAmount: 1
+      Lore:
+        - "&7The ultimate mining tool."
+      MaxRange: 100
+      Chance: 10
+      Items:
+        - "Item:NETHERITE_PICKAXE, Amount:1, Name:&5⛏️ Epic Pick, EFFICIENCY:5, FORTUNE:3, UNBREAKING:3, MENDING:1"
+
+    "7":
+      DisplayName: "&5🪓 Netherite Axe (Sharp III, Eff IV)"
+      DisplayItem: NETHERITE_AXE
+      DisplayAmount: 1
+      Lore:
+        - "&7Devastating critical hits."
+      MaxRange: 100
+      Chance: 13
+      Items:
+        - "Item:NETHERITE_AXE, Amount:1, Name:&5🪓 Epic Axe, SHARPNESS:3, EFFICIENCY:4, UNBREAKING:3"
+
+    "8":
+      DisplayName: "&5🪣 Lava Bucket + Ender Pearls (16)"
+      DisplayItem: ENDER_PEARL
+      DisplayAmount: 16
+      Lore:
+        - "&7PvP essentials kit."
+      MaxRange: 100
+      Chance: 18
+      Items:
+        - "Item:ENDER_PEARL, Amount:16"
+        - "Item:LAVA_BUCKET, Amount:1"
+        - "Item:COBWEB, Amount:16"

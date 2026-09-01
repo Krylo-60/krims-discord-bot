@@ -1,0 +1,117 @@
+Crate:
+  CrateType: CSGO
+  StartingKeys: 0
+  InGUI: true
+  Slot: 10
+  OpeningBroadCast: true
+  BroadCast: "&a%player% &7just opened a &a🟢 Common Crate&7!"
+  Item: CHEST
+  Custom-Model-Data: 1006
+  Glowing: true
+  Name: "&a🟢 Common Crate"
+  Lore:
+    - "&7Right-click to preview rewards!"
+    - "&7Use a &a🟢 Common Key &7to open!"
+  Preview:
+    Name: "&a🟢 Common Crate Preview"
+    Toggle: true
+  PhysicalKey:
+    Name: "&a🟢 Common Key"
+    Lore:
+      - "&7Use this key on a Common Crate!"
+      - "&7Tier: &aCommon"
+    Item: TRIPWIRE_HOOK
+    Custom-Model-Data: 2006
+    Glowing: true
+
+  Prizes:
+    "1":
+      DisplayName: "&a🪙 1,000 KryloCoins"
+      DisplayItem: GOLD_NUGGET
+      DisplayAmount: 1
+      Lore:
+        - "&7A small KC boost!"
+      MaxRange: 100
+      Chance: 30
+      Commands:
+        - "eco give %player% 1000"
+
+    "2":
+      DisplayName: "&a⚔️ Iron Sword (Sharp II)"
+      DisplayItem: IRON_SWORD
+      DisplayAmount: 1
+      Lore:
+        - "&7A solid starter blade."
+      MaxRange: 100
+      Chance: 25
+      Items:
+        - "Item:IRON_SWORD, Amount:1, Name:&a⚔️ Common Blade, SHARPNESS:2, UNBREAKING:1"
+
+    "3":
+      DisplayName: "&a🛡️ Iron Armor Set"
+      DisplayItem: IRON_CHESTPLATE
+      DisplayAmount: 1
+      Lore:
+        - "&7Full iron armor with Prot I."
+      MaxRange: 100
+      Chance: 20
+      Items:
+        - "Item:IRON_HELMET, Amount:1, PROTECTION:1, UNBREAKING:1"
+        - "Item:IRON_CHESTPLATE, Amount:1, PROTECTION:1, UNBREAKING:1"
+        - "Item:IRON_LEGGINGS, Amount:1, PROTECTION:1, UNBREAKING:1"
+        - "Item:IRON_BOOTS, Amount:1, PROTECTION:1, UNBREAKING:1"
+
+    "4":
+      DisplayName: "&a🍎 8x Golden Apples"
+      DisplayItem: GOLDEN_APPLE
+      DisplayAmount: 8
+      Lore:
+        - "&7A handful of golden apples."
+      MaxRange: 100
+      Chance: 20
+      Items:
+        - "Item:GOLDEN_APPLE, Amount:8"
+
+    "5":
+      DisplayName: "&a🥩 32x Cooked Beef"
+      DisplayItem: COOKED_BEEF
+      DisplayAmount: 32
+      Lore:
+        - "&7Never go hungry!"
+      MaxRange: 100
+      Chance: 30
+      Items:
+        - "Item:COOKED_BEEF, Amount:32"
+
+    "6":
+      DisplayName: "&a💎 8x Diamonds"
+      DisplayItem: DIAMOND
+      DisplayAmount: 8
+      Lore:
+        - "&7Some raw diamonds."
+      MaxRange: 100
+      Chance: 15
+      Items:
+        - "Item:DIAMOND, Amount:8"
+
+    "7":
+      DisplayName: "&a🏹 Power II Bow"
+      DisplayItem: BOW
+      DisplayAmount: 1
+      Lore:
+        - "&7A solid ranged weapon."
+      MaxRange: 100
+      Chance: 18
+      Items:
+        - "Item:BOW, Amount:1, Name:&a🏹 Common Bow, POWER:2, UNBREAKING:1"
+
+    "8":
+      DisplayName: "&a⛏️ Iron Pickaxe (Eff III, Fortune I)"
+      DisplayItem: IRON_PICKAXE
+      DisplayAmount: 1
+      Lore:
+        - "&7Mine faster, earn more."
+      MaxRange: 100
+      Chance: 22
+      Items:
+        - "Item:IRON_PICKAXE, Amount:1, Name:&a⛏️ Common Pick, EFFICIENCY:3, FORTUNE:1, UNBREAKING:1"
