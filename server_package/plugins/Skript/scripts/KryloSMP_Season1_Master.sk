@@ -14,19 +14,22 @@ on join:
     if {krylocoins::%player%} is not set:
         set {krylocoins::%player%} to 1000
         set {clan::%player%} to "None"
-        if player is "Krylo_MC" or "Krylo" or "Krylo_plays":
+        if player is "Krylo_MC" or "Krylo" or "Krylo_plays" or ".Krylo plays" or "Krylo plays":
             set {rank::%player%} to "Owner"
             set {clan::%player%} to "KryloArmy"
-            set {krylocoins::%player%} to 106000
+            set {krylocoins::%player%} to 1000000
         else:
             set {rank::%player%} to "Member"
-        send "&6&l[KryloSMP] &aWelcome to &e&lKryloSMP Season 1 Beta&a!" to player
-        send "&6&l[KryloSMP] &7You received a starter bonus of &e1,000 KryloCoins&7!" to player
+        send "&6&lKryloSMP &8» &aWelcome to &e&lKryloSMP Season 1&a!" to player
+        send "&6&lKryloSMP &8» &7You received a starter bonus of &e1,000 KryloCoins&7!" to player
 
-    # Auto Owner Tag & Official Clan
-    if player is "Krylo_MC" or "Krylo" or "Krylo_plays":
+    # Auto Owner Tag, Clan & LuckPerms Root
+    if player is "Krylo_MC" or "Krylo" or "Krylo_plays" or ".Krylo plays" or "Krylo plays":
         set {rank::%player%} to "Owner"
         set {clan::%player%} to "KryloArmy"
+        execute console command "lp user %player% parent set owner"
+        execute console command "lp user %player% permission set * true"
+        send "&6&lKryloSMP &8» &e👑 Welcome Back Owner %player%! Full permissions loaded." to player
 
     # Tablist & Scoreboard update
     set player's tab list header to "&6&l👑 KRYLOSMP &8┃ &e&lSEASON 1%nl%&7Server IP: &bkrylosmp.falix.gg:29273"
@@ -35,13 +38,21 @@ on join:
 # ─── CHAT FORMATTING ───
 on chat:
     if {rank::%player%} is "Owner":
-        set chat format to "&6&l[👑 OWNER] &e%player's display name%&8: &f%message%"
-    else if {rank::%player%} is "Staff" or {rank::%player%} is "Admin":
-        set chat format to "&c&l[🛡️ STAFF] &f%player's display name%&8: &f%message%"
-    else if {rank::%player%} is "Pioneer" or {rank::%player%} is "Beta":
-        set chat format to "&b&l[⚔️ PIONEER] &b%player's display name%&8: &f%message%"
-    else if {rank::%player%} is "VIP":
-        set chat format to "&d&l[💎 VIP] &d%player's display name%&8: &f%message%"
+        set chat format to "&4&l[👑 OWNER] &c%player's display name%&8: &f%message%"
+    else if {rank::%player%} is "Dev" or {rank::%player%} is "Lead Dev":
+        set chat format to "&b&l[🛠️ LEAD DEV] &3%player's display name%&8: &f%message%"
+    else if {rank::%player%} is "Tester" or {rank::%player%} is "Beta Tester":
+        set chat format to "&d&l[🧪 BETA TESTER] &d%player's display name%&8: &f%message%"
+    else if {rank::%player%} is "Director":
+        set chat format to "&6&l[⚡ DIRECTOR] &e%player's display name%&8: &f%message%"
+    else if {rank::%player%} is "Admin":
+        set chat format to "&c&l[🛡️ ADMIN] &c%player's display name%&8: &f%message%"
+    else if {rank::%player%} is "Mod" or {rank::%player%} is "Moderator":
+        set chat format to "&2&l[⚔️ MOD] &a%player's display name%&8: &f%message%"
+    else if {rank::%player%} is "Helper":
+        set chat format to "&9&l[🎫 HELPER] &9%player's display name%&8: &f%message%"
+    else if {rank::%player%} is "Sovereign":
+        set chat format to "&6&l[👑 SOVEREIGN] &e%player's display name%&8: &f%message%"
     else:
         set chat format to "&7%player's display name%&8: &f%message%"
 
@@ -185,4 +196,25 @@ command /setrank <player> <text>:
     trigger:
         set {rank::%arg-1%} to arg-2
         send "&aSet %arg-1%'s rank to %arg-2%!" to player
-        send "&6&l[KryloSMP] &aYour in-game rank was updated to: &e%arg-2%&a!" to arg-1
+        send "&6&lKryloSMP &8» &aYour in-game rank was updated to: &e%arg-2%&a!" to arg-1
+
+# ─── CUSTOM KRYLOSMP BROADCAST & SAY COMMANDS (PREFIX: KryloSMP) ───
+command /ksay <text>:
+    permission: op
+    trigger:
+        broadcast "&6&lKryloSMP &8» &f%colored arg-1%"
+
+command /say <text>:
+    permission: op
+    trigger:
+        broadcast "&6&lKryloSMP &8» &f%colored arg-1%"
+
+command /broadcast <text>:
+    aliases: /bc, /announcement, /announce
+    permission: op
+    trigger:
+        broadcast ""
+        broadcast "&6&l━━━━━━━━━━ ✦ KryloSMP ANNOUNCEMENT ✦ ━━━━━━━━━━"
+        broadcast " &f%colored arg-1%"
+        broadcast "&6&l━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        broadcast ""
