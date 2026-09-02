@@ -105,14 +105,46 @@ export async function handleCountingMessage(message) {
   }
 }
 
+const stickyTimers = new Map();
+
+// Default Channel Rules in case DB needs populating
+export const DEFAULT_RULES = {
+  'general': {
+    title: '💬 GENERAL CHAT RULES',
+    color: 0x00D8F6,
+    text: `• **Be Respectful:** Treat all members and staff with respect.\n• **No Toxicity/Drama:** Harassment, toxicity, and flame wars are strictly prohibited.\n• **Keep It Clean:** No NSFW content, spam, or excessive caps.\n• **English Only:** Keep discussions friendly and in English.\n\n✨ *Enjoy your stay in KryloSMP!*`
+  },
+  'media': {
+    title: '📸 MEDIA & CLIPS GUIDELINES',
+    color: 0xA855F7,
+    text: `• **Minecraft & KryloSMP:** Share your screenshots, builds, PvP clips, and artwork!\n• **No Inappropriate Content:** Strictly no NSFW, Gore, or offensive media.\n• **No File Spamming:** Group multiple screenshots together in one post.`
+  },
+  'bot-commands': {
+    title: '🤖 BOT COMMANDS USAGE',
+    color: 0xF59E0B,
+    text: `• **Available Commands:** Use \`/store\`, \`/stats\`, \`/verify\`, \`/profile\`, \`/help\`.\n• **Keep Chat Clean:** Run all bot interactions inside this room only.\n• **No Spamming:** Avoid rapid repeated commands.`
+  },
+  'suggestions': {
+    title: '💡 SUGGESTIONS GUIDELINES',
+    color: 0x10B981,
+    text: `• **Share Ideas:** Suggest new features, kits, crate items, or events for KryloSMP!\n• **Community Voting:** React with 👍 or 👎 on fellow players' ideas.\n• **Be Constructive:** Explain how your idea improves gameplay.`
+  },
+  'counting': {
+    title: '🔢 COUNTING CHALLENGE',
+    color: 0x00D8F6,
+    text: `Count as high as possible!\n\n• **One number per message**\n• **Don't count twice in a row**\n• **If someone breaks the chain, it resets to 1!**\n\n👉 **Start counting from 1!**`
+  }
+};
+
 /**
  * Handles Native Sticky Messages
  */
 export async function handleStickyMessage(message) {
-  if (message.author.bot) return;
+  if (!message.guild || message.author.bot) return;
 
-  // Check if command is ?stick or ?unstick
   const content = message.content.trim();
+
+  // 1. Manual ?stick command
   if (content.startsWith('?stick ')) {
     if (!message.member?.permissions.has(PermissionFlagsBits.ManageMessages) && message.author.id !== '1538225405486698520' && message.author.id !== '1414143825538191373') {
       return message.reply('❌ You need `Manage Messages` permission to set sticky messages.').catch(() => {});
@@ -120,15 +152,16 @@ export async function handleStickyMessage(message) {
 
     const stickText = content.replace(/^\?stick\s+/i, '').trim();
     try {
-      db.prepare('INSERT OR REPLACE INTO sticky_messages (channel_id, message_content, last_sticky_id) VALUES (?, ?, ?)')
-        .run(message.channel.id, stickText, null);
+      db.prepare('INSERT OR REPLACE INTO sticky_messages (channel_id, title, message_content, color, last_sticky_id) VALUES (?, ?, ?, ?, ?)')
+        .run(message.channel.id, '📌 Channel Notice', stickText, 0x00D8F6, null);
     } catch (_) {}
 
     const embed = new EmbedBuilder()
       .setColor(0x00D8F6)
-      .setTitle('📌 Sticky Message Set!')
+      .setTitle('📌 Channel Notice')
       .setDescription(stickText)
-      .setFooter({ text: 'KryloSMP Native Sticky Engine' });
+      .setFooter({ text: 'KryloSMP Community Engine • Auto-Sticky' })
+      .setTimestamp();
 
     const sent = await message.channel.send({ embeds: [embed] });
     try {
@@ -139,6 +172,7 @@ export async function handleStickyMessage(message) {
     return;
   }
 
+  // 2. Manual ?unstick command
   if (content.startsWith('?unstick')) {
     try {
       const row = db.prepare('SELECT * FROM sticky_messages WHERE channel_id = ?').get(message.channel.id);
@@ -152,22 +186,51 @@ export async function handleStickyMessage(message) {
     return;
   }
 
-  // Automatic Sticky Resend on New Chat Messages
+  // 3. Automatic Sticky Deletion & Reposting at the bottom
   try {
-    const row = db.prepare('SELECT * FROM sticky_messages WHERE channel_id = ?').get(message.channel.id);
+    let row = db.prepare('SELECT * FROM sticky_messages WHERE channel_id = ?').get(message.channel.id);
+    
+    // Fallback rule detection by channel name if not in DB
+    if (!row || !row.message_content) {
+      const chName = message.channel.name.toLowerCase();
+      for (const [key, rule] of Object.entries(DEFAULT_RULES)) {
+        if (chName.includes(key)) {
+          row = {
+            channel_id: message.channel.id,
+            title: rule.title,
+            message_content: rule.text,
+            color: rule.color,
+            last_sticky_id: null
+          };
+          try {
+            db.prepare('INSERT OR REPLACE INTO sticky_messages (channel_id, title, message_content, color, last_sticky_id) VALUES (?, ?, ?, ?, ?)')
+              .run(message.channel.id, rule.title, rule.text, rule.color, null);
+          } catch (_) {}
+          break;
+        }
+      }
+    }
+
     if (!row || !row.message_content) return;
 
-    // Debounce rapid messages to prevent message spam
-    if (stickyLocks.get(message.channel.id)) return;
-    stickyLocks.set(message.channel.id, true);
+    // Reset pending timer so we only send once after the user stops typing
+    if (stickyTimers.has(message.channel.id)) {
+      clearTimeout(stickyTimers.get(message.channel.id));
+    }
 
-    setTimeout(async () => {
+    const timer = setTimeout(async () => {
+      stickyTimers.delete(message.channel.id);
       try {
-        // Delete previous sticky
-        if (row.last_sticky_id) {
-          const oldMsg = await message.channel.messages.fetch(row.last_sticky_id).catch(() => null);
-          if (oldMsg) await oldMsg.delete().catch(() => {});
-        }
+        // Find and delete previous sticky message(s) by this bot in recent messages
+        try {
+          const recent = await message.channel.messages.fetch({ limit: 15 }).catch(() => null);
+          if (recent) {
+            const oldStickies = recent.filter(m => m.author.id === message.client.user.id && (m.id === row.last_sticky_id || (m.embeds[0] && m.embeds[0].footer?.text?.includes('Auto-Sticky'))));
+            for (const [_, old] of oldStickies) {
+              await old.delete().catch(() => {});
+            }
+          }
+        } catch (_) {}
 
         const embed = new EmbedBuilder()
           .setColor(row.color || 0x00D8F6)
@@ -179,11 +242,11 @@ export async function handleStickyMessage(message) {
         const newSticky = await message.channel.send({ embeds: [embed] });
         db.prepare('UPDATE sticky_messages SET last_sticky_id = ? WHERE channel_id = ?').run(newSticky.id, message.channel.id);
       } catch (err) {
-        // Ignore sticky refresh errors
-      } finally {
-        stickyLocks.delete(message.channel.id);
+        console.warn('[Sticky Error]', err.message);
       }
-    }, 1500);
+    }, 1000);
+
+    stickyTimers.set(message.channel.id, timer);
   } catch (err) {
     // Ignore sticky refresh errors
   }
