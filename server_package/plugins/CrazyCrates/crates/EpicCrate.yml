@@ -3,7 +3,7 @@ Crate:
   StartingKeys: 0
   InGUI: true
   Slot: 14
-  OpeningBroadCast: true
+  OpeningBroadCast: "<dark_purple><bold>⚡ %player%</bold> <gray>just opened a</gray> <dark_purple><bold>💎 EPIC CRATE</bold> <gray>and won legendary loot!</gray>"
   BroadCast: "&5%player% &7just opened a &5🟣 Epic Crate&7!"
   Item: CHEST
   Custom-Model-Data: 1004
@@ -13,8 +13,21 @@ Crate:
     - "&7Right-click to preview rewards!"
     - "&7Use a &5🟣 Epic Key &7to open!"
   Preview:
-    Name: "&5🟣 Epic Crate Preview"
     Toggle: true
+    ChestLines: 6
+    Glass:
+      Toggle: true
+      Item: BLACK_STAINED_GLASS_PANE
+      Name: " "
+  
+  Hologram:
+    Toggle: true
+    Height: 1.8
+    Range: 16
+    Messages:
+      - "<dark_purple><bold>💎 EPIC CRATE"
+      - "<gray>Right-Click with <dark_purple>Epic Key"
+      - "<yellow><italic>Left-Click to Preview Loot"
   PhysicalKey:
     Name: "&5🟣 Epic Key"
     Lore:

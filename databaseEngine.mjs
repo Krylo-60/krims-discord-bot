@@ -26,20 +26,25 @@ db.pragma('synchronous = NORMAL');
 
 // 🐬 FalixNodes Minecraft Server MySQL Database Connection Pool
 const mysqlConfig = {
-  host: process.env.MYSQL_HOST || 'eu-de1.falixserver.net',
-  port: parseInt(process.env.MYSQL_PORT || '3306', 10),
-  user: process.env.MYSQL_USER || 'u3390114_93fc732dc0',
-  password: process.env.MYSQL_PASSWORD || 'dO(ok1Y00lqf$gNj]NJob1=P',
-  database: process.env.MYSQL_DATABASE || 's3390114_krylosmp_db',
+  host: process.env.MYSQL_HOST || process.env.DB_HOST,
+  port: parseInt(process.env.MYSQL_PORT || process.env.DB_PORT || '3306', 10),
+  user: process.env.MYSQL_USER || process.env.DB_USER,
+  password: process.env.MYSQL_PASSWORD || process.env.DB_PASS || process.env.DB_PASSWORD,
+  database: process.env.MYSQL_DATABASE || process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
 };
 
 let mysqlPool = null;
-try {
-  mysqlPool = mysql.createPool(mysqlConfig);
-  console.log('[Falix MySQL Engine] 🐬 Connected to Minecraft Server MySQL (s3390114_krylosmp_db on eu-de1.falixserver.net)!');
+if (mysqlConfig.user && mysqlConfig.password && mysqlConfig.database) {
+  try {
+    mysqlPool = mysql.createPool(mysqlConfig);
+    console.log('[Falix MySQL Engine] 🐬 Connected to Minecraft Server MySQL!');
+  } catch (err) {
+    console.warn('[Falix MySQL Engine] Connection notice:', err.message);
+  }
+}
   
   // Auto-create in-game sync tables if not exist
   mysqlPool.query(`

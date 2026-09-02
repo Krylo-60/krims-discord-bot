@@ -3,7 +3,7 @@ Crate:
   StartingKeys: 0
   InGUI: true
   Slot: 15
-  OpeningBroadCast: true
+  OpeningBroadCast: "<red><bold>⚡ %player%</bold> <gray>just opened a</gray> <red><bold>⚔️ LEGENDARY CRATE</bold> <gray>and won legendary loot!</gray>"
   BroadCast: "&c%player% &7just opened a &c🔴 Legendary Crate&7! &c&lINSANE!"
   Item: CHEST
   Custom-Model-Data: 1003
@@ -14,8 +14,21 @@ Crate:
     - "&7Use a &c🔴 Legendary Key &7to open!"
     - "&c&lExtremely Rare Loot!"
   Preview:
-    Name: "&c🔴 Legendary Crate Preview"
     Toggle: true
+    ChestLines: 6
+    Glass:
+      Toggle: true
+      Item: BLACK_STAINED_GLASS_PANE
+      Name: " "
+  
+  Hologram:
+    Toggle: true
+    Height: 1.8
+    Range: 16
+    Messages:
+      - "<red><bold>⚔️ LEGENDARY CRATE"
+      - "<gray>Right-Click with <red>Legendary Key"
+      - "<yellow><italic>Left-Click to Preview Loot"
   PhysicalKey:
     Name: "&c🔴 Legendary Key"
     Lore:

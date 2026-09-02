@@ -3,7 +3,7 @@ Crate:
   StartingKeys: 0
   InGUI: true
   Slot: 12
-  OpeningBroadCast: true
+  OpeningBroadCast: "<blue><bold>⚡ %player%</bold> <gray>just opened a</gray> <blue><bold>🛡️ RARE CRATE</bold> <gray>and won legendary loot!</gray>"
   BroadCast: "&9%player% &7just opened a &9🔵 Rare Crate&7!"
   Item: CHEST
   Custom-Model-Data: 1005
@@ -13,8 +13,21 @@ Crate:
     - "&7Right-click to preview rewards!"
     - "&7Use a &9🔵 Rare Key &7to open!"
   Preview:
-    Name: "&9🔵 Rare Crate Preview"
     Toggle: true
+    ChestLines: 6
+    Glass:
+      Toggle: true
+      Item: BLACK_STAINED_GLASS_PANE
+      Name: " "
+  
+  Hologram:
+    Toggle: true
+    Height: 1.8
+    Range: 16
+    Messages:
+      - "<blue><bold>🛡️ RARE CRATE"
+      - "<gray>Right-Click with <blue>Rare Key"
+      - "<yellow><italic>Left-Click to Preview Loot"
   PhysicalKey:
     Name: "&9🔵 Rare Key"
     Lore:

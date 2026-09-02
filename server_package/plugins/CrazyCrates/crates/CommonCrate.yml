@@ -3,7 +3,7 @@ Crate:
   StartingKeys: 0
   InGUI: true
   Slot: 10
-  OpeningBroadCast: true
+  OpeningBroadCast: "<yellow><bold>⚡ %player%</bold> <gray>just opened a</gray> <yellow><bold>📦 COMMON CRATE</bold> <gray>and won starter loot!</gray>"
   BroadCast: "&a%player% &7just opened a &a🟢 Common Crate&7!"
   Item: CHEST
   Custom-Model-Data: 1006
@@ -13,8 +13,21 @@ Crate:
     - "&7Right-click to preview rewards!"
     - "&7Use a &a🟢 Common Key &7to open!"
   Preview:
-    Name: "&a🟢 Common Crate Preview"
     Toggle: true
+    ChestLines: 6
+    Glass:
+      Toggle: true
+      Item: BLACK_STAINED_GLASS_PANE
+      Name: " "
+  
+  Hologram:
+    Toggle: true
+    Height: 1.8
+    Range: 16
+    Messages:
+      - "<yellow><bold>📦 COMMON CRATE"
+      - "<gray>Right-Click with <yellow>Common Key"
+      - "<yellow><italic>Left-Click to Preview Loot"
   PhysicalKey:
     Name: "&a🟢 Common Key"
     Lore:

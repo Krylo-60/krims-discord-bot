@@ -3,7 +3,7 @@ Crate:
   StartingKeys: 0
   InGUI: true
   Slot: 16
-  OpeningBroadCast: true
+  OpeningBroadCast: "<light_purple><bold>⚡ %player%</bold> <gray>just opened a</gray> <light_purple><bold>🔮 MYTHIC CRATE</bold> <gray>and won legendary loot!</gray>"
   BroadCast: "&d%player% &7just opened a &d🔮 Mythic Crate&7! &d&l✨ MYTHIC LOOT!"
   Item: CHEST
   Custom-Model-Data: 1002
@@ -14,8 +14,21 @@ Crate:
     - "&7Use a &d🔮 Mythic Key &7to open!"
     - "&d&lMythical Tier Rewards!"
   Preview:
-    Name: "&d🔮 Mythic Crate Preview"
     Toggle: true
+    ChestLines: 6
+    Glass:
+      Toggle: true
+      Item: BLACK_STAINED_GLASS_PANE
+      Name: " "
+  
+  Hologram:
+    Toggle: true
+    Height: 1.8
+    Range: 16
+    Messages:
+      - "<light_purple><bold>🔮 MYTHIC CRATE"
+      - "<gray>Right-Click with <light_purple>Mythic Key"
+      - "<yellow><italic>Left-Click to Preview Loot"
   PhysicalKey:
     Name: "&d🔮 Mythic Key"
     Lore:

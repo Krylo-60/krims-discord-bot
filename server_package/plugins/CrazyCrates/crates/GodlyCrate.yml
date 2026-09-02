@@ -3,7 +3,7 @@ Crate:
   StartingKeys: 0
   InGUI: true
   Slot: 17
-  OpeningBroadCast: true
+  OpeningBroadCast: "<gold><bold>⚡ %player%</bold> <gray>just opened a</gray> <gold><bold>👑 GODLY CRATE</bold> <gray>and won legendary loot!</gray>"
   BroadCast: "&6&l⚡ %player% &7just opened a &6👑 GODLY CRATE&7! &6&l⚡ ULTRA RARE!!"
   Item: CHEST
   Custom-Model-Data: 1001
@@ -15,8 +15,21 @@ Crate:
     - "&6&lThe rarest crate in KryloSMP!"
     - "&cOnly obtainable from events & the store!"
   Preview:
-    Name: "&6👑 Godly Crate Preview"
     Toggle: true
+    ChestLines: 6
+    Glass:
+      Toggle: true
+      Item: BLACK_STAINED_GLASS_PANE
+      Name: " "
+  
+  Hologram:
+    Toggle: true
+    Height: 1.8
+    Range: 16
+    Messages:
+      - "<gold><bold>👑 GODLY CRATE"
+      - "<gray>Right-Click with <gold>Godly Key"
+      - "<yellow><italic>Left-Click to Preview Loot"
   PhysicalKey:
     Name: "&6👑 Godly Key"
     Lore:
