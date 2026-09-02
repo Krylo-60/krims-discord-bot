@@ -41,24 +41,21 @@ if (mysqlConfig.user && mysqlConfig.password && mysqlConfig.database) {
   try {
     mysqlPool = mysql.createPool(mysqlConfig);
     console.log('[Falix MySQL Engine] 🐬 Connected to Minecraft Server MySQL!');
+    
+    // Auto-create in-game sync tables if not exist
+    mysqlPool.query(`
+      CREATE TABLE IF NOT EXISTS krylosmp_economy (
+        discord_id VARCHAR(64) PRIMARY KEY,
+        minecraft_ign VARCHAR(64) UNIQUE,
+        krylocoins BIGINT DEFAULT 10000,
+        bank BIGINT DEFAULT 0,
+        gems BIGINT DEFAULT 0,
+        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      );
+    `).catch(e => console.warn('[Falix MySQL] Table setup notice:', e.message));
   } catch (err) {
-    console.warn('[Falix MySQL Engine] Connection notice:', err.message);
+    console.warn('[Falix MySQL Engine] Connection pool notice:', err.message);
   }
-}
-  
-  // Auto-create in-game sync tables if not exist
-  mysqlPool.query(`
-    CREATE TABLE IF NOT EXISTS krylosmp_economy (
-      discord_id VARCHAR(64) PRIMARY KEY,
-      minecraft_ign VARCHAR(64) UNIQUE,
-      krylocoins BIGINT DEFAULT 10000,
-      bank BIGINT DEFAULT 0,
-      gems BIGINT DEFAULT 0,
-      last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    );
-  `).catch(e => console.warn('[Falix MySQL] Table setup notice:', e.message));
-} catch (err) {
-  console.warn('[Falix MySQL Engine] Connection pool notice:', err.message);
 }
 
 // Neon Lakebase Postgres Connection Pool
