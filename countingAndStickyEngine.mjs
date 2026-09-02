@@ -13,13 +13,17 @@ try {
 
     CREATE TABLE IF NOT EXISTS sticky_messages (
       channel_id TEXT PRIMARY KEY,
+      title TEXT DEFAULT '📌 Channel Notice',
       message_content TEXT NOT NULL,
+      color INTEGER DEFAULT 55542,
       last_sticky_id TEXT
     );
   `);
 } catch (e) {
   console.warn('[Counting/Sticky DB Init]', e.message);
 }
+
+const stickyLocks = new Map();
 
 /**
  * Handles Counting Logic in #🔢┃counting
@@ -153,20 +157,33 @@ export async function handleStickyMessage(message) {
     const row = db.prepare('SELECT * FROM sticky_messages WHERE channel_id = ?').get(message.channel.id);
     if (!row || !row.message_content) return;
 
-    // Delete previous sticky
-    if (row.last_sticky_id) {
-      const oldMsg = await message.channel.messages.fetch(row.last_sticky_id).catch(() => null);
-      if (oldMsg) await oldMsg.delete().catch(() => {});
-    }
+    // Debounce rapid messages to prevent message spam
+    if (stickyLocks.get(message.channel.id)) return;
+    stickyLocks.set(message.channel.id, true);
 
-    const embed = new EmbedBuilder()
-      .setColor(0x00D8F6)
-      .setTitle('📌 Notice')
-      .setDescription(row.message_content)
-      .setFooter({ text: 'KryloSMP Native Sticky Engine' });
+    setTimeout(async () => {
+      try {
+        // Delete previous sticky
+        if (row.last_sticky_id) {
+          const oldMsg = await message.channel.messages.fetch(row.last_sticky_id).catch(() => null);
+          if (oldMsg) await oldMsg.delete().catch(() => {});
+        }
 
-    const newSticky = await message.channel.send({ embeds: [embed] });
-    db.prepare('UPDATE sticky_messages SET last_sticky_id = ? WHERE channel_id = ?').run(newSticky.id, message.channel.id);
+        const embed = new EmbedBuilder()
+          .setColor(row.color || 0x00D8F6)
+          .setTitle(row.title || '📌 Notice')
+          .setDescription(row.message_content)
+          .setFooter({ text: 'KryloSMP Community Engine • Auto-Sticky' })
+          .setTimestamp();
+
+        const newSticky = await message.channel.send({ embeds: [embed] });
+        db.prepare('UPDATE sticky_messages SET last_sticky_id = ? WHERE channel_id = ?').run(newSticky.id, message.channel.id);
+      } catch (err) {
+        // Ignore sticky refresh errors
+      } finally {
+        stickyLocks.delete(message.channel.id);
+      }
+    }, 1500);
   } catch (err) {
     // Ignore sticky refresh errors
   }
