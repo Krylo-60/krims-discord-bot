@@ -1,5 +1,12 @@
 # 🚀 KryloSMP Discord Bot — Agent Continuation Guide
 
+> [!CAUTION]
+> ### 🛡️ ZERO SECRET LEAKAGE & STRICT SECURITY PROTOCOL (MANDATORY FOR ALL AGENTS)
+> 1. **NEVER HARDCODE SECRETS:** Under NO circumstances should any API keys, database passwords, Discord bot tokens, webhook URLs, SSH keys, or server passwords be written directly into code, scripts, Markdown files, or git-tracked files.
+> 2. **STRICT `.env` & PROCESS.ENV INJECTION:** All sensitive parameters MUST strictly be read from `process.env.<VAR_NAME>`. The `.env` file is in `.gitignore` and must NEVER be committed to Git or pushed to GitHub.
+> 3. **NO COMMITTING UNENCRYPTED WEBHOOKS OR CREDENTIALS:** When writing new scripts or database connectors, always use `process.env.DATABASE_URL`, `process.env.DISCORD_TOKEN`, `process.env.FALIX_API_KEY`, etc.
+> 4. **EVIDENCE LOG PRESERVATION:** The file `EVIDENCE_LOG_WEBHOOK_INCIDENT.md` is an immutable official evidence log and MUST be preserved at all times for police/cybercrime reporting.
+
 ## Overview
 This document enables future Antigravity agents to seamlessly continue work on the KryloSMP Discord bot ecosystem. Read this FIRST before making any changes.
 
@@ -33,7 +40,7 @@ This document enables future Antigravity agents to seamlessly continue work on t
 ### Connected Services
 - **Player Portal**: https://krylosmp.web.app/
 - **KC Store** (NOT real money): https://krylosmp-store.web.app/
-- **Minecraft Server**: KryloSmp.play.hosting (Java 25565, Bedrock 19132)
+- **Minecraft Server**: krylosmp.falix.gg:29273 (Java 25565, Bedrock 19132)
 - **Pterodactyl Panel**: https://panel.play.hosting/server/25a5d79a
 
 ---
