@@ -42,10 +42,10 @@ export async function handleCountingMessage(message) {
   } catch (_) {}
 
   if (!state) {
-    state = { current_number: 3, last_user_id: null, high_score: 3 };
+    state = { current_number: 0, last_user_id: null, high_score: 0 };
     try {
       db.prepare('INSERT OR REPLACE INTO counting_state (channel_id, current_number, last_user_id, high_score) VALUES (?, ?, ?, ?)')
-        .run(message.channel.id, 3, null, 3);
+        .run(message.channel.id, 0, null, 0);
     } catch (_) {}
   }
 
