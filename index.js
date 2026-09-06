@@ -6970,12 +6970,12 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // Handle #🔢┃counting auto validation and game engine
+  // Note: #🔢┃counting is handled exclusively by countingAPP and StickyBot
   if (message.guild && message.channel.name && message.channel.name.includes('counting')) {
-    await handleCountingMessage(message);
+    return;
   }
 
-  // Handle Native Sticky Messages in guilds
+  // Handle Native Sticky Messages in other channels
   if (message.guild) {
     await handleStickyMessage(message);
   }
@@ -9311,8 +9311,8 @@ const server = http.createServer(async (req, res) => {
         playersOnline: data.players?.online || 0,
         playersMax: data.players?.max || 1000,
         playerList: data.players?.list || [],
-        motd: data.motd?.clean || 'KryloSMP Season 1',
-        version: data.version?.name_clean || 'Paper 1.21.x'
+        motd: data.motd?.clean || 'KryloSMP Season 1 [v26.2]',
+        version: 'Paper 26.2 (Geyser Crossplay)'
       }));
     } catch (e) {
       res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
