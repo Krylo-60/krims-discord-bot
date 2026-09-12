@@ -119,16 +119,16 @@ function queryKrimsAI(prompt) {
   const cleanPrompt = prompt.toLowerCase().trim();
   
   if (cleanPrompt.includes('hello') || cleanPrompt.includes('hi') || cleanPrompt.includes('hey')) {
-    return 'Greetings, legend! I am Krims Code AI, custom-built by Krishiv. Live 1-on-1 voice mode is active. How can I help you today?';
+    return 'Greetings, legend! I am Krims Code AI, custom-built by the Krylo Team. Live 1-on-1 voice mode is active. How can I help you today?';
   }
   if (cleanPrompt.includes('who created') || cleanPrompt.includes('who made') || cleanPrompt.includes('creator') || cleanPrompt.includes('krishiv')) {
-    return 'Krims Code AI was masterfully built and custom-trained by Krishiv, founder of Krishiv Studios!';
+    return 'Krims Code AI was masterfully built and custom-trained by the Krylo Team, founder of Krylo Studios!';
   }
   if (cleanPrompt.includes('krylo') || cleanPrompt.includes('smp') || cleanPrompt.includes('server')) {
     return 'KryloSMP is online 24/7 with custom Warlord bosses, player ranks, and high-speed cloud infrastructure!';
   }
   if (cleanPrompt.includes('status')) {
-    return 'All KryloSMP and Krishiv Studios cloud systems are operating at 100% capacity and peak performance!';
+    return 'All KryloSMP and Krylo Studios cloud systems are operating at 100% capacity and peak performance!';
   }
 
   return `I heard you say: "${prompt}". Live 1-on-1 voice AI mode is operating at full capacity! What shall we build next?`;
@@ -245,7 +245,7 @@ function listenToUser(userId, connection, textChannel, guildId) {
               { name: '🗣️ Your Voice Input', value: `*"${transcribedText}"*`, inline: false },
               { name: '🤖 Krims AI Verbal Response', value: `> ${aiResponse}`, inline: false }
             ],
-            footer: { text: '👑 KryloSMP Sovereign Network • Coded by Krishiv ⚡' },
+            footer: { text: '👑 KryloSMP Sovereign Network • Coded by the Krylo Team ⚡' },
             timestamp: new Date().toISOString()
           }]
         }).catch(err => console.error('Failed to send text embed:', err.message));
@@ -333,7 +333,7 @@ export async function joinVoice(context, isOneOnOne = false) {
                      '• 🎤 **High-Precision Speech Recognition**: Speak into your microphone and Krims Bot transcribes your voice.\n' +
                      '• 🔊 **Instant Verbal Reply**: Krims Bot talks right back to you in real-time TTS audio.\n' +
                      '• 💬 **Live Transcript Mirror**: Posted live in ' + `${context.channel}.\n\n` +
-                     '_"Crafted with perfection by Krishiv for the Krylo Community."_',
+                     '_"Crafted with perfection by the Krylo Team for the Krylo Community."_',
         footer: { text: '👑 KryloSMP Sovereign Network • Type /voice leave or !voice leave to disconnect ⚡' },
         timestamp: new Date().toISOString()
       }]
@@ -369,7 +369,7 @@ export async function leaveVoice(context) {
         color: 0xFF4444,
         title: '👋 1-on-1 Voice Call Ended',
         description: 'Krims Bot has disconnected from the voice channel. Great speaking with you!',
-        footer: { text: 'KryloSMP Sovereign Network • Coded by Krishiv ⚡' }
+        footer: { text: 'KryloSMP Sovereign Network • Coded by the Krylo Team ⚡' }
       }],
       ephemeral: false
     });
@@ -398,7 +398,7 @@ export async function getVoiceStatus(context) {
         color: 0xED4245,
         title: '🎙️ KRIMS VOICE AI • STATUS REPORT',
         description: 'Status: 🔴 **Offline / Standby**\n\nUse `/voice action:join` or `!voice call` while in a voice channel to start a Live 1-on-1 Voice Call!',
-        footer: { text: 'KryloSMP Sovereign Network • Coded by Krishiv ⚡' }
+        footer: { text: 'KryloSMP Sovereign Network • Coded by the Krylo Team ⚡' }
       }]
     });
   }
@@ -414,9 +414,9 @@ export async function getVoiceStatus(context) {
         { name: '🔊 Channel Lock', value: channelId ? `<#${channelId}>` : 'Active Voice Channel', inline: true },
         { name: '🎤 STT Engine', value: '⚡ FFmpeg 16kHz Mono + Wit.ai Speech API', inline: false },
         { name: '🗣️ TTS Engine', value: '🔊 Google Neural TTS Audio Player', inline: false },
-        { name: '👑 Master Architecture', value: 'Custom Trained by Krishiv for KryloSMP', inline: false }
+        { name: '👑 Master Architecture', value: 'Custom Trained by the Krylo Team for KryloSMP', inline: false }
       ],
-      footer: { text: 'KryloSMP Sovereign Network • Coded by Krishiv ⚡' },
+      footer: { text: 'KryloSMP Sovereign Network • Coded by the Krylo Team ⚡' },
       timestamp: new Date().toISOString()
     }]
   });

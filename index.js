@@ -3289,7 +3289,7 @@ client.on('interactionCreate', async (interaction) => {
         .setCustomId('verify_mc_ign')
         .setLabel('Minecraft Username (In-Game Name / IGN)')
         .setStyle(TextInputStyle.Short)
-        .setPlaceholder('e.g. Krylo_Plays, Notch, Krishiv')
+        .setPlaceholder('e.g. Krylo_Plays, Notch, Steve')
         .setMinLength(3)
         .setMaxLength(16)
         .setRequired(true);
@@ -3777,7 +3777,7 @@ client.on('interactionCreate', async (interaction) => {
   let botPrefix = '!';
   let aiEnabled = true;
   let modelEngine = 'gemini';
-  let systemInstruction = 'You are the Krylo SMP Bot, built and custom-trained by the genius developer Krishiv. Answer coding queries with clear instructions and a friendly, confident tone.';
+  let systemInstruction = 'You are the Krylo SMP Bot, built and custom-trained by the Krylo Team. Answer coding queries with clear instructions and a friendly, confident tone.';
   let ticketsEnabled = true;
 
   if (interaction.guild) {
@@ -4809,7 +4809,7 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     // Owner / Creator Protection Guard
-    const protectedMcNames = ['krishiv', 'krylo_mc', 'krishivpb60'];
+    const protectedMcNames = ['krylo_mc', 'krylo', 'krylo_plays'];
     if (targetUser && (targetUser.id === interaction.guild.ownerId || targetUser.id === '1524878881918685405' || targetUser.id === '1524878881918685405')) {
       await interaction.reply({ content: '❌ **Protection Guard:** You cannot ban the server owner or developers!', ephemeral: true });
       return;
@@ -7411,7 +7411,7 @@ client.on('messageCreate', async (message) => {
   let botPrefix = '!';
   let aiEnabled = true;
   let modelEngine = 'gemini';
-  let systemInstruction = 'You are the Krylo SMP Bot, built and custom-trained by the genius developer Krishiv. Answer coding queries with clear instructions and a friendly, confident tone.';
+  let systemInstruction = 'You are the Krylo SMP Bot, built and custom-trained by the Krylo Team. Answer coding queries with clear instructions and a friendly, confident tone.';
   let ticketsEnabled = true;
   let guildConfig = null;
 
@@ -7847,7 +7847,7 @@ client.on('messageCreate', async (message) => {
       ],
       timestamp: new Date().toISOString(),
       footer: {
-        text: 'Krims Code Command Center • Coded by Krishiv'
+        text: 'Krims Code Command Center • Coded by the Krylo Team'
       }
     };
     await message.reply({ embeds: [helpEmbed] });
@@ -8333,7 +8333,7 @@ client.on('guildBanAdd', async (ban) => {
   const user = ban.user;
 
   // Owner / Creator Protection Guard
-  const protectedMcNames = ['krishiv', 'krylo_mc', 'krishivpb60'];
+  const protectedMcNames = ['krylo_mc', 'krylo', 'krylo_plays'];
   if (user.id === ban.guild.ownerId || user.id === '1524878881918685405' || user.id === '1524878881918685405') {
     console.log(`[Double-Ban Sync] Aborted ban synchronization: Banned user is a protected owner/developer.`);
     return;
@@ -8971,7 +8971,7 @@ async function handleTicketMessage(message) {
 
     const ticketSystemInstruction = 
       "You are Krims Support AI, the official support assistant for the KryloSMP Minecraft Server and Discord community. " +
-      "You were built by Krishiv to help players resolve their issues.\n\n" +
+      "You were built by the Krylo Team to help players resolve their issues.\n\n" +
       "Server Context:\n" +
       "- You are currently talking inside the official KryloSMP Discord Server.\n" +
       "- The Minecraft Server IP is: krylosmp.falix.gg:29273\n" +
@@ -9019,7 +9019,7 @@ async function handleTicketMessage(message) {
       const classificationPrompt = `Analyze the following support ticket message: "${message.content}"
       
       Determine if this is one of these three requests and respond with the exact instruction:
-      1. Whitelist a player name (e.g. "whitelist me", "add me to whitelist", "name: krishiv"): respond with "AUTO_EXECUTE: easywhitelist add <name>" (replace <name> with their username).
+      1. Whitelist a player name (e.g. "whitelist me", "add me to whitelist", "name: Krylo_MC"): respond with "AUTO_EXECUTE: easywhitelist add <name>" (replace <name> with their username).
       2. Unban a player (e.g. "unban me", "pardon my friend"): respond with "AUTO_EXECUTE: pardon <name>".
       3. Reset their login password (e.g. "reset my password", "forgot my login password"): respond with "AUTO_EXECUTE: krylo resetpass <name> <temp_pass>" (generate a random 6-character alphanumeric temp_pass).
       
