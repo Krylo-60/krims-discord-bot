@@ -8055,45 +8055,7 @@ client.on('guildMemberAdd', async (member) => {
     console.warn(`[Welcome] Could not DM ${member.user.username}:`, err.message);
   }
 
-  // Send styled welcome card in #general-chat
-  try {
-    const generalCh = member.guild.channels.cache.find(c => c.name.includes('general-chat') && c.type === ChannelType.GuildText);
-    if (generalCh) {
-      const memberCount = member.guild.memberCount;
-      const avatarUrl = member.user.displayAvatarURL({ extension: 'png', forceStatic: true, size: 256 });
-      
-      const cardBuffer = await generateWelcomeCard(avatarUrl, member.user.username, memberCount).catch(() => null);
-      let files = [];
-      if (cardBuffer) {
-        files.push(new AttachmentBuilder(cardBuffer, { name: 'welcome-card.png' }));
-      }
-
-      const verifyCh = member.guild.channels.cache.find(c => c.name.includes('verify') && c.type === ChannelType.GuildText);
-      const rulesCh = member.guild.channels.cache.find(c => c.name.includes('rules') && c.type === ChannelType.GuildText);
-
-      const embed = new EmbedBuilder()
-        .setColor(0x00F2FF)
-        .setTitle('⚡ New Player Joined!')
-        .setDescription(
-          `Welcome to **${member.guild.name}**, <@${member.user.id}>! You are member **#${memberCount}**!\n\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-          `🔐 Head to ${verifyCh ? `<#${verifyCh.id}>` : '#verify'} to **verify** and pick your platform\n` +
-          `📜 Read the ${rulesCh ? `<#${rulesCh.id}>` : '#rules'} to stay safe\n` +
-          `🎮 Connect to \`krylosmp.falix.gg:29273\` and start playing!`
-        )
-        .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
-        .setFooter({ text: `${member.guild.name} • ${memberCount} members • Built by Krishiv ⚡` })
-        .setTimestamp();
-
-      if (cardBuffer) {
-        embed.setImage('attachment://welcome-card.png');
-      }
-
-      await generalCh.send({ embeds: [embed], files });
-    }
-  } catch (err) {
-    console.warn(`[Welcome] Failed to send welcome message:`, err.message);
-  }
+  // Welcome messages in general-chat disabled as requested
 });
 
 // ═══════════════════════════════════════════════════════════
