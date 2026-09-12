@@ -82,8 +82,14 @@ const GROQ_KEYS_POOL = [
 ].filter(Boolean);
 let groqPoolIdx = 0;
 
-async function geminiDirectAsk(prompt, systemInstruction = '') {
-  const sysInstr = systemInstruction || 'You are Krims Code AI, the official intelligent assistant for KryloSMP Minecraft Network (krylosmp.falix.gg:29273). Friendly, helpful, concise with clean markdown formatting.';
+async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '') {
+  let defaultSys = 'You are Krims Code AI, a fast, intelligent, and helpful Discord AI assistant powered by Groq LPUs. Friendly, helpful, concise with clean markdown formatting.';
+  if (guildName && (guildName.toLowerCase().includes('krylo') || guildName.toLowerCase().includes('smp'))) {
+    defaultSys = 'You are Krims Code AI, the official intelligent assistant for KryloSMP Minecraft Network (krylosmp.falix.gg:29273). Friendly, helpful, concise with clean markdown formatting.';
+  } else if (guildName) {
+    defaultSys = `You are Krims Code AI, the friendly and intelligent Discord AI assistant for the "${guildName}" server community. Friendly, helpful, concise with clean markdown formatting.`;
+  }
+  const sysInstr = systemInstruction || defaultSys;
   
   // 1. Try Groq LPU (Ultra-fast ~50ms response)
   const GROQ_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'qwen/qwen3.6-27b'];
@@ -5048,22 +5054,38 @@ client.on('interactionCreate', async (interaction) => {
   
   // Command: /help
   if (commandName === 'help') {
+    const isKrylo = interaction.guild?.name?.toLowerCase().includes('krylo') || interaction.guild?.id === '1538225337048236082';
+    
     const embed = new EmbedBuilder()
       .setColor(0x00F2FF)
-      .setTitle('📜 KryloSMP Bot Commands')
+      .setTitle(`📜 ${interaction.guild?.name || 'Community'} • Bot Commands`)
       .setDescription(
-        'Here are the available commands:\n\n' +
-        '• `/daily` - Claim free daily rewards & KryloCoins!\n' +
-        '• `/bday [user]` - Celebrate birthday with fireworks & double XP!\n' +
-        '• `/level` or `/rank` - View chat level and XP progress!\n' +
-        '• `/work` - Work to earn KryloCoins!\n' +
-        '• `/ip` - Show Java & Bedrock server connection details!\n' +
-        '• `/store` - View KryloSMP official webstore link!\n' +
-        '• `/pvp [user]` - Challenge a player to a 1v1 duel!\n' +
-        '• `/tournament` - Join monthly server tournaments!\n' +
-        '• `/leaderboard` - View top player rankings!'
+        isKrylo
+          ? 'Here are the official KryloSMP commands:\n\n' +
+            '• `/ask [question]` - Ask Krims Code AI anything (Groq 120B & Gemini powered)!\n' +
+            '• `/daily` - Claim free daily rewards & KryloCoins!\n' +
+            '• `/level` or `/rank` - View chat level and XP progress!\n' +
+            '• `/work` - Work to earn coins!\n' +
+            '• `/ip` - Show Java & Bedrock server connection details!\n' +
+            '• `/store` - View KryloSMP official webstore link!\n' +
+            '• `/pvp [user]` - Challenge a player to a 1v1 duel!\n' +
+            '• `/bday [user]` - Celebrate birthday with fireworks & double XP!\n' +
+            '• `/leaderboard` - View top player rankings!'
+          : 'Welcome to **Krims Code AI**! Here are the available commands for your server:\n\n' +
+            '🤖 **AI & Utilities:**\n' +
+            '• `/ask [question]` - Chat with the AI (powered by Groq 120B LPUs)!\n' +
+            '• `/level` or `/rank` - View member XP and activity ranks!\n' +
+            '• `/bday [user]` - Celebrate a member\'s birthday with fireworks!\n' +
+            '• `/poll [question]` - Create community polls and voting!\n' +
+            '• `/userinfo` / `/serverinfo` - Display member or server stats!\n\n' +
+            '🛡️ **Moderation & Fun:**\n' +
+            '• `/mute`, `/unmute`, `/kick`, `/ban` - Staff moderation tools\n' +
+            '• `/roll`, `/coinflip` - Fun dice and coin minigames\n\n' +
+            '*Invite Krims Code AI to your own servers to power smart AI chat and utilities!*'
       )
+      .setFooter({ text: `${interaction.guild?.name || 'Discord'} • Powered by Krims Code AI` })
       .setTimestamp();
+
     await interaction.reply({ embeds: [embed] }).catch(() => {});
     return;
   }
@@ -6971,9 +6993,9 @@ if (commandName === 'lootbox') {
         let responseText = null;
         let history = conversationHistory.get(interaction.channel.id) || [];
 
-        // 🧠 Try Gemini 3.5 Flash-Lite direct API first (faster + smarter)
-        if (geminiClient) {
-          responseText = await geminiDirectAsk(prompt, systemInstruction);
+        // 🧠 Try Groq 120B / Gemini direct API first (faster + smarter)
+        if (geminiClient || GROQ_KEYS_POOL.length > 0) {
+          responseText = await geminiDirectAsk(prompt, systemInstruction, interaction.guild?.name);
         }
 
         // Fallback to Krims SDK if direct Gemini unavailable or failed
