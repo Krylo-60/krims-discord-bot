@@ -86,9 +86,10 @@ async function geminiDirectAsk(prompt, systemInstruction = '') {
   const sysInstr = systemInstruction || 'You are Krims Code AI, the official intelligent assistant for KryloSMP Minecraft Network (krylosmp.falix.gg:29273). Friendly, helpful, concise with clean markdown formatting.';
   
   // 1. Try Groq LPU (Ultra-fast ~50ms response)
+  const GROQ_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'qwen/qwen3.6-27b'];
   for (let i = 0; i < GROQ_KEYS_POOL.length; i++) {
     const key = GROQ_KEYS_POOL[(groqPoolIdx + i) % GROQ_KEYS_POOL.length];
-    for (const m of ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'groq/compound']) {
+    for (const m of GROQ_MODELS) {
       try {
         const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
@@ -116,6 +117,41 @@ async function geminiDirectAsk(prompt, systemInstruction = '') {
         // continue to next model/key
       }
     }
+  }
+
+  // Helper for Groq Vision models (Qwen 3.8 / 3.6 27B)
+  async function groqVisionAsk(imageUrl, promptText = 'Analyze this image', sysText = '') {
+    for (let i = 0; i < GROQ_KEYS_POOL.length; i++) {
+      const key = GROQ_KEYS_POOL[(groqPoolIdx + i) % GROQ_KEYS_POOL.length];
+      for (const m of ['qwen/qwen3.8-27b', 'qwen/qwen3.6-27b']) {
+        try {
+          const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: m,
+              messages: [
+                { role: 'system', content: sysText || 'You are Krims Code AI Vision Assistant. Analyze the image accurately and concisely.' },
+                {
+                  role: 'user',
+                  content: [
+                    { type: 'text', text: promptText },
+                    { type: 'image_url', image_url: { url: imageUrl } }
+                  ]
+                }
+              ],
+              max_tokens: 500
+            })
+          });
+          if (res.ok) {
+            const d = await res.json();
+            const ans = d.choices?.[0]?.message?.content;
+            if (ans) return ans.trim();
+          }
+        } catch (e) {}
+      }
+    }
+    return null;
   }
 
   // 2. Gemini Fallback
