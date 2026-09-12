@@ -1980,6 +1980,20 @@ client.on('interactionCreate', async (interaction) => {
         content: `🔄 **Got it, Kevin!** We can easily adjust or revert anything you like. Send a message to Krylo or type in chat what you would like changed, and we will update it for you right away! 🤝`
       });
     }
+
+    if (customId === 'btn_tournament_register') {
+      return interaction.reply({
+        content: `⚔️ **Championship Registration**\nTo register for the September 2026 Tournament, please reply here or open a quick ticket in <#1542646342827118672> with your in-game Minecraft IGN and Discord tag!\nGood luck in the arena! 👑`,
+        ephemeral: true
+      });
+    }
+
+    if (customId === 'btn_tournament_rules') {
+      return interaction.reply({
+        content: `📜 **Tournament Rules & Match Format**\n• **Format:** Single Elimination Best-of-3 (Finals Best-of-5)\n• **Kit:** 1.21 Competitive Gear & Crystal PvP Kit\n• **Disqualifications:** Combat logging, hacked clients, or macros >15 CPS will result in an immediate DQ & ban.\n• **Fair Play:** Refereed live by KryloSMP Staff in-game at \`/warp tournament\`!`,
+        ephemeral: true
+      });
+    }
   }
 
   if (!interaction.guild) return;
