@@ -1983,7 +1983,7 @@ client.on('interactionCreate', async (interaction) => {
 
     if (customId === 'btn_tournament_register') {
       return interaction.reply({
-        content: `⚔️ **Championship Registration**\nTo register for the September 2026 Tournament, please reply here or open a quick ticket in <#1542646342827118672> with your in-game Minecraft IGN and Discord tag!\nGood luck in the arena! 👑`,
+        content: `⚔️ **Championship Registration**\nTo register for the September 2026 Tournament, please reply here or open a quick ticket in <#1542646331502366760> with your in-game Minecraft IGN and Discord tag!\nGood luck in the arena! 👑`,
         ephemeral: true
       });
     }
