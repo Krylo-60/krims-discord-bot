@@ -1990,6 +1990,19 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.isButton()) {
     const { customId } = interaction;
 
+    // KevinMC Setup Feedback Buttons
+    if (customId === 'kevin_keep_setup') {
+      return interaction.reply({
+        content: `🎉 **Awesome Kevin!** The new layout and staff system for **KevinMC** are locked in! Have an amazing time running your community, and let Krylo know if you ever need tweaks! 👑🚀`
+      });
+    }
+
+    if (customId === 'kevin_revert_setup') {
+      return interaction.reply({
+        content: `🔄 **Got it, Kevin!** We can easily adjust or revert anything you like. Send a message to Krylo or type in chat what you would like changed, and we will update it for you right away! 🤝`
+      });
+    }
+
     // Legendary Giveaway & Daily Reward Buttons
     if (customId === 'btn_claim_daily_kc') {
       const now = Date.now();
