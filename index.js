@@ -7069,10 +7069,11 @@ client.on('messageCreate', async (message) => {
     // AI Chat in DMs
     try {
       await message.channel.sendTyping().catch(() => {});
-      const aiReply = await geminiDirectAsk(dmText, 'You are Krims Code AI in Discord Direct Messages. Be warm, welcoming, and helpful to the player. Server IP: krylosmp.falix.gg:29273 | Store: https://krylosmp-store.web.app/');
+      const dmPrompt = 'You are Krims Code AI, an intelligent, helpful, and friendly Discord AI assistant. Answer the user helpfully, politely, and concisely. Only mention KryloSMP or server links if the user specifically asks about Minecraft or KryloSMP.';
+      const aiReply = await geminiDirectAsk(dmText, dmPrompt);
       await sendSafeMessage(message.channel, aiReply);
     } catch (dmErr) {
-      await message.channel.send("👋 Hello! Welcome to **KryloSMP**!\n🎮 **Server IP:** \`krylosmp.falix.gg:29273\`\n💬 **Discord:** https://discord.gg/6vrEDTu3bx\n🛒 **Store:** https://krylosmp-store.web.app/").catch(() => {});
+      await message.channel.send("👋 Hello! I am **Krims Code AI**, your friendly Discord assistant! How can I help you today?").catch(() => {});
     }
     return;
   }
