@@ -142,6 +142,13 @@ export const DEFAULT_RULES = {
 export async function handleStickyMessage(message) {
   if (!message.guild || message.author.bot) return;
 
+  // STRICT GUILD ISOLATION: Only run KryloSMP stickies in KryloSMP guilds!
+  const isKryloGuild = message.guild.name.toLowerCase().includes('krylo') || 
+                       message.guild.id === '1538225337048236082' || 
+                       message.guild.id === '1420991845546332162' || 
+                       message.guild.id === '1532574925356007525';
+  if (!isKryloGuild) return;
+
   const content = message.content.trim();
 
   // 1. Manual ?stick command
