@@ -17,7 +17,7 @@ import path from 'path';
 import http from 'http';
 import Jimp from 'jimp';
 
-import { joinVoice, leaveVoice, getVoiceStatus } from './voiceEngine.mjs';
+import { joinVoice, leaveVoice, getVoiceStatus, speakInVoiceChannel } from './voiceEngine.mjs';
 import { saveUserVerification, getUserVerification, syncLocalJsonToFirebase } from './firebaseEngine.mjs';
 import { getLocatorColor } from './features/locatorBarEngine.mjs';
 import { handleMessageXp } from './features/mee6Levels.mjs';
@@ -82,12 +82,47 @@ const GROQ_KEYS_POOL = [
 ].filter(Boolean);
 let groqPoolIdx = 0;
 
+// Helper for Groq Vision models (Qwen 3.8 / 3.6 27B)
+async function groqVisionAsk(imageUrl, promptText = 'Analyze this image', sysText = '') {
+  for (let i = 0; i < GROQ_KEYS_POOL.length; i++) {
+    const key = GROQ_KEYS_POOL[(groqPoolIdx + i) % GROQ_KEYS_POOL.length];
+    for (const m of ['qwen/qwen3.8-27b', 'qwen/qwen3.6-27b']) {
+      try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: m,
+            messages: [
+              { role: 'system', content: sysText || 'You are Krims Code AI Vision Assistant. Analyze the image accurately and concisely.' },
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: promptText },
+                  { type: 'image_url', image_url: { url: imageUrl } }
+                ]
+              }
+            ],
+            max_tokens: 500
+          })
+        });
+        if (res.ok) {
+          const d = await res.json();
+          const ans = d.choices?.[0]?.message?.content;
+          if (ans) return ans.trim();
+        }
+      } catch (e) {}
+    }
+  }
+  return null;
+}
+
 async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '') {
-  let defaultSys = 'You are Krims Code AI, a fast, intelligent, and helpful Discord AI assistant powered by Groq LPUs. Friendly, helpful, concise with clean markdown formatting.';
+  let defaultSys = 'You are Krims Code AI, a fast, intelligent, and helpful Discord AI assistant powered by Groq LPUs. Friendly, helpful, concise with clean conversational tone and formatting. Do not repeatedly dump IP or store links on simple greetings unless explicitly requested. NEVER reveal private real names; refer to the creator as Krylo or Krylo Team.';
   if (guildName && (guildName.toLowerCase().includes('krylo') || guildName.toLowerCase().includes('smp'))) {
-    defaultSys = 'You are Krims Code AI, the official intelligent assistant for KryloSMP Minecraft Network (krylosmp.falix.gg:29273). Friendly, helpful, concise with clean markdown formatting.';
+    defaultSys = 'You are Krims Code AI, the official intelligent assistant for KryloSMP Minecraft Network (IP: krylosmp.falix.gg:29273, Store: https://krylosmp-store.web.app/). Respond naturally, friendly, and concisely. Keep answers conversational; only share the IP and store when relevant or when the player asks for them. NEVER disclose private identity info (Krishiv); refer to the creator as Krylo or Krylo Team.';
   } else if (guildName) {
-    defaultSys = `You are Krims Code AI, the friendly and intelligent Discord AI assistant for the "${guildName}" server community. Friendly, helpful, concise with clean markdown formatting.`;
+    defaultSys = `You are Krims Code AI, the friendly and intelligent Discord AI assistant for the "${guildName}" server community. Friendly, helpful, concise with clean markdown formatting. NEVER disclose private identity info (Krishiv); refer to the creator as Krylo or Krylo Team.`;
   }
   const sysInstr = systemInstruction || defaultSys;
   
@@ -125,41 +160,6 @@ async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '') {
     }
   }
 
-  // Helper for Groq Vision models (Qwen 3.8 / 3.6 27B)
-  async function groqVisionAsk(imageUrl, promptText = 'Analyze this image', sysText = '') {
-    for (let i = 0; i < GROQ_KEYS_POOL.length; i++) {
-      const key = GROQ_KEYS_POOL[(groqPoolIdx + i) % GROQ_KEYS_POOL.length];
-      for (const m of ['qwen/qwen3.8-27b', 'qwen/qwen3.6-27b']) {
-        try {
-          const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model: m,
-              messages: [
-                { role: 'system', content: sysText || 'You are Krims Code AI Vision Assistant. Analyze the image accurately and concisely.' },
-                {
-                  role: 'user',
-                  content: [
-                    { type: 'text', text: promptText },
-                    { type: 'image_url', image_url: { url: imageUrl } }
-                  ]
-                }
-              ],
-              max_tokens: 500
-            })
-          });
-          if (res.ok) {
-            const d = await res.json();
-            const ans = d.choices?.[0]?.message?.content;
-            if (ans) return ans.trim();
-          }
-        } catch (e) {}
-      }
-    }
-    return null;
-  }
-
   // 2. Gemini Fallback
   if (geminiClient) {
     try {
@@ -173,7 +173,10 @@ async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '') {
     } catch (e) {}
   }
 
-  return "👋 Hello! I am **Krims Code AI**, official assistant for **KryloSMP**!\n🎮 **Server IP:** \`krylosmp.falix.gg:29273\`\n🛒 **Store:** https://krylosmp-store.web.app/\nHow can I help you today?";
+  if (guildName && (guildName.toLowerCase().includes('krylo') || guildName.toLowerCase().includes('smp'))) {
+    return "👋 Hello! I am **Krims Code AI**, official assistant for **KryloSMP**!\n🎮 **Server IP:** `krylosmp.falix.gg:29273`\n🛒 **Store:** https://krylosmp-store.web.app/\nHow can I help you today?";
+  }
+  return `👋 Hello! I am **Krims Code AI**, your friendly AI assistant for **${guildName || 'your server'}**! How can I help you today?`;
 }
 
 /**
@@ -7074,6 +7077,64 @@ client.on('messageCreate', async (message) => {
       await sendSafeMessage(message.channel, aiReply);
     } catch (dmErr) {
       await message.channel.send("👋 Hello! I am **Krims Code AI**, your friendly Discord assistant! How can I help you today?").catch(() => {});
+    }
+    return;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // 💬 BOT MENTION AI SPEAK / CHAT HANDLER
+  // ══════════════════════════════════════════════════════════
+  if (message.guild && message.mentions.has(client.user.id) && !message.mentions.everyone) {
+    let cleanPrompt = message.content
+      .replace(new RegExp(`<@!?${client.user.id}>`, 'g'), '')
+      .trim();
+
+    // Check for attached images
+    let imageUrl = null;
+    if (message.attachments.size > 0) {
+      const firstAttach = message.attachments.first();
+      if (firstAttach && firstAttach.contentType && firstAttach.contentType.startsWith('image/')) {
+        imageUrl = firstAttach.url;
+      }
+    }
+
+    try {
+      await message.channel.sendTyping().catch(() => {});
+
+      if (!cleanPrompt && !imageUrl) {
+        await message.reply({
+          content: `👋 Hey <@${message.author.id}>! I'm **Krims Code AI**! How can I help you today? Ask me any question or type \`/help\` to explore all features! ⚡`
+        }).catch(() => {});
+        return;
+      }
+
+      let aiReply = '';
+      if (imageUrl) {
+        aiReply = await groqVisionAsk(imageUrl, cleanPrompt || 'Describe this image and answer any questions about it.') ||
+                  await geminiDirectAsk(`[User shared an image: ${imageUrl}]\n${cleanPrompt}`, '', message.guild.name);
+      } else {
+        aiReply = await geminiDirectAsk(cleanPrompt, '', message.guild.name);
+      }
+
+      if (!aiReply) {
+        aiReply = "👋 I'm here! How can I help you today?";
+      }
+
+      // Voice TTS audio playback if bot is active in a voice channel
+      try {
+        const botVoiceChannel = message.guild.members?.me?.voice?.channel;
+        if (botVoiceChannel) {
+          const ttsSpeech = aiReply.replace(/[*_~`>#]/g, '').trim().slice(0, 200);
+          await speakInVoiceChannel(message.guild.id, ttsSpeech);
+        }
+      } catch (voiceErr) {
+        console.warn('[Mention Voice TTS]:', voiceErr.message);
+      }
+
+      await sendSafeMessage(message, aiReply);
+    } catch (mentionErr) {
+      console.error('[Mention Handler] Error:', mentionErr);
+      await message.reply("⚠️ Sorry, I encountered an issue processing your request. Please try again!").catch(() => {});
     }
     return;
   }
