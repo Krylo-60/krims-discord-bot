@@ -20,7 +20,7 @@ import Jimp from 'jimp';
 import { joinVoice, leaveVoice, getVoiceStatus, speakInVoiceChannel } from './voiceEngine.mjs';
 import { saveUserVerification, getUserVerification, syncLocalJsonToFirebase } from './firebaseEngine.mjs';
 import { getLocatorColor } from './features/locatorBarEngine.mjs';
-import { handleMessageXp } from './features/mee6Levels.mjs';
+import { handleMessageXp, sendRankCard, handleRankCommand } from './features/mee6Levels.mjs';
 import { afkUsers, handleMute, handleUnmute, handleKick, handleBan, handleLockdown, handleSlowmode, handleAfk, handleRemindMe, handleEmbedBuilder } from './features/dynoModSystem.mjs';
 import { getFalixStatus, sendFalixPowerSignal, sendFalixCommand } from './falixServerEngine.mjs';
 import { deliverStoreItem, STORE_CATALOG } from './storeDeliveryEngine.mjs';
@@ -1991,6 +1991,54 @@ client.on('interactionCreate', async (interaction) => {
     if (customId === 'btn_tournament_rules') {
       return interaction.reply({
         content: `📜 **Tournament Rules & Match Format**\n• **Format:** Single Elimination Best-of-3 (Finals Best-of-5)\n• **Kit:** 1.21 Competitive Gear & Crystal PvP Kit\n• **Disqualifications:** Combat logging, hacked clients, or macros >15 CPS will result in an immediate DQ & ban.\n• **Fair Play:** Refereed live by KryloSMP Staff in-game at \`/warp tournament\`!`,
+        ephemeral: true
+      });
+    }
+
+    if (customId === 'btn_leaderboard_view') {
+      const guildData = xpData[interaction.guildId] || {};
+      const sorted = Object.entries(guildData).sort((a, b) => (b[1]?.xp || 0) - (a[1]?.xp || 0)).slice(0, 10);
+      if (sorted.length === 0) {
+        return interaction.reply({ content: '📊 No player has earned XP yet! Start chatting to claim the #1 spot!', ephemeral: true });
+      }
+      const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+      const desc = sorted.map(([uId, data], i) => {
+        const medal = medals[i] || `${i + 1}.`;
+        const lvl = data.level || 0;
+        const xp = (data.xp || 0).toLocaleString();
+        return `${medal} **<@${uId}>** • **Level ${lvl}** (${xp} XP)`;
+      }).join('\n');
+
+      return interaction.reply({
+        embeds: [{
+          color: 0x22D3EE,
+          title: `🏆 ${interaction.guild ? interaction.guild.name : 'Server'} — XP LEADERBOARD`,
+          description: `Top active community members:\n\n${desc}`,
+          footer: { text: 'KryloSMP Progression Engine ⚡' },
+          timestamp: new Date().toISOString()
+        }],
+        ephemeral: true
+      });
+    }
+
+    if (customId === 'btn_daily_claim') {
+      const uId = interaction.user.id;
+      const lastDaily = dailyCooldowns.get(uId);
+      const now = Date.now();
+      const ONE_DAY = 24 * 60 * 60 * 1000;
+      if (lastDaily && now - lastDaily < ONE_DAY) {
+        const remaining = ONE_DAY - (now - lastDaily);
+        const hrs = Math.floor(remaining / 3600000);
+        const mins = Math.floor((remaining % 3600000) / 60000);
+        return interaction.reply({
+          content: `⏳ You already claimed your daily reward today! Next claim available in **${hrs}h ${mins}m**.`,
+          ephemeral: true
+        });
+      }
+      dailyCooldowns.set(uId, now);
+      addCoins(uId, 250);
+      return interaction.reply({
+        content: `🎉 **Daily Reward Claimed!** You received **+250 KryloCoins**! Check your balance with \`/balance\`. 🪙`,
         ephemeral: true
       });
     }
@@ -4720,53 +4768,9 @@ client.on('interactionCreate', async (interaction) => {
     return;
   }
 
-  // Command: /rank
+  // Command: /rank and /level
   if (commandName === 'rank' || commandName === 'level') {
-    const targetUser = interaction.options.getUser('user') || interaction.user;
-    const userId = targetUser.id;
-    
-    if (!xpData[userId]) {
-      xpData[userId] = { xp: 0, level: 1 };
-    }
-    
-    const userStats = xpData[userId];
-    const currentLevel = userStats.level;
-    const currentXp = userStats.xp;
-    
-    // Calculate progress
-    const prevLevelXp = currentLevel === 1 ? 0 : 5 * ((currentLevel - 1) * (currentLevel - 1)) + 50 * (currentLevel - 1) + 100;
-    const nextLevelXp = 5 * (currentLevel * currentLevel) + 50 * currentLevel + 100;
-    
-    const xpInCurrentLevel = currentXp - prevLevelXp;
-    const xpNeededForNextLevel = nextLevelXp - prevLevelXp;
-    const progressPercent = Math.max(0, Math.min(100, Math.floor((xpInCurrentLevel / xpNeededForNextLevel) * 100)));
-    
-    // Generate ASCII/unicode progress bar
-    const barSize = 10;
-    const filledBars = Math.floor(progressPercent / barSize);
-    const emptyBars = barSize - filledBars;
-    const progressBar = '🟩'.repeat(filledBars) + '⬜'.repeat(emptyBars);
-    
-    // Calculate rank
-    const sortedUsers = Object.entries(xpData)
-      .sort((a, b) => b[1].xp - a[1].xp);
-    const rankIndex = sortedUsers.findIndex(entry => entry[0] === userId);
-    const rank = rankIndex === -1 ? sortedUsers.length + 1 : rankIndex + 1;
-    
-    const embed = new EmbedBuilder()
-      .setColor(0x00F2FF)
-      .setTitle(`⭐ ${targetUser.username}'s Chat Rank`)
-      .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
-      .addFields(
-        { name: '✨ Level', value: `\`${currentLevel}\``, inline: true },
-        { name: '🏆 Rank Position', value: `#**${rank}** / ${sortedUsers.length}`, inline: true },
-        { name: '📈 Level Progress', value: `${progressBar} (${progressPercent}%)`, inline: false },
-        { name: '💎 Total XP', value: `\`${currentXp}\` / \`${nextLevelXp}\``, inline: true }
-      )
-      .setFooter({ text: 'KryloSMP Chat Leveling ⚡' })
-      .setTimestamp();
-      
-    await interaction.reply({ embeds: [embed] });
+    await handleRankCommand(interaction);
     return;
   }
 
@@ -7183,8 +7187,23 @@ client.on('messageCreate', async (message) => {
     await message.react('❌').catch(() => {});
   }
 
+  // Command: !rank, !level, !xp [optional @user]
+  const lowerMsg = msgContent.toLowerCase();
+  if (lowerMsg === '!rank' || lowerMsg.startsWith('!rank ') ||
+      lowerMsg === '!level' || lowerMsg.startsWith('!level ') ||
+      lowerMsg === '!xp' || lowerMsg.startsWith('!xp ')) {
+    if (!message.guild) {
+      await message.reply("❌ This command can only be used inside servers!");
+      return;
+    }
+
+    const targetUser = message.mentions.users.first() || message.author;
+    await message.channel.sendTyping().catch(() => {});
+    await sendRankCard(message, targetUser);
+    return;
+  }
+
   // Command: !postvideo <youtube_url> [title]
-  const msgContent = message.content.trim();
   if (msgContent.toLowerCase().startsWith('!postvideo')) {
     if (!message.guild) {
       await message.reply("❌ This command can only be used inside servers!");

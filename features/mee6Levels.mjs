@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { generateRankCardBuffer } from './rankCardGenerator.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -141,36 +142,77 @@ function createProgressBar(current, max, size = 12) {
 }
 
 /**
+ * Send Graphical Rank Card (Both Interaction & Message friendly)
+ */
+export async function sendRankCard(context, targetUser = null) {
+  const guild = context.guild;
+  if (!guild) return;
+
+  const user = targetUser || (context.user || context.author);
+  const guildId = guild.id;
+
+  const guildData = xpData[guildId] || {};
+  const sorted = Object.entries(guildData).sort((a, b) => (b[1]?.xp || 0) - (a[1]?.xp || 0));
+  const rankIndex = sorted.findIndex(([id]) => id === user.id);
+  const rankPos = rankIndex !== -1 ? rankIndex + 1 : Math.max(1, sorted.length + 1);
+
+  const userStats = guildData[user.id] || xpData[user.id] || { xp: 0, level: 0 };
+
+  try {
+    const cardBuffer = await generateRankCardBuffer({
+      user,
+      userStats,
+      rankPos
+    });
+
+    const attachment = new AttachmentBuilder(cardBuffer, { name: `rank-${user.username}.png` });
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('btn_leaderboard_view')
+        .setLabel('🏆 Leaderboard')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('btn_daily_claim')
+        .setLabel('🎁 Daily Bonus')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setLabel('🛒 Store')
+        .setStyle(ButtonStyle.Link)
+        .setURL('https://krylosmp-store.web.app/')
+    );
+
+    const payload = {
+      content: `⚡ **Vote Booster:** \`10%\` *(11 hours remaining)*`,
+      files: [attachment],
+      components: [row]
+    };
+
+    if (context.isChatInputCommand && context.isChatInputCommand()) {
+      if (context.deferred) {
+        return await context.editReply(payload);
+      }
+      return await context.reply(payload);
+    } else if (context.reply) {
+      return await context.reply(payload);
+    } else if (context.channel && context.channel.send) {
+      return await context.channel.send(payload);
+    }
+  } catch (err) {
+    console.error('[RankCard Error]:', err);
+    const fallbackText = `📊 **${user.username}** — Level **${userStats.level || 0}** • **${(userStats.xp || 0).toLocaleString()} XP** (Rank: #${rankPos})`;
+    if (context.reply) return await context.reply(fallbackText).catch(() => {});
+    if (context.channel) return await context.channel.send(fallbackText).catch(() => {});
+  }
+}
+
+/**
  * Handle /rank command
  */
 export async function handleRankCommand(interaction) {
+  await interaction.deferReply().catch(() => {});
   const targetUser = interaction.options.getUser('user') || interaction.user;
-  const guildId = interaction.guild.id;
-
-  const guildData = xpData[guildId] || {};
-  const sorted = Object.entries(guildData).sort((a, b) => b[1].xp - a[1].xp);
-  const rankIndex = sorted.findIndex(([id]) => id === targetUser.id);
-  const rankPos = rankIndex !== -1 ? `#${rankIndex + 1}` : 'Unranked';
-
-  const userStats = guildData[targetUser.id] || { xp: 0, level: 0 };
-  const levelInfo = calculateLevelFromXp(userStats.xp);
-  const bar = createProgressBar(levelInfo.currentXp, levelInfo.neededXp);
-  const pct = Math.round((levelInfo.currentXp / levelInfo.neededXp) * 100);
-
-  const embed = new EmbedBuilder()
-    .setColor(0x5865F2)
-    .setAuthor({ name: `${targetUser.username}'s Level & Rank Card`, iconURL: targetUser.displayAvatarURL() })
-    .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
-    .addFields(
-      { name: '🏆 Server Rank', value: `\`${rankPos}\``, inline: true },
-      { name: '⭐ Level', value: `\`Level ${levelInfo.level}\``, inline: true },
-      { name: '✨ Total XP', value: `\`${userStats.xp.toLocaleString()} XP\``, inline: true },
-      { name: `📈 Progress to Level ${levelInfo.level + 1} (${pct}%)`, value: `\`[${bar}]\` **${levelInfo.currentXp} / ${levelInfo.neededXp} XP**` }
-    )
-    .setFooter({ text: 'MEE6-Style Leveling • KryloSMP Ecosystem' })
-    .setTimestamp();
-
-  await interaction.reply({ embeds: [embed] });
+  await sendRankCard(interaction, targetUser);
 }
 
 /**
