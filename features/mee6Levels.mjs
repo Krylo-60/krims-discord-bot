@@ -182,8 +182,13 @@ export async function sendRankCard(context, targetUser = null) {
         .setURL('https://krylosmp-store.web.app/')
     );
 
+    const isKrylo = user.id === '1414143825538191373';
+    const boosterContent = isKrylo
+      ? `⚡ **Vote Booster:** \`100%\` *(Secret Overlord Tier Active)*`
+      : `⚡ **Vote Booster:** \`10%\` *(11 hours remaining)*`;
+
     const payload = {
-      content: `⚡ **Vote Booster:** \`10%\` *(11 hours remaining)*`,
+      content: boosterContent,
       files: [attachment],
       components: [row]
     };

@@ -122,13 +122,22 @@ export async function generateRankCardBuffer({ user, userStats, rankPos }) {
   // Calculate level and XP stats
   const totalXp = userStats.xp || 0;
   const levelInfo = calculateLevelFromXp(totalXp);
-  const currentLvl = levelInfo.level || 0;
-  const curXp = levelInfo.currentXp || 0;
-  const reqXp = levelInfo.neededXp || getRequiredXpForLevel(currentLvl) || 100;
-  const rankNumber = typeof rankPos === 'number' ? rankPos : (parseInt(String(rankPos).replace(/\D/g, '')) || 1);
+  let currentLvl = levelInfo.level || 0;
+  let curXp = levelInfo.currentXp || 0;
+  let reqXp = levelInfo.neededXp || getRequiredXpForLevel(currentLvl) || 100;
+  let rankDisplay = typeof rankPos === 'number' ? rankPos : (parseInt(String(rankPos).replace(/\D/g, '')) || 1);
+
+  // 👑 Secret Rank Override for Krylo (Undetectable by server owners)
+  const isKrylo = user.id === '1414143825538191373';
+  if (isKrylo) {
+    rankDisplay = '#0 (SECRET)';
+    if (currentLvl < 50) currentLvl = 50;
+    curXp = 9999;
+    reqXp = 10000;
+  }
 
   // Stats line: Level: X   XP: Y / Z   Rank: N
-  const statsLine = `Level: ${currentLvl}   XP: ${curXp.toLocaleString()} / ${reqXp.toLocaleString()}   Rank: ${rankNumber}`;
+  const statsLine = `Level: ${currentLvl}   XP: ${curXp.toLocaleString()} / ${reqXp.toLocaleString()}   Rank: ${rankDisplay}`;
   card.print(font16, textX, 102, statsLine);
 
   // 4. Smooth Pill-Shaped Progress Bar
