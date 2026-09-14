@@ -13,7 +13,7 @@ import { calculateLevelFromXp, getRequiredXpForLevel } from './mee6Levels.mjs';
  * - Level, XP, and Rank stats line
  * - Smooth pill-shaped progress bar (white background track, cyan fill)
  */
-export async function generateRankCardBuffer({ user, userStats, rankPos }) {
+export async function generateRankCardBuffer({ user, userStats, rankPos, accentColor = '#22d3ee' }) {
   const width = 880;
   const height = 240;
 
@@ -21,7 +21,12 @@ export async function generateRankCardBuffer({ user, userStats, rankPos }) {
 
   const darkBg = Jimp.cssColorToHex('#1e1f22');
   const divider = Jimp.cssColorToHex('#111214');
-  const cyan = Jimp.cssColorToHex('#22d3ee');
+  let cyan;
+  try {
+    cyan = Jimp.cssColorToHex(accentColor);
+  } catch (e) {
+    cyan = Jimp.cssColorToHex('#22d3ee');
+  }
   const white = Jimp.cssColorToHex('#ffffff');
 
   // 1. Draw rounded card background with diagonal cut & shadow
