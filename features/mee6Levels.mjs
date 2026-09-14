@@ -52,38 +52,28 @@ export function calculateLevelFromXp(totalXp) {
 }
 
 /**
- * Handles incoming chat messages to award XP (MEE6 System)
+ * General helper to award XP to a user and handle level-ups / role rewards
  */
-export async function handleMessageXp(message, client) {
-  if (!message.guild || message.author.bot) return;
+export async function awardUserXp({ guild, user, xpGain = 20, source = 'chat', client }) {
+  if (!guild || !user || user.bot) return;
 
-  const userId = message.author.id;
-  const guildId = message.guild.id;
-  const key = `${guildId}_${userId}`;
-
-  if (xpCooldowns.has(key)) return;
-
-  // Add 1-minute cooldown for XP gain
-  xpCooldowns.add(key);
-  setTimeout(() => xpCooldowns.delete(key), 60000);
-
-  // Random XP between 15 and 25
-  const xpGain = Math.floor(Math.random() * 11) + 15;
+  const userId = user.id;
+  const guildId = guild.id;
 
   if (!xpData[guildId]) xpData[guildId] = {};
   if (!xpData[guildId][userId]) {
     xpData[guildId][userId] = {
       xp: 0,
       level: 0,
-      username: message.author.username,
-      discriminator: message.author.discriminator
+      username: user.username,
+      discriminator: user.discriminator || '0'
     };
   }
 
   const oldTotal = xpData[guildId][userId].xp;
   const newTotal = oldTotal + xpGain;
   xpData[guildId][userId].xp = newTotal;
-  xpData[guildId][userId].username = message.author.username;
+  xpData[guildId][userId].username = user.username;
 
   const oldLevelInfo = calculateLevelFromXp(oldTotal);
   const newLevelInfo = calculateLevelFromXp(newTotal);
@@ -96,19 +86,20 @@ export async function handleMessageXp(message, client) {
     saveXpData();
 
     // Route all level-up celebrations EXCLUSIVELY to #📊┃levels-and-rewards so chat stays clean!
-    let targetChannel = message.guild.channels.cache.find(c => 
+    let targetChannel = guild.channels.cache.find(c => 
       c.name.includes('levels-and-rewards') || 
       c.name.includes('level-up') ||
       c.name.includes('levels')
     );
 
     if (targetChannel) {
+      const sourceBadge = source === 'voice' ? '🎙️ [Voice Lounge]' : '💬 [Chat Activity]';
       const embed = new EmbedBuilder()
         .setColor(0x00E5FF)
         .setTitle(`🎉 LEVEL UP! — LEVEL ${lvl} REACHED!`)
-        .setDescription(`GG **<@${userId}>**! You just leveled up to **Level ${lvl}** in **${message.guild.name}**! 🚀\nKeep chatting and participating in voice lounges to climb the leaderboard.`)
-        .setThumbnail(message.author.displayAvatarURL({ dynamic: true }))
-        .setFooter({ text: 'KryloSMP MEE6 Progression Engine' })
+        .setDescription(`GG **<@${userId}>**! You just leveled up to **Level ${lvl}** in **${guild.name}**! 🚀\n*Earned via ${sourceBadge}*\nKeep chatting and talking in voice lounges to climb the leaderboard!`)
+        .setThumbnail(user.displayAvatarURL ? user.displayAvatarURL({ dynamic: true }) : null)
+        .setFooter({ text: 'KryloSMP Progression & Voice Leveling Engine' })
         .setTimestamp();
 
       targetChannel.send({ content: `<@${userId}>`, embeds: [embed] }).catch(() => {});
@@ -116,19 +107,107 @@ export async function handleMessageXp(message, client) {
 
     // Role rewards
     try {
-      const member = await message.guild.members.fetch(userId);
+      const member = await guild.members.fetch(userId);
       if (lvl >= 50) {
-        const r = message.guild.roles.cache.find(role => role.name.includes('Level 50'));
+        const r = guild.roles.cache.find(role => role.name.includes('Level 50'));
         if (r) member.roles.add(r).catch(() => {});
       } else if (lvl >= 25) {
-        const r = message.guild.roles.cache.find(role => role.name.includes('Level 25'));
+        const r = guild.roles.cache.find(role => role.name.includes('Level 25'));
         if (r) member.roles.add(r).catch(() => {});
       } else if (lvl >= 10) {
-        const r = message.guild.roles.cache.find(role => role.name.includes('Level 10'));
+        const r = guild.roles.cache.find(role => role.name.includes('Level 10'));
         if (r) member.roles.add(r).catch(() => {});
       }
     } catch (e) {}
+  } else {
+    // Regular XP periodic save
+    saveXpData();
   }
+}
+
+/**
+ * Handles incoming chat messages to award XP (MEE6 System)
+ */
+export async function handleMessageXp(message, client) {
+  if (!message.guild || message.author.bot) return;
+
+  const userId = message.author.id;
+  const guildId = message.guild.id;
+  const key = `${guildId}_${userId}`;
+
+  if (xpCooldowns.has(key)) return;
+
+  // Add 1-minute cooldown for chat XP gain
+  xpCooldowns.add(key);
+  setTimeout(() => xpCooldowns.delete(key), 60000);
+
+  // Random XP between 15 and 25
+  const xpGain = Math.floor(Math.random() * 11) + 15;
+
+  await awardUserXp({
+    guild: message.guild,
+    user: message.author,
+    xpGain,
+    source: 'chat',
+    client
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🎙️ VOICE LEVELING ENGINE
+// Awards 10-20 XP every minute for active members in voice channels.
+// Anti-cheat filters:
+// - Excludes bots
+// - Excludes AFK channels
+// - Excludes self-deafened members
+// - Requires at least 2 non-bot members in voice channel to prevent solo idling farming
+// ═══════════════════════════════════════════════════════════
+let voiceTickerStarted = false;
+
+export function startVoiceLevelTicker(client) {
+  if (voiceTickerStarted) return;
+  voiceTickerStarted = true;
+
+  console.log('🎙️ [VoiceLeveling] Voice XP Ticker Initialized (Running every 60s)...');
+
+  setInterval(async () => {
+    try {
+      if (!client || !client.guilds) return;
+
+      for (const guild of client.guilds.cache.values()) {
+        const voiceChannels = guild.channels.cache.filter(c => c.isVoiceBased && c.isVoiceBased());
+
+        for (const channel of voiceChannels.values()) {
+          // Skip AFK channel if designated
+          if (guild.afkChannelId && channel.id === guild.afkChannelId) continue;
+
+          // Filter eligible members
+          const activeMembers = channel.members.filter(m => !m.user.bot && !m.voice.deaf && !m.voice.selfDeaf);
+
+          // Require at least 2 active human members in voice channel
+          if (activeMembers.size < 2) continue;
+
+          for (const member of activeMembers.values()) {
+            // Give 10 - 20 XP per minute
+            const voiceXp = Math.floor(Math.random() * 11) + 10;
+            await awardUserXp({
+              guild,
+              user: member.user,
+              xpGain: voiceXp,
+              source: 'voice',
+              client
+            }).catch(() => {});
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[VoiceLeveling Error]:', err.message);
+    }
+  }, 60000); // 60 seconds
+}
+
+export function handleVoiceStateUpdate(oldState, newState, client) {
+  // Can be used for instant join/leave tracking or telemetry
 }
 
 /**

@@ -20,7 +20,7 @@ import Jimp from 'jimp';
 import { joinVoice, leaveVoice, getVoiceStatus, speakInVoiceChannel } from './voiceEngine.mjs';
 import { saveUserVerification, getUserVerification, syncLocalJsonToFirebase } from './firebaseEngine.mjs';
 import { getLocatorColor } from './features/locatorBarEngine.mjs';
-import { handleMessageXp, sendRankCard, handleRankCommand } from './features/mee6Levels.mjs';
+import { handleMessageXp, sendRankCard, handleRankCommand, startVoiceLevelTicker, handleVoiceStateUpdate } from './features/mee6Levels.mjs';
 import { afkUsers, handleMute, handleUnmute, handleKick, handleBan, handleLockdown, handleSlowmode, handleAfk, handleRemindMe, handleEmbedBuilder } from './features/dynoModSystem.mjs';
 import { getFalixStatus, sendFalixPowerSignal, sendFalixCommand } from './falixServerEngine.mjs';
 import { deliverStoreItem, STORE_CATALOG } from './storeDeliveryEngine.mjs';
@@ -574,6 +574,7 @@ client.once('ready', async () => {
   console.log(`[+] Krylo SMP Official Bot online as ${client.user.tag}`);
   startAutoUpdater();
   startDynamicStatsUpdater();
+  startVoiceLevelTicker(client);
   aiOperator.client = client;
   aiOperator.start();
 
