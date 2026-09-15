@@ -183,7 +183,7 @@ command /npcinteraction <text>:
             send "  &9&l🌐 KRYLOSMP OFFICIAL DISCORD & RULES" to player
             send "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" to player
             send "  &7• &bDiscord Invite:&f {@discord}" to player
-            send "  &7• &bServer IP:&f KryloSmp.play.hosting:25565" to player
+            send "  &7• &bServer IP:&f krylosmp.falix.gg:29273" to player
             send "  &7• &bBedrock Port:&f 19132" to player
             send "  &7• &bPlayer Portal:&f https://krylosmp.web.app" to player
             send "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" to player

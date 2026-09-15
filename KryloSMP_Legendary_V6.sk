@@ -53,7 +53,7 @@ on break of iron ore or deepslate iron ore:
         cancel event
         set event-block to air
         give 1 iron ingot to player
-        give 15 to {balance::%uuid of player%}
+        add 15 to {balance::%uuid of player%}
         play sound "entity.experience_orb.pickup" with volume 0.5 to player
 
 on break of gold ore or deepslate gold ore:
@@ -61,11 +61,11 @@ on break of gold ore or deepslate gold ore:
         cancel event
         set event-block to air
         give 1 gold ingot to player
-        give 30 to {balance::%uuid of player%}
+        add 30 to {balance::%uuid of player%}
         play sound "entity.experience_orb.pickup" with volume 0.5 to player
 
 on break of diamond ore or deepslate diamond ore:
-    give 100 to {balance::%uuid of player%}
+    add 100 to {balance::%uuid of player%}
     send action bar "&b💎 Diamond Mined! &f+100 {@currency}" to player
 
 # ═════════════════════════════════════════════════════════════
