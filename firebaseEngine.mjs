@@ -6,13 +6,13 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY || "AIzaSyCLVDsroFfMBFV18DPWTCqukmFv14BGcig",
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN || "krylosmp.firebaseapp.com",
-  projectId: process.env.FIREBASE_PROJECT_ID || "krylosmp",
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "krylosmp.firebasestorage.app",
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "638977915888",
-  appId: process.env.FIREBASE_APP_ID || "1:638977915888:web:7aea195ab685d815623b35",
-  measurementId: process.env.FIREBASE_MEASUREMENT_ID || "G-SRVY3Q5MMJ"
+  apiKey: process.env.FIREBASE_API_KEY || '',
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN || '',
+  projectId: process.env.FIREBASE_PROJECT_ID || '',
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: process.env.FIREBASE_APP_ID || '',
+  measurementId: process.env.FIREBASE_MEASUREMENT_ID || ''
 };
 
 let app = null;
