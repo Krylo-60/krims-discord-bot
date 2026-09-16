@@ -267,6 +267,56 @@ export function getTopBalances(limit = 10) {
   `).all(limit);
 }
 
+export function claimDaily(discordId, baseReward = 100) {
+  const current = getBalance(discordId);
+  const now = Date.now();
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+  const lastDaily = current.last_daily || 0;
+
+  if (now - lastDaily < ONE_DAY_MS) {
+    const timeRemaining = ONE_DAY_MS - (now - lastDaily);
+    return { success: false, timeRemaining };
+  }
+
+  // Check if consecutive streak (claimed within 48h)
+  const isConsecutive = (now - lastDaily) < (2 * ONE_DAY_MS);
+  const newStreak = isConsecutive ? (current.daily_streak || 0) + 1 : 1;
+  const streakBonus = (newStreak - 1) * 20;
+  const totalReward = baseReward + streakBonus;
+
+  db.prepare(`
+    UPDATE economy 
+    SET krylocoins = krylocoins + ?, daily_streak = ?, last_daily = ?
+    WHERE discord_id = ?
+  `).run(totalReward, newStreak, now, discordId);
+
+  if (neonPool) {
+    neonPool.query(`
+      UPDATE economy 
+      SET krylocoins = krylocoins + $1, daily_streak = $2, last_daily = $3
+      WHERE discord_id = $4
+    `, [totalReward, newStreak, now, discordId]).catch(() => {});
+  }
+
+  const updated = getBalance(discordId);
+  return {
+    success: true,
+    reward: totalReward,
+    streak: newStreak,
+    newBalance: updated.krylocoins
+  };
+}
+
+export function transferCoins(senderId, receiverId, amount) {
+  if (amount <= 0) return { success: false, error: 'Amount must be greater than 0' };
+  const sender = getBalance(senderId);
+  if (sender.krylocoins < amount) return { success: false, error: 'Insufficient funds' };
+
+  removeCoins(senderId, amount);
+  addCoins(receiverId, amount);
+  return { success: true, newSenderBalance: getBalance(senderId).krylocoins };
+}
+
 // --- CLANS ---
 export function getClan(nameOrTag) {
   return db.prepare('SELECT * FROM clans WHERE LOWER(name) = LOWER(?) OR LOWER(tag) = LOWER(?)').get(nameOrTag, nameOrTag);

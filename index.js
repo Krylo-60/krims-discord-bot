@@ -24,13 +24,14 @@ import { handleMessageXp, sendRankCard, handleRankCommand, startVoiceLevelTicker
 import { afkUsers, handleMute, handleUnmute, handleKick, handleBan, handleLockdown, handleSlowmode, handleAfk, handleRemindMe, handleEmbedBuilder } from './features/dynoModSystem.mjs';
 import { getFalixStatus, sendFalixPowerSignal, sendFalixCommand } from './falixServerEngine.mjs';
 import { deliverStoreItem, STORE_CATALOG } from './storeDeliveryEngine.mjs';
-import { setPlayerVerification, getPlayer, getPlayerByIgn, addCoins, removeCoins, getBalance } from './databaseEngine.mjs';
+import { setPlayerVerification, getPlayer, getPlayerByIgn, addCoins, removeCoins, getBalance, claimDaily, transferCoins } from './databaseEngine.mjs';
 import { aiOperator } from './aiConsoleOperator.mjs';
 import { setupAIConsoleChannel, handleAIConsoleMessage } from './aiConsoleChatHandler.mjs';
 import { handleCountingMessage, handleStickyMessage } from './countingAndStickyEngine.mjs';
 import { handleCustomCommandExecution, getGuildCustomCommands, addGuildCustomCommand, deleteGuildCustomCommand } from './features/customCommandsManager.mjs';
 
 const guildConfigCache = new Map();
+const pendingStorePurchases = new Map();
 async function getCachedGuildConfig(guildId) {
   if (!guildId) return null;
   const cached = guildConfigCache.get(guildId);
@@ -3754,6 +3755,94 @@ client.on('interactionCreate', async (interaction) => {
     }
   }
 
+  // ══════════════════════════════════════════════════════════
+  // 🛍️ STORE OWNER APPROVAL & DENIAL BUTTON HANDLER
+  // ══════════════════════════════════════════════════════════
+  if (interaction.isButton() && (interaction.customId.startsWith('store_approve_') || interaction.customId.startsWith('store_deny_'))) {
+    const isApprove = interaction.customId.startsWith('store_approve_');
+    const purchaseId = interaction.customId.replace(isApprove ? 'store_approve_' : 'store_deny_', '');
+    const purchase = pendingStorePurchases.get(purchaseId);
+
+    // Permission check: only guild owner, admin, or bot owner
+    const isGuildOwner = interaction.guild ? (interaction.user.id === interaction.guild.ownerId) : true;
+    const isAdmin = interaction.member?.permissions?.has(PermissionFlagsBits.Administrator);
+    const isBotOwner = interaction.user.id === '1414143825538191373';
+
+    if (!isGuildOwner && !isAdmin && !isBotOwner) {
+      await interaction.reply({ content: "❌ Only the Server Owner or Server Administrators can approve or deny store purchases!", ephemeral: true });
+      return;
+    }
+
+    if (!purchase) {
+      await interaction.reply({ content: "⚠️ This purchase request has already been resolved or expired.", ephemeral: true });
+      return;
+    }
+
+    pendingStorePurchases.delete(purchaseId);
+
+    if (isApprove) {
+      const approvedEmbed = new EmbedBuilder()
+        .setColor(0x00FF66)
+        .setTitle('✅ STORE PURCHASE APPROVED & DELIVERED')
+        .setDescription(
+          `• **Perk / Item:** **${purchase.item.name}**\n` +
+          `• **Buyer:** <@${purchase.buyerId}> (\`${purchase.buyerTag}\`)\n` +
+          `• **Price Paid:** **${Number(purchase.price).toLocaleString()} ${purchase.currencySymbol}**\n\n` +
+          `👑 **Action:** Approved and confirmed by <@${interaction.user.id}>! Perk delivery marked complete.`
+        )
+        .setFooter({ text: `Resolved by ${interaction.user.tag}` })
+        .setTimestamp();
+
+      await interaction.update({ embeds: [approvedEmbed], components: [] });
+
+      // Notify the buyer via DM and in-channel
+      try {
+        const buyer = await client.users.fetch(purchase.buyerId).catch(() => null);
+        if (buyer) {
+          await buyer.send(`🎉 **Purchase Approved!** Your order for **${purchase.item.name}** was approved by the server owner (<@${interaction.user.id}>)! Enjoy your perks! ⚡`).catch(() => {});
+        }
+        if (purchase.channelId) {
+          const ch = client.channels.cache.get(purchase.channelId);
+          if (ch) {
+            await ch.send(`🎉 <@${purchase.buyerId}>, your purchase of **${purchase.item.name}** was **APPROVED** by the Server Owner! ✨`).catch(() => {});
+          }
+        }
+      } catch (e) {}
+    } else {
+      // Refund coins
+      addCoins(purchase.buyerId, purchase.price);
+
+      const deniedEmbed = new EmbedBuilder()
+        .setColor(0xEF4444)
+        .setTitle('❌ STORE PURCHASE DECLINED & REFUNDED')
+        .setDescription(
+          `• **Perk / Item:** **${purchase.item.name}**\n` +
+          `• **Buyer:** <@${purchase.buyerId}> (\`${purchase.buyerTag}\`)\n` +
+          `• **Price Refunded:** **${Number(purchase.price).toLocaleString()} ${purchase.currencySymbol}**\n\n` +
+          `👑 **Action:** Declined by <@${interaction.user.id}>. The coins have been fully refunded to the buyer's balance.`
+        )
+        .setFooter({ text: `Declined by ${interaction.user.tag}` })
+        .setTimestamp();
+
+      await interaction.update({ embeds: [deniedEmbed], components: [] });
+
+      // Notify the buyer via DM and in-channel
+      try {
+        const buyer = await client.users.fetch(purchase.buyerId).catch(() => null);
+        if (buyer) {
+          await buyer.send(`❌ Your purchase request for **${purchase.item.name}** was declined by the server owner. **${Number(purchase.price).toLocaleString()} ${purchase.currencySymbol}** have been refunded to your balance.`).catch(() => {});
+        }
+        if (purchase.channelId) {
+          const ch = client.channels.cache.get(purchase.channelId);
+          if (ch) {
+            await ch.send(`❌ <@${purchase.buyerId}>, your purchase request for **${purchase.item.name}** was declined by the server owner. Your **${Number(purchase.price).toLocaleString()} ${purchase.currencySymbol}** have been refunded to your wallet.`).catch(() => {});
+          }
+        }
+      } catch (e) {}
+    }
+    return;
+  }
+
   if (!interaction.isChatInputCommand()) return;
 
   const { commandName } = interaction;
@@ -7378,6 +7467,431 @@ client.on('messageCreate', async (message) => {
       await message.reply('✅ Deleted custom command `' + trigger + '`.');
     } else {
       await message.reply('❌ Custom command `' + trigger + '` not found.');
+    }
+    return;
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // 💰 3. SERVER ECONOMY & CUSTOM STORE COMMANDS
+  // ══════════════════════════════════════════════════════════
+  // Command: !shop or !store
+  if (lowerMsg === '!shop' || lowerMsg === '!store' || lowerMsg.startsWith('!shop ') || lowerMsg.startsWith('!store ')) {
+    if (!message.guild) {
+      await message.reply("❌ Store commands can only be used inside servers!");
+      return;
+    }
+
+    const cachedCfg = await getCachedGuildConfig(message.guild.id);
+    if (cachedCfg && cachedCfg.economyEnabled === false) {
+      await message.reply("🔒 **Economy & Custom Store is currently disabled** on this server by the server owner.");
+      return;
+    }
+
+    const currencyName = cachedCfg?.currencyName || (message.guild.id === '1538225337048236082' ? 'KryloCoins' : 'Coins');
+    const currencySymbol = cachedCfg?.currencySymbol || (message.guild.id === '1538225337048236082' ? 'KC' : '🪙');
+
+    const defaultKsmpItems = [
+      { id: 'ksmp_1', name: '⚡ 7-Day Flight Pass', price: 5000, description: 'Grants /fly in non-PvP zones on KSMP for 7 days.', delivery: 'owner_approval' },
+      { id: 'ksmp_2', name: '🎨 Custom Chat Color Tag', price: 2500, description: 'Unlock custom glowing hex chat colors in Discord and KSMP.', delivery: 'owner_approval' },
+      { id: 'ksmp_3', name: '💎 KSMP Diamond Crate Key', price: 7500, description: 'Opens the legendary spawn diamond loot crate on KSMP.', delivery: 'owner_approval' },
+      { id: 'ksmp_4', name: '👑 VIP Rank for 30 Days', price: 15000, description: 'Unlocks @VIP Discord role and priority queue in KSMP.', delivery: 'owner_approval' }
+    ];
+
+    const defaultGenericItems = [
+      { id: 'item_1', name: '👑 VIP Member Role', price: 5000, description: 'Exclusive @VIP role and secret chat lounge access.', delivery: 'owner_approval' },
+      { id: 'item_2', name: '🎨 Custom Name Color', price: 2500, description: 'Pick your own custom hex name color in the server.', delivery: 'owner_approval' },
+      { id: 'item_3', name: '📢 Server Announcement Shoutout', price: 10000, description: 'Post an approved broadcast ping in #announcements.', delivery: 'owner_approval' }
+    ];
+
+    const storeItems = Array.isArray(cachedCfg?.storeItems) && cachedCfg.storeItems.length > 0
+      ? cachedCfg.storeItems
+      : (message.guild.id === '1538225337048236082' ? defaultKsmpItems : defaultGenericItems);
+
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle(`🛍️ ${message.guild.name} • Server Store Catalog`)
+      .setDescription(
+        `Welcome to the server store! Spend your earned **${currencyName}** (${currencySymbol}) on exclusive perks!\n\n` +
+        `💡 **How to Purchase:** Use \`!buy <number or name>\` (e.g. \`!buy 1\`)\n` +
+        `👛 **Check Balance:** Use \`!balance\` • 🎁 **Claim Daily:** \`!daily\`\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+      )
+      .setFooter({ text: `${currencyName} Store Engine • Krims Code Studio` })
+      .setTimestamp();
+
+    if (storeItems.length === 0) {
+      embed.addFields({ name: '🛒 Catalog Empty', value: 'No shop items configured yet by the server owner!' });
+    } else {
+      storeItems.forEach((it, idx) => {
+        const approvalBadge = it.delivery === 'owner_approval' ? '👑 *Requires Server Owner Approval*' : '⚡ *Auto-Delivered*';
+        embed.addFields({
+          name: `[${idx + 1}] ${it.name} — ${Number(it.price).toLocaleString()} ${currencySymbol}`,
+          value: `${it.description || 'Exclusive community perk.'}\n${approvalBadge}`,
+          inline: false
+        });
+      });
+    }
+
+    await message.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: !buy <item # or name>
+  if (lowerMsg.startsWith('!buy')) {
+    if (!message.guild) {
+      await message.reply("❌ Store commands can only be used inside servers!");
+      return;
+    }
+
+    const cachedCfg = await getCachedGuildConfig(message.guild.id);
+    if (cachedCfg && cachedCfg.economyEnabled === false) {
+      await message.reply("🔒 **Economy & Custom Store is currently disabled** on this server by the server owner.");
+      return;
+    }
+
+    const query = content.split(/\s+/).slice(1).join(' ').trim();
+    if (!query) {
+      await message.reply("❌ **Usage:** `!buy <item # or name>`\nExample: `!buy 1` or `!buy VIP`\nView available perks with `!shop`.");
+      return;
+    }
+
+    const currencyName = cachedCfg?.currencyName || (message.guild.id === '1538225337048236082' ? 'KryloCoins' : 'Coins');
+    const currencySymbol = cachedCfg?.currencySymbol || (message.guild.id === '1538225337048236082' ? 'KC' : '🪙');
+
+    const defaultKsmpItems = [
+      { id: 'ksmp_1', name: '⚡ 7-Day Flight Pass', price: 5000, description: 'Grants /fly in non-PvP zones on KSMP for 7 days.', delivery: 'owner_approval' },
+      { id: 'ksmp_2', name: '🎨 Custom Chat Color Tag', price: 2500, description: 'Unlock custom glowing hex chat colors in Discord and KSMP.', delivery: 'owner_approval' },
+      { id: 'ksmp_3', name: '💎 KSMP Diamond Crate Key', price: 7500, description: 'Opens the legendary spawn diamond loot crate on KSMP.', delivery: 'owner_approval' },
+      { id: 'ksmp_4', name: '👑 VIP Rank for 30 Days', price: 15000, description: 'Unlocks @VIP Discord role and priority queue in KSMP.', delivery: 'owner_approval' }
+    ];
+
+    const defaultGenericItems = [
+      { id: 'item_1', name: '👑 VIP Member Role', price: 5000, description: 'Exclusive @VIP role and secret chat lounge access.', delivery: 'owner_approval' },
+      { id: 'item_2', name: '🎨 Custom Name Color', price: 2500, description: 'Pick your own custom hex name color in the server.', delivery: 'owner_approval' },
+      { id: 'item_3', name: '📢 Server Announcement Shoutout', price: 10000, description: 'Post an approved broadcast ping in #announcements.', delivery: 'owner_approval' }
+    ];
+
+    const storeItems = Array.isArray(cachedCfg?.storeItems) && cachedCfg.storeItems.length > 0
+      ? cachedCfg.storeItems
+      : (message.guild.id === '1538225337048236082' ? defaultKsmpItems : defaultGenericItems);
+
+    let selectedItem = null;
+    const queryNum = parseInt(query, 10);
+    if (!isNaN(queryNum) && queryNum >= 1 && queryNum <= storeItems.length) {
+      selectedItem = storeItems[queryNum - 1];
+    } else {
+      selectedItem = storeItems.find(it => it.name.toLowerCase().includes(query.toLowerCase()));
+    }
+
+    if (!selectedItem) {
+      await message.reply(`❌ Could not find any item matching \`${query}\`. Run \`!shop\` to see active catalog items!`);
+      return;
+    }
+
+    const buyerBal = getBalance(message.author.id);
+    const userCoins = buyerBal ? (buyerBal.krylocoins || 0) : 0;
+
+    if (userCoins < selectedItem.price) {
+      await message.reply(`❌ Insufficient funds! You need **${Number(selectedItem.price).toLocaleString()} ${currencySymbol}**, but you only have **${Number(userCoins).toLocaleString()} ${currencySymbol}**.\nEarn more currency with \`!daily\` or active chat!`);
+      return;
+    }
+
+    // Deduct coins
+    removeCoins(message.author.id, selectedItem.price);
+
+    const requiresApproval = selectedItem.delivery === 'owner_approval' || cachedCfg?.requireOwnerApproval !== false;
+
+    if (requiresApproval) {
+      const purchaseId = 'pur_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+      pendingStorePurchases.set(purchaseId, {
+        guildId: message.guild.id,
+        buyerId: message.author.id,
+        buyerTag: message.author.tag,
+        item: selectedItem,
+        price: selectedItem.price,
+        currencySymbol,
+        channelId: message.channel.id,
+        timestamp: Date.now()
+      });
+
+      const pendingEmbed = new EmbedBuilder()
+        .setColor(0xF59E0B)
+        .setTitle('⏳ Purchase Submitted — Pending Server Owner Approval')
+        .setDescription(
+          `Hey <@${message.author.id}>, your purchase of **${selectedItem.name}** (**${Number(selectedItem.price).toLocaleString()} ${currencySymbol}**) has been submitted!\n\n` +
+          `👑 **Owner Control Active:** To ensure complete quality control, the Server Owner (<@${message.guild.ownerId}>) has been sent an interactive approval notification.\n\n` +
+          `• Once approved, your perks will be delivered and you will be notified.\n` +
+          `• If denied by the owner, your **${Number(selectedItem.price).toLocaleString()} ${currencySymbol}** will be refunded immediately.`
+        )
+        .setFooter({ text: `Pending Purchase ID: ${purchaseId}` })
+        .setTimestamp();
+
+      await message.reply({ embeds: [pendingEmbed] });
+
+      // Send interactive approval notification to server owner
+      try {
+        const owner = await message.guild.fetchOwner().catch(() => null);
+        const approvalRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId(`store_approve_${purchaseId}`).setLabel('Approve ✅').setStyle(ButtonStyle.Success),
+          new ButtonBuilder().setCustomId(`store_deny_${purchaseId}`).setLabel('Deny ❌').setStyle(ButtonStyle.Danger)
+        );
+
+        const ownerNotifyEmbed = new EmbedBuilder()
+          .setColor(0x00F2FF)
+          .setTitle('👑 [STORE APPROVAL REQUIRED] New Member Purchase')
+          .setDescription(
+            `A member has purchased an item from your server store!\n\n` +
+            `• **Server:** \`${message.guild.name}\`\n` +
+            `• **Buyer:** <@${message.author.id}> (\`${message.author.tag}\`)\n` +
+            `• **Perk / Item:** **${selectedItem.name}**\n` +
+            `• **Price Paid:** **${Number(selectedItem.price).toLocaleString()} ${currencySymbol}**\n` +
+            `• **Description:** ${selectedItem.description || 'None'}\n\n` +
+            `Click **Approve ✅** below to deliver and confirm the perk, or **Deny ❌** to cancel and refund the member.`
+          )
+          .setFooter({ text: `Server ID: ${message.guild.id} • Order ID: ${purchaseId}` })
+          .setTimestamp();
+
+        let dmSent = false;
+        if (owner) {
+          try {
+            await owner.send({ embeds: [ownerNotifyEmbed], components: [approvalRow] });
+            dmSent = true;
+          } catch (dmErr) {
+            console.warn('[Store Approval DM Notice]: Server owner DMs closed, finding staff channel');
+          }
+        }
+
+        // If DM failed, or as backup in server, post in staff/mod-log channel
+        if (!dmSent) {
+          const modLogCh = message.guild.channels.cache.find(c => 
+            (c.name.includes('mod-log') || c.name.includes('staff') || c.name.includes('admin') || c.name.includes('logs')) && 
+            c.type === ChannelType.GuildText
+          ) || message.channel;
+          
+          if (modLogCh) {
+            await modLogCh.send({
+              content: `<@${message.guild.ownerId}> 🔔 **Action Required:** Store purchase approval request from <@${message.author.id}>!`,
+              embeds: [ownerNotifyEmbed],
+              components: [approvalRow]
+            }).catch(() => {});
+          }
+        }
+      } catch (notifyErr) {
+        console.warn('[Store Approval Dispatch Error]:', notifyErr.message);
+      }
+    } else {
+      // Instant delivery
+      const instantEmbed = new EmbedBuilder()
+        .setColor(0x00FF66)
+        .setTitle('🎉 Purchase Successful!')
+        .setDescription(
+          `Congratulations <@${message.author.id}>! You purchased **${selectedItem.name}** for **${Number(selectedItem.price).toLocaleString()} ${currencySymbol}**!\n\n` +
+          `• **Status:** Auto-Delivered ✅\n` +
+          `• **Remaining Balance:** **${Number(getBalance(message.author.id).krylocoins).toLocaleString()} ${currencySymbol}**`
+        )
+        .setFooter({ text: 'Instant Auto-Delivery' })
+        .setTimestamp();
+
+      await message.reply({ embeds: [instantEmbed] });
+    }
+    return;
+  }
+
+  // Command: !balance, !bal, !coins
+  if (lowerMsg === '!balance' || lowerMsg === '!bal' || lowerMsg === '!coins' || lowerMsg.startsWith('!balance ') || lowerMsg.startsWith('!bal ') || lowerMsg.startsWith('!coins ')) {
+    if (!message.guild) {
+      await message.reply("❌ Balance commands can only be used inside servers!");
+      return;
+    }
+
+    const cachedCfg = await getCachedGuildConfig(message.guild.id);
+    if (cachedCfg && cachedCfg.economyEnabled === false) {
+      await message.reply("🔒 **Economy & Custom Store is currently disabled** on this server by the server owner.");
+      return;
+    }
+
+    const currencyName = cachedCfg?.currencyName || (message.guild.id === '1538225337048236082' ? 'KryloCoins' : 'Coins');
+    const currencySymbol = cachedCfg?.currencySymbol || (message.guild.id === '1538225337048236082' ? 'KC' : '🪙');
+
+    const targetUser = message.mentions.users.first() || message.author;
+    const isSelf = targetUser.id === message.author.id;
+
+    const b = getBalance(targetUser.id);
+    const userCoins = b ? (b.krylocoins || 0) : 0;
+    const streak = b ? (b.daily_streak || 0) : 0;
+
+    const embed = new EmbedBuilder()
+      .setColor(0xF59E0B)
+      .setAuthor({ name: `${targetUser.username}'s Wallet`, iconURL: targetUser.displayAvatarURL({ dynamic: true }) })
+      .setTitle(`👛 ${currencyName} (${currencySymbol}) Balance`)
+      .setDescription(
+        `💰 **Wallet Balance:** \`${Number(userCoins).toLocaleString()} ${currencySymbol}\`\n` +
+        `🔥 **Daily Streak:** \`${streak} Day(s)\`\n\n` +
+        (isSelf ? `• Use \`!daily\` to claim your streak rewards!\n• Use \`!shop\` to browse server perks.` : `Viewing wallet for <@${targetUser.id}>.`)
+      )
+      .setFooter({ text: `${currencyName} Economy Engine • Krims Code Studio` })
+      .setTimestamp();
+
+    await message.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: !daily
+  if (lowerMsg === '!daily') {
+    if (!message.guild) {
+      await message.reply("❌ Daily rewards can only be claimed inside servers!");
+      return;
+    }
+
+    const cachedCfg = await getCachedGuildConfig(message.guild.id);
+    if (cachedCfg && cachedCfg.economyEnabled === false) {
+      await message.reply("🔒 **Economy & Custom Store is currently disabled** on this server by the server owner.");
+      return;
+    }
+
+    const currencyName = cachedCfg?.currencyName || (message.guild.id === '1538225337048236082' ? 'KryloCoins' : 'Coins');
+    const currencySymbol = cachedCfg?.currencySymbol || (message.guild.id === '1538225337048236082' ? 'KC' : '🪙');
+    const baseReward = cachedCfg?.ecoDailyStreak || 100;
+
+    const claimResult = claimDaily(message.author.id, baseReward);
+
+    if (!claimResult.success) {
+      const hours = Math.floor(claimResult.timeRemaining / (1000 * 60 * 60));
+      const mins = Math.ceil((claimResult.timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+      await message.reply(`⏳ You have already claimed your daily reward! Come back in **${hours}h ${mins}m**.`);
+      return;
+    }
+
+    const dailyEmbed = new EmbedBuilder()
+      .setColor(0x00FF66)
+      .setTitle(`🎁 Daily ${currencyName} Reward Claimed!`)
+      .setDescription(
+        `Congratulations <@${message.author.id}>! You claimed your daily reward!\n\n` +
+        `• **Reward Received:** **+${Number(claimResult.reward).toLocaleString()} ${currencySymbol}**\n` +
+        `• **Streak:** **${claimResult.streak} Day(s)** (Streak Bonus Active!)\n` +
+        `• **New Balance:** **${Number(claimResult.newBalance).toLocaleString()} ${currencySymbol}**\n\n` +
+        `Come back tomorrow to keep your streak alive and earn even bigger rewards! 🔥`
+      )
+      .setFooter({ text: `${currencyName} Daily Streak Engine` })
+      .setTimestamp();
+
+    await message.reply({ embeds: [dailyEmbed] });
+    return;
+  }
+
+  // Command: !pay @user <amount>
+  if (lowerMsg.startsWith('!pay')) {
+    if (!message.guild) {
+      await message.reply("❌ Transfer commands can only be used inside servers!");
+      return;
+    }
+
+    const cachedCfg = await getCachedGuildConfig(message.guild.id);
+    if (cachedCfg && cachedCfg.economyEnabled === false) {
+      await message.reply("🔒 **Economy & Custom Store is currently disabled** on this server by the server owner.");
+      return;
+    }
+
+    const currencyName = cachedCfg?.currencyName || (message.guild.id === '1538225337048236082' ? 'KryloCoins' : 'Coins');
+    const currencySymbol = cachedCfg?.currencySymbol || (message.guild.id === '1538225337048236082' ? 'KC' : '🪙');
+
+    const targetUser = message.mentions.users.first();
+    const parts = content.split(/\s+/);
+    const amountPart = parts.find(p => /^\d+$/.test(p));
+    const amount = amountPart ? parseInt(amountPart, 10) : 0;
+
+    if (!targetUser || !amount || amount <= 0) {
+      await message.reply("❌ **Usage:** `!pay @user <amount>`\nExample: `!pay @friend 500`");
+      return;
+    }
+
+    if (targetUser.id === message.author.id) {
+      await message.reply("❌ You cannot send coins to yourself!");
+      return;
+    }
+
+    if (targetUser.bot) {
+      await message.reply("❌ You cannot send coins to bot accounts!");
+      return;
+    }
+
+    const res = transferCoins(message.author.id, targetUser.id, amount);
+    if (!res.success) {
+      await message.reply(`❌ Transfer failed: ${res.error}. Check your balance with \`!balance\`.`);
+      return;
+    }
+
+    const payEmbed = new EmbedBuilder()
+      .setColor(0x00FF66)
+      .setTitle(`💸 ${currencyName} Transfer Completed!`)
+      .setDescription(
+        `<@${message.author.id}> transferred **${Number(amount).toLocaleString()} ${currencySymbol}** to <@${targetUser.id}>! 🪙\n\n` +
+        `• **Sender New Balance:** \`${Number(res.newSenderBalance).toLocaleString()} ${currencySymbol}\``
+      )
+      .setFooter({ text: 'Peer-to-Peer Transfer Engine' })
+      .setTimestamp();
+
+    await message.reply({ embeds: [payEmbed] });
+    return;
+  }
+
+  // Command: !coinflip <amount> [heads|tails]
+  if (lowerMsg.startsWith('!coinflip') || lowerMsg.startsWith('!cf')) {
+    if (!message.guild) {
+      await message.reply("❌ Coinflip can only be played inside servers!");
+      return;
+    }
+
+    const cachedCfg = await getCachedGuildConfig(message.guild.id);
+    if (cachedCfg && cachedCfg.economyEnabled === false) {
+      await message.reply("🔒 **Economy & Custom Store is currently disabled** on this server by the server owner.");
+      return;
+    }
+
+    const currencySymbol = cachedCfg?.currencySymbol || (message.guild.id === '1538225337048236082' ? 'KC' : '🪙');
+    const maxBet = cachedCfg?.ecoCasinoMax || 1000;
+
+    const parts = content.split(/\s+/).slice(1);
+    const bet = parseInt(parts[0], 10);
+    const choice = (parts[1] || 'heads').toLowerCase();
+
+    if (isNaN(bet) || bet < 10) {
+      await message.reply(`❌ **Usage:** \`!coinflip <amount> [heads|tails]\` (Minimum bet: 10 ${currencySymbol})`);
+      return;
+    }
+
+    if (bet > maxBet) {
+      await message.reply(`❌ The server owner has capped gambling bets at **${Number(maxBet).toLocaleString()} ${currencySymbol}**!`);
+      return;
+    }
+
+    const userBal = getBalance(message.author.id);
+    const userCoins = userBal ? (userBal.krylocoins || 0) : 0;
+    if (userCoins < bet) {
+      await message.reply(`❌ Insufficient balance! You need **${Number(bet).toLocaleString()} ${currencySymbol}**, but you only have **${Number(userCoins).toLocaleString()} ${currencySymbol}**.`);
+      return;
+    }
+
+    const isHeads = Math.random() < 0.5;
+    const resultSide = isHeads ? 'heads' : 'tails';
+    const won = choice.startsWith(resultSide[0]);
+
+    if (won) {
+      addCoins(message.author.id, bet);
+      const winEmbed = new EmbedBuilder()
+        .setColor(0x00FF66)
+        .setTitle('🪙 Coinflip: YOU WON!')
+        .setDescription(`The coin landed on **${resultSide.toUpperCase()}**!\nYou doubled your bet and won **+${Number(bet).toLocaleString()} ${currencySymbol}**! 🎉\nNew Balance: \`${Number(getBalance(message.author.id).krylocoins).toLocaleString()} ${currencySymbol}\``)
+        .setTimestamp();
+      await message.reply({ embeds: [winEmbed] });
+    } else {
+      removeCoins(message.author.id, bet);
+      const loseEmbed = new EmbedBuilder()
+        .setColor(0xEF4444)
+        .setTitle('🪙 Coinflip: YOU LOST!')
+        .setDescription(`The coin landed on **${resultSide.toUpperCase()}**.\nYou lost **${Number(bet).toLocaleString()} ${currencySymbol}**! 💸\nNew Balance: \`${Number(getBalance(message.author.id).krylocoins).toLocaleString()} ${currencySymbol}\``)
+        .setTimestamp();
+      await message.reply({ embeds: [loseEmbed] });
     }
     return;
   }
