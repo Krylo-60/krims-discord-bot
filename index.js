@@ -5,7 +5,7 @@
  */
 import os from 'os';
 import crypto from 'crypto';
-import { Client, GuildScheduledEventEntityType, GuildScheduledEventPrivacyLevel, GatewayIntentBits, Partials, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder } from 'discord.js';
+import { Client, GuildScheduledEventEntityType, GuildScheduledEventPrivacyLevel, GatewayIntentBits, Partials, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder, GuildChannelManager, RoleManager } from 'discord.js';
 import { KrimsClient } from '@krishivpb60/krims-code-sdk';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
@@ -272,6 +272,42 @@ const client = new Client({
     Partials.Reaction
   ]
 });
+
+// ═══════════════════════════════════════════════════════════
+// 🛡️ PERMANENT ARCHITECTURAL SAFETY SHIELD (DISCORD TOS SAFEGUARD)
+// Hard rule: Krims Code AI CAN NEVER make automatic server modifications.
+// Channels and roles can ONLY be created through explicit user actions:
+// 1. User clicks "Open Support Ticket" or runs /ticket (names must include 'ticket-')
+// 2. Users accept a 1v1 PvP challenge (names must include 'duel-')
+// 3. User interacts with Reaction Roles or Custom Commands via interaction event
+// Any automatic/unauthorized channel or role creation is BLOCKED and CANCELLED.
+// ═══════════════════════════════════════════════════════════
+const originalChannelCreate = GuildChannelManager.prototype.create;
+GuildChannelManager.prototype.create = async function(options) {
+  const stack = new Error().stack || '';
+  const isTicket = stack.includes('open_ticket') || stack.includes('handleTicket') || (options && options.name && options.name.includes('ticket-'));
+  const isDuel = stack.includes('activeDuel') || stack.includes('duelChannel') || (options && options.name && options.name.includes('duel-'));
+
+  if (!isTicket && !isDuel) {
+    console.warn(`[🛡️ SAFETY SHIELD BLOCKED] Intercepted unauthorized channel creation on guild "${this.guild?.name}" (${this.guild?.id}):`, options?.name);
+    return null;
+  }
+
+  return originalChannelCreate.call(this, options);
+};
+
+const originalRoleCreate = RoleManager.prototype.create;
+RoleManager.prototype.create = async function(options) {
+  const stack = new Error().stack || '';
+  const isAuthorizedRole = stack.includes('handleCustomCommand') || stack.includes('ReactionRole') || stack.includes('interaction');
+
+  if (!isAuthorizedRole) {
+    console.warn(`[🛡️ SAFETY SHIELD BLOCKED] Intercepted unauthorized role creation on guild "${this.guild?.name}" (${this.guild?.id}):`, options?.name);
+    return null;
+  }
+
+  return originalRoleCreate.call(this, options);
+};
 
 const sdk = new KrimsClient({
   baseUrl: 'https://krims-code-chatbot.vercel.app'
@@ -1625,303 +1661,10 @@ client.once('ready', async () => {
         }
       }
 
-      // 4. Create and Align Category/Channel Hierarchy (Hypixel/Hermitcraft Style)
-      try {
-        console.log('[KryloSMP Setup] Ensuring all premium categories and channels are created & organized...');
-        
-        // Helper to find or create a category
-        const ensureCategory = async (name) => {
-          let cat = guild.channels.cache.find(c => c.name.toUpperCase().includes(name.toUpperCase()) && c.type === ChannelType.GuildCategory);
-          if (!cat) {
-            cat = await guild.channels.create({
-              name: name,
-              type: ChannelType.GuildCategory
-            });
-            console.log(`[KryloSMP Setup] Created category: ${name}`);
-          }
-          return cat;
-        };
-
-        const infoCat = await ensureCategory('╭━━━ 📌 INFORMATION ━━━╮');
-        const commCat = await ensureCategory('╭━━━ 💬 COMMUNITY ━━━╮');
-        const econCat = await ensureCategory('╭━━━ 🛒 ECONOMY & STORE ━━━╮');
-        const clanCat = await ensureCategory('╭━━━ 🏰 FACTIONS & CLANS ━━━╮');
-        const pvpCat  = await ensureCategory('╭━━━ ⚔️ PVP & TOURNAMENTS ━━━╮');
-        const tktCat  = await ensureCategory('╭━━━ 🎟️ SUPPORT & TICKETS ━━━╮');
-        const voiceCat = await ensureCategory('╭━━━ 🔊 VOICE LOUNGES ━━━╮');
-
-        // Helper to find or create/move a text channel
-        const ensureChannel = async (name, parentCat, topic = '', isPrivate = false) => {
-          const cleanSearch = name.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase();
-          let ch = guild.channels.cache.find(c => c && c.name && c.name.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase().includes(cleanSearch) && c.isTextBased());
-          
-          const overwrites = [];
-          if (isPrivate) {
-            overwrites.push(
-              { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] }
-            );
-            if (verifiedRole) {
-              overwrites.push(
-                { id: verifiedRole.id, deny: [PermissionFlagsBits.ViewChannel] }
-              );
-            }
-          }
-
-          if (!ch) {
-            ch = await guild.channels.create({
-              name: name,
-              type: ChannelType.GuildText,
-              parent: parentCat.id,
-              topic: topic,
-              permissionOverwrites: overwrites
-            });
-            console.log(`[KryloSMP Setup] Created channel: ${name}`);
-          } else {
-            if (ch.parentId !== parentCat.id) {
-              await ch.setParent(parentCat.id).catch(() => {});
-              console.log(`[KryloSMP Setup] Moved channel ${ch.name} to category ${parentCat.name}`);
-            }
-            if (isPrivate) {
-              await ch.permissionOverwrites.edit(guild.roles.everyone.id, { ViewChannel: false }).catch(() => {});
-              if (verifiedRole) {
-                await ch.permissionOverwrites.edit(verifiedRole.id, { ViewChannel: false }).catch(() => {});
-              }
-            }
-          }
-          return ch;
-        };
-
-        // Align channels under 📌 INFORMATION
-        await ensureChannel('📌┃rules', infoCat, 'Official server rules and regulations.');
-        await ensureChannel('📢┃server-announcements', infoCat, 'Official server news and announcements.');
-        await ensureChannel('📺┃youtube-announcements', infoCat, 'YouTube video notifications.');
-        await ensureChannel('🌐┃socials', infoCat, 'Official web links and store.');
-        await ensureChannel('✅┃verify', infoCat, 'Player verification gateway.');
-
-        // Align channels under 💬 COMMUNITY
-        await ensureChannel('💬┃general-chat', commCat, 'General chat and discussion.');
-        await ensureChannel('🤖┃bot-commands', commCat, 'Use bot commands here.');
-        await ensureChannel('📷┃media-clips', commCat, 'Post your builds and clips.');
-        await ensureChannel('💡┃suggestions', commCat, 'Submit ideas and vote.');
-
-        // Align channels under 🛒 ECONOMY & STORE
-        await ensureChannel('🛒┃store', econCat, 'Official KryloSMP store catalog.');
-        await ensureChannel('💰┃jackpot-vault', econCat, 'Jackpot vault & casino.');
-        await ensureChannel('🎯┃bounty-board', econCat, 'Active player bounties.');
-        await ensureChannel('🤝┃item-trading', econCat, 'Player-to-player trading.');
-
-        // Align channels under 🏰 FACTIONS & CLANS
-        await ensureChannel('🏰・ksmp-clan-chat', clanCat, 'Official clan discussion.');
-        await ensureChannel('🏆┃clan-leaderboard', clanCat, 'Top clans leaderboard.');
-
-        // Align channels under ⚔️ PVP & TOURNAMENTS
-        await ensureChannel('⚔️┃pvp-chat', pvpCat, 'PvP chat and duels.');
-        await ensureChannel('🏆┃monthly-tournament', pvpCat, 'Monthly tournament announcements.');
-
-        // Align channels under 🎟️ SUPPORT & TICKETS
-        await ensureChannel('🎫┃support-tickets', tktCat, 'Open support tickets.');
-
-        // Align Voice Channels
-        const voiceChannels = ['🔊・General Lounge', '🔊・Gaming Squad 1', '🔊・Gaming Squad 2', '💤・afk-zone'];
-        for (const vcName of voiceChannels) {
-          const existingVC = guild.channels.cache.find(c => c.name === vcName && c.type === ChannelType.GuildVoice && c.parentId === voiceCat.id);
-          if (!existingVC) {
-            await guild.channels.create({
-              name: vcName,
-              type: ChannelType.GuildVoice,
-              parent: voiceCat.id
-            });
-            console.log(`[KryloSMP Setup] Created voice channel: ${vcName}`);
-          }
-        }
-        const onlinePlayersCh = null;
-        const leaderboardCh = null;
-        const modLogsCh = null;
-
-        // Setup live status and leaderboard polling
-        if (onlinePlayersCh) {
-          try {
-            const oldMsgs = await onlinePlayersCh.messages.fetch({ limit: 50 });
-            if (oldMsgs.size > 0) {
-              await onlinePlayersCh.bulkDelete(oldMsgs).catch(async () => {
-                for (const [, m] of oldMsgs) {
-                  await m.delete().catch(() => {});
-                }
-              });
-            }
-          } catch (err) {
-            console.warn('Failed to clear old status messages:', err.message);
-          }
-          startLiveStatusUpdate(guild, onlinePlayersCh);
-        }
-        
-        startLeaderboardUpdate(guild);
-        startPaperAutoUpdater(guild);
-
-      } catch (err) {
-        console.warn('[KryloSMP Setup] Failed to setup channels/categories structure:', err.message);
-      }
-
-      // 5. Enforce Verification Gateway Category-Level Permissions
-      console.log('[KryloSMP Setup] Enforcing gateway permissions for all categories...');
-      try {
-        const categories = guild.channels.cache.filter(c => c.type === ChannelType.GuildCategory);
-        for (const [, cat] of categories) {
-          if (cat.name.toUpperCase().includes('INFORMATION')) {
-            // Everyone can see INFORMATION category (so they can verify!)
-            await cat.permissionOverwrites.edit(guild.roles.everyone.id, {
-              ViewChannel: true
-            }).catch(() => {});
-            continue;
-          }
-
-          // Lock all other categories for unverified, open for verified!
-          await cat.permissionOverwrites.edit(guild.roles.everyone.id, {
-            ViewChannel: false
-          }).catch(() => {});
-          
-          if (verifiedRole) {
-            await cat.permissionOverwrites.edit(verifiedRole.id, {
-              ViewChannel: true
-            }).catch(() => {});
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to enforce category gateway permissions:', err.message);
-      }
-
-      // 6. Setup PvP and Tournament Roles & Channels
-      console.log('[KryloSMP Setup] Setting up PvP and Tournament roles and channels...');
-      
-      let pvpRole = guild.roles.cache.find(r => r.name === '⚔️ PvP Specialist');
-      if (!pvpRole) {
-        try {
-          pvpRole = await guild.roles.create({
-            name: '⚔️ PvP Specialist',
-            color: 0xFF0055,
-            reason: 'Auto-created PvP command role'
-          });
-          console.log('[KryloSMP Setup] Created PvP Player role.');
-        } catch (err) {
-          console.warn('[KryloSMP Setup] Failed to create PvP Player role:', err.message);
-        }
-      }
-
-      let tournamentRole = guild.roles.cache.find(r => r.name === 'Tournament Participant');
-      if (!tournamentRole) {
-        try {
-          tournamentRole = await guild.roles.create({
-            name: 'Tournament Participant',
-            color: 0xFFAA00,
-            reason: 'Auto-created Tournament command role'
-          });
-          console.log('[KryloSMP Setup] Created Tournament Participant role.');
-        } catch (err) {
-          console.warn('[KryloSMP Setup] Failed to create Tournament Participant role:', err.message);
-        }
-      }
-
-      // Find or create "─── PvP & TOURNAMENTS ───" category
-      let pvpCategory = guild.channels.cache.find(c => c.name.toLowerCase().includes('pvp') && c.type === ChannelType.GuildCategory);
-      if (!pvpCategory) {
-        try {
-          pvpCategory = await guild.channels.create({
-            name: '─── PvP & TOURNAMENTS ───',
-            type: ChannelType.GuildCategory,
-            reason: 'Auto-created PvP & Tournaments category'
-          });
-          console.log('[KryloSMP Setup] Created PvP & Tournaments category.');
-        } catch (err) {
-          console.warn('[KryloSMP Setup] Failed to create category:', err.message);
-        }
-      }
-
-      // Find or create pvp-chat channel
-      let pvpChatCh = guild.channels.cache.find(c => c.name.includes('pvp-chat') && c.type === ChannelType.GuildText);
-      if (!pvpChatCh && pvpRole) {
-        try {
-          pvpChatCh = await guild.channels.create({
-            name: '⚔️┃pvp-chat',
-            type: ChannelType.GuildText,
-            parent: pvpCategory ? pvpCategory.id : null,
-            topic: 'Private channel for PvP discussion and match making. Run /pvp to gain access!',
-            permissionOverwrites: [
-              {
-                id: guild.roles.everyone.id,
-                deny: [PermissionFlagsBits.ViewChannel]
-              },
-              {
-                id: pvpRole.id,
-                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-              },
-              {
-                id: client.user.id,
-                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-              }
-            ],
-            reason: 'Auto-created pvp-chat channel'
-          });
-          console.log('[KryloSMP Setup] Created private #pvp-chat channel.');
-        } catch (err) {
-          console.warn('[KryloSMP Setup] Failed to create pvp-chat channel:', err.message);
-        }
-      }
-
-      // Setup Monthly Tournament Channel (delete old, create new)
-      console.log('[KryloSMP Setup] Setting up Monthly Tournament channel...');
-      const monthNames = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
-      const currentDate = new Date();
-      const currentMonth = monthNames[currentDate.getMonth()];
-      const currentYear = currentDate.getFullYear();
-      const targetChannelName = `🏆┃tournament-${currentMonth}-${currentYear}`;
-
-      // Check if current month channel exists
-      let currentTourneyCh = guild.channels.cache.find(c => c.name === targetChannelName && c.type === ChannelType.GuildText);
-      if (!currentTourneyCh && tournamentRole) {
-        try {
-          // Create the new tournament channel
-          currentTourneyCh = await guild.channels.create({
-            name: targetChannelName,
-            type: ChannelType.GuildText,
-            parent: pvpCategory ? pvpCategory.id : null,
-            topic: `Official tournament channel for ${currentMonth.toUpperCase()} ${currentYear}. Run /tournament to join!`,
-            permissionOverwrites: [
-              {
-                id: guild.roles.everyone.id,
-                deny: [PermissionFlagsBits.ViewChannel]
-              },
-              {
-                id: tournamentRole.id,
-                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-              },
-              {
-                id: client.user.id,
-                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-              }
-            ],
-            reason: `Created new monthly tournament channel for ${currentMonth} ${currentYear}`
-          });
-          console.log(`[KryloSMP Setup] Created monthly tournament channel: ${targetChannelName}`);
-
-          // Delete previous monthly tournament channels
-          const allChannels = guild.channels.cache.filter(c => c.type === ChannelType.GuildText && c.parentId === pvpCategory?.id);
-          for (const [, oldCh] of allChannels) {
-            if ((oldCh.name.includes('tournament-') || oldCh.name.includes('tournaments')) && oldCh.name !== targetChannelName) {
-              try {
-                await oldCh.delete();
-                console.log(`[KryloSMP Setup] Deleted old tournament channel: ${oldCh.name}`);
-              } catch (err) {
-                console.warn(`[KryloSMP Setup] Failed to delete old channel ${oldCh.name}:`, err.message);
-              }
-            }
-          }
-        } catch (err) {
-          console.warn('[KryloSMP Setup] Failed to setup monthly tournament channel:', err.message);
-        }
-      }
+      // Legacy setup routines disabled for safety and strict Discord Developer Policy compliance.
     }
   } catch (err) {
-    console.warn(`[KryloSMP Setup] Failed to post interactive components:`, err.message);
+    console.warn(`[Button Setup] Component check notice:`, err.message);
   }
 });
 
