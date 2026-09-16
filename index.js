@@ -8573,6 +8573,50 @@ client.on('messageCreate', async (message) => {
 // ═══════════════════════════════════════════════════════════
 const KRYLO_GUILD_ID = '1524878881918685405';
 
+async function generateSkybaseWelcomeCard(avatarUrl, username, memberCount) {
+  try {
+    const bg = await Jimp.read('skybase-welcome-bg.png');
+    bg.resize(1020, 500);
+
+    let avatar;
+    try {
+      avatar = await Jimp.read(avatarUrl);
+    } catch {
+      avatar = new Jimp(180, 180, 0x00F2FFFF);
+    }
+    avatar.resize(180, 180);
+
+    const mask = new Jimp(180, 180, 0x00000000);
+    mask.scan(0, 0, 180, 180, (x, y) => {
+      const dist = Math.sqrt(Math.pow(x - 90, 2) + Math.pow(y - 90, 2));
+      if (dist <= 90) mask.setPixelColor(0xffffffff, x, y);
+    });
+    avatar.mask(mask, 0, 0);
+
+    bg.composite(avatar, (1020 - 180) / 2, 70);
+
+    const font32 = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
+    const font64 = await Jimp.loadFont(Jimp.FONT_SANS_64_WHITE);
+
+    const titleText = "WELCOME TO KRYLO'S SKYBASE";
+    const userText = username.toUpperCase().slice(0, 18);
+    const memberText = `PILOT #${memberCount} • FLIGHT READY`;
+
+    const tWidth = Jimp.measureText(font32, titleText);
+    const uWidth = Jimp.measureText(font64, userText);
+    const mWidth = Jimp.measureText(font32, memberText);
+
+    bg.print(font32, (1020 - tWidth) / 2, 280, titleText);
+    bg.print(font64, (1020 - uWidth) / 2, 330, userText);
+    bg.print(font32, (1020 - mWidth) / 2, 415, memberText);
+
+    return await bg.getBufferAsync(Jimp.MIME_PNG);
+  } catch (err) {
+    console.error('[Skybase Welcome Card] Error:', err);
+    return null;
+  }
+}
+
 async function generateWelcomeCard(avatarUrl, username, memberCount) {
   try {
     const bg = await Jimp.read('welcome-bg.png');
@@ -8672,7 +8716,39 @@ client.on('guildMemberAdd', async (member) => {
     console.warn(`[Welcome] Could not DM ${member.user.username}:`, err.message);
   }
 
-  // Welcome messages in general-chat disabled as requested
+  // Krylo's Skybase Arrival Terminal System
+  if (member.guild.id === '1549875778575929446') {
+    try {
+      const welcomeCh = member.guild.channels.cache.find(c => c.name.includes('welcome'));
+      if (welcomeCh) {
+        const memberCount = member.guild.memberCount;
+        const cardBuffer = await generateSkybaseWelcomeCard(member.user.displayAvatarURL({ extension: 'png', size: 256 }), member.user.username, memberCount);
+        
+        const embed = new EmbedBuilder()
+          .setColor(0x00F2FF)
+          .setTitle('🚀 New Pilot Approaching — Krylo\'s Skybase')
+          .setDescription(
+            `Welcome <@${member.id}> to **Krylo\'s Skybase**! ✈️✨\n\n` +
+            `• 📜 Read the base rules in <#1549882276278435841>\n` +
+            `• 🏷️ Check roles & ranks in <#1549882278245564546>\n` +
+            `• 🔴 Claim your YouTube Subscriber perks in <#1549918052513095682>\n` +
+            `• 💬 Jump into <#1549882282611843194> and say hello!`
+          )
+          .setFooter({ text: `Pilot #${memberCount} • Flight Ready` })
+          .setTimestamp();
+
+        if (cardBuffer) {
+          const attachment = new AttachmentBuilder(cardBuffer, { name: 'skybase-welcome.png' });
+          embed.setImage('attachment://skybase-welcome.png');
+          await welcomeCh.send({ content: `👋 Welcome to the flight deck, <@${member.id}>!`, embeds: [embed], files: [attachment] });
+        } else {
+          await welcomeCh.send({ content: `👋 Welcome to the flight deck, <@${member.id}>!`, embeds: [embed] });
+        }
+      }
+    } catch (err) {
+      console.warn('[Skybase Welcome] Error posting welcome card:', err.message);
+    }
+  }
 });
 
 // ═══════════════════════════════════════════════════════════
