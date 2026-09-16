@@ -28,6 +28,30 @@ import { setPlayerVerification, getPlayer, getPlayerByIgn, addCoins, removeCoins
 import { aiOperator } from './aiConsoleOperator.mjs';
 import { setupAIConsoleChannel, handleAIConsoleMessage } from './aiConsoleChatHandler.mjs';
 import { handleCountingMessage, handleStickyMessage } from './countingAndStickyEngine.mjs';
+import { handleCustomCommandExecution, getGuildCustomCommands, addGuildCustomCommand, deleteGuildCustomCommand } from './features/customCommandsManager.mjs';
+
+const guildConfigCache = new Map();
+async function getCachedGuildConfig(guildId) {
+  if (!guildId) return null;
+  const cached = guildConfigCache.get(guildId);
+  if (cached && Date.now() - cached.timestamp < 30000) {
+    return cached.config;
+  }
+  try {
+    const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'get_config', guildId })
+    });
+    if (configRes.ok) {
+      const cfg = await configRes.json();
+      guildConfigCache.set(guildId, { config: cfg, timestamp: Date.now() });
+      return cfg;
+    }
+  } catch (err) {}
+  return cached?.config || null;
+}
+
 
 dotenv.config();
 
@@ -7060,6 +7084,8 @@ const processedMessages = new Set();
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
+  const content = (message.content || '').trim();
+  const lowerMsg = content.toLowerCase();
 
   // Handle #🤖┃ai-console-chat natural language server admin messages
   if (message.guild && message.channel.name && message.channel.name.includes('ai-console-chat')) {
@@ -7188,8 +7214,44 @@ client.on('messageCreate', async (message) => {
     await message.react('❌').catch(() => {});
   }
 
+  // ══════════════════════════════════════════════════════════
+  // ⚡ 1. CUSTOM COMMANDS ENGINE (Guild & Dashboard Custom Auto-Responses)
+  // ══════════════════════════════════════════════════════════
+  try {
+    const cachedCfg = message.guild ? await getCachedGuildConfig(message.guild.id) : null;
+    const handledCustom = await handleCustomCommandExecution(message, client, cachedCfg?.customCommands);
+    if (handledCustom) return;
+  } catch (cmdErr) {
+    console.warn('[CustomCommands Warning]:', cmdErr.message);
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // 🛠️ 2. BUILT-IN CORE PREFIX COMMANDS
+  // ══════════════════════════════════════════════════════════
+  // Command: !test or !ping
+  if (lowerMsg === '!test' || lowerMsg === '!ping' || lowerMsg.startsWith('!test ') || lowerMsg.startsWith('!ping ')) {
+    const latency = client.ws.ping;
+    const uptimeHours = (process.uptime() / 3600).toFixed(1);
+    const testEmbed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('⚡ Krims Code AI • Operational Status')
+      .setDescription('✅ **Commands & AI Systems Active!**\nAll prefix and slash commands are fully functional.')
+      .addFields(
+        { name: '📶 WebSocket Latency', value: '`' + latency + 'ms`', inline: true },
+        { name: '⏱️ Uptime', value: '`' + uptimeHours + 'h`', inline: true },
+        { name: '🛡️ Server', value: '`' + (message.guild ? message.guild.name : 'DM') + '`', inline: true },
+        { name: '⚡ Bot Prefix', value: '`!`', inline: true },
+        { name: '🤖 AI Model', value: '`Krims AI v5 (Online)`', inline: true },
+        { name: '🌐 Dashboard', value: '[krims-bot-dashboard.vercel.app](https://krims-bot-dashboard.vercel.app/)', inline: true }
+      )
+      .setFooter({ text: 'Krims Code Studio • 24/7 Bot Engine' })
+      .setTimestamp();
+
+    await message.reply({ embeds: [testEmbed] });
+    return;
+  }
+
   // Command: !rank, !level, !xp [optional @user]
-  const lowerMsg = msgContent.toLowerCase();
   if (lowerMsg === '!rank' || lowerMsg.startsWith('!rank ') ||
       lowerMsg === '!level' || lowerMsg.startsWith('!level ') ||
       lowerMsg === '!xp' || lowerMsg.startsWith('!xp ')) {
@@ -7204,8 +7266,124 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
+  // Command: !role or !roles
+  if (lowerMsg === '!role' || lowerMsg === '!roles' || lowerMsg.startsWith('!role ') || lowerMsg.startsWith('!roles ')) {
+    if (!message.guild) {
+      await message.reply("❌ This command can only be used inside servers!");
+      return;
+    }
+
+    const args = content.split(/\s+/).slice(1);
+    if (args.length === 0) {
+      const rolesEmbed = new EmbedBuilder()
+        .setColor(0x00F2FF)
+        .setTitle('🎭 Server Roles & Onboarding')
+        .setDescription("Use `!role <role name>` to toggle a self-assignable role, or visit the onboarding & reaction roles channel!\n\n**Quick Commands:**\n• `!pvp` — Toggle the ⚔️ PvP Specialist role\n• `!tournament` — Toggle the 🏆 Tournament Participant role\n• Visit the **#🎭┃reaction-roles** channel to pick your client edition (Java / Bedrock) and notification roles.")
+        .setFooter({ text: 'Krims Code AI Role Manager' })
+        .setTimestamp();
+      await message.reply({ embeds: [rolesEmbed] });
+      return;
+    }
+
+    const roleQuery = args.join(' ').toLowerCase();
+    const targetRole = message.guild.roles.cache.find(r => r.name.toLowerCase() === roleQuery || r.name.toLowerCase().includes(roleQuery));
+    if (!targetRole) {
+      await message.reply('❌ Could not find a role matching `' + args.join(' ') + '`.');
+      return;
+    }
+
+    if (targetRole.position >= message.guild.members.me.roles.highest.position) {
+      await message.reply('❌ I cannot manage **' + targetRole.name + '** because it is positioned higher than my role in the server hierarchy.');
+      return;
+    }
+
+    const hasRole = message.member.roles.cache.has(targetRole.id);
+    try {
+      if (hasRole) {
+        await message.member.roles.remove(targetRole);
+        await message.reply('✅ Removed role **' + targetRole.name + '**.');
+      } else {
+        await message.member.roles.add(targetRole);
+        await message.reply('✅ Granted role **' + targetRole.name + '**! 🎉');
+      }
+    } catch (err) {
+      await message.reply('❌ Could not update role: ' + err.message);
+    }
+    return;
+  }
+
+  // Command: !customcommands / !cmdlist / !commands
+  if (lowerMsg === '!customcommands' || lowerMsg === '!cmdlist' || lowerMsg === '!commands') {
+    const guildId = message.guild ? message.guild.id : null;
+    const cmds = getGuildCustomCommands(guildId);
+    const cmdList = cmds.map(c => '• `' + c.trigger + '` ➔ ' + c.response.slice(0, 60) + (c.response.length > 60 ? '...' : '')).join('\n');
+
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('⚡ Active Custom Commands')
+      .setDescription(cmdList || 'No custom commands configured yet!')
+      .setFooter({ text: 'Admins can add commands via !addcmd <trigger> <response>' })
+      .setTimestamp();
+    await message.reply({ embeds: [embed] });
+    return;
+  }
+
+  // Command: !addcmd <trigger> <response>
+  if (lowerMsg.startsWith('!addcmd ')) {
+    if (!message.guild) {
+      await message.reply("❌ This command can only be used inside servers!");
+      return;
+    }
+    const isStaff = message.member.permissions.has(PermissionFlagsBits.ManageGuild) || 
+                    message.member.permissions.has(PermissionFlagsBits.Administrator) ||
+                    message.author.id === message.guild.ownerId ||
+                    message.author.id === '1414143825538191373';
+    if (!isStaff) {
+      await message.reply("❌ You need `Manage Server` permission to add custom commands.");
+      return;
+    }
+    const parts = content.split(/\s+/);
+    const trigger = parts[1];
+    const response = parts.slice(2).join(' ');
+    if (!trigger || !response) {
+      await message.reply("❌ **Usage:** `!addcmd <trigger> <response>`\nExample: `!addcmd !rules Check out #rules channel!`");
+      return;
+    }
+    addGuildCustomCommand(message.guild.id, trigger, response);
+    await message.reply('✅ Successfully added custom command `' + trigger + '`!');
+    return;
+  }
+
+  // Command: !delcmd <trigger>
+  if (lowerMsg.startsWith('!delcmd ')) {
+    if (!message.guild) {
+      await message.reply("❌ This command can only be used inside servers!");
+      return;
+    }
+    const isStaff = message.member.permissions.has(PermissionFlagsBits.ManageGuild) || 
+                    message.member.permissions.has(PermissionFlagsBits.Administrator) ||
+                    message.author.id === message.guild.ownerId ||
+                    message.author.id === '1414143825538191373';
+    if (!isStaff) {
+      await message.reply("❌ You need `Manage Server` permission to delete custom commands.");
+      return;
+    }
+    const trigger = content.split(/\s+/)[1];
+    if (!trigger) {
+      await message.reply("❌ **Usage:** `!delcmd <trigger>`");
+      return;
+    }
+    const deleted = deleteGuildCustomCommand(message.guild.id, trigger);
+    if (deleted) {
+      await message.reply('✅ Deleted custom command `' + trigger + '`.');
+    } else {
+      await message.reply('❌ Custom command `' + trigger + '` not found.');
+    }
+    return;
+  }
+
   // Command: !postvideo <youtube_url> [title]
-  if (msgContent.toLowerCase().startsWith('!postvideo')) {
+  if (lowerMsg.startsWith('!postvideo')) {
     if (!message.guild) {
       await message.reply("❌ This command can only be used inside servers!");
       return;
@@ -7289,7 +7467,6 @@ client.on('messageCreate', async (message) => {
   }
 
   if (message.author.bot) return;
-  if (message.guild && message.guild.id !== '1524878881918685405') return;
 
   // Prevent duplicate processing of the same message
   if (processedMessages.has(message.id)) return;
@@ -7500,7 +7677,7 @@ client.on('messageCreate', async (message) => {
     }
   }
 
-  const content = message.content.trim();
+  // content is already declared at top
   const isDM = !message.guild;
 
   // Retrieve configurations dynamically
@@ -9261,6 +9438,38 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true, message: 'Krylo SMP Store & Discord Bot Engine is Active!' }));
     return;
+  }
+
+  // Custom Commands Endpoint
+  if (url.pathname === '/api/custom-commands') {
+    if (req.method === 'GET') {
+      const guildId = url.searchParams.get('guildId') || 'default';
+      const cmds = getGuildCustomCommands(guildId);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, guildId, commands: cmds }));
+      return;
+    }
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const payload = JSON.parse(body || '{}');
+          const { guildId, trigger, response } = payload;
+          if (!trigger || !response) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'trigger and response are required' }));
+          }
+          const updated = addGuildCustomCommand(guildId || 'default', trigger, response);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: true, commands: updated }));
+        } catch (e) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: e.message }));
+        }
+      });
+      return;
+    }
   }
 
   // 1. Live Balance API (Direct SQL Query for Web & Minecraft)
