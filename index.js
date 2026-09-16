@@ -1748,30 +1748,29 @@ client.on('interactionCreate', async (interaction) => {
 
     if (customId === 'btn_verify_yt_sub') {
       try {
+        await interaction.deferReply({ ephemeral: true }).catch(() => {});
         const guild = interaction.guild;
-        if (!guild) return interaction.reply({ content: '❌ This button must be used inside the server.', ephemeral: true });
+        if (!guild) return interaction.editReply({ content: '❌ This button must be used inside the server.' });
         
         const subRole = guild.roles.cache.find(r => r.name.toLowerCase().includes('subscriber') || r.name.toLowerCase().includes('sub'));
         const member = interaction.member;
 
         if (member && subRole && member.roles.cache.has(subRole.id)) {
-          return interaction.reply({
-            content: `✨ You already have the **${subRole.name}** role! Thank you for supporting **Krylo**! 🚀`,
-            ephemeral: true
+          return interaction.editReply({
+            content: `✨ You already have the **${subRole.name}** role! Thank you for supporting **Krylo**! 🚀`
           });
         }
 
         const proofCh = guild.channels.cache.find(c => c.name.includes('sub-proof'));
-        return interaction.reply({
+        return interaction.editReply({
           content: 
             `🔴 **Checking Subscription for @krylomcyt...**\n\n` +
             `1. Make sure you clicked **[Subscribe to @krylomcyt]** (with 🔔 notifications on)!\n` +
             `2. If your YouTube subscriptions are set to **Public**, the bot will auto-sync.\n` +
-            `3. If your YouTube profile is private, drop a 1-second screenshot of your subscription in ${proofCh ? '<#' + proofCh.id + '>' : '#sub-proof'} to get your **${subRole ? subRole.name : 'Subscriber'}** role approved immediately! 👑`,
-          ephemeral: true
+            `3. If your YouTube profile is private, drop a 1-second screenshot of your subscription in ${proofCh ? '<#' + proofCh.id + '>' : '#sub-proof'} to get your **${subRole ? subRole.name : 'Subscriber'}** role approved immediately! 👑`
         });
       } catch (err) {
-        return interaction.reply({ content: '⚠️ Error checking subscription: ' + err.message, ephemeral: true });
+        return interaction.editReply({ content: '⚠️ Error checking subscription: ' + err.message });
       }
     }
 
