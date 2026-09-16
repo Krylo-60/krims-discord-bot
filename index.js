@@ -1762,12 +1762,27 @@ client.on('interactionCreate', async (interaction) => {
         }
 
         const proofCh = guild.channels.cache.find(c => c.name.includes('sub-proof'));
+        const verifyUrl = `https://krims-code-chatbot.vercel.app/api/youtube-verify?discord_id=${interaction.user.id}`;
+
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setLabel('Sign In With Google & Verify')
+            .setStyle(ButtonStyle.Link)
+            .setURL(verifyUrl)
+            .setEmoji('🌐'),
+          new ButtonBuilder()
+            .setLabel('Subscribe to @krylomcyt')
+            .setStyle(ButtonStyle.Link)
+            .setURL('https://www.youtube.com/@krylomcyt?sub_confirmation=1')
+            .setEmoji('▶️')
+        );
+
         return interaction.editReply({
           content: 
-            `🔴 **Checking Subscription for @krylomcyt...**\n\n` +
-            `1. Make sure you clicked **[Subscribe to @krylomcyt]** (with 🔔 notifications on)!\n` +
-            `2. If your YouTube subscriptions are set to **Public**, the bot will auto-sync.\n` +
-            `3. If your YouTube profile is private, drop a 1-second screenshot of your subscription in ${proofCh ? '<#' + proofCh.id + '>' : '#sub-proof'} to get your **${subRole ? subRole.name : 'Subscriber'}** role approved immediately! 👑`
+            `🔴 **Instant YouTube Verification Portal**\n\n` +
+            `Click the button below to sign in with Google. It will automatically check your subscription to **@krylomcyt** and award your **${subRole ? subRole.name : '🔴 Krylo Subscriber'}** role instantly!\n\n` +
+            `*(Alternatively, you can drop a screenshot in ${proofCh ? '<#' + proofCh.id + '>' : '#sub-proof'})*`,
+          components: [row]
         });
       } catch (err) {
         return interaction.editReply({ content: '⚠️ Error checking subscription: ' + err.message });
