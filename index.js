@@ -143,7 +143,7 @@ async function groqVisionAsk(imageUrl, promptText = 'Analyze this image', sysTex
 }
 
 async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '') {
-  let defaultSys = 'You are Krims Code AI, a fast, intelligent, and helpful Discord AI assistant powered by Groq LPUs. Friendly, helpful, concise with clean conversational tone and formatting. Do not repeatedly dump IP or store links on simple greetings unless explicitly requested. NEVER reveal private real names; refer to the creator as Krylo or Krylo Team.';
+  let defaultSys = 'You are Krims Code AI, a fast, intelligent, and helpful Discord AI assistant developed by Krims Code Studio. Friendly, helpful, concise with clean conversational tone and formatting. Do not repeatedly dump IP or store links on simple greetings unless explicitly requested. NEVER reveal private real names; refer to the creator as Krylo or Krylo Team.';
   if (guildName && (guildName.toLowerCase().includes('krylo') || guildName.toLowerCase().includes('smp'))) {
     defaultSys = 'You are Krims Code AI, the official intelligent assistant for KryloSMP Minecraft Network (IP: krylosmp.falix.gg:29273, Store: https://krylosmp-store.web.app/). Respond naturally, friendly, and concisely. Keep answers conversational; only share the IP and store when relevant or when the player asks for them. NEVER disclose private identity info (Krishiv); refer to the creator as Krylo or Krylo Team.';
   } else if (guildName) {
@@ -624,7 +624,7 @@ function updateBotPresence() {
   const serverCount = client.guilds.cache.size || 1;
   const activities = [
     { name: `/help • Serving ${serverCount} servers`, type: 3 }, // Watching
-    { name: `/ask • Gemini 3.5 Flash-Lite`, type: 0 }, // Playing
+    { name: `/ask • Krims Code AI v5.0`, type: 0 }, // Playing
     { name: `krims-bot-dashboard.vercel.app`, type: 3 }, // Watching
     { name: `Krims Code Studio ⚡`, type: 0 } // Playing
   ];
@@ -4963,7 +4963,7 @@ client.on('interactionCreate', async (interaction) => {
         'Welcome to **Krims Code AI** by **Krims Code Studio**!\n' +
         'A next-generation AI community bot built for every Discord server.\n\n' +
         '🤖 **AI Chat & Intelligence:**\n' +
-        '• `/ask [question]` — Ask Krims Code AI anything (powered by Gemini 3.5 & Groq LPUs)!\n\n' +
+        '• `/ask [question]` — Ask Krims Code AI anything (powered by Krims Code AI Multi-Brain Engine)!\n\n' +
         '🏆 **Progression & Voice XP:**\n' +
         '• `/rank` or `/level` — View your custom rank card and level progress!\n' +
         '• `/leaderboard` — View the top ranked community members!\n\n' +
@@ -8352,7 +8352,7 @@ client.on('messageCreate', async (message) => {
       title: '🤖 Krims Code AI — Official Command Guide',
       description: 'The all-in-one AI assistant and community management engine by **Krims Code Studio**.\n\n🌐 **Web Dashboard:** [krims-bot-dashboard.vercel.app](https://krims-bot-dashboard.vercel.app)',
       fields: [
-        { name: '🤖 AI Chat & Multimodal Vision', value: isDM ? 'Type any message or upload an image directly in DM.' : `\`${botPrefix}ask <prompt>\` — Dual Gemini 3.5 & Groq LPU AI chat.` },
+        { name: '🤖 AI Chat & Multimodal Vision', value: isDM ? 'Type any message or upload an image directly in DM.' : `\`${botPrefix}ask <prompt>\` — High-speed Krims Code AI neural chat.` },
         { name: '🪙 Economy & Custom Store', value: `\`!balance\`, \`!daily\`, \`!shop\`, \`!buy <item>\`, \`!pay @user <amt>\`, \`!coinflip <amt>\`` },
         { name: '🏆 Progression & Leveling', value: `\`!rank\`, \`!level\`, \`!leaderboard\` — Real-time text & voice XP.` },
         { name: '🛡️ Moderation Tools', value: `\`!mute\`, \`!unmute\`, \`!kick\`, \`!ban\`, \`!lockdown\`, \`!slowmode\`` },
