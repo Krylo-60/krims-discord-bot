@@ -219,6 +219,7 @@ export function setPlayerVerification(discordId, minecraftIgn, uuid = null) {
 export function getBalance(discordId) {
   const row = db.prepare('SELECT * FROM economy WHERE discord_id = ?').get(discordId);
   if (!row) {
+    db.prepare('INSERT OR IGNORE INTO players (discord_id) VALUES (?)').run(discordId);
     db.prepare('INSERT OR IGNORE INTO economy (discord_id, krylocoins) VALUES (?, 1000)').run(discordId);
     return { discord_id: discordId, krylocoins: 1000, bank: 0, gems: 0, daily_streak: 0, last_daily: 0, last_work: 0 };
   }
@@ -226,6 +227,7 @@ export function getBalance(discordId) {
 }
 
 export function addCoins(discordId, amount) {
+  db.prepare('INSERT OR IGNORE INTO players (discord_id) VALUES (?)').run(discordId);
   db.prepare(`
     INSERT INTO economy (discord_id, krylocoins) VALUES (?, ?)
     ON CONFLICT(discord_id) DO UPDATE SET krylocoins = krylocoins + excluded.krylocoins

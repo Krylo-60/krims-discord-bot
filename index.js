@@ -563,13 +563,6 @@ async function updateDynamicServerVoiceStats() {
     }
 
     const statusChannelName = isOnline ? `🟢 ┃ Status: ONLINE (${playerCount})` : `🔴 ┃ Status: OFFLINE`;
-    
-    // Update bot presence
-    if (isOnline) {
-      client.user.setActivity(`KryloSMP: ${playerCount} online`, { type: 0 });
-    } else {
-      client.user.setActivity('krylosmp.falix.gg:29273', { type: 0 });
-    }
 
     // Update voice channels across guilds
     const targetGuilds = ['1524878881918685405', '1420991845546332162', '1532574925356007525'];
@@ -590,16 +583,31 @@ async function updateDynamicServerVoiceStats() {
   }
 }
 
+function updateBotPresence() {
+  if (!client?.user) return;
+  const serverCount = client.guilds.cache.size || 1;
+  const activities = [
+    { name: `/help • Serving ${serverCount} servers`, type: 3 }, // Watching
+    { name: `/ask • Gemini 3.5 Flash-Lite`, type: 0 }, // Playing
+    { name: `krims-bot-dashboard.vercel.app`, type: 3 }, // Watching
+    { name: `Krims Code Studio ⚡`, type: 0 } // Playing
+  ];
+  const act = activities[Math.floor(Math.random() * activities.length)];
+  client.user.setActivity(act.name, { type: act.type });
+}
+
 function startDynamicStatsUpdater() {
   updateDynamicServerVoiceStats();
   setInterval(updateDynamicServerVoiceStats, 60 * 1000);
 }
 
 client.once('ready', async () => {
-  console.log(`[+] Krylo SMP Official Bot online as ${client.user.tag}`);
+  console.log(`[+] Krims Code AI online as ${client.user.tag}`);
   startAutoUpdater();
   startDynamicStatsUpdater();
   startVoiceLevelTicker(client);
+  updateBotPresence();
+  setInterval(updateBotPresence, 60 * 1000);
   aiOperator.client = client;
   aiOperator.start();
 
@@ -3920,13 +3928,21 @@ client.on('interactionCreate', async (interaction) => {
 
   // /bal
   if (commandName === 'bal' || commandName === 'balance' || commandName === 'coins') {
+    const cfg = await getCachedGuildConfig(interaction.guildId);
+    if (cfg?.economyEnabled === false) {
+      return interaction.reply({ content: '❌ The Economy & Store system is disabled on this server.', ephemeral: true });
+    }
+
+    const currName = cfg?.currencyName || 'Coins';
+    const currSym = cfg?.currencySymbol || '🪙';
+
     let isOwner = interaction.user.id === '1414143825538191373';
-    let balDisplay = isOwner ? '∞ INF' : '10,000';
+    let balDisplay = isOwner ? '∞ INF' : '0';
     try {
       if (!isOwner) {
         const b = getBalance(interaction.user.id);
-        if (b && b.krylocoins !== undefined && b.krylocoins > 0) {
-          balDisplay = b.krylocoins.toLocaleString();
+        if (b && b.krylocoins !== undefined) {
+          balDisplay = Number(b.krylocoins).toLocaleString();
         }
       }
     } catch (_) {}
@@ -3934,21 +3950,16 @@ client.on('interactionCreate', async (interaction) => {
     const embed = new EmbedBuilder()
       .setColor(0xF59E0B)
       .setAuthor({ name: `${interaction.user.username}'s Vault`, iconURL: interaction.user.displayAvatarURL() })
-      .setTitle('🪙 KryloCoins (KC) Balance')
+      .setTitle(`${currSym} ${currName} Balance`)
       .setDescription(
-        `💰 **Your Current Balance:** \`${bal.toLocaleString()} KC\`\n\n` +
-        'Earn more KC by chatting, winning daily giveaways, or mining ores in BoxPvP!\n\n' +
-        '🛒 **Spend KC in the Store:** [https://krylosmp-store.web.app/](https://krylosmp-store.web.app/)'
+        `💰 **Your Current Balance:** \`${balDisplay} ${currSym}\`\n\n` +
+        `Earn more ${currName} by active chatting, voice lounges, and claiming your \`/daily\`!\n\n` +
+        `🛍️ **Browse Store:** Use \`/shop\` to see available community perks.`
       )
-      .setFooter({ text: '100% Free Play-to-Earn Economy' })
+      .setFooter({ text: `${interaction.guild?.name || 'Community'} Economy • Powered by Krims Code AI` })
       .setTimestamp();
 
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setLabel('🛒 Visit Web Store').setStyle(ButtonStyle.Link).setURL('https://krylosmp-store.web.app/'),
-      new ButtonBuilder().setCustomId('btn_claim_daily_kc').setLabel('🎁 Claim Daily KC').setStyle(ButtonStyle.Success)
-    );
-
-    return interaction.reply({ embeds: [embed], components: [row] });
+    return interaction.reply({ embeds: [embed] });
   }
 
 
@@ -4086,7 +4097,7 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     activeStream = null;
-    client.user.setActivity('KryloSMP • krylosmp.falix.gg:29273', { type: 0 });
+    updateBotPresence();
 
     await interaction.reply({ content: '🛑 **LIVE STREAM BROADCAST ENDED.** Activity status reset to default.', ephemeral: true });
   }
@@ -5088,7 +5099,6 @@ client.on('interactionCreate', async (interaction) => {
             .setFooter({ text: 'Auto-updating every 20 seconds' })
             .setTimestamp();
 
-          client.user.setActivity('krylosmp.falix.gg:29273', { type: 0 });
           try {
             const messages = await channel.messages.fetch({ limit: 10 });
             const botMessages = messages.filter(m => m.author.id === client.user.id);
@@ -5150,113 +5160,86 @@ client.on('interactionCreate', async (interaction) => {
     return;
   }
 
-  // Command: /ip
-  
-  // Command: /store
-  if (commandName === 'store') {
+  // Command: /store & /shop
+  if (commandName === 'store' || commandName === 'shop') {
+    const cfg = await getCachedGuildConfig(interaction.guildId);
+    if (cfg?.economyEnabled === false) {
+      return interaction.reply({ content: '❌ The Economy & Store system is disabled on this server.', ephemeral: true });
+    }
+
+    const currName = cfg?.currencyName || 'Coins';
+    const currSym = cfg?.currencySymbol || '🪙';
+    const isKSMP = interaction.guildId === '1538225337048236082' || interaction.guildId === '1524878881918685405';
+
+    let items = (cfg?.storeItems && Array.isArray(cfg.storeItems) && cfg.storeItems.length > 0)
+      ? cfg.storeItems
+      : (isKSMP ? [
+          { id: 'item-1', name: '⚡ 7-Day Flight Pass', price: 5000, desc: 'Grants /fly in non-PvP zones for 7 days.', autoDeliver: true },
+          { id: 'item-2', name: '🎨 Custom Chat Color Tag', price: 2500, desc: 'Unlock vibrant cosmetic chat name gradients.', autoDeliver: false },
+          { id: 'item-3', name: '👑 VIP Rank (30 Days)', price: 10000, desc: 'VIP role, priority queue, 2x XP boost.', autoDeliver: false }
+        ] : [
+          { id: 'item-1', name: '🎨 Custom Member Role', price: 2000, desc: 'Personal custom-colored cosmetic role.', autoDeliver: false },
+          { id: 'item-2', name: '⚡ 2x XP Booster (24h)', price: 1000, desc: 'Double your message and voice XP for 24 hours.', autoDeliver: true },
+          { id: 'item-3', name: '⭐ VIP Lounge Pass', price: 5000, desc: 'Exclusive access to VIP channels and perks.', autoDeliver: false }
+        ]);
+
+    const itemFields = items.map((item, idx) => {
+      const mode = item.autoDeliver ? '⚡ Instant' : '👑 Requires Approval';
+      return {
+        name: `${idx + 1}. ${item.name} — ${Number(item.price).toLocaleString()} ${currSym}`,
+        value: `${item.desc || 'No description provided.'}\n*Delivery: ${mode}* • Purchase with \`!buy ${idx + 1}\``,
+        inline: false
+      };
+    });
+
     const embed = new EmbedBuilder()
-      .setColor(0xFFAA00)
-      .setTitle('🛒 KryloSMP Official Webstore & Server Packages')
+      .setColor(0x00F2FF)
+      .setTitle(`🛍️ ${interaction.guild?.name || 'Server'} Community Store`)
       .setDescription(
-        'Enhance your gameplay with exclusive Ranks, Cosmetics, Crate Keys, and KryloCoins!\n\n' +
-        '🌐 **Official Webstore:** https://krylosmp-store.vercel.app\n\n' +
-        '👑 **POPULAR STORE PACKAGES:**\n' +
-        '• 🏅 **VIP Rank** — `$4.99` (Custom Tag, /fly in Lobby, 2x Coin Boost, 3 Homes)\n' +
-        '• 👑 **MVP Rank** — `$9.99` (All VIP perks, Auto-Pickup, KeepXP on death, 5 Homes)\n' +
-        '• 🎫 **Krylo Pass (Season 3)** — `$14.99` (Exclusive cosmetics, pets, neon particle trails)\n' +
-        '• 🔑 **Mega Crate Keys Bundle** — `$6.99` (5x Mythic Keys + 10x Rare Keys)\n' +
-        '• 💰 **5,000 KryloCoins Pack** — `$2.99` (Instant in-game coin credit)\n\n' +
-        '*All purchases directly support the server and unlock instant rewards!*'
+        `Welcome to the official server store! Purchase items using your **${currName} (${currSym})**.\n` +
+        `Use \`!buy <number or item name>\` in chat to purchase an item!`
       )
-      .setFooter({ text: 'KryloSMP Store • Safe & Instant Delivery' })
+      .addFields(itemFields)
+      .setFooter({ text: `${interaction.guild?.name || 'Community'} • Powered by Krims Code AI` })
       .setTimestamp();
 
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setLabel('🌐 Visit Webstore')
-        .setStyle(ButtonStyle.Link)
-        .setURL('https://krylosmp-store.vercel.app'),
-      new ButtonBuilder()
-        .setCustomId('open_coin_shop')
-        .setLabel('🪙 In-Game Coin Shop')
-        .setStyle(ButtonStyle.Success)
-    );
-
-    await interaction.reply({ embeds: [embed], components: [row] }).catch(() => {});
+    await interaction.reply({ embeds: [embed] });
     return;
   }
 
-  
   // Command: /help
   if (commandName === 'help') {
-    const isKrylo = interaction.guild?.name?.toLowerCase().includes('krylo') || interaction.guild?.id === '1538225337048236082';
-    
+    const cfg = await getCachedGuildConfig(interaction.guildId);
+    const ecoActive = cfg?.economyEnabled !== false;
+    const currSym = cfg?.currencySymbol || '🪙';
+
     const embed = new EmbedBuilder()
       .setColor(0x00F2FF)
-      .setTitle(`📜 ${interaction.guild?.name || 'Community'} • Bot Commands`)
+      .setTitle(`⚡ ${interaction.guild?.name || 'Community'} • Bot Commands`)
       .setDescription(
-        isKrylo
-          ? 'Here are the official KryloSMP commands:\n\n' +
-            '• `/ask [question]` - Ask Krims Code AI anything (Groq 120B & Gemini powered)!\n' +
-            '• `/daily` - Claim free daily rewards & KryloCoins!\n' +
-            '• `/level` or `/rank` - View chat level and XP progress!\n' +
-            '• `/work` - Work to earn coins!\n' +
-            '• `/ip` - Show Java & Bedrock server connection details!\n' +
-            '• `/store` - View KryloSMP official webstore link!\n' +
-            '• `/pvp [user]` - Challenge a player to a 1v1 duel!\n' +
-            '• `/bday [user]` - Celebrate birthday with fireworks & double XP!\n' +
-            '• `/leaderboard` - View top player rankings!'
-          : 'Welcome to **Krims Code AI**! Here are the available commands for your server:\n\n' +
-            '🤖 **AI & Utilities:**\n' +
-            '• `/ask [question]` - Chat with the AI (powered by Groq 120B LPUs)!\n' +
-            '• `/level` or `/rank` - View member XP and activity ranks!\n' +
-            '• `/bday [user]` - Celebrate a member\'s birthday with fireworks!\n' +
-            '• `/poll [question]` - Create community polls and voting!\n' +
-            '• `/userinfo` / `/serverinfo` - Display member or server stats!\n\n' +
-            '🛡️ **Moderation & Fun:**\n' +
-            '• `/mute`, `/unmute`, `/kick`, `/ban` - Staff moderation tools\n' +
-            '• `/roll`, `/coinflip` - Fun dice and coin minigames\n\n' +
-            '*Invite Krims Code AI to your own servers to power smart AI chat and utilities!*'
+        'Welcome to **Krims Code AI** by **Krims Code Studio**!\n' +
+        'A next-generation AI community bot built for every Discord server.\n\n' +
+        '🤖 **AI Chat & Intelligence:**\n' +
+        '• `/ask [question]` — Ask Krims Code AI anything (powered by Gemini 3.5 & Groq LPUs)!\n\n' +
+        '🏆 **Progression & Voice XP:**\n' +
+        '• `/rank` or `/level` — View your custom rank card and level progress!\n' +
+        '• `/leaderboard` — View the top ranked community members!\n\n' +
+        (ecoActive ? 
+        `🪙 **Economy & Store:**\n` +
+        `• \`/balance\` — Check your ${currSym} balance\n` +
+        `• \`/daily\` — Claim daily streak bonus\n` +
+        `• \`/shop\` or \`/store\` — View and purchase server store items\n` +
+        `• \`/coinflip [amount]\` — Coinflip minigame\n\n` : '') +
+        '🛡️ **Moderation & Community:**\n' +
+        '• `/mute`, `/unmute`, `/kick`, `/ban` — Server moderation\n' +
+        '• `/poll [question]` — Launch an interactive voting poll\n' +
+        '• `/userinfo` / `/serverinfo` — Profile and server statistics\n\n' +
+        '🌐 **Dashboard:** [krims-bot-dashboard.vercel.app](https://krims-bot-dashboard.vercel.app)'
       )
-      .setFooter({ text: `${interaction.guild?.name || 'Discord'} • Powered by Krims Code AI` })
+      .setFooter({ text: `${interaction.guild?.name || 'Discord'} • Krims Code Studio` })
       .setTimestamp();
 
     await interaction.reply({ embeds: [embed] }).catch(() => {});
-    return;
-  }
-
-  if (commandName === 'ip') {
-    const embed = new EmbedBuilder()
-      .setColor(0x00F2FF)
-      .setTitle('🌐 KryloSMP Connection Details')
-      .setDescription('Use these official details to connect to the server in Minecraft.')
-      .addFields(
-        { name: '☕ Java Edition (PC / Mac)', value: '• **IP:** `krylosmp.falix.gg:29273` *(or `krylosmp.falix.gg`)*', inline: false },
-        { name: '🪨 Bedrock Edition (Mobile / Console)', value: '• **Address:** `krylosmp.falix.gg`\n• **Port:** `29273`', inline: false },
-        { name: '🎙️ Simple Voice Chat', value: '• **Voice Port:** `29274`', inline: false },
-        { name: '🛒 Web Store & Player Portal', value: '• Store: [krylosmp-store.web.app](https://krylosmp-store.web.app)\n• Portal: [krylosmp.web.app](https://krylosmp.web.app)', inline: false }
-      )
-      .setFooter({ text: 'KryloSMP Official Network' })
-      .setTimestamp();
-
-    await interaction.reply({ embeds: [embed] });
-    return;
-  }
-
-  // Command: /shop
-  if (commandName === 'shop') {
-    const embed = new EmbedBuilder()
-      .setColor(0xFFD700)
-      .setTitle('🛒 KryloSMP In-Game Shop Prices')
-      .setDescription('Use `/shop` in-game to buy these items with your coin balance.')
-      .addFields(
-        { name: '💎 Ore Minerals', value: '• **Diamond**: 100 ⛃\n• **Netherite Ingot**: 500 ⛃\n• **Gold Ingot**: 25 ⛃\n• **Emerald**: 75 ⛃\n• **Iron Ingot**: 10 ⛃', inline: true },
-        { name: '⚔️ Gear & Specials', value: '• **Elytra**: 1000 ⛃\n• **Trident**: 800 ⛃\n• **Totem of Undying**: 600 ⛃\n• **Shulker Box**: 300 ⛃\n• **God Apple**: 250 ⛃', inline: true }
-      )
-      .setFooter({ text: 'Earn coins by defeating mobs and players!' })
-      .setTimestamp();
-
-    await interaction.reply({ embeds: [embed] });
     return;
   }
 
@@ -8623,18 +8606,19 @@ client.on('messageCreate', async (message) => {
   if (content === botPrefix + 'help' || (isDM && content.toLowerCase() === 'help')) {
     const helpEmbed = {
       color: 0x00f2ff,
-      title: '👾 Krylo SMP Bot - Command Guide',
-      description: 'Welcome to your premium developer workspace bot assistant. Below is the list of available commands:',
+      title: '🤖 Krims Code AI — Official Command Guide',
+      description: 'The all-in-one AI assistant and community management engine by **Krims Code Studio**.\n\n🌐 **Web Dashboard:** [krims-bot-dashboard.vercel.app](https://krims-bot-dashboard.vercel.app)',
       fields: [
-        { name: '💬 Chat / AI Reasoning', value: isDM ? 'Just type a message naturally in DM to chat.' : `Type \`${botPrefix}ask <your question>\` in servers to ask queries.` },
-        { name: '🎟️ Support Tickets', value: `Type \`${botPrefix}ticket\` to open a private assistance channel.` },
-        { name: '🧹 Reset memory', value: `Type \`${botPrefix}reset\` to start a new chat session.` },
-        { name: '📊 Network Telemetry', value: `Type \`${botPrefix}diagnose\` to compile local and global network statistics.` },
-        { name: '👾 Bot Help', value: `Type \`${botPrefix}help\` to open this menu.` }
+        { name: '🤖 AI Chat & Multimodal Vision', value: isDM ? 'Type any message or upload an image directly in DM.' : `\`${botPrefix}ask <prompt>\` — Dual Gemini 3.5 & Groq LPU AI chat.` },
+        { name: '🪙 Economy & Custom Store', value: `\`!balance\`, \`!daily\`, \`!shop\`, \`!buy <item>\`, \`!pay @user <amt>\`, \`!coinflip <amt>\`` },
+        { name: '🏆 Progression & Leveling', value: `\`!rank\`, \`!level\`, \`!leaderboard\` — Real-time text & voice XP.` },
+        { name: '🛡️ Moderation Tools', value: `\`!mute\`, \`!unmute\`, \`!kick\`, \`!ban\`, \`!lockdown\`, \`!slowmode\`` },
+        { name: '🎟️ Support Tickets', value: `\`${botPrefix}ticket\` — Private player support channel creation.` },
+        { name: '📊 Network Telemetry', value: `\`${botPrefix}diagnose\` — System health and API uptime status.` }
       ],
       timestamp: new Date().toISOString(),
       footer: {
-        text: 'Krims Code Command Center • Coded by the Krylo Team'
+        text: 'Krims Code AI • Krims Code Studio'
       }
     };
     await message.reply({ embeds: [helpEmbed] });
@@ -9216,8 +9200,6 @@ async function startLiveStatusUpdate(guild, channel) {
           )
           .setFooter({ text: 'Auto-updating every 20 seconds' })
           .setTimestamp();
-
-        client.user.setActivity("KryloSMP: " + onlineCount + "/" + maxCount, { type: 0 });
       } else {
         embed
           .setColor(0xFF3333)
@@ -9229,8 +9211,6 @@ async function startLiveStatusUpdate(guild, channel) {
           )
           .setFooter({ text: 'Auto-updating every 20 seconds' })
           .setTimestamp();
-
-        client.user.setActivity('krylosmp.falix.gg:29273', { type: 0 });
       }
 
       try {

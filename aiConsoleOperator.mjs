@@ -4,7 +4,7 @@ import { db } from './databaseEngine.mjs';
 
 dotenv.config();
 
-const FALIX_TOKEN = process.env.FALIX_API_KEY || 'flx_live_P3WeTyt4HtgmfYBKf7gmw8PK1bYSVp5yNySZQ4Pa';
+const FALIX_TOKEN = process.env.FALIX_API_KEY || '';
 const SERVER_ID = process.env.FALIX_SERVER_ID || '3390114';
 const BASE_URL = 'https://client.falixnodes.net/api/v2';
 const GROQ_KEY = process.env.GROQ_API_KEY || process.env.GROQ_API_KEY_FALLBACK;

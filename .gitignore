@@ -16,11 +16,57 @@ npm-debug.log*
 *.sqlite3
 data/
 
-# Scratch & Jars
+# Scratch, Testing & Admin Scripts
+test*
+setup*
+inspect*
+sync*
+deploy*
+add*
+fix*
+scan*
+update*
+create*
+get*
+list*
+send*
+check*
+cleanup*
+delete*
+force*
+monitor*
+pull*
+read*
+rename*
+resolve*
+seed*
+upload*
+verify*
+autoStart*
+controlTest*
+convert*
+persist*
+print*
+publish*
+standalone*
+start*
+*.mjs.bak
+*.js.bak
+*.bak
 *.py
 *.jar
 temp_plugins/
+generated_network_configs/
+krylosmp-resourcepack/
+APPLICATION_TEMPLATES.md
+*.zip
+*.jpg
+*.png
+server_webhooks.json
+xp.json
+megaData.json
 
 # OS Junk
 .DS_Store
 Thumbs.db
+
