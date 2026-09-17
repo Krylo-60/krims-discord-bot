@@ -8876,6 +8876,30 @@ client.on('messageReactionAdd', async (reaction, user) => {
     }
   }
 
+  // Pronoun Reaction Roles (Message 1550237661124497490 in #🏷️・roles)
+  if (reaction.message.id === '1550237661124497490') {
+    const PRONOUN_REACTION_MAP = {
+      '💙': { id: '1549881451116368103', name: 'he / him' },
+      '💖': { id: '1549881452747821129', name: 'she / her' },
+      '💛': { id: '1549881453808976092', name: 'they / them' },
+      '💬': { id: '1549881454857822218', name: 'ask pronouns' }
+    };
+    const target = PRONOUN_REACTION_MAP[reaction.emoji.name];
+    if (target) {
+      try {
+        const guild = reaction.message.guild;
+        const member = await guild.members.fetch(user.id);
+        if (member && !member.roles.cache.has(target.id)) {
+          await member.roles.add(target.id);
+          console.log(`[Reaction Roles] Added pronoun role "${target.name}" to ${user.username}`);
+        }
+      } catch (err) {
+        console.warn(`[Reaction Roles] Failed to add pronoun role:`, err.message);
+      }
+    }
+    return;
+  }
+
   // Reaction role handling (original verify message)
   if (reaction.message.id !== VERIFY_MESSAGE_ID) return;
 
@@ -8900,6 +8924,31 @@ client.on('messageReactionRemove', async (reaction, user) => {
   if (user.bot) return;
   if (reaction.partial) await reaction.fetch().catch(() => {});
   if (reaction.message.partial) await reaction.message.fetch().catch(() => {});
+
+  // Pronoun Reaction Roles (Message 1550237661124497490 in #🏷️・roles)
+  if (reaction.message.id === '1550237661124497490') {
+    const PRONOUN_REACTION_MAP = {
+      '💙': { id: '1549881451116368103', name: 'he / him' },
+      '💖': { id: '1549881452747821129', name: 'she / her' },
+      '💛': { id: '1549881453808976092', name: 'they / them' },
+      '💬': { id: '1549881454857822218', name: 'ask pronouns' }
+    };
+    const target = PRONOUN_REACTION_MAP[reaction.emoji.name];
+    if (target) {
+      try {
+        const guild = reaction.message.guild;
+        const member = await guild.members.fetch(user.id);
+        if (member && member.roles.cache.has(target.id)) {
+          await member.roles.remove(target.id);
+          console.log(`[Reaction Roles] Removed pronoun role "${target.name}" from ${user.username}`);
+        }
+      } catch (err) {
+        console.warn(`[Reaction Roles] Failed to remove pronoun role:`, err.message);
+      }
+    }
+    return;
+  }
+
   if (reaction.message.id !== VERIFY_MESSAGE_ID) return;
 
   const emoji = reaction.emoji.name;
