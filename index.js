@@ -1745,16 +1745,20 @@ client.on('interactionCreate', async (interaction) => {
   // Handle DM / Global Button Interactions (e.g. KevinMC Setup Feedback)
   if (interaction.isButton()) {
     const { customId } = interaction;
+    console.log(`[Button Click] customId: "${customId}" by ${interaction.user?.tag} (${interaction.user?.id}) in ${interaction.guild?.name || 'DM'}`);
 
-    if (customId === 'btn_verify_yt_sub') {
+    if (customId === 'btn_verify_yt_sub' || customId === 'verify_sub') {
       try {
-        await interaction.deferReply({ ephemeral: true }).catch(() => {});
+        await interaction.deferReply({ ephemeral: true }).catch(err => console.error('[Verify Sub] deferReply error:', err));
         const guild = interaction.guild;
         if (!guild) return interaction.editReply({ content: '❌ This button must be used inside the server.' });
         
         const subRole = guild.roles.cache.find(r => r.name.includes('Subbed to Krylo') || r.name.includes('Subscriber'));
         const fanRole = guild.roles.cache.find(r => r.name.includes('Krylo Fan'));
-        const member = interaction.member;
+        let member = interaction.member;
+        if (!member || !member.roles || !member.roles.cache) {
+          member = await guild.members.fetch(interaction.user.id).catch(() => null);
+        }
 
         if (member && subRole && member.roles.cache.has(subRole.id)) {
           return interaction.editReply({
@@ -1789,13 +1793,14 @@ client.on('interactionCreate', async (interaction) => {
           components: [row]
         });
       } catch (err) {
-        return interaction.editReply({ content: '⚠️ Error checking subscription: ' + err.message });
+        console.error('[Verify Sub] Handler error:', err);
+        return interaction.editReply({ content: '⚠️ Error checking subscription: ' + err.message }).catch(() => {});
       }
     }
 
     if (customId.startsWith('pronoun_')) {
       try {
-        await interaction.deferReply({ ephemeral: true }).catch(() => {});
+        await interaction.deferReply({ ephemeral: true }).catch(err => console.error('[Pronoun] deferReply error:', err));
         const pronounMap = {
           'pronoun_he_him': { id: '1549881451116368103', name: 'he / him' },
           'pronoun_she_her': { id: '1549881452747821129', name: 'she / her' },
@@ -1809,22 +1814,27 @@ client.on('interactionCreate', async (interaction) => {
         const guild = interaction.guild;
         if (!guild) return interaction.editReply({ content: '❌ Guild not found.' });
 
-        const member = await guild.members.fetch(interaction.user.id).catch(() => null);
+        let member = interaction.member;
+        if (!member || !member.roles || !member.roles.cache) {
+          member = await guild.members.fetch(interaction.user.id).catch(() => null);
+        }
         if (!member) return interaction.editReply({ content: '❌ Member not found.' });
 
         if (member.roles.cache.has(target.id)) {
           await member.roles.remove(target.id);
+          console.log(`[Pronoun] Removed ${target.name} from ${interaction.user.tag}`);
           return interaction.editReply({
             content: `➖ Removed **${target.name}** role from your profile!`
           });
         } else {
           await member.roles.add(target.id);
+          console.log(`[Pronoun] Added ${target.name} to ${interaction.user.tag}`);
           return interaction.editReply({
             content: `➕ Added **${target.name}** role to your profile!`
           });
         }
       } catch (err) {
-        console.error('Error in pronoun role handler:', err);
+        console.error('[Pronoun] Error in pronoun role handler:', err);
         return interaction.editReply({ content: '⚠️ Could not update role: ' + err.message }).catch(() => {});
       }
     }
