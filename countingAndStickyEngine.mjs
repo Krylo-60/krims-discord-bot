@@ -193,31 +193,9 @@ export async function handleStickyMessage(message) {
     return;
   }
 
-  // 3. Automatic Sticky Deletion & Reposting at the bottom
+  // 3. Automatic Sticky Deletion & Reposting at the bottom (ONLY if an admin explicitly ran ?stick)
   try {
-    let row = db.prepare('SELECT * FROM sticky_messages WHERE channel_id = ?').get(message.channel.id);
-    
-    // Fallback rule detection by channel name if not in DB
-    if (!row || !row.message_content) {
-      const chName = message.channel.name.toLowerCase();
-      for (const [key, rule] of Object.entries(DEFAULT_RULES)) {
-        if (chName.includes(key)) {
-          row = {
-            channel_id: message.channel.id,
-            title: rule.title,
-            message_content: rule.text,
-            color: rule.color,
-            last_sticky_id: null
-          };
-          try {
-            db.prepare('INSERT OR REPLACE INTO sticky_messages (channel_id, title, message_content, color, last_sticky_id) VALUES (?, ?, ?, ?, ?)')
-              .run(message.channel.id, rule.title, rule.text, rule.color, null);
-          } catch (_) {}
-          break;
-        }
-      }
-    }
-
+    const row = db.prepare('SELECT * FROM sticky_messages WHERE channel_id = ?').get(message.channel.id);
     if (!row || !row.message_content) return;
 
     // Reset pending timer so we only send once after the user stops typing
@@ -232,7 +210,7 @@ export async function handleStickyMessage(message) {
         try {
           const recent = await message.channel.messages.fetch({ limit: 15 }).catch(() => null);
           if (recent) {
-            const oldStickies = recent.filter(m => m.author.id === message.client.user.id && (m.id === row.last_sticky_id || (m.embeds[0] && m.embeds[0].footer?.text?.includes('Auto-Sticky'))));
+            const oldStickies = recent.filter(m => m.author.id === message.client.user.id && (m.id === row.last_sticky_id || (m.embeds[0] && m.embeds[0].footer?.text?.includes('Channel Notice'))));
             for (const [_, old] of oldStickies) {
               await old.delete().catch(() => {});
             }
@@ -243,7 +221,7 @@ export async function handleStickyMessage(message) {
           .setColor(row.color || 0x00D8F6)
           .setTitle(row.title || '📌 Notice')
           .setDescription(row.message_content)
-          .setFooter({ text: 'KryloSMP Community Engine • Auto-Sticky' })
+          .setFooter({ text: `${message.guild.name} • Channel Notice` })
           .setTimestamp();
 
         const newSticky = await message.channel.send({ embeds: [embed] });
