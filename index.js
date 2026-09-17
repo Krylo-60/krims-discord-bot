@@ -1794,31 +1794,38 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     if (customId.startsWith('pronoun_')) {
-      const pronounMap = {
-        'pronoun_he_him': { id: '1549881451116368103', name: 'he / him' },
-        'pronoun_she_her': { id: '1549881452747821129', name: 'she / her' },
-        'pronoun_they_them': { id: '1549881453808976092', name: 'they / them' },
-        'pronoun_ask': { id: '1549881454857822218', name: 'ask pronouns' }
-      };
+      try {
+        await interaction.deferReply({ ephemeral: true }).catch(() => {});
+        const pronounMap = {
+          'pronoun_he_him': { id: '1549881451116368103', name: 'he / him' },
+          'pronoun_she_her': { id: '1549881452747821129', name: 'she / her' },
+          'pronoun_they_them': { id: '1549881453808976092', name: 'they / them' },
+          'pronoun_ask': { id: '1549881454857822218', name: 'ask pronouns' }
+        };
 
-      const target = pronounMap[customId];
-      if (!target) return interaction.reply({ content: '❌ Unknown pronoun role.', ephemeral: true });
+        const target = pronounMap[customId];
+        if (!target) return interaction.editReply({ content: '❌ Unknown pronoun role.' });
 
-      const member = interaction.member;
-      if (!member) return interaction.reply({ content: '❌ Member not found.', ephemeral: true });
+        const guild = interaction.guild;
+        if (!guild) return interaction.editReply({ content: '❌ Guild not found.' });
 
-      if (member.roles.cache.has(target.id)) {
-        await member.roles.remove(target.id).catch(console.error);
-        return interaction.reply({
-          content: `➖ Removed **${target.name}** role from your profile!`,
-          ephemeral: true
-        });
-      } else {
-        await member.roles.add(target.id).catch(console.error);
-        return interaction.reply({
-          content: `➕ Added **${target.name}** role to your profile!`,
-          ephemeral: true
-        });
+        const member = await guild.members.fetch(interaction.user.id).catch(() => null);
+        if (!member) return interaction.editReply({ content: '❌ Member not found.' });
+
+        if (member.roles.cache.has(target.id)) {
+          await member.roles.remove(target.id);
+          return interaction.editReply({
+            content: `➖ Removed **${target.name}** role from your profile!`
+          });
+        } else {
+          await member.roles.add(target.id);
+          return interaction.editReply({
+            content: `➕ Added **${target.name}** role to your profile!`
+          });
+        }
+      } catch (err) {
+        console.error('Error in pronoun role handler:', err);
+        return interaction.editReply({ content: '⚠️ Could not update role: ' + err.message }).catch(() => {});
       }
     }
 
