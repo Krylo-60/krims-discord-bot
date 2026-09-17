@@ -1752,12 +1752,13 @@ client.on('interactionCreate', async (interaction) => {
         const guild = interaction.guild;
         if (!guild) return interaction.editReply({ content: '❌ This button must be used inside the server.' });
         
-        const subRole = guild.roles.cache.find(r => r.name.toLowerCase().includes('subscriber') || r.name.toLowerCase().includes('sub'));
+        const subRole = guild.roles.cache.find(r => r.name.includes('Subbed to Krylo') || r.name.includes('Subscriber'));
+        const fanRole = guild.roles.cache.find(r => r.name.includes('Krylo Fan'));
         const member = interaction.member;
 
         if (member && subRole && member.roles.cache.has(subRole.id)) {
           return interaction.editReply({
-            content: `✨ You already have the **${subRole.name}** role! Thank you for supporting **Krylo**! 🚀`
+            content: `✨ You already have the **${subRole.name}** and **${fanRole ? fanRole.name : '⭐ Skybase • Krylo Fan'}** roles! Thank you for supporting **Krylo MC**! 🚀`
           });
         }
 
@@ -1771,7 +1772,7 @@ client.on('interactionCreate', async (interaction) => {
             .setURL(verifyUrl)
             .setEmoji('🌐'),
           new ButtonBuilder()
-            .setLabel('Subscribe to @krylomcyt')
+            .setLabel('Subscribe to Krylo MC')
             .setStyle(ButtonStyle.Link)
             .setURL('https://www.youtube.com/@krylomcyt?sub_confirmation=1')
             .setEmoji('▶️')
@@ -1779,13 +1780,45 @@ client.on('interactionCreate', async (interaction) => {
 
         return interaction.editReply({
           content: 
-            `🔴 **Instant YouTube Verification Portal**\n\n` +
-            `Click the button below to sign in with Google. It will automatically check your subscription to **[Krylo on YouTube](https://www.youtube.com/@krylomcyt?sub_confirmation=1)** and award your **${subRole ? subRole.name : '🔴 Krylo Subscriber'}** role instantly!\n\n` +
+            `🔴 **Krylo's Skybase — Instant Verification Portal**\n\n` +
+            `Click **Sign In With Google & Verify** below to confirm your subscription to **[Krylo MC on YouTube](https://www.youtube.com/@krylomcyt?sub_confirmation=1)**!\n\n` +
+            `🎁 **Roles Unlocked Automatically:**\n` +
+            `• **🔴 Skybase • Subbed to Krylo**\n` +
+            `• **⭐ Skybase • Krylo Fan**\n\n` +
             `*(Alternatively, you can drop a screenshot in ${proofCh ? '<#' + proofCh.id + '>' : '#sub-proof'})*`,
           components: [row]
         });
       } catch (err) {
         return interaction.editReply({ content: '⚠️ Error checking subscription: ' + err.message });
+      }
+    }
+
+    if (customId.startsWith('pronoun_')) {
+      const pronounMap = {
+        'pronoun_he_him': { id: '1549881451116368103', name: 'he / him' },
+        'pronoun_she_her': { id: '1549881452747821129', name: 'she / her' },
+        'pronoun_they_them': { id: '1549881453808976092', name: 'they / them' },
+        'pronoun_ask': { id: '1549881454857822218', name: 'ask pronouns' }
+      };
+
+      const target = pronounMap[customId];
+      if (!target) return interaction.reply({ content: '❌ Unknown pronoun role.', ephemeral: true });
+
+      const member = interaction.member;
+      if (!member) return interaction.reply({ content: '❌ Member not found.', ephemeral: true });
+
+      if (member.roles.cache.has(target.id)) {
+        await member.roles.remove(target.id).catch(console.error);
+        return interaction.reply({
+          content: `➖ Removed **${target.name}** role from your profile!`,
+          ephemeral: true
+        });
+      } else {
+        await member.roles.add(target.id).catch(console.error);
+        return interaction.reply({
+          content: `➕ Added **${target.name}** role to your profile!`,
+          ephemeral: true
+        });
       }
     }
 
