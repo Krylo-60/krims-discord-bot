@@ -6,7 +6,7 @@ import { generateRankCardBuffer } from './rankCardGenerator.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const XP_DB_PATH = path.resolve(__dirname, '../xp.json');
+const XP_DB_PATH = path.resolve(__dirname, '../mee6_xp.json');
 
 // In-memory XP cache and cooldown map
 let xpData = {};
@@ -66,7 +66,8 @@ export async function awardUserXp({ guild, user, xpGain = 20, source = 'chat', c
       xp: 0,
       level: 0,
       username: user.username,
-      discriminator: user.discriminator || '0'
+      discriminator: user.discriminator || '0',
+      announced_level: 0
     };
   }
 
@@ -77,35 +78,40 @@ export async function awardUserXp({ guild, user, xpGain = 20, source = 'chat', c
 
   const oldLevelInfo = calculateLevelFromXp(oldTotal);
   const newLevelInfo = calculateLevelFromXp(newTotal);
+  const lvl = newLevelInfo.level;
+  xpData[guildId][userId].level = lvl;
 
   // Level Up Trigger — only announce if this level has NEVER been announced before!
   const announcedLevel = xpData[guildId][userId].announced_level || 0;
-  if (newLevelInfo.level > announcedLevel) {
-    const lvl = newLevelInfo.level;
+  if (lvl > announcedLevel) {
     xpData[guildId][userId].announced_level = lvl;
     saveXpData();
 
-    // Route all level-up celebrations EXCLUSIVELY to #📊┃levels-and-rewards so chat stays clean!
-    let targetChannel = guild.channels.cache.find(c => 
-      c.name.includes('levels-and-rewards') || 
-      c.name.includes('level-up') ||
-      c.name.includes('levels')
-    );
+    // Do NOT spam announcements for voice lounge XP (voice XP accumulates silently)
+    // and only announce meaningful milestone levels (Level 5, 10, 15, 20, 25, etc.)
+    if (source !== 'voice' && lvl >= 5) {
+      let targetChannel = guild.channels.cache.find(c => 
+        c.name.includes('levels-and-rewards') || 
+        c.name.includes('level-up') ||
+        c.name.includes('levels')
+      );
 
-    if (targetChannel) {
-      const sourceBadge = source === 'voice' ? '🎙️ [Voice Lounge]' : '💬 [Chat Activity]';
-      const embed = new EmbedBuilder()
-        .setColor(0x00E5FF)
-        .setTitle(`🎉 LEVEL UP! — LEVEL ${lvl} REACHED!`)
-        .setDescription(`GG **<@${userId}>**! You just leveled up to **Level ${lvl}** in **${guild.name}**! 🚀\n*Earned via ${sourceBadge}*\nKeep chatting and talking in voice lounges to climb the leaderboard!`)
-        .setThumbnail(user.displayAvatarURL ? user.displayAvatarURL({ dynamic: true }) : null)
-        .setFooter({ text: 'KryloSMP Progression & Voice Leveling Engine' })
-        .setTimestamp();
+      if (targetChannel) {
+        const sourceBadge = '💬 [Chat Activity]';
+        const embed = new EmbedBuilder()
+          .setColor(0x00E5FF)
+          .setTitle(`🎉 LEVEL UP! — LEVEL ${lvl} REACHED!`)
+          .setDescription(`GG **${user.username}**! You just leveled up to **Level ${lvl}** in **${guild.name}**! 🚀\n*Earned via ${sourceBadge}*\nKeep chatting to climb the leaderboard!`)
+          .setThumbnail(user.displayAvatarURL ? user.displayAvatarURL({ dynamic: true }) : null)
+          .setFooter({ text: 'KryloSMP Progression Engine' })
+          .setTimestamp();
 
-      targetChannel.send({ content: `<@${userId}>`, embeds: [embed] }).catch(() => {});
+        // Send WITHOUT user mention ping to keep channel clean and peaceful
+        targetChannel.send({ embeds: [embed], allowedMentions: { users: [] } }).catch(() => {});
+      }
     }
 
-    // Role rewards
+    // Role rewards (awarded automatically regardless of source)
     try {
       const member = await guild.members.fetch(userId);
       if (lvl >= 50) {
@@ -116,6 +122,9 @@ export async function awardUserXp({ guild, user, xpGain = 20, source = 'chat', c
         if (r) member.roles.add(r).catch(() => {});
       } else if (lvl >= 10) {
         const r = guild.roles.cache.find(role => role.name.includes('Level 10'));
+        if (r) member.roles.add(r).catch(() => {});
+      } else if (lvl >= 5) {
+        const r = guild.roles.cache.find(role => role.name.includes('Level 5'));
         if (r) member.roles.add(r).catch(() => {});
       }
     } catch (e) {}

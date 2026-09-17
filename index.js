@@ -7807,8 +7807,8 @@ client.on('messageCreate', async (message) => {
   // Clean up old message IDs after 30 seconds to prevent memory leak
   setTimeout(() => processedMessages.delete(message.id), 30000);
 
-  // Process message XP leveling
-  await handleMessageXP(message);
+  // Legacy message XP disabled to prevent duplicate level up messages (handled by official MEE6 engine at line 7116)
+  // await handleMessageXP(message);
 
   // Auto-Format Suggestions Channel (Anonymous Public + Staff Audit Log)
   if (message.guild && (message.channel.name.includes('suggestions') || message.channel.name.includes('suggestion'))) {
