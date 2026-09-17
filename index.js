@@ -1780,7 +1780,7 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.editReply({
           content: 
             `🔴 **Instant YouTube Verification Portal**\n\n` +
-            `Click the button below to sign in with Google. It will automatically check your subscription to **@krylomcyt** and award your **${subRole ? subRole.name : '🔴 Krylo Subscriber'}** role instantly!\n\n` +
+            `Click the button below to sign in with Google. It will automatically check your subscription to **[Krylo on YouTube](https://www.youtube.com/@krylomcyt?sub_confirmation=1)** and award your **${subRole ? subRole.name : '🔴 Krylo Subscriber'}** role instantly!\n\n` +
             `*(Alternatively, you can drop a screenshot in ${proofCh ? '<#' + proofCh.id + '>' : '#sub-proof'})*`,
           components: [row]
         });
@@ -8590,40 +8590,48 @@ const KRYLO_GUILD_ID = '1524878881918685405';
 
 async function generateSkybaseWelcomeCard(avatarUrl, username, memberCount) {
   try {
-    const bg = await Jimp.read('skybase-welcome-bg.png');
-    bg.resize(1020, 500);
+    const bg = await Jimp.read('mee6_skybase_bg.png');
+    bg.resize(800, 360);
+
+    const avatarSize = 130;
+    const borderSize = 138;
+
+    // Signature white circular ring border
+    const ring = new Jimp(borderSize, borderSize, 0x00000000);
+    ring.scan(0, 0, borderSize, borderSize, (x, y) => {
+      const dist = Math.sqrt(Math.pow(x - borderSize / 2, 2) + Math.pow(y - borderSize / 2, 2));
+      if (dist <= borderSize / 2) ring.setPixelColor(0xffffffff, x, y);
+    });
 
     let avatar;
     try {
       avatar = await Jimp.read(avatarUrl);
     } catch {
-      avatar = new Jimp(180, 180, 0x00F2FFFF);
+      avatar = new Jimp(avatarSize, avatarSize, 0x00F2FFFF);
     }
-    avatar.resize(180, 180);
+    avatar.resize(avatarSize, avatarSize);
 
-    const mask = new Jimp(180, 180, 0x00000000);
-    mask.scan(0, 0, 180, 180, (x, y) => {
-      const dist = Math.sqrt(Math.pow(x - 90, 2) + Math.pow(y - 90, 2));
-      if (dist <= 90) mask.setPixelColor(0xffffffff, x, y);
+    const mask = new Jimp(avatarSize, avatarSize, 0x00000000);
+    mask.scan(0, 0, avatarSize, avatarSize, (x, y) => {
+      const dist = Math.sqrt(Math.pow(x - avatarSize / 2, 2) + Math.pow(y - avatarSize / 2, 2));
+      if (dist <= avatarSize / 2) mask.setPixelColor(0xffffffff, x, y);
     });
     avatar.mask(mask, 0, 0);
 
-    bg.composite(avatar, (1020 - 180) / 2, 70);
+    bg.composite(ring, (800 - borderSize) / 2, 40);
+    bg.composite(avatar, (800 - avatarSize) / 2, 44);
 
     const font32 = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
-    const font64 = await Jimp.loadFont(Jimp.FONT_SANS_64_WHITE);
+    const font16 = await Jimp.loadFont(Jimp.FONT_SANS_16_WHITE);
 
-    const titleText = "WELCOME TO KRYLO'S SKYBASE";
-    const userText = username.toUpperCase().slice(0, 18);
-    const memberText = `PILOT #${memberCount} • FLIGHT READY`;
+    const mainLine = `${username} just joined the skybase.`;
+    const subLine = `Member #${memberCount}`;
 
-    const tWidth = Jimp.measureText(font32, titleText);
-    const uWidth = Jimp.measureText(font64, userText);
-    const mWidth = Jimp.measureText(font32, memberText);
+    const mWidth = Jimp.measureText(font32, mainLine);
+    const sWidth = Jimp.measureText(font16, subLine);
 
-    bg.print(font32, (1020 - tWidth) / 2, 280, titleText);
-    bg.print(font64, (1020 - uWidth) / 2, 330, userText);
-    bg.print(font32, (1020 - mWidth) / 2, 415, memberText);
+    bg.print(font32, (800 - mWidth) / 2, 215, mainLine);
+    bg.print(font16, (800 - sWidth) / 2, 270, subLine);
 
     return await bg.getBufferAsync(Jimp.MIME_PNG);
   } catch (err) {
@@ -8753,11 +8761,13 @@ client.on('guildMemberAdd', async (member) => {
           .setTimestamp();
 
         if (cardBuffer) {
-          const attachment = new AttachmentBuilder(cardBuffer, { name: 'skybase-welcome.png' });
-          embed.setImage('attachment://skybase-welcome.png');
-          await welcomeCh.send({ content: `👋 Welcome to the flight deck, <@${member.id}>!`, embeds: [embed], files: [attachment] });
+          const attachment = new AttachmentBuilder(cardBuffer, { name: 'welcome.png' });
+          await welcomeCh.send({
+            content: `<@${member.id}>, welcome to the **Krylo\'s Skybase**!`,
+            files: [attachment]
+          });
         } else {
-          await welcomeCh.send({ content: `👋 Welcome to the flight deck, <@${member.id}>!`, embeds: [embed] });
+          await welcomeCh.send({ content: `<@${member.id}>, welcome to the **Krylo\'s Skybase**!` });
         }
       }
     } catch (err) {
