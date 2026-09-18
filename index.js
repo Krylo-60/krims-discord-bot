@@ -1786,9 +1786,10 @@ client.on('interactionCreate', async (interaction) => {
           content: 
             `🔴 **Krylo's Skybase — Instant Verification Portal**\n\n` +
             `Click **Sign In With Google & Verify** below to confirm your subscription to **[Krylo MC on YouTube](https://www.youtube.com/@krylomcyt?sub_confirmation=1)**!\n\n` +
-            `🎁 **Roles Unlocked Automatically:**\n` +
+            `🎁 **Roles & Exclusive Perks Unlocked:**\n` +
             `• **🔴 Skybase • Subbed to Krylo**\n` +
-            `• **⭐ Skybase • Krylo Fan**\n\n` +
+            `• **⭐ Skybase • Krylo Fan**\n` +
+            `• 💬 **Higher chance of Krylo answering & replying to you in chat!** 🚀\n\n` +
             `*(Alternatively, you can drop a screenshot in ${proofCh ? '<#' + proofCh.id + '>' : '#sub-proof'})*`,
           components: [row]
         });
