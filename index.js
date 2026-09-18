@@ -32,6 +32,7 @@ import { handleCustomCommandExecution, getGuildCustomCommands, addGuildCustomCom
 
 const guildConfigCache = new Map();
 const pendingStorePurchases = new Map();
+const kryloPingStrikes = new Map();
 async function getCachedGuildConfig(guildId) {
   if (!guildId) return null;
   const cached = guildConfigCache.get(guildId);
@@ -7010,6 +7011,75 @@ client.on('messageCreate', async (message) => {
   // Handle Native Sticky Messages in other channels
   if (message.guild) {
     await handleStickyMessage(message);
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // 🛡️ ANTI-KRYLO MENTION ENFORCEMENT
+  // Rule: Mentioning @Krylo in public chat results in Strike 1 (Warn), Strike 2 (Ban).
+  // Allowed: DMs, or private channels where Krylo personally adds you.
+  // ══════════════════════════════════════════════════════════
+  const KRYLO_USER_ID = '1414143825538191373';
+  if (message.guild && message.mentions.users.has(KRYLO_USER_ID) && message.author.id !== KRYLO_USER_ID) {
+    const isStaff = message.member?.permissions?.has(PermissionFlagsBits.Administrator) ||
+                    message.member?.permissions?.has(PermissionFlagsBits.ManageGuild) ||
+                    message.member?.roles?.cache?.some(r => r.name.toLowerCase().includes('staff') || r.name.toLowerCase().includes('moderator') || r.name.toLowerCase().includes('inner circle'));
+
+    const everyoneRole = message.guild.roles.everyone;
+    const channelPerms = message.channel.permissionsFor(everyoneRole);
+    const isPublicChannel = channelPerms ? channelPerms.has(PermissionFlagsBits.ViewChannel) : true;
+
+    if (isPublicChannel && !isStaff) {
+      // 1. Delete offending ping message immediately
+      await message.delete().catch(() => {});
+
+      // 2. Track strikes
+      const strikeKey = `${message.guild.id}_${message.author.id}`;
+      const currentStrikes = (kryloPingStrikes.get(strikeKey) || 0) + 1;
+      kryloPingStrikes.set(strikeKey, currentStrikes);
+
+      if (currentStrikes === 1) {
+        const warnEmbed = new EmbedBuilder()
+          .setColor(0xF59E0B)
+          .setTitle('⚠️ Rule Violation: Do Not Mention Krylo in Public Chat')
+          .setDescription(
+            `**<@${message.author.id}>, mentioning Krylo in public channels is strictly forbidden!**\n\n` +
+            `• **Status:** \`Strike 1 / 2\` — **Official Warning**\n` +
+            `• **Next Strike:** Mentioning Krylo again in public chat will result in an **immediate BAN**!\n\n` +
+            `💬 **Where can you reach Krylo?**\n` +
+            `• **Direct Message (DM):** You can DM Krylo directly (he may respond if available)!\n` +
+            `• **Private Channels:** You can mention Krylo only in designated private channels where Krylo personally adds you.`
+          )
+          .setFooter({ text: 'Krylo\'s Skybase • Automated Protection' })
+          .setTimestamp();
+
+        const warnMsg = await message.channel.send({ content: `<@${message.author.id}>`, embeds: [warnEmbed] });
+        setTimeout(() => warnMsg.delete().catch(() => {}), 15000);
+        return;
+      } else {
+        // Strike 2: Ban
+        try {
+          await message.guild.members.ban(message.author.id, {
+            reason: 'Automated Ban: Repeatedly mentioning Krylo in public chat after receiving Strike 1 warning.'
+          });
+
+          const banEmbed = new EmbedBuilder()
+            .setColor(0xEF4444)
+            .setTitle('🔨 Member Banned: Public Krylo Mention')
+            .setDescription(
+              `**<@${message.author.id}>** has been **banned** from the server.\n\n` +
+              `**Reason:** Repeatedly mentioning Krylo in public chat after receiving an official warning.`
+            )
+            .setFooter({ text: 'Krylo\'s Skybase • Automated Enforcement' })
+            .setTimestamp();
+
+          await message.channel.send({ embeds: [banEmbed] });
+        } catch (banErr) {
+          console.error('[Krylo Ping Ban Error]', banErr);
+          await message.member?.timeout(24 * 60 * 60 * 1000, 'Repeatedly pinging Krylo in public chat').catch(() => {});
+        }
+        return;
+      }
+    }
   }
 
   // DIRECT MESSAGE (DM) AI & LINKING HANDLER
