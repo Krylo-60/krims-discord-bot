@@ -1761,12 +1761,6 @@ client.on('interactionCreate', async (interaction) => {
           member = await guild.members.fetch(interaction.user.id).catch(() => null);
         }
 
-        if (member && subRole && member.roles.cache.has(subRole.id)) {
-          return interaction.editReply({
-            content: `✨ You already have the **${subRole.name}** and **${fanRole ? fanRole.name : '⭐ Skybase • Krylo Fan'}** roles! Thank you for supporting **Krylo MC**! 🚀`
-          });
-        }
-
         const proofCh = guild.channels.cache.find(c => c.name.includes('sub-proof'));
         const verifyUrl = `https://krims-code-chatbot.vercel.app/api/youtube-verify?discord_id=${interaction.user.id}`;
 
@@ -1782,6 +1776,13 @@ client.on('interactionCreate', async (interaction) => {
             .setURL('https://www.youtube.com/@krylomcyt?sub_confirmation=1')
             .setEmoji('▶️')
         );
+
+        if (member && subRole && member.roles.cache.has(subRole.id)) {
+          return interaction.editReply({
+            content: `✨ You already have the **${subRole.name}** and **${fanRole ? fanRole.name : '⭐ Skybase • Krylo Fan'}** roles! Thank you for supporting **Krylo MC**! 🚀\n\n*(Want to test the portal or link a new account? Click below to verify)*`,
+            components: [row]
+          });
+        }
 
         return interaction.editReply({
           content: 
