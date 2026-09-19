@@ -1787,7 +1787,7 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.editReply({
           content: 
             `🔴 **Krylo's Skybase — Instant Verification Portal**\n\n` +
-            `Click **Sign In With Google & Verify** below to confirm your subscription to **[Krylo MC on YouTube](https://www.youtube.com/@krylomcyt?sub_confirmation=1)**!\n\n` +
+            `Click **Sign In With Google & Verify** below to confirm your subscription to **[Krylo MC](https://www.youtube.com/@krylomcyt?sub_confirmation=1)**!\n\n` +
             `🎁 **Roles & Exclusive Perks Unlocked:**\n` +
             `• **🔴 Skybase • Subbed to Krylo**\n` +
             `• **⭐ Skybase • Krylo Fan**\n` +
