@@ -7082,6 +7082,38 @@ client.on('messageCreate', async (message) => {
       }
     }
   }
+  // ══════════════════════════════════════════════════════════
+  // 📸 SUB-PROOF PRIVATE DROPBOX CONFIRMATION
+  // Members cannot read message history in #📸・𝖲ub-proof for safety.
+  // Bot confirms receipt via DM or short self-deleting message.
+  // ══════════════════════════════════════════════════════════
+  if (message.guild && message.channel.name && message.channel.name.includes('sub-proof')) {
+    try {
+      await message.react('🔒').catch(() => {});
+      await message.react('✅').catch(() => {});
+
+      const proofEmbed = new EmbedBuilder()
+        .setColor(0x10B981)
+        .setTitle('🔒 Proof Received Securely!')
+        .setDescription(
+          `Hey **${message.author.username}**, your subscription screenshot has been securely received by Krylo and the Skybase admin team!\n\n` +
+          `🛡️ **Privacy Notice:** For your safety, message history in <#${message.channel.id}> is hidden from all members so nobody can see your personal info or screenshot.\n\n` +
+          `⏳ **Next Steps:** An admin will verify your proof shortly and grant you the **🔴 Skybase • Subbed to Krylo** role!`
+        )
+        .setFooter({ text: 'Krylo\'s Skybase • Secure Verification' })
+        .setTimestamp();
+
+      const dmSent = await message.author.send({ embeds: [proofEmbed] }).catch(() => null);
+      if (!dmSent) {
+        const tempNotice = await message.channel.send({
+          content: `<@${message.author.id}> 🔒 **Submission Received!** Only staff can see your proof. We will review it shortly! *(Deletes in 10s)*`
+        }).catch(() => null);
+        if (tempNotice) setTimeout(() => tempNotice.delete().catch(() => {}), 10000);
+      }
+    } catch (e) {
+      console.error('[Sub-Proof Handler Error]', e);
+    }
+  }
 
   // DIRECT MESSAGE (DM) AI & LINKING HANDLER
   if (!message.guild) {
