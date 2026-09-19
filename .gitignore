@@ -2,6 +2,10 @@
 .env
 .env.*
 *.env
+api_keys.json
+*.key
+*.pem
+temp-chrome-profile/
 deployFirebase.mjs
 
 # Dependencies
