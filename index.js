@@ -31,8 +31,8 @@ import { handleCountingMessage, handleStickyMessage } from './countingAndStickyE
 import { handleCustomCommandExecution, getGuildCustomCommands, addGuildCustomCommand, deleteGuildCustomCommand } from './features/customCommandsManager.mjs';
 
 const guildConfigCache = new Map();
-const pendingStorePurchases = new Map();
 const kryloPingStrikes = new Map();
+const recentStaffPings = new Map(); // key: `${guildId}_${userId}` -> [timestamps]
 async function getCachedGuildConfig(guildId) {
   if (!guildId) return null;
   const cached = guildConfigCache.get(guildId);
@@ -7015,90 +7015,190 @@ client.on('messageCreate', async (message) => {
   }
 
   // ══════════════════════════════════════════════════════════
-  // 🛡️ ANTI-KRYLO MENTION ENFORCEMENT
-  // Rule: Mentioning @Krylo in public chat results in Strike 1 (Warn), Strike 2 (Ban).
-  // Allowed: DMs, or private channels where Krylo personally adds you.
-  // 🎖️ Special Exemption: Level 30+ Dedicated Veterans (fair and tryharded it!)
+  // 🛡️ ANTI-KRYLO & STAFF ZERO-TOLERANCE ANTI-SPAM ENFORCEMENT
+  // 1. Spamming Krylo or Staff (mass mention or burst repeat within 15s) = IMMEDIATE BAN, NO WARNING.
+  // 2. Normal single ping to @Krylo:
+  //    - 🎖️ Level 30+ Veterans: ALLOWED (earned fair and square by tryharding!)
+  //    - Non-Level 30 in Public Chat: Strike 1 (Warn), Strike 2 (Ban).
   // ══════════════════════════════════════════════════════════
   const KRYLO_USER_ID = '1414143825538191373';
-  if (message.guild && message.mentions.users.has(KRYLO_USER_ID) && message.author.id !== KRYLO_USER_ID) {
-    const isStaff = message.member?.permissions?.has(PermissionFlagsBits.Administrator) ||
-                    message.member?.permissions?.has(PermissionFlagsBits.ManageGuild) ||
-                    message.member?.roles?.cache?.some(r => r.name.toLowerCase().includes('staff') || r.name.toLowerCase().includes('moderator') || r.name.toLowerCase().includes('inner circle'));
+  if (message.guild && message.author && !message.author.bot && message.author.id !== KRYLO_USER_ID) {
+    const isStaffMember = (member) => {
+      if (!member) return false;
+      if (member.id === KRYLO_USER_ID) return true;
+      if (member.permissions?.has(PermissionFlagsBits.Administrator) ||
+          member.permissions?.has(PermissionFlagsBits.ManageGuild) ||
+          member.permissions?.has(PermissionFlagsBits.ModerateMembers) ||
+          member.permissions?.has(PermissionFlagsBits.KickMembers) ||
+          member.permissions?.has(PermissionFlagsBits.BanMembers)) {
+        return true;
+      }
+      return member.roles?.cache?.some(r => {
+        const n = r.name.toLowerCase();
+        return n.includes('staff') || n.includes('moderator') || n.includes('admin') ||
+               n.includes('warden') || n.includes('commander') || n.includes('admiral') ||
+               n.includes('inner wing') || n.includes('inner circle');
+      });
+    };
 
-    // Check Level 30+ (MEE6 / Krims Code Leveling or Flight Rank roles)
-    const userLevel = getUserLevel(message.guild.id, message.author.id);
-    const hasLevel30Role = message.member?.roles?.cache?.some(r => 
-      r.name.includes('Stratosphere Elite') || // Level 50+
-      r.name.includes('Apex Pilot') ||         // Level 35+
-      r.name.toLowerCase().includes('level 3') || 
-      r.name.toLowerCase().includes('level 4') || 
-      r.name.toLowerCase().includes('level 5')
-    );
+    const isStaffRole = (role) => {
+      if (!role) return false;
+      if (role.permissions?.has(PermissionFlagsBits.Administrator) ||
+          role.permissions?.has(PermissionFlagsBits.ManageGuild)) {
+        return true;
+      }
+      const n = role.name.toLowerCase();
+      return n.includes('staff') || n.includes('moderator') || n.includes('admin') ||
+             n.includes('warden') || n.includes('commander') || n.includes('admiral') ||
+             n.includes('inner wing') || n.includes('inner circle');
+    };
 
-    const isLevel30Plus = userLevel >= 30 || hasLevel30Role;
+    const authorIsStaff = isStaffMember(message.member);
 
-    if (isLevel30Plus) {
-      // Allow Level 30+ veterans to mention Krylo - they earned it fair and square!
-      await message.react('🎖️').catch(() => {});
-      return;
-    }
+    if (!authorIsStaff) {
+      // Check if message mentions Krylo or any Staff member / role
+      const mentionsKrylo = message.mentions.users.has(KRYLO_USER_ID);
+      const mentionedStaffUsers = message.mentions.users.filter(u => u.id === KRYLO_USER_ID || isStaffMember(message.guild.members.cache.get(u.id)));
+      const mentionedStaffRoles = message.mentions.roles.filter(r => isStaffRole(r));
 
-    const everyoneRole = message.guild.roles.everyone;
-    const channelPerms = message.channel.permissionsFor(everyoneRole);
-    const isPublicChannel = channelPerms ? channelPerms.has(PermissionFlagsBits.ViewChannel) : true;
-
-    if (isPublicChannel && !isStaff) {
-      // 1. Delete offending ping message immediately
-      await message.delete().catch(() => {});
-
-      // 2. Track strikes
-      const strikeKey = `${message.guild.id}_${message.author.id}`;
-      const currentStrikes = (kryloPingStrikes.get(strikeKey) || 0) + 1;
-      kryloPingStrikes.set(strikeKey, currentStrikes);
-
-      if (currentStrikes === 1) {
-        const warnEmbed = new EmbedBuilder()
-          .setColor(0xF59E0B)
-          .setTitle('⚠️ Rule Violation: Do Not Mention Krylo in Public Chat')
-          .setDescription(
-            `**<@${message.author.id}>, mentioning Krylo in public channels is strictly forbidden!**\n\n` +
-            `• **Status:** \`Strike 1 / 2\` — **Official Warning**\n` +
-            `• **Next Strike:** Mentioning Krylo again in public chat will result in an **immediate BAN**!\n\n` +
-            `💬 **How to contact or unlock mentions:**\n` +
-            `• **🎖️ Level 30+ Privilege:** Members who reach **Level 30** (Apex Pilot / Stratosphere Elite) earn the privilege to mention Krylo!\n` +
-            `• **Direct Message (DM):** You can DM Krylo directly!\n` +
-            `• **Private Channels:** In designated channels where Krylo personally adds you.`
-          )
-          .setFooter({ text: 'Krylo\'s Skybase • Automated Protection' })
-          .setTimestamp();
-
-        const warnMsg = await message.channel.send({ content: `<@${message.author.id}>`, embeds: [warnEmbed] });
-        setTimeout(() => warnMsg.delete().catch(() => {}), 15000);
-        return;
-      } else {
-        // Strike 2: Ban
-        try {
-          await message.guild.members.ban(message.author.id, {
-            reason: 'Automated Ban: Repeatedly mentioning Krylo in public chat after receiving Strike 1 warning.'
-          });
-
-          const banEmbed = new EmbedBuilder()
-            .setColor(0xEF4444)
-            .setTitle('🔨 Member Banned: Public Krylo Mention')
-            .setDescription(
-              `**<@${message.author.id}>** has been **banned** from the server.\n\n` +
-              `**Reason:** Repeatedly mentioning Krylo in public chat after receiving an official warning.`
-            )
-            .setFooter({ text: 'Krylo\'s Skybase • Automated Enforcement' })
-            .setTimestamp();
-
-          await message.channel.send({ embeds: [banEmbed] });
-        } catch (banErr) {
-          console.error('[Krylo Ping Ban Error]', banErr);
-          await message.member?.timeout(24 * 60 * 60 * 1000, 'Repeatedly pinging Krylo in public chat').catch(() => {});
+      // Check raw count of pings to catch multiple pings to the same user in one message
+      const rawPingMatches = message.content.match(/<@!?(\d+)>|<@&(\d+)>/g) || [];
+      let staffPingCountInMsg = 0;
+      for (const rawPing of rawPingMatches) {
+        const idMatch = rawPing.match(/\d+/);
+        if (idMatch) {
+          const targetId = idMatch[0];
+          if (targetId === KRYLO_USER_ID || mentionedStaffUsers.has(targetId) || mentionedStaffRoles.has(targetId)) {
+            staffPingCountInMsg++;
+          }
         }
-        return;
+      }
+      if (staffPingCountInMsg === 0 && (mentionsKrylo || mentionedStaffUsers.size > 0 || mentionedStaffRoles.size > 0)) {
+        staffPingCountInMsg = mentionedStaffUsers.size + mentionedStaffRoles.size;
+      }
+
+      if (staffPingCountInMsg > 0) {
+        // Track rapid repeat pings across messages (15s sliding window)
+        const now = Date.now();
+        const spamKey = `${message.guild.id}_${message.author.id}`;
+        let pingTimestamps = (recentStaffPings.get(spamKey) || []).filter(t => now - t < 15000);
+        pingTimestamps.push(now);
+        recentStaffPings.set(spamKey, pingTimestamps);
+
+        const isMassMentionSpam = staffPingCountInMsg >= 2;
+        const isBurstRepeatSpam = pingTimestamps.length >= 2;
+        const isSpamming = isMassMentionSpam || isBurstRepeatSpam;
+
+        // 🚨 ZERO-TOLERANCE INSTANT BAN FOR SPAMMING (NO WARNINGS)
+        if (isSpamming) {
+          await message.delete().catch(() => {});
+          try {
+            await message.guild.members.ban(message.author.id, {
+              deleteMessageSeconds: 604800,
+              reason: 'Zero-Tolerance Ban: Spamming Krylo / Server Staff (No Warnings).'
+            });
+
+            const spamBanEmbed = new EmbedBuilder()
+              .setColor(0xEF4444)
+              .setTitle('🔨 Zero-Tolerance Ban: Spamming Krylo / Staff')
+              .setDescription(
+                `**<@${message.author.id}>** has been **instantly banned** from the server.\n\n` +
+                `⛔ **Reason:** Zero-Tolerance Rule Violation — Spamming mentions of Krylo or Staff.\n` +
+                `🛡️ **Policy:** Direct spamming of leadership or staff carries **NO WARNINGS**.\n` +
+                `🧹 **Action:** Member banned & messages purged.`
+              )
+              .setFooter({ text: 'Krylo\'s Skybase • Automated Defense' })
+              .setTimestamp();
+
+            await message.channel.send({ embeds: [spamBanEmbed] });
+          } catch (banErr) {
+            console.error('[Spam Ban Error]', banErr);
+            await message.member?.timeout(28 * 24 * 60 * 60 * 1000, 'Spamming Krylo / Staff').catch(() => {});
+          }
+          return;
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // NON-SPAM SINGLE MENTION HANDLING
+        // ══════════════════════════════════════════════════════════
+        if (mentionsKrylo) {
+          // Check Level 30+ (MEE6 / Krims Code Leveling or Flight Rank roles)
+          const userLevel = getUserLevel(message.guild.id, message.author.id);
+          const hasLevel30Role = message.member?.roles?.cache?.some(r => 
+            r.name.includes('Stratosphere Elite') || // Level 50+
+            r.name.includes('Apex Pilot') ||         // Level 35+
+            r.name.toLowerCase().includes('level 3') || 
+            r.name.toLowerCase().includes('level 4') || 
+            r.name.toLowerCase().includes('level 5')
+          );
+
+          const isLevel30Plus = userLevel >= 30 || hasLevel30Role;
+
+          if (isLevel30Plus) {
+            // Allow Level 30+ veterans to mention Krylo - they earned it fair and square!
+            await message.react('🎖️').catch(() => {});
+            return;
+          }
+
+          const everyoneRole = message.guild.roles.everyone;
+          const channelPerms = message.channel.permissionsFor(everyoneRole);
+          const isPublicChannel = channelPerms ? channelPerms.has(PermissionFlagsBits.ViewChannel) : true;
+
+          if (isPublicChannel) {
+            // Delete offending ping message immediately
+            await message.delete().catch(() => {});
+
+            // Track strikes
+            const strikeKey = `${message.guild.id}_${message.author.id}`;
+            const currentStrikes = (kryloPingStrikes.get(strikeKey) || 0) + 1;
+            kryloPingStrikes.set(strikeKey, currentStrikes);
+
+            if (currentStrikes === 1) {
+              const warnEmbed = new EmbedBuilder()
+                .setColor(0xF59E0B)
+                .setTitle('⚠️ Rule Violation: Do Not Mention Krylo in Public Chat')
+                .setDescription(
+                  `**<@${message.author.id}>, mentioning Krylo in public channels is strictly forbidden!**\n\n` +
+                  `• **Status:** \`Strike 1 / 2\` — **Official Warning**\n` +
+                  `• **Next Strike:** Mentioning Krylo again in public chat will result in an **immediate BAN**!\n\n` +
+                  `💬 **How to contact or unlock mentions:**\n` +
+                  `• **🎖️ Level 30+ Privilege:** Members who reach **Level 30** (Apex Pilot / Stratosphere Elite) earn the privilege to mention Krylo!\n` +
+                  `• **Direct Message (DM):** You can DM Krylo directly!\n` +
+                  `• **Private Channels:** In designated channels where Krylo personally adds you.`
+                )
+                .setFooter({ text: 'Krylo\'s Skybase • Automated Protection' })
+                .setTimestamp();
+
+              const warnMsg = await message.channel.send({ content: `<@${message.author.id}>`, embeds: [warnEmbed] });
+              setTimeout(() => warnMsg.delete().catch(() => {}), 15000);
+              return;
+            } else {
+              // Strike 2: Ban
+              try {
+                await message.guild.members.ban(message.author.id, {
+                  deleteMessageSeconds: 604800,
+                  reason: 'Automated Ban: Repeatedly mentioning Krylo in public chat after receiving Strike 1 warning.'
+                });
+
+                const banEmbed = new EmbedBuilder()
+                  .setColor(0xEF4444)
+                  .setTitle('🔨 Member Banned: Public Krylo Mention')
+                  .setDescription(
+                    `**<@${message.author.id}>** has been **banned** from the server.\n\n` +
+                    `**Reason:** Repeatedly mentioning Krylo in public chat after receiving an official warning.`
+                  )
+                  .setFooter({ text: 'Krylo\'s Skybase • Automated Enforcement' })
+                  .setTimestamp();
+
+                await message.channel.send({ embeds: [banEmbed] });
+              } catch (banErr) {
+                console.error('[Krylo Ping Ban Error]', banErr);
+                await message.member?.timeout(24 * 60 * 60 * 1000, 'Repeatedly pinging Krylo in public chat').catch(() => {});
+              }
+              return;
+            }
+          }
+        }
       }
     }
   }
