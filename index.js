@@ -2489,12 +2489,28 @@ client.on('interactionCreate', async (interaction) => {
       return;
     }
 
-    if (customId === 'app_staff' || customId === 'app_partner' || customId === 'app_creator') {
+    if (customId === 'app_staff') {
+      const closedEmbed = new EmbedBuilder()
+        .setColor(0xEF4444)
+        .setTitle('🔒 Staff Applications Closed')
+        .setDescription(
+          'Staff applications are currently **CLOSED** at this time.\n\n' +
+          '• Our moderation and admin teams are currently fully staffed.\n' +
+          '• Please do not ask staff or Krylo for roles.\n' +
+          '• When recruitment re-opens, an official announcement will be made in the announcements channel!\n\n' +
+          '🎬 *Looking to join the video production team instead? Film Crew applications are open in <#1550902305568718948>!*'
+        )
+        .setTimestamp();
+      await interaction.reply({ embeds: [closedEmbed], ephemeral: true });
+      return;
+    }
+
+    if (customId === 'app_partner' || customId === 'app_creator') {
       const ticketCh = interaction.guild?.channels.cache.find(c => c.name.includes('ticket') || c.name.includes('support'));
-      const appType = customId === 'app_staff' ? '🛡️ Staff (Moderator/Admin)' : customId === 'app_partner' ? '🤝 Server Partnership' : '🎬 Content Creator / Media';
+      const appType = customId === 'app_partner' ? '🤝 Server Partnership' : '🎬 Content Creator / Media';
       
       const appEmbed = new EmbedBuilder()
-        .setColor(customId === 'app_staff' ? 0x00FF88 : customId === 'app_partner' ? 0x5865F2 : 0xE91E63)
+        .setColor(customId === 'app_partner' ? 0x5865F2 : 0xE91E63)
         .setTitle(`📝 Applying for: ${appType}`)
         .setDescription(
           `To submit your official application for **${appType}**:\n\n` +
@@ -2503,7 +2519,7 @@ client.on('interactionCreate', async (interaction) => {
           `3️⃣ Fill out your answers or attach your Google Form submission!\n\n` +
           `✨ **Tip:** Include your Discord tag, IGN, age, experience, and timezone for fastest review.`
         )
-        .setFooter({ text: 'KryloSMP Application System' })
+        .setFooter({ text: 'Krylo Network Application System' })
         .setTimestamp();
 
       await interaction.reply({ embeds: [appEmbed], ephemeral: true });
@@ -3714,28 +3730,34 @@ client.on('interactionCreate', async (interaction) => {
 
   // /apply
   if (commandName === 'apply') {
+    const isSkybase = interaction.guild?.id === '1549875778575929446';
     const embed = new EmbedBuilder()
-      .setColor(0x00D8F6)
-      .setAuthor({ name: 'KryloSMP Staff & Creator Recruitment', iconURL: interaction.guild?.iconURL() || client.user.displayAvatarURL() })
-      .setTitle('📝 Join the KryloSMP Staff Team!')
+      .setColor(0xEF4444)
+      .setAuthor({ name: 'Krylo Network • Application Status', iconURL: interaction.guild?.iconURL() || client.user.displayAvatarURL() })
+      .setTitle('🔒 Staff Applications — CURRENTLY CLOSED')
       .setDescription(
-        'We are recruiting passionate, mature, and dedicated community leaders across 5 specialized divisions:\n\n' +
-        '🛡️ **Helper / Trial Mod** — Chat moderation & player support\n' +
-        '⚔️ **Server Moderator** — Anti-cheat enforcement & appeals\n' +
-        '🏰 **Staff Builder** — Spawns, event arenas & dungeons\n' +
-        '💻 **Plugin Developer** — Skripts, mechanics & features\n' +
-        '🎥 **Media / Creator** — YouTube, TikTok & Twitch streaming partners\n\n' +
-        '👉 **Apply Online:** [https://krylosmp.web.app/#apply](https://krylosmp.web.app/#apply)'
+        'Staff applications are currently **CLOSED** at this time.\n\n' +
+        '• **Status:** The staff, moderator, and admin rosters are currently fully staffed.\n' +
+        '• **Policy:** Please do NOT direct-message Krylo or ask staff members for roles in public chat.\n' +
+        '• **Future Openings:** When staff positions reopen, an official announcement will be posted in the announcements channel!\n\n' +
+        (isSkybase
+          ? '🎬 **Looking to join Krylo\'s Video Production Crew?**\nFilm Crew applications are **NOW OPEN** in <#1550902305568718948>!'
+          : '🎬 **Interested in starring in videos?** Check our official announcements for future casting calls!')
       )
-      .setFooter({ text: 'KryloSMP Official Network • Powered by Krims Code AI' })
+      .setFooter({ text: 'Krylo Network • Powered by Krims Code AI' })
       .setTimestamp();
 
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setLabel('📝 Open Staff Application').setStyle(ButtonStyle.Link).setURL('https://krylosmp.web.app/#apply'),
-      new ButtonBuilder().setLabel('🌐 Main Portal').setStyle(ButtonStyle.Link).setURL('https://krylosmp.web.app/')
-    );
+    if (isSkybase) {
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setLabel('🎬 Go to Film Crew Applications')
+          .setStyle(ButtonStyle.Link)
+          .setURL('https://discord.com/channels/1549875778575929446/1550902305568718948')
+      );
+      return interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+    }
 
-    return interaction.reply({ embeds: [embed], components: [row] });
+    return interaction.reply({ embeds: [embed], ephemeral: true });
   }
 
   // /rules
