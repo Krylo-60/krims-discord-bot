@@ -1858,6 +1858,13 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.editReply({ content: '⚠️ Could not update role: ' + err.message }).catch(() => {});
       }
     }
+    
+    if (customId === 'btn_app_closed_notice' || customId === 'btn_crew_app_closed') {
+      return interaction.reply({
+        content: '🔒 **Applications are currently closed!**\n\nThe production team roster is full at this time. Watch <#1550901948910141620> for filming recruitment calls and announcements when applications reopen! 🎬',
+        ephemeral: true
+      });
+    }
 
     if (customId === 'kevin_keep_setup') {
       return interaction.reply({

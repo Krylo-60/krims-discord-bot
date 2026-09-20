@@ -469,4 +469,12 @@ export async function handleVideoCrewInteraction(interaction) {
     await interaction.editReply({ embeds: [oldEmbed], components: [] });
     return;
   }
+
+  // Safety fallback for closed buttons or unhandled events
+  if (!interaction.replied && !interaction.deferred) {
+    return await interaction.reply({
+      content: '🔒 **Applications are currently closed!** The team roster is full at this time. Watch <#1550901948910141620> for filming recruitment calls and announcements when applications reopen! 🎬',
+      ephemeral: true
+    }).catch(() => {});
+  }
 }
