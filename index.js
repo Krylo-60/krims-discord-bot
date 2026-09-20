@@ -20,7 +20,7 @@ import Jimp from 'jimp';
 import { joinVoice, leaveVoice, getVoiceStatus, speakInVoiceChannel } from './voiceEngine.mjs';
 import { saveUserVerification, getUserVerification, syncLocalJsonToFirebase } from './firebaseEngine.mjs';
 import { getLocatorColor } from './features/locatorBarEngine.mjs';
-import { handleMessageXp, sendRankCard, handleRankCommand, startVoiceLevelTicker, handleVoiceStateUpdate } from './features/mee6Levels.mjs';
+import { handleMessageXp, sendRankCard, handleRankCommand, startVoiceLevelTicker, handleVoiceStateUpdate, getUserLevel } from './features/mee6Levels.mjs';
 import { afkUsers, handleMute, handleUnmute, handleKick, handleBan, handleLockdown, handleSlowmode, handleAfk, handleRemindMe, handleEmbedBuilder } from './features/dynoModSystem.mjs';
 import { getFalixStatus, sendFalixPowerSignal, sendFalixCommand } from './falixServerEngine.mjs';
 import { deliverStoreItem, STORE_CATALOG } from './storeDeliveryEngine.mjs';
@@ -7018,12 +7018,31 @@ client.on('messageCreate', async (message) => {
   // 🛡️ ANTI-KRYLO MENTION ENFORCEMENT
   // Rule: Mentioning @Krylo in public chat results in Strike 1 (Warn), Strike 2 (Ban).
   // Allowed: DMs, or private channels where Krylo personally adds you.
+  // 🎖️ Special Exemption: Level 30+ Dedicated Veterans (fair and tryharded it!)
   // ══════════════════════════════════════════════════════════
   const KRYLO_USER_ID = '1414143825538191373';
   if (message.guild && message.mentions.users.has(KRYLO_USER_ID) && message.author.id !== KRYLO_USER_ID) {
     const isStaff = message.member?.permissions?.has(PermissionFlagsBits.Administrator) ||
                     message.member?.permissions?.has(PermissionFlagsBits.ManageGuild) ||
                     message.member?.roles?.cache?.some(r => r.name.toLowerCase().includes('staff') || r.name.toLowerCase().includes('moderator') || r.name.toLowerCase().includes('inner circle'));
+
+    // Check Level 30+ (MEE6 / Krims Code Leveling or Flight Rank roles)
+    const userLevel = getUserLevel(message.guild.id, message.author.id);
+    const hasLevel30Role = message.member?.roles?.cache?.some(r => 
+      r.name.includes('Stratosphere Elite') || // Level 50+
+      r.name.includes('Apex Pilot') ||         // Level 35+
+      r.name.toLowerCase().includes('level 3') || 
+      r.name.toLowerCase().includes('level 4') || 
+      r.name.toLowerCase().includes('level 5')
+    );
+
+    const isLevel30Plus = userLevel >= 30 || hasLevel30Role;
+
+    if (isLevel30Plus) {
+      // Allow Level 30+ veterans to mention Krylo - they earned it fair and square!
+      await message.react('🎖️').catch(() => {});
+      return;
+    }
 
     const everyoneRole = message.guild.roles.everyone;
     const channelPerms = message.channel.permissionsFor(everyoneRole);
@@ -7046,9 +7065,10 @@ client.on('messageCreate', async (message) => {
             `**<@${message.author.id}>, mentioning Krylo in public channels is strictly forbidden!**\n\n` +
             `• **Status:** \`Strike 1 / 2\` — **Official Warning**\n` +
             `• **Next Strike:** Mentioning Krylo again in public chat will result in an **immediate BAN**!\n\n` +
-            `💬 **Where can you reach Krylo?**\n` +
-            `• **Direct Message (DM):** You can DM Krylo directly (he may respond if available)!\n` +
-            `• **Private Channels:** You can mention Krylo only in designated private channels where Krylo personally adds you.`
+            `💬 **How to contact or unlock mentions:**\n` +
+            `• **🎖️ Level 30+ Privilege:** Members who reach **Level 30** (Apex Pilot / Stratosphere Elite) earn the privilege to mention Krylo!\n` +
+            `• **Direct Message (DM):** You can DM Krylo directly!\n` +
+            `• **Private Channels:** In designated channels where Krylo personally adds you.`
           )
           .setFooter({ text: 'Krylo\'s Skybase • Automated Protection' })
           .setTimestamp();

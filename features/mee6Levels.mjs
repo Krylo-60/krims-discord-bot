@@ -336,3 +336,12 @@ export async function handleLeaderboardCommand(interaction) {
 
   await interaction.reply({ embeds: [embed] });
 }
+
+export function getUserLevel(guildId, userId) {
+  if (!guildId || !userId) return 0;
+  const userStats = xpData[guildId]?.[userId] || xpData[userId];
+  if (!userStats) return 0;
+  if (typeof userStats.level === 'number') return userStats.level;
+  if (typeof userStats.xp === 'number') return calculateLevelFromXp(userStats.xp).level;
+  return 0;
+}
