@@ -29,6 +29,7 @@ import { aiOperator } from './aiConsoleOperator.mjs';
 import { setupAIConsoleChannel, handleAIConsoleMessage } from './aiConsoleChatHandler.mjs';
 import { handleCountingMessage, handleStickyMessage } from './countingAndStickyEngine.mjs';
 import { handleCustomCommandExecution, getGuildCustomCommands, addGuildCustomCommand, deleteGuildCustomCommand } from './features/customCommandsManager.mjs';
+import { handleVideoCrewInteraction } from './features/videoCrewApplicationManager.mjs';
 
 const guildConfigCache = new Map();
 const kryloPingStrikes = new Map();
@@ -1743,6 +1744,22 @@ async function executeGameBoostOptimization(author) {
 
 
 client.on('interactionCreate', async (interaction) => {
+  // 🎬 Handle Skybase Video Crew & Early Access Application Interactions
+  if (
+    (interaction.isButton() && (
+      interaction.customId.startsWith('btn_open_crew_') ||
+      interaction.customId.startsWith('btn_open_early_') ||
+      interaction.customId.startsWith('btn_crew_') ||
+      interaction.customId.startsWith('btn_ea_')
+    )) ||
+    (interaction.isModalSubmit() && (
+      interaction.customId === 'modal_submit_crew_app' ||
+      interaction.customId === 'modal_submit_early_access_app'
+    ))
+  ) {
+    return await handleVideoCrewInteraction(interaction);
+  }
+
   // Handle DM / Global Button Interactions (e.g. KevinMC Setup Feedback)
   if (interaction.isButton()) {
     const { customId } = interaction;
