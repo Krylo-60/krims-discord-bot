@@ -80,7 +80,18 @@ const masterCommands = [
   new SlashCommandBuilder().setName('diagnose').setDescription('Run system diagnostics (Admin only)').setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   new SlashCommandBuilder().setName('poll').setDescription('Create a community poll').addStringOption(opt => opt.setName('question').setDescription('Poll question').setRequired(true)).addStringOption(opt => opt.setName('options').setDescription('Comma-separated options').setRequired(true)),
   new SlashCommandBuilder().setName('giveaway').setDescription('Start a giveaway event').addStringOption(opt => opt.setName('prize').setDescription('Prize description').setRequired(true)).addStringOption(opt => opt.setName('duration').setDescription('Duration e.g. 1h, 1d').setRequired(true)),
-  new SlashCommandBuilder().setName('voice').setDescription('Control Krims Bot Voice AI in voice channels').addStringOption(opt => opt.setName('action').setDescription('Action: join, leave, or status').setRequired(true).addChoices({ name: 'join', value: 'join' }, { name: 'leave', value: 'leave' }, { name: 'status', value: 'status' }))
+  new SlashCommandBuilder().setName('voice').setDescription('Control Krims Bot Voice AI in voice channels').addStringOption(opt => opt.setName('action').setDescription('Action: join, leave, or status').setRequired(true).addChoices({ name: 'join', value: 'join' }, { name: 'leave', value: 'leave' }, { name: 'status', value: 'status' })),
+  new SlashCommandBuilder().setName('startcrewapp').setDescription('🎬 Open Skybase Film Crew applications and activate recruitment panel (Admin only)'),
+  new SlashCommandBuilder().setName('stopcrewapp').setDescription('🔒 Close Skybase Film Crew applications and lock recruitment panel (Admin only)'),
+  new SlashCommandBuilder().setName('startcrew').setDescription('🎬 Open Skybase Film Crew applications and activate recruitment panel (Admin only)'),
+  new SlashCommandBuilder().setName('stopcrew').setDescription('🔒 Close Skybase Film Crew applications and lock recruitment panel (Admin only)'),
+  new SlashCommandBuilder().setName('crewapp').setDescription('🎬 Manage Skybase Film Crew applications status and panel (Admin only)')
+    .addSubcommand(sub => sub.setName('start').setDescription('Open Skybase Film Crew applications'))
+    .addSubcommand(sub => sub.setName('stop').setDescription('Close Skybase Film Crew applications'))
+    .addSubcommand(sub => sub.setName('status').setDescription('View current application status')),
+  new SlashCommandBuilder().setName('setupbot').setDescription('Deploy your own custom Discord bot with the Krims Code AI brain!'),
+  new SlashCommandBuilder().setName('about').setDescription('Learn about the Krims Code AI Multi-Bot Engine!'),
+  new SlashCommandBuilder().setName('pricing').setDescription('View Krims Code AI subscription tiers!')
 ].map(cmd => cmd.toJSON());
 
 async function deploy() {

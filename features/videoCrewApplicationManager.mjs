@@ -9,6 +9,14 @@ import {
   PermissionFlagsBits 
 } from 'discord.js';
 
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const STATUS_FILE = path.join(__dirname, '..', 'data', 'crew_app_status.json');
+
 const KRYLO_USER_ID = '1414143825538191373';
 const CREW_ROLE_ID = '1550901841255075850';         // 🎬 Skybase Video Crew
 const EARLY_ACCESS_ROLE_ID = '1550901842177822783'; // 🍿 Skybase Early Access
@@ -16,8 +24,40 @@ const REVIEW_CHANNEL_ID = '1549883558208868373';    // 🛡️・𝖬oderator-on
 const CREW_LOUNGE_ID = '1550901951640768636';       // 🎬・𝖢rew-lounge
 const RECORDING_STUDIO_ID = '1550604126981853356';   // 🔒・Recording Studio
 
+export const CREW_APPLY_CHANNEL_ID = '1550902305568718948';
+export const CREW_APPLY_MSG_ID = '1550902307053502537';
+
+function readStatus() {
+  try {
+    if (fs.existsSync(STATUS_FILE)) {
+      return JSON.parse(fs.readFileSync(STATUS_FILE, 'utf-8'));
+    }
+  } catch (e) {}
+  return { isOpen: false, lastUpdated: null, messageId: CREW_APPLY_MSG_ID, channelId: CREW_APPLY_CHANNEL_ID };
+}
+
+function writeStatus(data) {
+  try {
+    const dir = path.dirname(STATUS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(STATUS_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('[CrewAppStatus] Failed to write status file:', e);
+  }
+}
+
+let currentCrewAppStatus = readStatus();
+
+export function isCrewAppOpen() {
+  return !!currentCrewAppStatus.isOpen;
+}
+
+export function getCrewAppStatus() {
+  return currentCrewAppStatus;
+}
+
 /**
- * Builds the Main Public Application Panel Embed & Buttons
+ * Builds the Main Public Application Panel Embed & Buttons (OPEN)
  */
 export function buildApplicationPanel() {
   const panelEmbed = new EmbedBuilder()
@@ -70,9 +110,130 @@ export function buildApplicationPanel() {
 }
 
 /**
+ * Builds the Closed Application Panel Embed & Disabled Buttons (CLOSED)
+ */
+export function buildClosedApplicationPanel() {
+  const closedEmbed = new EmbedBuilder()
+    .setColor(0xEF4444) // Red for closed
+    .setTitle('📋 Skybase Studios — Applications')
+    .setDescription(
+      `### 🔴 Application Status: **CURRENTLY CLOSED**\n\n` +
+      `Thank you for your interest in joining the official **[Krylo MC](https://www.youtube.com/@krylomcyt?sub_confirmation=1)** Team & Video Production Crew!\n` +
+      `Our team roster is currently full at this time, and official applications are **NOT** being accepted right now.\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `### 🎬 Team Roles (When Applications Reopen):\n` +
+      `• 🛡️ **Staff & Moderators:** Chat moderation, ticket support, and server order.\n` +
+      `• 🎭 **Actors & Participants:** Playing roles in video challenges, manhunts, and scripted scenarios.\n` +
+      `• 🔨 **Master Builders:** Constructing video arenas, traps, and custom SMP set pieces.\n` +
+      `• 🎥 **Replay Mod & Camera:** Capturing cinematic drone shots and angles.\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `### 📣 Want to star in a video right now?\n` +
+      `Krylo regularly recruits community members for one-off video sessions, challenges, and battles in **<#1550901948910141620>**!\n` +
+      `• Keep an eye on <#1550901948910141620> and turn on channel notifications.\n` +
+      `• When a recruitment call is announced, follow the instructions to jump into the recording!\n\n` +
+      `🔔 *An announcement will be posted in <#1549882277209571329> as soon as applications reopen!*`
+    )
+    .setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png')
+    .setFooter({
+      text: 'Krylo\'s Skybase • Applications Managed by Krims Code AI',
+      iconURL: 'https://krims-code-chatbot.vercel.app/app_logo.jpg'
+    })
+    .setTimestamp();
+
+  const disabledRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('btn_app_closed_notice')
+      .setLabel('🔒 Applications Currently Closed')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(true)
+  );
+
+  return { embeds: [closedEmbed], components: [disabledRow] };
+}
+
+/**
+ * Changes crew application state (open or closed) and updates live channel panel
+ */
+export async function setCrewAppStatus(open, guild, user) {
+  let channel = null;
+  if (guild) {
+    channel = guild.channels.cache.get(CREW_APPLY_CHANNEL_ID) || await guild.channels.fetch(CREW_APPLY_CHANNEL_ID).catch(() => null);
+  }
+  if (!channel && guild?.client) {
+    channel = await guild.client.channels.fetch(CREW_APPLY_CHANNEL_ID).catch(() => null);
+  }
+
+  if (!channel) {
+    throw new Error(`Could not find channel #${CREW_APPLY_CHANNEL_ID}`);
+  }
+
+  const payload = open ? buildApplicationPanel() : buildClosedApplicationPanel();
+  let targetMsg = null;
+  const msgIdToUse = currentCrewAppStatus.messageId || CREW_APPLY_MSG_ID;
+
+  try {
+    targetMsg = await channel.messages.fetch(msgIdToUse);
+  } catch (e) {
+    // If not found by ID, try finding latest bot message
+    const msgs = await channel.messages.fetch({ limit: 10 }).catch(() => null);
+    if (msgs) {
+      targetMsg = msgs.find(m => m.author.id === channel.client.user.id);
+    }
+  }
+
+  if (targetMsg) {
+    await targetMsg.edit(payload);
+  } else {
+    targetMsg = await channel.send(payload);
+  }
+
+  currentCrewAppStatus = {
+    isOpen: !!open,
+    lastUpdated: new Date().toISOString(),
+    updatedBy: user ? user.id : 'system',
+    messageId: targetMsg.id,
+    channelId: channel.id
+  };
+  writeStatus(currentCrewAppStatus);
+
+  return {
+    success: true,
+    isOpen: currentCrewAppStatus.isOpen,
+    messageId: targetMsg.id,
+    channelId: channel.id
+  };
+}
+
+/**
  * Handles all Interaction events for Video Crew Applications
  */
 export async function handleVideoCrewInteraction(interaction) {
+  // Check if applications are open when attempting to open a modal
+  if (
+    interaction.isButton() && 
+    (interaction.customId === 'btn_open_crew_app_modal' || interaction.customId === 'btn_open_early_access_modal')
+  ) {
+    if (!isCrewAppOpen()) {
+      return await interaction.reply({
+        content: '🔒 **Applications are currently closed!** The team roster is full at this time. Watch <#1550901948910141620> for filming recruitment calls and announcements when applications reopen! 🎬',
+        ephemeral: true
+      });
+    }
+  }
+
+  // Check if applications are open when submitting a modal
+  if (
+    interaction.isModalSubmit() && 
+    (interaction.customId === 'modal_submit_crew_app' || interaction.customId === 'modal_submit_early_access_app')
+  ) {
+    if (!isCrewAppOpen()) {
+      return await interaction.reply({
+        content: '🔒 **Applications closed before submission could be processed!** Please wait until applications reopen. 🎬',
+        ephemeral: true
+      });
+    }
+  }
+
   // ──────────────────────────────────────────────────────────
   // 1. OPEN CREW APPLICATION MODAL
   // ──────────────────────────────────────────────────────────

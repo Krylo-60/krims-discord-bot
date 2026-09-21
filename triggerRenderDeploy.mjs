@@ -23,11 +23,21 @@ async function triggerRenderDeploy() {
       return;
     }
 
-    const deploy = await res.json();
-    console.log('[🎉 RENDER DEPLOY TRIGGERED SUCCESSFULLY!]');
-    console.log(`   Deploy ID: ${deploy.deploy.id}`);
-    console.log(`   Status: ${deploy.deploy.status}`);
-    console.log(`   Created At: ${deploy.deploy.createdAt}`);
+    if (res.status === 202 || res.status === 204) {
+      console.log(`[🎉 RENDER DEPLOY TRIGGERED SUCCESSFULLY!] (HTTP ${res.status})`);
+      return;
+    }
+
+    const text = await res.text();
+    if (text) {
+      const deploy = JSON.parse(text);
+      console.log('[🎉 RENDER DEPLOY TRIGGERED SUCCESSFULLY!]');
+      console.log(`   Deploy ID: ${deploy.deploy?.id}`);
+      console.log(`   Status: ${deploy.deploy?.status}`);
+      console.log(`   Created At: ${deploy.deploy?.createdAt}`);
+    } else {
+      console.log(`[🎉 RENDER DEPLOY TRIGGERED SUCCESSFULLY!] (HTTP ${res.status})`);
+    }
   } catch (err) {
     console.error('[-] Trigger deploy error:', err.message);
   }
