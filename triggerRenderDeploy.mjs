@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const RENDER_API_KEY = process.env.RENDER_API_KEY;
-const SERVICE_ID = 'srv-d9e24fjtqb8s739l8sd0';
+const SERVICE_ID = 'srv-danuvho473hc73ar1go0';
 
 async function triggerRenderDeploy() {
   console.log(`[🚀 TRIGGERING RENDER DEPLOY] Triggering fresh deploy for ${SERVICE_ID}...`);

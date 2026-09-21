@@ -3326,6 +3326,65 @@ client.on('interactionCreate', async (interaction) => {
       return;
     }
 
+    // --- Custom Bot Personalizer Button Handlers ---
+    if (customId === 'btn_open_byot_modal') {
+      const modal = new ModalBuilder()
+        .setCustomId('modal_setup_custom_bot')
+        .setTitle('🤖 Setup Your Custom Bot');
+
+      const tokenInput = new TextInputBuilder()
+        .setCustomId('custom_bot_token')
+        .setLabel('Discord Bot Token (From Dev Portal)')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('Paste your bot token here...')
+        .setRequired(true);
+
+      const nameInput = new TextInputBuilder()
+        .setCustomId('custom_bot_name')
+        .setLabel('Custom Bot Name (Optional)')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('e.g. ShadowSMP AI')
+        .setRequired(false);
+
+      const personaInput = new TextInputBuilder()
+        .setCustomId('custom_bot_persona')
+        .setLabel('AI Persona / Personality Prompt')
+        .setStyle(TextInputStyle.Paragraph)
+        .setPlaceholder('e.g. You are a wise RPG guardian. Reply in an epic tone.')
+        .setRequired(false);
+
+      const activityInput = new TextInputBuilder()
+        .setCustomId('custom_bot_activity')
+        .setLabel('Bot Status Activity')
+        .setStyle(TextInputStyle.Short)
+        .setValue('Powered by Krims Code AI • /about')
+        .setRequired(false);
+
+      modal.addComponents(
+        new ActionRowBuilder().addComponents(tokenInput),
+        new ActionRowBuilder().addComponents(nameInput),
+        new ActionRowBuilder().addComponents(personaInput),
+        new ActionRowBuilder().addComponents(activityInput)
+      );
+
+      return interaction.showModal(modal);
+    }
+
+    if (customId === 'btn_show_byot_guide') {
+      const guideEmbed = new EmbedBuilder()
+        .setColor('#00E5FF')
+        .setTitle('📖 How to Get a Bot Token in 60 Seconds')
+        .setDescription(
+          `**1.** Go to [discord.com/developers/applications](https://discord.com/developers/applications)\n` +
+          `**2.** Click **"New Application"** and name your bot.\n` +
+          `**3.** Click **"Bot"** in the left menu > click **"Reset Token"** & copy it.\n` +
+          `**4.** Scroll down and turn ON **"Message Content Intent"**.\n` +
+          `**5.** Run \`/setupbot\` here and paste your token!`
+        )
+        .setFooter({ text: 'Krims Code AI • Quick Guide' });
+      return interaction.reply({ embeds: [guideEmbed], ephemeral: true });
+    }
+
     // Universal Fallback for any unhandled button
     if (!interaction.replied && !interaction.deferred) {
       await interaction.reply({
@@ -3795,66 +3854,6 @@ client.on('interactionCreate', async (interaction) => {
         }
       } catch (e) {}
     }
-
-    // --- Custom Bot Personalizer Button Handlers ---
-    if (customId === 'btn_open_byot_modal') {
-      const modal = new ModalBuilder()
-        .setCustomId('modal_setup_custom_bot')
-        .setTitle('🤖 Setup Your Custom Bot');
-
-      const tokenInput = new TextInputBuilder()
-        .setCustomId('custom_bot_token')
-        .setLabel('Discord Bot Token (From Dev Portal)')
-        .setStyle(TextInputStyle.Short)
-        .setPlaceholder('Paste your bot token here...')
-        .setRequired(true);
-
-      const nameInput = new TextInputBuilder()
-        .setCustomId('custom_bot_name')
-        .setLabel('Custom Bot Name (Optional)')
-        .setStyle(TextInputStyle.Short)
-        .setPlaceholder('e.g. ShadowSMP AI')
-        .setRequired(false);
-
-      const personaInput = new TextInputBuilder()
-        .setCustomId('custom_bot_persona')
-        .setLabel('AI Persona / Personality Prompt')
-        .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder('e.g. You are a wise RPG guardian. Reply in an epic tone.')
-        .setRequired(false);
-
-      const activityInput = new TextInputBuilder()
-        .setCustomId('custom_bot_activity')
-        .setLabel('Bot Status Activity')
-        .setStyle(TextInputStyle.Short)
-        .setValue('Powered by Krims Code AI • /about')
-        .setRequired(false);
-
-      modal.addComponents(
-        new ActionRowBuilder().addComponents(tokenInput),
-        new ActionRowBuilder().addComponents(nameInput),
-        new ActionRowBuilder().addComponents(personaInput),
-        new ActionRowBuilder().addComponents(activityInput)
-      );
-
-      return interaction.showModal(modal);
-    }
-
-    if (customId === 'btn_show_byot_guide') {
-      const guideEmbed = new EmbedBuilder()
-        .setColor('#00E5FF')
-        .setTitle('📖 How to Get a Bot Token in 60 Seconds')
-        .setDescription(
-          `**1.** Go to [discord.com/developers/applications](https://discord.com/developers/applications)\n` +
-          `**2.** Click **"New Application"** and name your bot.\n` +
-          `**3.** Click **"Bot"** in the left menu > click **"Reset Token"** & copy it.\n` +
-          `**4.** Scroll down and turn ON **"Message Content Intent"**.\n` +
-          `**5.** Run \`/setupbot\` here and paste your token!`
-        )
-        .setFooter({ text: 'Krims Code AI • Quick Guide' });
-      return interaction.reply({ embeds: [guideEmbed], ephemeral: true });
-    }
-
     return;
   }
 
