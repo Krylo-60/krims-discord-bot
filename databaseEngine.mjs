@@ -167,6 +167,23 @@ db.exec(`
     tickets_category TEXT,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+
+  -- 9. Custom Multi-Bots (Bring Your Own Token & Made-By-Us)
+  CREATE TABLE IF NOT EXISTS custom_bots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id TEXT NOT NULL UNIQUE,
+    owner_id TEXT NOT NULL,
+    bot_token_encrypted TEXT NOT NULL,
+    bot_id TEXT,
+    bot_name TEXT,
+    bot_avatar TEXT,
+    custom_prefix TEXT DEFAULT '!',
+    ai_persona TEXT,
+    activity_name TEXT,
+    status TEXT DEFAULT 'active',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 `);
 
 console.log(`[Database] ✅ Connected to SQLite database at: ${dbPath}`);
@@ -392,5 +409,53 @@ export function logModeration(guildId, userId, modId, action, reason = 'No reaso
   `).run(guildId, userId, modId, action, reason, duration);
 }
 
+// --- CUSTOM MULTI-BOTS (BYOT & MADE-BY-US) ---
+export function saveCustomBot({
+  guildId,
+  ownerId,
+  botTokenEncrypted,
+  botId = null,
+  botName = 'Custom Bot',
+  botAvatar = null,
+  customPrefix = '!',
+  aiPersona = null,
+  activityName = 'Guarding Server'
+}) {
+  const stmt = db.prepare(`
+    INSERT INTO custom_bots (
+      guild_id, owner_id, bot_token_encrypted, bot_id, bot_name, bot_avatar, custom_prefix, ai_persona, activity_name, status, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', CURRENT_TIMESTAMP)
+    ON CONFLICT(guild_id) DO UPDATE SET
+      owner_id = excluded.owner_id,
+      bot_token_encrypted = excluded.bot_token_encrypted,
+      bot_id = excluded.bot_id,
+      bot_name = excluded.bot_name,
+      bot_avatar = excluded.bot_avatar,
+      custom_prefix = excluded.custom_prefix,
+      ai_persona = excluded.ai_persona,
+      activity_name = excluded.activity_name,
+      status = 'active',
+      updated_at = CURRENT_TIMESTAMP
+  `);
+  return stmt.run(guildId, ownerId, botTokenEncrypted, botId, botName, botAvatar, customPrefix, aiPersona, activityName);
+}
+
+export function getAllActiveCustomBots() {
+  return db.prepare("SELECT * FROM custom_bots WHERE status = 'active'").all();
+}
+
+export function getCustomBotByGuild(guildId) {
+  return db.prepare('SELECT * FROM custom_bots WHERE guild_id = ?').get(guildId);
+}
+
+export function deleteCustomBot(guildId) {
+  return db.prepare('DELETE FROM custom_bots WHERE guild_id = ?').run(guildId);
+}
+
+export function updateCustomBotStatus(guildId, status) {
+  return db.prepare('UPDATE custom_bots SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE guild_id = ?').run(status, guildId);
+}
+
 export { db };
 export default db;
+

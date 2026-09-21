@@ -655,6 +655,15 @@ client.once('ready', async () => {
     setupAIConsoleChannel(mainGuild).catch(err => console.warn('[AI Console Channel]', err.message));
   }
 
+  // Start Multi-Bot Spawner Engine (BYOT & Made by Us)
+  try {
+    const { multiBotManager } = await import('./customBotSpawner.mjs');
+    await multiBotManager.startAllBots();
+    console.log(`[MultiBot] 🚀 MultiBotManager active! ${multiBotManager.getLiveCount()} custom bots online.`);
+  } catch (err) {
+    console.warn('[MultiBot] MultiBotManager startup notice:', err.message);
+  }
+
   // Load XP data from persistent Vercel database
   try {
     const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
@@ -1175,7 +1184,11 @@ client.once('ready', async () => {
         { name: 'Common FREE', value: 'common' }, { name: 'Rare 500 KC', value: 'rare' },
         { name: 'Epic 2000 KC', value: 'epic' }, { name: 'Legendary 5000 KC', value: 'legendary' }
       ]}]
-    }
+    },
+    { name: 'setupbot', description: 'Deploy your own custom Discord bot with the Krims Code AI brain!' },
+    { name: 'about', description: 'Learn about the Krims Code AI Multi-Bot Engine and get your own free bot!' },
+    { name: 'getbot', description: 'Claim a FREE custom-branded bot for your server!' },
+    { name: 'pricing', description: 'View Krims Code AI tiers (Founder, Pro, Premium, Enterprise)!' }
   ];
 
   try {
@@ -3326,6 +3339,61 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.isModalSubmit()) {
     const { customId } = interaction;
 
+    // --- Custom Bot Personalizer Modal Submission ---
+    if (customId === 'modal_setup_custom_bot') {
+      await interaction.deferReply({ ephemeral: true });
+      const enteredToken = interaction.fields.getTextInputValue('custom_bot_token')?.trim();
+      const enteredName = interaction.fields.getTextInputValue('custom_bot_name')?.trim();
+      const enteredPersona = interaction.fields.getTextInputValue('custom_bot_persona')?.trim();
+      const enteredActivity = interaction.fields.getTextInputValue('custom_bot_activity')?.trim();
+
+      if (!enteredToken) {
+        return interaction.editReply('❌ Discord Bot Token is required!');
+      }
+
+      try {
+        const { multiBotManager } = await import('./customBotSpawner.mjs');
+        const spawnResult = await multiBotManager.registerAndSpawnBot({
+          guildId: interaction.guild?.id || 'global',
+          ownerId: interaction.user.id,
+          token: enteredToken,
+          botName: enteredName || null,
+          aiPersona: enteredPersona || null,
+          activityName: enteredActivity || 'Powered by Krims Code AI • /about'
+        });
+
+        if (!spawnResult.success) {
+          return interaction.editReply(`❌ **Failed to start bot:** ${spawnResult.error}`);
+        }
+
+        const successEmbed = new EmbedBuilder()
+          .setColor('#10B981')
+          .setTitle('🎉 Custom Bot Successfully Deployed!')
+          .setDescription(
+            `Your custom bot **${spawnResult.botUser.username}** is now active and powered by the **Krims Code AI Brain**!\n\n` +
+            `• 🤖 **Bot User:** \`${spawnResult.botUser.username}#${spawnResult.botUser.discriminator || '0'}\`\n` +
+            `• 🧠 **AI Brain:** Google Gemini 3.5 Flash-Lite Active\n` +
+            `• 🛡️ **AutoMod & Leveling:** Enabled\n` +
+            `• 🏷️ **Tier:** **Founder 100 Free**\n\n` +
+            `👉 **Next Step:** Click the button below to invite your custom bot to your server!`
+          )
+          .setThumbnail(spawnResult.botUser.avatar ? `https://cdn.discordapp.com/avatars/${spawnResult.botUser.id}/${spawnResult.botUser.avatar}.png` : null)
+          .setFooter({ text: 'Krims Code AI • Multi-Bot Engine' });
+
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setLabel('👑 Invite Your Custom Bot Now')
+            .setStyle(ButtonStyle.Link)
+            .setURL(spawnResult.inviteUrl)
+        );
+
+        return interaction.editReply({ embeds: [successEmbed], components: [row] });
+      } catch (err) {
+        console.error('[Modal Custom Bot]', err);
+        return interaction.editReply(`❌ An error occurred while deploying your bot: ${err.message}`);
+      }
+    }
+
     // --- Minecraft Verification Modal Submission ---
     if (customId === 'modal_verify_minecraft') {
       await interaction.deferReply({ ephemeral: true });
@@ -3727,6 +3795,66 @@ client.on('interactionCreate', async (interaction) => {
         }
       } catch (e) {}
     }
+
+    // --- Custom Bot Personalizer Button Handlers ---
+    if (customId === 'btn_open_byot_modal') {
+      const modal = new ModalBuilder()
+        .setCustomId('modal_setup_custom_bot')
+        .setTitle('🤖 Setup Your Custom Bot');
+
+      const tokenInput = new TextInputBuilder()
+        .setCustomId('custom_bot_token')
+        .setLabel('Discord Bot Token (From Dev Portal)')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('Paste your bot token here...')
+        .setRequired(true);
+
+      const nameInput = new TextInputBuilder()
+        .setCustomId('custom_bot_name')
+        .setLabel('Custom Bot Name (Optional)')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('e.g. ShadowSMP AI')
+        .setRequired(false);
+
+      const personaInput = new TextInputBuilder()
+        .setCustomId('custom_bot_persona')
+        .setLabel('AI Persona / Personality Prompt')
+        .setStyle(TextInputStyle.Paragraph)
+        .setPlaceholder('e.g. You are a wise RPG guardian. Reply in an epic tone.')
+        .setRequired(false);
+
+      const activityInput = new TextInputBuilder()
+        .setCustomId('custom_bot_activity')
+        .setLabel('Bot Status Activity')
+        .setStyle(TextInputStyle.Short)
+        .setValue('Powered by Krims Code AI • /about')
+        .setRequired(false);
+
+      modal.addComponents(
+        new ActionRowBuilder().addComponents(tokenInput),
+        new ActionRowBuilder().addComponents(nameInput),
+        new ActionRowBuilder().addComponents(personaInput),
+        new ActionRowBuilder().addComponents(activityInput)
+      );
+
+      return interaction.showModal(modal);
+    }
+
+    if (customId === 'btn_show_byot_guide') {
+      const guideEmbed = new EmbedBuilder()
+        .setColor('#00E5FF')
+        .setTitle('📖 How to Get a Bot Token in 60 Seconds')
+        .setDescription(
+          `**1.** Go to [discord.com/developers/applications](https://discord.com/developers/applications)\n` +
+          `**2.** Click **"New Application"** and name your bot.\n` +
+          `**3.** Click **"Bot"** in the left menu > click **"Reset Token"** & copy it.\n` +
+          `**4.** Scroll down and turn ON **"Message Content Intent"**.\n` +
+          `**5.** Run \`/setupbot\` here and paste your token!`
+        )
+        .setFooter({ text: 'Krims Code AI • Quick Guide' });
+      return interaction.reply({ embeds: [guideEmbed], ephemeral: true });
+    }
+
     return;
   }
 
@@ -3734,6 +3862,79 @@ client.on('interactionCreate', async (interaction) => {
 
   const { commandName } = interaction;
   // === MASTER KRYLOSMP SLASH COMMANDS ===
+
+  // /setupbot & /custombot
+  if (commandName === 'setupbot' || commandName === 'custombot') {
+    const embed = new EmbedBuilder()
+      .setColor('#5865F2')
+      .setTitle('🤖 Krims Code AI — Custom Bot Personalizer')
+      .setDescription(
+        `Deploy a custom bot with your own **name, avatar, and server identity**, powered by the **Krims Code AI & Gemini Brain**!\n\n` +
+        `🚀 **Founder Launch:** First 100 server owners get **100% FREE Custom Bots Forever**!\n\n` +
+        `**Choose an option below:**\n` +
+        `• **Option 1: Deploy Custom Bot (BYOT):** Paste your bot token and we'll power it.\n` +
+        `• **Option 2: 1-Click Official Bot:** Invite our pre-made **Krylo AI** bot directly without tokens!`
+      )
+      .setFooter({ text: '⚡ Powered by Krims Code AI' });
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('btn_open_byot_modal')
+        .setLabel('⚡ Deploy Custom Bot (BYOT)')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setLabel('👑 1-Click Official Bot')
+        .setStyle(ButtonStyle.Link)
+        .setURL('https://discord.com/api/oauth2/authorize?client_id=1523794466740371586&permissions=8&scope=bot%20applications.commands'),
+      new ButtonBuilder()
+        .setCustomId('btn_show_byot_guide')
+        .setLabel('📖 60s Guide')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+    return interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+  }
+
+  // /about & /getbot
+  if (commandName === 'about' || commandName === 'getbot') {
+    const aboutEmbed = new EmbedBuilder()
+      .setColor('#00E5FF')
+      .setTitle('👑 Krims Code AI — The Multi-Bot Intelligence Engine')
+      .setDescription(
+        `This bot is powered by the **Krims Code AI Multi-Bot Engine**, developed by **Krylo**.\n\n` +
+        `**Core Features:**\n` +
+        `• 🧠 **Google Gemini AI:** High-speed real-time conversational chat.\n` +
+        `• ⭐ **MEE6-Grade Leveling:** Custom rank cards, XP tracking, leaderboards.\n` +
+        `• 🛡️ **Dyno-Style AutoMod:** Anti-spam, mute, ban, warn logs.\n` +
+        `• ⚡ **Custom Commands, Tickets & Sticky Messages**\n\n` +
+        `**Want your own custom bot for your Discord server?**\n` +
+        `The first 100 server owners get a **FREE Custom Bot** forever!`
+      )
+      .addFields(
+        { name: '🌐 Web Dashboard', value: '[Open Dashboard](https://krims-bot-dashboard.vercel.app)', inline: true },
+        { name: '⚡ Deploy Yours', value: 'Type `/setupbot` or visit dashboard', inline: true }
+      )
+      .setFooter({ text: '⚡ Powered by Krims Code AI • Built by Krylo' });
+
+    return interaction.reply({ embeds: [aboutEmbed], ephemeral: true });
+  }
+
+  // /pricing
+  if (commandName === 'pricing') {
+    const pricingEmbed = new EmbedBuilder()
+      .setColor('#10B981')
+      .setTitle('💎 Krims Code AI — Tier Ladder & Pricing')
+      .setDescription('Scale your Discord community with custom bots and AI brains:')
+      .addFields(
+        { name: '🎁 Founder 100 ($0 / forever)', value: '• 1 Custom Bot\n• Full Gemini AI Brain\n• MEE6 Levels & Dyno Mod\n• *Limited to first 100 owners!*', inline: true },
+        { name: '⭐ Pro ($4.99 / mo)', value: '• 1 Custom Automated Bot\n• Custom AI Persona\n• Unlimited Gemini Chats\n• Custom Brand Colors', inline: true },
+        { name: '🚀 Premium ($14.99 / mo)', value: '• Up to 5 Custom Bots\n• Minecraft MySQL Sync\n• VIP 24/7 Priority Uptime\n• Custom Tickets', inline: true },
+        { name: '🏢 Enterprise (Custom Quote)', value: '• 10 to 1,000+ Custom Bots\n• Dedicated Node.js Cluster\n• Optional White-Labeling\n• Contact Support to Quote', inline: false }
+      )
+      .setFooter({ text: '⚡ Powered by Krims Code AI' });
+
+    return interaction.reply({ embeds: [pricingEmbed], ephemeral: true });
+  }
 
   // /apply
   if (commandName === 'apply') {
@@ -10198,6 +10399,60 @@ const server = http.createServer(async (req, res) => {
           const updated = addGuildCustomCommand(guildId || 'default', trigger, response);
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: true, commands: updated }));
+        } catch (e) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: e.message }));
+        }
+      });
+      return;
+    }
+  }
+
+  // Custom Bots Multi-Tenant Endpoint
+  if (url.pathname === '/api/custom-bots') {
+    if (req.method === 'GET') {
+      try {
+        const { multiBotManager } = await import('./customBotSpawner.mjs');
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          ok: true, 
+          founderLimit: 100, 
+          claimedCount: multiBotManager.getLiveCount(),
+          remainingSlots: Math.max(0, 100 - multiBotManager.getLiveCount())
+        }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+      return;
+    }
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', async () => {
+        try {
+          const payload = JSON.parse(body || '{}');
+          const { token, guildId, ownerId, botName, customPrefix, aiPersona, activityName } = payload;
+          if (!token) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'Discord Bot Token is required' }));
+          }
+          const { multiBotManager } = await import('./customBotSpawner.mjs');
+          const result = await multiBotManager.registerAndSpawnBot({
+            guildId: guildId || 'global',
+            ownerId: ownerId || 'dashboard',
+            token,
+            botName,
+            customPrefix,
+            aiPersona,
+            activityName
+          });
+          if (!result.success) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: result.error }));
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: true, botUser: result.botUser, inviteUrl: result.inviteUrl }));
         } catch (e) {
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: e.message }));
