@@ -208,6 +208,45 @@ export async function setCrewAppStatus(open, guild, user) {
  * Handles all Interaction events for Video Crew Applications
  */
 export async function handleVideoCrewInteraction(interaction) {
+  // Control Room Buttons
+  if (interaction.isButton() && interaction.customId === 'btn_ctrl_start_crew_app') {
+    const isOwner = interaction.user.id === KRYLO_USER_ID;
+    const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) || interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild);
+    if (!isOwner && !isAdmin) {
+      return await interaction.reply({ content: '❌ Only Krylo or Administrators can control film crew applications.', ephemeral: true });
+    }
+    const res = await setCrewAppStatus(true, interaction.guild, interaction.user);
+    return await interaction.reply({
+      content: res.success 
+        ? '🟢 **Success! Film Crew Applications are now OPEN.**\nThe public application panel in <#1550902305568718948> is active with green audition buttons enabled.' 
+        : `❌ Error: ${res.error}`,
+      ephemeral: true
+    });
+  }
+
+  if (interaction.isButton() && interaction.customId === 'btn_ctrl_stop_crew_app') {
+    const isOwner = interaction.user.id === KRYLO_USER_ID;
+    const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) || interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild);
+    if (!isOwner && !isAdmin) {
+      return await interaction.reply({ content: '❌ Only Krylo or Administrators can control film crew applications.', ephemeral: true });
+    }
+    const res = await setCrewAppStatus(false, interaction.guild, interaction.user);
+    return await interaction.reply({
+      content: res.success 
+        ? '🔴 **Applications CLOSED.**\nThe public audition panel in <#1550902305568718948> has been locked.' 
+        : `❌ Error: ${res.error}`,
+      ephemeral: true
+    });
+  }
+
+  if (interaction.isButton() && interaction.customId === 'btn_ctrl_status_crew_app') {
+    const status = getCrewAppStatus();
+    return await interaction.reply({
+      content: `ℹ️ **Skybase Film Crew Recruitment Status:**\n• **Status:** ${status.isOpen ? '🟢 **OPEN (Recruiting Active)**' : '🔴 **CLOSED (Roster Full)**'}\n• **Audition Channel:** <#${status.channelId || CREW_APPLY_CHANNEL_ID}>\n• **Last Updated:** ${status.lastUpdated ? `<t:${Math.floor(new Date(status.lastUpdated).getTime() / 1000)}:F>` : 'Never'}`,
+      ephemeral: true
+    });
+  }
+
   // Check if applications are open when attempting to open a modal
   if (
     interaction.isButton() && 
