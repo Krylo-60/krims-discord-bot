@@ -30,8 +30,8 @@ export const masterCommandBuilders = [
 
   new SlashCommandBuilder()
     .setName('ask')
-    .setDescription('Ask the Krims Gemini AI engine any coding, Minecraft or server query!')
-    .addStringOption(opt => opt.setName('prompt').setDescription('Your question or prompt for the AI').setRequired(true)),
+    .setDescription('Ask the Krims Code AI neural brain any question or query!')
+    .addStringOption(opt => opt.setName('prompt').setDescription('Your question or prompt').setRequired(true)),
 
   new SlashCommandBuilder()
     .setName('diagnose')

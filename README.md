@@ -2,17 +2,17 @@
 
 [![Discord Bot](https://img.shields.io/badge/Discord.js-v14.14-5865F2?logo=discord&logoColor=white)](https://discord.js.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-v20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![Google Gemini](https://img.shields.io/badge/AI-Google%20Gemini-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
+[![Krims Neural AI](https://img.shields.io/badge/AI-Krims%20Neural%20Engine-8A2BE2?logo=openai&logoColor=white)](#)
 [![Render](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=white)](https://render.com/)
 
-**Krims Code AI** is a state-of-the-art Discord community and enterprise management bot built with **Discord.js v14**, **Google Gemini AI**, and **Render Cloud Infrastructure**. It powers high-scale servers with 97 unified slash commands, custom Jimp-rendered leveling cards, video production crew audition pipelines, connected platform role showcases, and automated Dyno-grade moderation.
+**Krims Code AI** is a state-of-the-art Discord community and enterprise management bot built with **Discord.js v14**, **Krims Neural AI Core**, and **Render Cloud Infrastructure**. It powers high-scale servers with 97 unified slash commands, custom Jimp-rendered leveling cards, video production crew audition pipelines, connected platform role showcases, and automated Dyno-grade moderation.
 
 ---
 
 ## ⚡ Core Systems
 
-### 🤖 1. Hybrid Gemini AI Core
-* **`/ask <prompt>`**: Intelligent, contextual responses powered by Google Gemini with custom safety guidelines and studio awareness.
+### 🤖 1. Proprietary Krims Neural AI Core
+* **`/ask <prompt>`**: Intelligent, contextual responses powered by Krims Code's hybrid neural router with custom safety guidelines and studio awareness.
 * **`/diagnose`**: Live diagnostic overview of system latency, memory allocation, Discord Gateway health, and API connectivity.
 * **Automated Support**: Context-aware assistance for incoming server queries and audition tickets.
 
@@ -78,7 +78,7 @@
    ```env
    DISCORD_TOKEN=your_discord_bot_token_here
    CLIENT_ID=your_discord_client_id_here
-   GEMINI_API_KEY=your_gemini_api_key_here
+   AI_API_KEY=your_ai_api_key_here
    PORT=3000
    ```
 

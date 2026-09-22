@@ -3512,7 +3512,7 @@ client.on('interactionCreate', async (interaction) => {
       .setDescription(
         `This bot is powered by the **Krims Code AI Multi-Bot Engine**, developed by **Krylo**.\n\n` +
         `**Core Features:**\n` +
-        `• 🧠 **Google Gemini AI:** High-speed real-time conversational chat.\n` +
+        `• 🧠 **Krims Neural AI Engine:** High-speed real-time conversational chat.\n` +
         `• ⭐ **MEE6-Grade Leveling:** Custom rank cards, XP tracking, leaderboards.\n` +
         `• 🛡️ **Dyno-Style AutoMod:** Anti-spam, mute, ban, warn logs.\n` +
         `• ⚡ **Custom Commands, Tickets & Sticky Messages**\n\n` +
@@ -3535,9 +3535,9 @@ client.on('interactionCreate', async (interaction) => {
       .setTitle('💎 Krims Code AI — Tier Ladder & Pricing')
       .setDescription('Scale your Discord community with custom bots and AI brains:')
       .addFields(
-        { name: '🎁 Founder 100 ($0 / forever)', value: '• 1 Custom Bot\n• Full Gemini AI Brain\n• MEE6 Levels & Dyno Mod\n• *Limited to first 100 owners!*', inline: true },
-        { name: '⭐ Pro ($4.99 / mo)', value: '• 1 Custom Automated Bot\n• Custom AI Persona\n• Unlimited Gemini Chats\n• Custom Brand Colors', inline: true },
-        { name: '🚀 Premium ($14.99 / mo)', value: '• Up to 5 Custom Bots\n• Minecraft MySQL Sync\n• VIP 24/7 Priority Uptime\n• Custom Tickets', inline: true },
+        { name: '🎁 Founder 100 ($0 / forever)', value: '• 1 Custom Bot\n• Full Neural AI Brain\n• MEE6 Levels & Dyno Mod\n• *Limited to first 100 owners!*', inline: true },
+        { name: '⭐ Pro ($4.99 / mo)', value: '• 1 Custom Automated Bot\n• Custom AI Persona\n• Unlimited Neural AI Chats\n• Custom Brand Colors', inline: true },
+        { name: '🚀 Premium ($14.99 / mo)', value: '• Up to 5 Custom Bots\n• Cross-Platform Database Sync\n• VIP 24/7 Priority Uptime\n• Custom Tickets', inline: true },
         { name: '🏢 Enterprise (Custom Quote)', value: '• 10 to 1,000+ Custom Bots\n• Dedicated Node.js Cluster\n• Optional White-Labeling\n• Contact Support to Quote', inline: false }
       )
       .setFooter({ text: '⚡ Powered by Krims Code AI' });

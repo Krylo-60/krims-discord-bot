@@ -295,14 +295,14 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setColor(0x5865F2)
         .setTitle('🤖 Krims Code AI — Custom Bot Personalizer')
         .setDescription(
-          `Deploy a custom bot with your own **name, avatar, and server identity**, powered by the **Krims Code AI & Gemini Brain**!\n\n` +
+          `Deploy a custom bot with your own **name, avatar, and server identity**, powered by the **Krims Code Neural AI Core**!\n\n` +
           `🚀 **Founder Launch:** First 100 server owners get **100% FREE Custom Bots Forever**!\n\n` +
           `**Choose an option below:**\n` +
           `• **Option 1: Deploy Custom Bot (BYOT):** Paste your bot token and we'll power it.\n` +
           `• **Option 2: 1-Click Official Bot:** Invite our pre-made Krylo AI bot directly without tokens!\n\n` +
           `⚡ *Enterprise performance • Zero-downtime clustering • Cloud hosted on Render*`
         )
-        .setFooter({ text: 'Krims Code Multi-Bot Cloud • Powered by Google Gemini' })
+        .setFooter({ text: 'Krims Code Multi-Bot Cloud • Neural AI Core' })
         .setTimestamp();
 
       const row = new ActionRowBuilder().addComponents(
@@ -322,7 +322,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           `**Krims Code AI** is the next-generation Discord AI bot and multi-tenant bot host created by the Krylo Development Team.\n\n` +
           `🌟 **Core Highlights:**\n` +
           `• **Multi-Bot Hosting:** Host up to 100+ branded bots on a single unified cloud instance.\n` +
-          `• **Gemini 2.5 Brain:** High-speed, context-aware coding, creative writing, and chat assistance.\n` +
+          `• **Krims Neural Brain:** High-speed, context-aware coding, creative writing, and chat assistance.\n` +
           `• **Full Economy & RPG:** Complete virtual economy, MEE6 chat levels, duels, clans, and stores.\n` +
           `• **Dyno-Grade Moderation:** Auto-moderation, timeouts, strikes, mod-logs, and server lockdown.\n\n` +
           `🎁 **Get Your Own Bot:** Type \`/setupbot\` to deploy a personalized bot for your server for FREE!`
@@ -346,7 +346,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           `Choose the plan that best powers your Discord server community:\n\n` +
           `🆓 **Founder Tier — 100% FREE FOREVER**\n` +
           `• 1 Custom Bot per server\n` +
-          `• Full Gemini 2.5 AI Chat & Moderation\n` +
+          `• Full Neural AI Chat & Moderation\n` +
           `• Complete Economy, MEE6 Levels & Dyno Suite\n\n` +
           `⭐ **Pro Tier — $4.99 / month**\n` +
           `• Up to 3 Custom Bots\n` +
