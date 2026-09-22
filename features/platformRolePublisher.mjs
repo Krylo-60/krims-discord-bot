@@ -106,7 +106,7 @@ export async function syncRolesChannelEmbed(token) {
 /**
  * Toggles a platform between Public and Private
  */
-export async function setPlatformPublicStatus(platform, makePublic, token) {
+export async function setPlatformPublicStatus(platform, makePublic, token, targetUserId = KRYLO_USER_ID) {
   if (platform === 'twitch') {
     currentStatus.twitchPublic = makePublic;
   } else if (platform === 'spotify') {
@@ -121,10 +121,12 @@ export async function setPlatformPublicStatus(platform, makePublic, token) {
   // Sync #roles channel
   await syncRolesChannelEmbed(token);
 
-  // Manage Krylo user profile role visibility & role hoist state
+  // Manage user profile role visibility & role hoist state
   const targetRoles = [];
   if (platform === 'twitch' || platform === 'all') targetRoles.push(TWITCH_SUB_ROLE_ID);
   if (platform === 'spotify' || platform === 'all') targetRoles.push(SPOTIFY_VIP_ROLE_ID);
+
+  const usersToUpdate = new Set([KRYLO_USER_ID, targetUserId].filter(Boolean));
 
   for (const rid of targetRoles) {
     // When private, set hoist to false so role doesn't show anywhere in role list
@@ -138,18 +140,20 @@ export async function setPlatformPublicStatus(platform, makePublic, token) {
       body: JSON.stringify({ hoist: makePublic })
     }).catch(() => {});
 
-    if (makePublic) {
-      // Assign to Krylo when public
-      await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/members/${KRYLO_USER_ID}/roles/${rid}`, {
-        method: 'PUT',
-        headers: { Authorization: `Bot ${token}` }
-      });
-    } else {
-      // Remove from Krylo when private
-      await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/members/${KRYLO_USER_ID}/roles/${rid}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bot ${token}` }
-      });
+    for (const uid of usersToUpdate) {
+      if (makePublic) {
+        // Assign to user when public
+        await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/members/${uid}/roles/${rid}`, {
+          method: 'PUT',
+          headers: { Authorization: `Bot ${token}` }
+        });
+      } else {
+        // Remove from user when private
+        await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/members/${uid}/roles/${rid}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bot ${token}` }
+        });
+      }
     }
   }
 
@@ -174,12 +178,40 @@ export async function handlePlatformRoleInteraction(interaction) {
 
   const token = process.env.DISCORD_TOKEN;
 
+  if (customId === 'btn_equip_my_platform_roles') {
+    const rolesToGive = [TWITCH_SUB_ROLE_ID, SPOTIFY_VIP_ROLE_ID];
+    for (const rid of rolesToGive) {
+      await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/members/${interaction.user.id}/roles/${rid}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bot ${token}` }
+      });
+    }
+    return await interaction.reply({
+      content: '👑 **Roles Equipped!** You now have **🟣 Skybase • Subbed to Krylo on Twitch** and **🟢 Skybase • Following Krylo on Spotify** on your profile!',
+      ephemeral: true
+    });
+  }
+
+  if (customId === 'btn_unequip_my_platform_roles') {
+    const rolesToRemove = [TWITCH_SUB_ROLE_ID, SPOTIFY_VIP_ROLE_ID];
+    for (const rid of rolesToRemove) {
+      await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/members/${interaction.user.id}/roles/${rid}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bot ${token}` }
+      });
+    }
+    return await interaction.reply({
+      content: '🔒 **Roles Unequipped!** Removed Twitch and Spotify roles from your profile for complete privacy.',
+      ephemeral: true
+    });
+  }
+
   if (customId === 'btn_toggle_pub_twitch') {
     const nextState = !currentStatus.twitchPublic;
-    await setPlatformPublicStatus('twitch', nextState, token);
+    await setPlatformPublicStatus('twitch', nextState, token, interaction.user.id);
     return await interaction.reply({
       content: nextState
-        ? '🟣 **Twitch Role is now PUBLIC!**\n• Featured in <#1549882278245564546> directory.\n• Assigned to Krylo\'s profile.\n• Members can claim via verification.'
+        ? '🟣 **Twitch Role is now PUBLIC!**\n• Featured in <#1549882278245564546> directory.\n• Assigned to your profile.\n• Members can claim via verification.'
         : '🔒 **Twitch Role is now PRIVATE.**\n• Hidden from directory and unassigned from profile.',
       ephemeral: true
     });
@@ -187,27 +219,27 @@ export async function handlePlatformRoleInteraction(interaction) {
 
   if (customId === 'btn_toggle_pub_spotify') {
     const nextState = !currentStatus.spotifyPublic;
-    await setPlatformPublicStatus('spotify', nextState, token);
+    await setPlatformPublicStatus('spotify', nextState, token, interaction.user.id);
     return await interaction.reply({
       content: nextState
-        ? '🟢 **Spotify Role is now PUBLIC!**\n• Featured in <#1549882278245564546> directory.\n• Assigned to Krylo\'s profile.\n• Members can claim via verification.'
+        ? '🟢 **Spotify Role is now PUBLIC!**\n• Featured in <#1549882278245564546> directory.\n• Assigned to your profile.\n• Members can claim via verification.'
         : '🔒 **Spotify Role is now PRIVATE.**\n• Hidden from directory and unassigned from profile.',
       ephemeral: true
     });
   }
 
   if (customId === 'btn_pub_all_platforms') {
-    await setPlatformPublicStatus('all', true, token);
+    await setPlatformPublicStatus('all', true, token, interaction.user.id);
     return await interaction.reply({
-      content: '🌐 **All Supporter Roles (Twitch & Spotify) are now PUBLIC!**\n• Updated in <#1549882278245564546>.\n• Badges awarded to Krylo\'s profile.\n• Ready for members to verify & claim.',
+      content: '🌐 **All Supporter Roles (Twitch & Spotify) are now PUBLIC!**\n• Updated in <#1549882278245564546>.\n• Awarded to your profile.\n• Ready for members to verify & claim.',
       ephemeral: true
     });
   }
 
   if (customId === 'btn_hide_all_platforms') {
-    await setPlatformPublicStatus('all', false, token);
+    await setPlatformPublicStatus('all', false, token, interaction.user.id);
     return await interaction.reply({
-      content: '🔒 **All Supporter Roles (Twitch & Spotify) are now PRIVATE (Stealth Reserve).**\n• Hidden from public directories.\n• Unassigned from Krylo\'s profile.',
+      content: '🔒 **All Supporter Roles (Twitch & Spotify) are now PRIVATE (Stealth Reserve).**\n• Hidden from public directories.\n• Unassigned from your profile.',
       ephemeral: true
     });
   }
