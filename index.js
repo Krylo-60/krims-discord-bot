@@ -2712,7 +2712,7 @@ client.on('interactionCreate', async (interaction) => {
             { name: '👤 Discord Account', value: `<@${interaction.user.id}>`, inline: true },
             { name: '🎮 Linked Minecraft Username', value: linkedIgn !== 'Not Linked' ? `\`${linkedIgn}\`` : '❌ `Not Linked`', inline: true },
             { name: '💰 KryloCoins Balance', value: `\`${balanceFormatted}\``, inline: true },
-            { name: '🌐 Server IP', value: '`krylosmp.falix.gg:29273`', inline: true }
+            { name: '🌐 Server IP', value: (interaction.guildId === '1549875778575929446' || !isAdmin) ? '`🔒 Private`' : '`krylosmp.falix.gg:29273`', inline: true }
           )
           .setFooter({ text: 'KryloSMP Account Management System ⚡' })
           .setTimestamp();
@@ -2725,8 +2725,17 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     if (customId === 'copy_ip_btn') {
+      const isOwner = interaction.user.id === '1414143825538191373';
+      const isAdmin = isOwner || interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
+      if (interaction.guildId === '1549875778575929446' || !isAdmin) {
+        await interaction.reply({
+          content: '🔒 **Minecraft Server Status:** The server connection details are currently kept private for recording sessions and active development. Stay tuned for public launch announcements!',
+          ephemeral: true
+        });
+        return;
+      }
       await interaction.reply({
-        content: '🌐 **KryloSMP Connection Details:**\n\n' +
+        content: '🌐 **KryloSMP Connection Details (Staff Private):**\n\n' +
                  '• **Java Server IP:** `krylosmp.falix.gg:29273` (Port: `25565`)\n' +
                  '• **Bedrock IP:** `krylosmp.falix.gg:29273` (Port: `19132`)\n' +
                  '• **Version:** `1.21.x`\n' +

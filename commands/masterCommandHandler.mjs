@@ -105,30 +105,50 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     // 1. 📡 /ip — Minecraft Server Connection Address & Ports
     // ──────────────────────────────────────────────────────────
     if (commandName === 'ip') {
+      const isOwner = interaction.user.id === '1414143825538191373';
+      const isAdmin = isOwner || interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
+
+      // In Krylo's Skybase (or for non-admins requesting KSMP): Keep Minecraft IP hidden and private
+      if (interaction.guildId === '1549875778575929446' || !isAdmin) {
+        const privateEmbed = new EmbedBuilder()
+          .setColor(0x00E5FF)
+          .setTitle('🔒 Minecraft Server Connection — Private')
+          .setDescription(
+            `### 🔒 Minecraft Server Status: **Private & Unreleased**\n\n` +
+            `• The Minecraft servers for **Krylo's Skybase** and **KryloSMP** are currently kept private for recording sessions and active development.\n` +
+            `• Public connection details and IPs are not released at this time.\n` +
+            `• Stay tuned to official announcements for future public launch dates! 🚀`
+          )
+          .setFooter({ text: "Krylo's Skybase • Private Production Network" })
+          .setTimestamp();
+
+        return await interaction.reply({ embeds: [privateEmbed], ephemeral: true });
+      }
+
+      // Admin / Owner View on KSMP:
       const embed = new EmbedBuilder()
         .setColor(0x00E5FF)
-        .setTitle('📡 KryloSMP — Server Connection Info')
+        .setTitle('📡 KryloSMP — Server Connection Info (Staff/Admin View)')
         .setDescription(
-          `Join the official **KryloSMP** Minecraft Server! Compatible with both **Java** and **Bedrock** (cross-play enabled).\n\n` +
+          `Official **KryloSMP** Minecraft Server details (Restricted/Private):\n\n` +
           `☕ **Java Edition:**\n` +
           `• Server IP: \`krylosmp.falix.gg:29273\`\n` +
-          `• Version: \`1.21.x\` (Supports all latest clients)\n\n` +
+          `• Version: \`1.21.x\` (Crossplay enabled)\n\n` +
           `🪨 **Bedrock Edition (Mobile, Console, Windows):**\n` +
           `• Server IP / Host: \`krylosmp.falix.gg\`\n` +
           `• Port: \`29273\`\n\n` +
-          `🌐 **Official Web Store:** https://krylosmp.web.app/\n` +
-          `💬 **Need Help?** Open a ticket with \`/ticket\``
+          `🌐 **Web Store:** https://krylosmp.web.app/\n` +
+          `🔒 *Keep this address private for whitelisted staff/recording sessions.*`
         )
         .setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png')
-        .setFooter({ text: 'KryloSMP Network • Type /status to view live player count' })
+        .setFooter({ text: 'KryloSMP Network • Staff Private View' })
         .setTimestamp();
 
       const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setLabel('🛒 Web Store').setStyle(ButtonStyle.Link).setURL('https://krylosmp.web.app/'),
-        new ButtonBuilder().setLabel('📜 Server Rules').setStyle(ButtonStyle.Link).setURL('https://discord.com/channels/1549875778575929446/1549882276274245722')
+        new ButtonBuilder().setLabel('🛒 Web Store').setStyle(ButtonStyle.Link).setURL('https://krylosmp.web.app/')
       );
 
-      return await interaction.reply({ embeds: [embed], components: [row] });
+      return await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
     }
 
     // ──────────────────────────────────────────────────────────
