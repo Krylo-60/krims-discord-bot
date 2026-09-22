@@ -71,14 +71,16 @@ export async function syncRolesChannelEmbed(token) {
       supporterValue += `\n<@&${SPOTIFY_VIP_ROLE_ID}> ↠ Followers of **Krylo on Spotify**!\n<@&${SPOTIFY_CONN_ROLE_ID}> ↠ Connected Spotify accounts.\n`;
     }
 
-    if (!currentStatus.twitchPublic && !currentStatus.spotifyPublic) {
-      supporterValue += `\n*(Note: Twitch and Spotify roles are currently in private reserve.)*\n`;
-    }
+    supporterValue += `\n👉 *Claim your subscriber roles in <#${VERIFY_CHANNEL_ID}>!*\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
-    supporterValue += `\n👉 *Claim your subscriber & supporter roles in <#${VERIFY_CHANNEL_ID}>!*\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+    // Robust field search for any variation of supporter field title
+    const supporterFieldIndex = embed.fields.findIndex(f => 
+      f.name.includes('Supporters') || 
+      f.name.includes('YouTube') || 
+      f.name.includes('Twitch') || 
+      f.name.includes('Spotify')
+    );
 
-    // Update field
-    const supporterFieldIndex = embed.fields.findIndex(f => f.name.includes('YouTube & Krylo MC Supporters') || f.name.includes('Platform Supporters'));
     if (supporterFieldIndex !== -1) {
       embed.fields[supporterFieldIndex].name = (currentStatus.twitchPublic || currentStatus.spotifyPublic) 
         ? '🌟 YouTube, Twitch & Spotify Supporters' 
@@ -119,12 +121,23 @@ export async function setPlatformPublicStatus(platform, makePublic, token) {
   // Sync #roles channel
   await syncRolesChannelEmbed(token);
 
-  // Manage Krylo user profile role visibility
+  // Manage Krylo user profile role visibility & role hoist state
   const targetRoles = [];
   if (platform === 'twitch' || platform === 'all') targetRoles.push(TWITCH_SUB_ROLE_ID);
   if (platform === 'spotify' || platform === 'all') targetRoles.push(SPOTIFY_VIP_ROLE_ID);
 
   for (const rid of targetRoles) {
+    // When private, set hoist to false so role doesn't show anywhere in role list
+    // When public, set hoist to true
+    await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/roles/${rid}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bot ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ hoist: makePublic })
+    }).catch(() => {});
+
     if (makePublic) {
       // Assign to Krylo when public
       await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/members/${KRYLO_USER_ID}/roles/${rid}`, {
