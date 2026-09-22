@@ -56,22 +56,25 @@ export async function syncRolesChannelEmbed(token) {
     const embed = msg.embeds?.[0];
     if (!embed) return false;
 
-    // Build the supporter field dynamically
+    // Build the supporter field dynamically with public connected badges
     let supporterValue = 
       `<@&1549918001380331632> ↠ Verified subscribers to **[Krylo on YouTube](https://www.youtube.com/@krylomcyt?sub_confirmation=1)**.\n` +
       `*(💬 **Perk:** Being a subscriber gives you hoisted status & a higher chance of Krylo answering you!)*\n` +
-      `<@&1549916920629825686> ↠ Dedicated Krylo fans & Skybase community supporters.\n` +
-      `<@&1549918000352600076> ↠ Discord Linked Role for connected YouTube profiles.\n`;
+      `<@&1549916920629825686> ↠ Dedicated Krylo fans & Skybase community supporters.\n\n` +
+      `**🔗 Connected Account Badges (Public Showcase):**\n` +
+      `<@&1549918000352600076> ↠ Connected YouTube profiles.\n` +
+      `<@&${TWITCH_CONN_ROLE_ID}> ↠ Connected Twitch accounts.\n` +
+      `<@&${SPOTIFY_CONN_ROLE_ID}> ↠ Connected Spotify accounts.\n`;
 
     if (currentStatus.twitchPublic) {
-      supporterValue += `\n<@&${TWITCH_SUB_ROLE_ID}> ↠ Verified subscribers to **Krylo on Twitch**!\n<@&${TWITCH_CONN_ROLE_ID}> ↠ Connected Twitch accounts.\n`;
+      supporterValue += `\n<@&${TWITCH_SUB_ROLE_ID}> ↠ Verified subscribers to **Krylo on Twitch**!\n`;
     }
 
     if (currentStatus.spotifyPublic) {
-      supporterValue += `\n<@&${SPOTIFY_VIP_ROLE_ID}> ↠ Followers of **Krylo on Spotify**!\n<@&${SPOTIFY_CONN_ROLE_ID}> ↠ Connected Spotify accounts.\n`;
+      supporterValue += `\n<@&${SPOTIFY_VIP_ROLE_ID}> ↠ Followers of **Krylo on Spotify**!\n`;
     }
 
-    supporterValue += `\n👉 *Claim your subscriber roles in <#${VERIFY_CHANNEL_ID}>!*\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+    supporterValue += `\n👉 *Link your accounts in Discord Settings ➔ Connections, or claim subscriber roles in <#${VERIFY_CHANNEL_ID}>!*\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
     // Robust field search for any variation of supporter field title
     const supporterFieldIndex = embed.fields.findIndex(f => 
