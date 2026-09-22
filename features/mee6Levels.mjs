@@ -246,14 +246,19 @@ export async function sendRankCard(context, targetUser = null) {
 
   const userStats = guildData[user.id] || xpData[user.id] || { xp: 0, level: 0 };
 
+  const isOwner = user.id === '1414143825538191373' || (guild && guild.ownerId === user.id);
+
   try {
     const cardBuffer = await generateRankCardBuffer({
       user,
-      userStats,
-      rankPos
+      userStats: { ...userStats, isOwner },
+      rankPos: isOwner ? '#0 (OWNER)' : rankPos
     });
 
     const attachment = new AttachmentBuilder(cardBuffer, { name: `rank-${user.username}.png` });
+
+    const isSkybase = guild.id === '1549875778575929446';
+    const storeUrl = isSkybase ? 'https://krims-code-chatbot.vercel.app/' : 'https://krylosmp-store.web.app/';
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -265,15 +270,14 @@ export async function sendRankCard(context, targetUser = null) {
         .setLabel('🎁 Daily Bonus')
         .setStyle(ButtonStyle.Success),
       new ButtonBuilder()
-        .setLabel('🛒 Store')
+        .setLabel(isSkybase ? '🌐 Portal' : '🛒 Store')
         .setStyle(ButtonStyle.Link)
-        .setURL('https://krylosmp-store.web.app/')
+        .setURL(storeUrl)
     );
 
-    const isKrylo = user.id === '1414143825538191373';
-    const boosterContent = isKrylo
-      ? `⚡ **Vote Booster:** \`100%\` *(Secret Overlord Tier Active)*`
-      : `⚡ **Vote Booster:** \`10%\` *(11 hours remaining)*`;
+    const boosterContent = isOwner
+      ? `👑 **SERVER OWNER** • ⚡ **Vote Booster:** \`100%\` *(Supreme Aura & Founder Tier Active)* 🔥`
+      : `⚡ **Vote Booster:** \`10%\` *(Daily community perk active)*`;
 
     const payload = {
       content: boosterContent,
@@ -313,6 +317,7 @@ export async function handleRankCommand(interaction) {
  */
 export async function handleLeaderboardCommand(interaction) {
   const guildId = interaction.guild.id;
+  const isSkybase = guildId === '1549875778575929446';
   const guildData = xpData[guildId] || {};
   const sorted = Object.entries(guildData).sort((a, b) => b[1].xp - a[1].xp).slice(0, 10);
 
@@ -322,8 +327,9 @@ export async function handleLeaderboardCommand(interaction) {
 
   const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
   const desc = sorted.map(([userId, data], i) => {
-    const medal = medals[i] || `${i + 1}.`;
-    return `${medal} **<@${userId}>** • **Level ${data.level}** (${data.xp.toLocaleString()} XP)`;
+    const isOwner = userId === '1414143825538191373' || userId === interaction.guild?.ownerId;
+    const badge = isOwner ? '👑 [OWNER]' : (medals[i] || `${i + 1}.`);
+    return `${badge} **<@${userId}>** • **Level ${data.level}** (${data.xp.toLocaleString()} XP)`;
   }).join('\n');
 
   const embed = new EmbedBuilder()
@@ -331,7 +337,7 @@ export async function handleLeaderboardCommand(interaction) {
     .setTitle(`🏆 ${interaction.guild.name} — XP LEADERBOARD`)
     .setDescription(`Top 10 most active community members:\n\n${desc}`)
     .setThumbnail(interaction.guild.iconURL({ dynamic: true }))
-    .setFooter({ text: 'MEE6 Leaderboard Engine' })
+    .setFooter({ text: isSkybase ? "Krylo's Skybase Leaderboard Engine" : 'MEE6 Leaderboard Engine' })
     .setTimestamp();
 
   await interaction.reply({ embeds: [embed] });

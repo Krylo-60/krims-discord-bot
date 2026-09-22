@@ -1,11 +1,20 @@
 {
-  "1538225337048236082": {
+  "1549875778575929446": {
     "1414143825538191373": {
-      "xp": 130,
-      "level": 0,
+      "xp": 999999,
+      "level": 100,
       "username": "krylo_plays",
       "discriminator": "0",
-      "announced_level": 1
+      "announced_level": 100
+    }
+  },
+  "1538225337048236082": {
+    "1414143825538191373": {
+      "xp": 999999,
+      "level": 100,
+      "username": "krylo_plays",
+      "discriminator": "0",
+      "announced_level": 100
     },
     "1289250733765558416": {
       "xp": 150,

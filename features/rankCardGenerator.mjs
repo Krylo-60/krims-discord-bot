@@ -113,7 +113,11 @@ export async function generateRankCardBuffer({ user, userStats, rankPos, accentC
 
   const textX = 195;
   const rawName = user.username || 'Player';
-  const displayName = rawName.startsWith('@') ? rawName : `@${rawName}`;
+  const isOwner = user.id === '1414143825538191373' || Boolean(userStats?.isOwner);
+  let displayName = rawName.startsWith('@') ? rawName : `@${rawName}`;
+  if (isOwner) {
+    displayName = `${displayName} [OWNER]`;
+  }
   card.print(font32, textX, 38, displayName);
 
   // Underline beneath username
@@ -132,13 +136,12 @@ export async function generateRankCardBuffer({ user, userStats, rankPos, accentC
   let reqXp = levelInfo.neededXp || getRequiredXpForLevel(currentLvl) || 100;
   let rankDisplay = typeof rankPos === 'number' ? rankPos : (parseInt(String(rankPos).replace(/\D/g, '')) || 1);
 
-  // 👑 Secret Rank Override for Krylo (Undetectable by server owners)
-  const isKrylo = user.id === '1414143825538191373';
-  if (isKrylo) {
-    rankDisplay = '#0 (SECRET)';
-    if (currentLvl < 50) currentLvl = 50;
-    curXp = 9999;
-    reqXp = 10000;
+  // 👑 Supreme Server Owner Showcase (Public Aura & Fire)
+  if (isOwner) {
+    rankDisplay = '#0 (OWNER)';
+    if (currentLvl < 100) currentLvl = 100;
+    curXp = 99999;
+    reqXp = 100000;
   }
 
   // Stats line: Level: X   XP: Y / Z   Rank: N
