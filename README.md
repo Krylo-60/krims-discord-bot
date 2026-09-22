@@ -1,52 +1,116 @@
-# Krims Code | Discord Bot
+# Krims Code AI 🤖
 
-A Node.js Discord Bot for the Krims Code ecosystem. Integrates with the live Vercel-hosted Custom AI Chatbot via the official `@krishivpb60/krims-code-sdk`.
+[![Discord Bot](https://img.shields.io/badge/Discord.js-v14.14-5865F2?logo=discord&logoColor=white)](https://discord.js.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-v20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Google Gemini](https://img.shields.io/badge/AI-Google%20Gemini-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
+[![Render](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=white)](https://render.com/)
 
----
-
-## ⚡ Bot Features
-
-- **`!ask <prompt>`**: Instantly queries the hybrid AI statistical/cloud engine.
-- **`!diagnose`**: Generates a custom embedded diagnostic panel showing the health of the AI router mesh and NPM download statistics.
+**Krims Code AI** is a state-of-the-art Discord community and enterprise management bot built with **Discord.js v14**, **Google Gemini AI**, and **Render Cloud Infrastructure**. It powers high-scale servers with 97 unified slash commands, custom Jimp-rendered leveling cards, video production crew audition pipelines, connected platform role showcases, and automated Dyno-grade moderation.
 
 ---
 
-## 🛠️ Setup Instructions
+## ⚡ Core Systems
 
-### 1. Create a Discord Bot Application
-1. Go to the [Discord Developer Portal](https://discord.com/developers/applications).
-2. Click **New Application** and name it **Krims Code AI**.
-3. Navigate to the **Bot** tab on the left sidebar.
-4. Click **Reset Token** and copy the generated token.
-5. **CRITICAL**: Scroll down on the Bot page to **Privileged Gateway Intents** and toggle **ON** the **MESSAGE CONTENT INTENT** (this is required for the bot to read `!ask` and `!diagnose` commands).
+### 🤖 1. Hybrid Gemini AI Core
+* **`/ask <prompt>`**: Intelligent, contextual responses powered by Google Gemini with custom safety guidelines and studio awareness.
+* **`/diagnose`**: Live diagnostic overview of system latency, memory allocation, Discord Gateway health, and API connectivity.
+* **Automated Support**: Context-aware assistance for incoming server queries and audition tickets.
 
-### 2. Configure Environment Variables
-1. Navigate to the project directory:
+### 🎬 2. Film Crew & Audition Management
+* **Audition Controls**: Staff and director commands (`/startcrewapp`, `/stopcrewapp`, `/crewapp status`) to open or close recruitment panels in real time.
+* **Modal Applications**: Dynamic, interactive application modals submitted directly to private moderator review lounges.
+* **Recruitment Hub**: Embed state synchronization across recruitment channels with instantaneous button lockouts upon closure.
+
+### 👑 3. MEE6-Grade Leveling & Dynamic Rank Cards
+* **Custom Graphical Cards (`/rank`)**: High-performance PNG card generation via Jimp featuring custom avatars, level badges, dynamic progress bars, and server owner prestige flair.
+* **XP Tracking**: Real-time message XP rewards, voice channel time accumulation, and configurable cooldown throttles.
+* **Chat Leaderboards (`/leaderboard`)**: Dynamic top-10 member rankings with medals and owner badges.
+
+### 🛡️ 4. Dyno-Grade Moderation & Security
+* **Full Moderation Suite**: `/warn`, `/mute`, `/unmute`, `/kick`, `/ban`, `/purge`, `/lockdown`, `/unlock`, `/slowmode`.
+* **AutoMod Safeguards**: Automated protection against mention spam, malicious invites, and suspicious content.
+* **Role Hierarchy Guards**: Administrative bypass protections and safety checks for server owners and moderators.
+
+### 🔗 5. Connected Platform Verification & Roles
+* **Public Identity Badges**: Showcase badges for verified YouTube, Twitch, and Spotify connections.
+* **Privacy Controls**: Secure management consoles for releasing special platform follower and subscriber roles on demand.
+
+### 💰 6. Economy, Progression & Minigames
+* Virtual coins, daily login rewards (`/daily`), quests, duels (`/duel`), chest rewards, and clan management.
+
+---
+
+## 📋 Slash Command Suite (97 Commands)
+
+| Category | Highlights |
+| :--- | :--- |
+| **🤖 AI & Diagnostics** | `/ask`, `/diagnose`, `/setupbot`, `/custombot`, `/about`, `/getbot`, `/pricing`, `/github` |
+| **🎬 Film Crew** | `/startcrewapp`, `/stopcrewapp`, `/startcrew`, `/stopcrew`, `/crewapp`, `/crew` |
+| **🛡️ Moderation** | `/warn`, `/mute`, `/unmute`, `/kick`, `/ban`, `/purge`, `/lockdown`, `/unlock`, `/slowmode`, `/afk` |
+| **📈 Progression** | `/rank`, `/level`, `/leaderboard`, `/xpleaderboard`, `/daily`, `/balance`, `/pay`, `/quests`, `/clan` |
+| **📡 Community** | `/help`, `/status`, `/rules`, `/announce`, `/poll`, `/serverinfo`, `/userinfo`, `/avatar`, `/suggest` |
+| **⚔️ Games & Duels** | `/duel`, `/pvp`, `/tournament`, `/bounty`, `/trade`, `/pet`, `/fish`, `/mine`, `/craft`, `/raid` |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+* [Node.js](https://nodejs.org/) v18.0.0 or higher
+* npm (bundled with Node.js)
+* A Discord Bot Application created on the [Discord Developer Portal](https://discord.com/developers/applications)
+
+### Installation
+
+1. **Clone the repository:**
    ```bash
-   cd C:\Users\naina\.gemini\antigravity\scratch\krims-discord-bot
+   git clone https://github.com/Krylo-60/krims-discord-bot.git
+   cd krims-discord-bot
    ```
-2. Copy `.env.example` to a new file named `.env`:
+
+2. **Install dependencies:**
    ```bash
-   copy .env.example .env
+   npm install
    ```
-3. Open `.env` and paste your Bot Token:
+
+3. **Configure Environment Variables:**
+   Create a `.env` file in the project root:
    ```env
-   DISCORD_TOKEN=your_copied_bot_token_here
+   DISCORD_TOKEN=your_discord_bot_token_here
+   CLIENT_ID=your_discord_client_id_here
+   GEMINI_API_KEY=your_gemini_api_key_here
+   PORT=3000
    ```
 
-### 3. Invite the Bot to Your Server
-1. In the Developer Portal, go to the **OAuth2** tab.
-2. Select **URL Generator** under OAuth2.
-3. In **Scopes**, check `bot`.
-4. In **Bot Permissions**, check:
-   - `Send Messages`
-   - `Embed Links`
-   - `Read Message History`
-5. Copy the generated URL at the bottom and open it in your browser to invite the bot to your Discord server.
+4. **Register Slash Commands:**
+   Deploy all 97 unified commands to Discord's Gateway:
+   ```bash
+   node deployMasterUnifiedCommands.mjs
+   ```
 
-### 4. Install & Run
-Run the commands using CMD to start the bot:
-```cmd
-npm install
-npm start
-```
+5. **Start the Bot:**
+   ```bash
+   npm start
+   ```
+
+---
+
+## 🌐 Cloud Deployment (Render)
+
+This bot is optimized for 24/7 continuous operation on [Render](https://render.com) Web Services.
+
+* **Build Command:** `npm install`
+* **Start Command:** `npm start`
+* **Health Check Path:** `/` (returns HTTP 200 JSON status)
+
+---
+
+## 🔒 Security & Privacy
+
+* All bot tokens, API keys, and local environment files are strictly excluded from version control via `.gitignore`.
+* Private administration consoles and audit channels are restricted via Discord snowflake permissions and owner ID validation.
+
+---
+
+## 📜 License
+Distributed under the MIT License. See `LICENSE` for more information.
