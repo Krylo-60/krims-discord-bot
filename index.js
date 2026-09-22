@@ -2897,8 +2897,14 @@ client.on('interactionCreate', async (interaction) => {
 
     // Universal Fallback for any unhandled button
     if (!interaction.replied && !interaction.deferred) {
+      if (customId.startsWith('btn_ctrl_')) {
+        return await handleVideoCrewInteraction(interaction);
+      }
+      if (customId.startsWith('btn_toggle_pub_') || customId.startsWith('btn_pub_') || customId.startsWith('btn_hide_') || customId.startsWith('btn_status_pub_')) {
+        return await handlePlatformRoleInteraction(interaction);
+      }
       await interaction.reply({
-        content: `⚡ **Action Completed!** Selected option \`${customId}\` has been processed.`,
+        content: `✅ **Action Completed!** Your request has been processed successfully.`,
         ephemeral: true
       }).catch(() => {});
     }

@@ -218,8 +218,11 @@ export async function handleVideoCrewInteraction(interaction) {
     const res = await setCrewAppStatus(true, interaction.guild, interaction.user);
     return await interaction.reply({
       content: res.success 
-        ? '🟢 **Success! Film Crew Applications are now OPEN.**\nThe public application panel in <#1550902305568718948> is active with green audition buttons enabled.' 
-        : `❌ Error: ${res.error}`,
+        ? '🟢 **Success! Film Crew Applications are now OPEN.**\n\n' +
+          '• The public audition panel in <#1550902305568718948> is now active.\n' +
+          '• Community members can now click **Apply for Video Crew** and **Apply for Early Access VIP**.\n' +
+          '• Submitted applications will arrive in <#1549883558208868373> for your review.'
+        : `❌ Error opening applications: ${res.error}`,
       ephemeral: true
     });
   }
@@ -233,16 +236,24 @@ export async function handleVideoCrewInteraction(interaction) {
     const res = await setCrewAppStatus(false, interaction.guild, interaction.user);
     return await interaction.reply({
       content: res.success 
-        ? '🔴 **Applications CLOSED.**\nThe public audition panel in <#1550902305568718948> has been locked.' 
-        : `❌ Error: ${res.error}`,
+        ? '🔒 **Film Crew Applications are now CLOSED.**\n\n' +
+          '• The public audition panel in <#1550902305568718948> has been locked.\n' +
+          '• New application submissions are temporarily closed until you reopen them.'
+        : `❌ Error closing applications: ${res.error}`,
       ephemeral: true
     });
   }
 
   if (interaction.isButton() && interaction.customId === 'btn_ctrl_status_crew_app') {
     const status = getCrewAppStatus();
+    const isOpen = !!status.isOpen;
     return await interaction.reply({
-      content: `ℹ️ **Skybase Film Crew Recruitment Status:**\n• **Status:** ${status.isOpen ? '🟢 **OPEN (Recruiting Active)**' : '🔴 **CLOSED (Roster Full)**'}\n• **Audition Channel:** <#${status.channelId || CREW_APPLY_CHANNEL_ID}>\n• **Last Updated:** ${status.lastUpdated ? `<t:${Math.floor(new Date(status.lastUpdated).getTime() / 1000)}:F>` : 'Never'}`,
+      content: 
+        `🎬 **Film Crew Application Status:**\n\n` +
+        `• **Current Status:** ${isOpen ? '🟢 **OPEN — Accepting Auditions**' : '🔴 **CLOSED — Application Roster Full**'}\n` +
+        `• **Public Audition Channel:** <#${status.channelId || CREW_APPLY_CHANNEL_ID}>\n` +
+        `• **Last Updated:** ${status.lastUpdated ? `<t:${Math.floor(new Date(status.lastUpdated).getTime() / 1000)}:R>` : 'Never'}\n\n` +
+        `💡 *You can change this status at any time by clicking **Open Applications** or **Close Applications** above!*`,
       ephemeral: true
     });
   }
