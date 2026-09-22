@@ -30,6 +30,7 @@ import { setupAIConsoleChannel, handleAIConsoleMessage } from './aiConsoleChatHa
 import { handleCountingMessage, handleStickyMessage } from './countingAndStickyEngine.mjs';
 import { handleCustomCommandExecution, getGuildCustomCommands, addGuildCustomCommand, deleteGuildCustomCommand } from './features/customCommandsManager.mjs';
 import { handleVideoCrewInteraction, setCrewAppStatus, getCrewAppStatus, isCrewAppOpen } from './features/videoCrewApplicationManager.mjs';
+import { handlePlatformRoleInteraction, setPlatformPublicStatus, getPlatformRoleStatus } from './features/platformRolePublisher.mjs';
 import { handleMasterSlashCommand } from './commands/masterCommandHandler.mjs';
 import { masterCommandJson } from './commands/masterCommandRegistry.mjs';
 
@@ -1256,6 +1257,7 @@ client.on('interactionCreate', async (interaction) => {
   // 🎬 Handle Skybase Video Crew & Early Access Application Interactions
   if (
     (interaction.isButton() && (
+      interaction.customId.startsWith('btn_ctrl_') ||
       interaction.customId.startsWith('btn_open_crew_') ||
       interaction.customId.startsWith('btn_open_early_') ||
       interaction.customId.startsWith('btn_crew_') ||
@@ -1267,6 +1269,18 @@ client.on('interactionCreate', async (interaction) => {
     ))
   ) {
     return await handleVideoCrewInteraction(interaction);
+  }
+
+  // 🌐 Handle Platform Role Publisher Interactions
+  if (
+    interaction.isButton() && (
+      interaction.customId.startsWith('btn_toggle_pub_') ||
+      interaction.customId.startsWith('btn_pub_') ||
+      interaction.customId.startsWith('btn_hide_') ||
+      interaction.customId.startsWith('btn_status_pub_')
+    )
+  ) {
+    return await handlePlatformRoleInteraction(interaction);
   }
 
   // Handle DM / Global Button Interactions (e.g. KevinMC Setup Feedback)
@@ -6913,6 +6927,37 @@ client.on('messageCreate', async (message) => {
       return message.reply({ embeds: [stopEmbed] });
     } catch (e) {
       return message.reply(`❌ Error stopping crew applications: ${e.message}`);
+    }
+  }
+
+  // 🌐 Platform Role Visibility Commands (!publish / !hide)
+  if (
+    normalizedCrewCmd.startsWith('!publish ') ||
+    normalizedCrewCmd.startsWith('!hide ') ||
+    normalizedCrewCmd.startsWith('/publish ') ||
+    normalizedCrewCmd.startsWith('/hide ')
+  ) {
+    const isOwner = message.author.id === '1414143825538191373';
+    const isAdmin = isOwner || message.member?.permissions?.has(PermissionFlagsBits.Administrator);
+    if (!isAdmin) {
+      return message.reply('❌ Only Krylo or Administrators can change role visibility.');
+    }
+
+    const isPublish = normalizedCrewCmd.startsWith('!publish') || normalizedCrewCmd.startsWith('/publish');
+    const target = normalizedCrewCmd.split(' ')[1]?.toLowerCase();
+
+    if (target === 'twitch' || target === 'spotify' || target === 'all') {
+      try {
+        const s = await setPlatformPublicStatus(target, isPublish, process.env.DISCORD_TOKEN);
+        const name = target === 'all' ? 'All Platform Roles' : target.charAt(0).toUpperCase() + target.slice(1) + ' Role';
+        return message.reply(
+          isPublish
+            ? `🌐 **${name} is now PUBLIC!**\n• Added to <#1549882278245564546> directory.\n• Assigned to <@${message.author.id}>'s profile.\n• Members can claim via verification.`
+            : `🔒 **${name} is now PRIVATE (Stealth Reserve).**\n• Hidden from directory and unassigned from <@${message.author.id}>.`
+        );
+      } catch (err) {
+        return message.reply(`❌ Error updating platform role visibility: ${err.message}`);
+      }
     }
   }
 
