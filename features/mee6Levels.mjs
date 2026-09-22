@@ -258,32 +258,44 @@ export async function sendRankCard(context, targetUser = null) {
     const attachment = new AttachmentBuilder(cardBuffer, { name: `rank-${user.username}.png` });
 
     const isSkybase = guild.id === '1549875778575929446';
-    const storeUrl = isSkybase ? 'https://krims-code-chatbot.vercel.app/' : 'https://krylosmp-store.web.app/';
+    const isKSMP = guild.id === '1538225337048236082';
 
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('btn_leaderboard_view')
-        .setLabel('🏆 Leaderboard')
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId('btn_daily_claim')
-        .setLabel('🎁 Daily Bonus')
-        .setStyle(ButtonStyle.Success),
-      new ButtonBuilder()
-        .setLabel(isSkybase ? '🌐 Portal' : '🛒 Store')
-        .setStyle(ButtonStyle.Link)
-        .setURL(storeUrl)
-    );
-
-    const boosterContent = isOwner
-      ? `👑 **SERVER OWNER** • ⚡ **Vote Booster:** \`100%\` *(Supreme Aura & Founder Tier Active)* 🔥`
-      : `⚡ **Vote Booster:** \`10%\` *(Daily community perk active)*`;
+    let boosterContent = '';
+    if (isSkybase) {
+      boosterContent = isOwner
+        ? `👑 **SERVER OWNER** • 🔥 **Supreme Aura & Founder Active** 🔥`
+        : `✨ **Skybase Community Rank**`;
+    } else {
+      boosterContent = isOwner
+        ? `👑 **SERVER OWNER** • ⚡ **Vote Booster:** \`100%\` *(Supreme Aura & Founder Tier Active)* 🔥`
+        : `⚡ **Vote Booster:** \`10%\` *(Daily community perk active)*`;
+    }
 
     const payload = {
       content: boosterContent,
       files: [attachment],
-      components: [row]
+      components: []
     };
+
+    // Only attach interactive game server buttons on KryloSMP (Minecraft server)
+    if (isKSMP) {
+      const storeUrl = 'https://krylosmp-store.web.app/';
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('btn_leaderboard_view')
+          .setLabel('🏆 Leaderboard')
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId('btn_daily_claim')
+          .setLabel('🎁 Daily Bonus')
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setLabel('🛒 Store')
+          .setStyle(ButtonStyle.Link)
+          .setURL(storeUrl)
+      );
+      payload.components = [row];
+    }
 
     if (context.isChatInputCommand && context.isChatInputCommand()) {
       if (context.deferred) {
