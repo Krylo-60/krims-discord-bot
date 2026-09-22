@@ -102,60 +102,70 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
 
   try {
     // ──────────────────────────────────────────────────────────
-    // 1. 📡 /ip — Minecraft Server Connection Address & Ports
+    // 1. 📡 /ip — Connection Details
     // ──────────────────────────────────────────────────────────
     if (commandName === 'ip') {
       const isOwner = interaction.user.id === '1414143825538191373';
       const isAdmin = isOwner || interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
 
-      // In Krylo's Skybase (or for non-admins requesting KSMP): Keep Minecraft IP hidden and private
+      // In Krylo's Skybase (or for non-admins): Keep completely hidden with ZERO mentions
       if (interaction.guildId === '1549875778575929446' || !isAdmin) {
-        const privateEmbed = new EmbedBuilder()
-          .setColor(0x00E5FF)
-          .setTitle('🔒 Minecraft Server Connection — Private')
-          .setDescription(
-            `### 🔒 Minecraft Server Status: **Private & Unreleased**\n\n` +
-            `• The Minecraft servers for **Krylo's Skybase** and **KryloSMP** are currently kept private for recording sessions and active development.\n` +
-            `• Public connection details and IPs are not released at this time.\n` +
-            `• Stay tuned to official announcements for future public launch dates! 🚀`
-          )
-          .setFooter({ text: "Krylo's Skybase • Private Production Network" })
-          .setTimestamp();
-
-        return await interaction.reply({ embeds: [privateEmbed], ephemeral: true });
+        return await interaction.reply({
+          content: '❌ **Command unavailable.** This command is not available in this server.',
+          ephemeral: true
+        });
       }
 
-      // Admin / Owner View on KSMP:
+      // Private Admin / Owner View for Krylo only:
       const embed = new EmbedBuilder()
         .setColor(0x00E5FF)
-        .setTitle('📡 KryloSMP — Server Connection Info (Staff/Admin View)')
+        .setTitle('📡 Server Connection Info (Staff/Admin View)')
         .setDescription(
-          `Official **KryloSMP** Minecraft Server details (Restricted/Private):\n\n` +
-          `☕ **Java Edition:**\n` +
-          `• Server IP: \`krylosmp.falix.gg:29273\`\n` +
-          `• Version: \`1.21.x\` (Crossplay enabled)\n\n` +
-          `🪨 **Bedrock Edition (Mobile, Console, Windows):**\n` +
-          `• Server IP / Host: \`krylosmp.falix.gg\`\n` +
+          `Staff Private Details:\n\n` +
+          `• Host: \`krylosmp.falix.gg\`\n` +
           `• Port: \`29273\`\n\n` +
-          `🌐 **Web Store:** https://krylosmp.web.app/\n` +
-          `🔒 *Keep this address private for whitelisted staff/recording sessions.*`
+          `🔒 *Keep this address strictly private for whitelisted staff/recording sessions.*`
         )
-        .setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png')
-        .setFooter({ text: 'KryloSMP Network • Staff Private View' })
+        .setFooter({ text: 'Private Production View' })
         .setTimestamp();
 
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setLabel('🛒 Web Store').setStyle(ButtonStyle.Link).setURL('https://krylosmp.web.app/')
-      );
-
-      return await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+      return await interaction.reply({ embeds: [embed], ephemeral: true });
     }
 
     // ──────────────────────────────────────────────────────────
-    // 2. 📊 /status — Real-time Minecraft Server Status & Probe
+    // 2. 📊 /status — Telemetry & Systems Probe
     // ──────────────────────────────────────────────────────────
     if (commandName === 'status') {
-      await interaction.deferReply();
+      const isSkybase = interaction.guildId === '1549875778575929446';
+      const isOwner = interaction.user.id === '1414143825538191373';
+      const isAdmin = isOwner || interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
+
+      // In Krylo's Skybase (or for non-admins): Show Discord & Bot Telemetry with ZERO mentions of Minecraft/KSMP
+      if (isSkybase || !isAdmin) {
+        const mem = process.memoryUsage();
+        const memMb = (mem.rss / 1024 / 1024).toFixed(1);
+        const uptimeMins = Math.floor(process.uptime() / 60);
+        const uptimeHours = (uptimeMins / 60).toFixed(1);
+
+        const embed = new EmbedBuilder()
+          .setColor(0x00E5FF)
+          .setTitle('📊 Skybase Systems & Bot Telemetry')
+          .setDescription('Real-time operational status for **Krylo\'s Skybase** Discord & production bot services:')
+          .addFields(
+            { name: '🤖 Bot Core', value: '`🟢 Operational`', inline: true },
+            { name: '⚡ Gateway Ping', value: `\`${client.ws.ping} ms\``, inline: true },
+            { name: '⏱️ Uptime', value: `\`${uptimeMins} mins (${uptimeHours}h)\``, inline: true },
+            { name: '🛡️ AutoMod & Shield', value: '`🟢 Active (Raids & Spam Protected)`', inline: true },
+            { name: '🎬 Film Auditions', value: `\`${isCrewAppOpen() ? '🟢 OPEN' : '🔴 CLOSED'}\``, inline: true },
+            { name: '💾 Memory Usage', value: `\`${memMb} MB\``, inline: true }
+          )
+          .setFooter({ text: "Krylo's Skybase • Official Production Bot Telemetry" })
+          .setTimestamp();
+
+        return await interaction.reply({ embeds: [embed] });
+      }
+
+      await interaction.deferReply({ ephemeral: true });
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 4000);
@@ -175,39 +185,31 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           const playersOnline = data.players?.online || 0;
           const playersMax = data.players?.max || 100;
           const playerList = data.players?.list?.length ? data.players.list.join(', ') : 'None currently';
-          const motd = data.motd?.clean?.length ? data.motd.clean.join('\n') : 'A Minecraft Server';
 
           const embed = new EmbedBuilder()
             .setColor(0x10B981)
-            .setTitle('🟢 KryloSMP — Server Online')
-            .setDescription('The Minecraft server is active, healthy, and accepting players!')
+            .setTitle('🟢 Server Online (Staff Private)')
             .addFields(
               { name: '👥 Players Online', value: `\`${playersOnline} / ${playersMax}\``, inline: true },
               { name: '🔌 Version', value: `\`${data.version || '1.21.x'}\``, inline: true },
-              { name: '📡 Address', value: '`krylosmp.falix.gg:29273`', inline: false },
-              { name: '📖 MOTD', value: `\`\`\`\n${motd}\n\`\`\``, inline: false },
               { name: '🎮 Player Roster', value: playerList, inline: false }
             )
-            .setFooter({ text: 'KryloSMP Live Telemetry • Checked via mcsrvstat' })
+            .setFooter({ text: 'Staff Private Telemetry' })
             .setTimestamp();
 
           return await interaction.editReply({ embeds: [embed] });
         } else {
           const embed = new EmbedBuilder()
             .setColor(0xEF4444)
-            .setTitle('🔴 KryloSMP — Server Offline / Sleeping')
-            .setDescription(
-              'The server is currently offline or restarting on hosting.\n\n' +
-              '• 📡 **Server IP:** `krylosmp.falix.gg:29273`\n' +
-              '• 💡 Server boots automatically on player connect or admin start.'
-            )
-            .setFooter({ text: 'KryloSMP Live Telemetry' })
+            .setTitle('🔴 Server Offline / Sleeping (Staff Private)')
+            .setDescription('The server is currently offline or restarting.')
+            .setFooter({ text: 'Staff Private Telemetry' })
             .setTimestamp();
 
           return await interaction.editReply({ embeds: [embed] });
         }
       } catch (err) {
-        return await interaction.editReply({ content: `📡 Server status check timed out or unavailable. IP: \`krylosmp.falix.gg:29273\`` });
+        return await interaction.editReply({ content: '📡 Server status check timed out.' });
       }
     }
 
@@ -320,7 +322,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           `**Krims Code AI** is the next-generation Discord AI bot and multi-tenant bot host created by the Krylo Development Team.\n\n` +
           `🌟 **Core Highlights:**\n` +
           `• **Multi-Bot Hosting:** Host up to 100+ branded bots on a single unified cloud instance.\n` +
-          `• **Gemini 2.5 Brain:** High-speed, context-aware coding, Minecraft, and chat assistance.\n` +
+          `• **Gemini 2.5 Brain:** High-speed, context-aware coding, creative writing, and chat assistance.\n` +
           `• **Full Economy & RPG:** Complete virtual economy, MEE6 chat levels, duels, clans, and stores.\n` +
           `• **Dyno-Grade Moderation:** Auto-moderation, timeouts, strikes, mod-logs, and server lockdown.\n\n` +
           `🎁 **Get Your Own Bot:** Type \`/setupbot\` to deploy a personalized bot for your server for FREE!`
@@ -368,24 +370,15 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         return await interaction.editReply({ content: '❓ Please provide a question or query for the AI.' });
       }
 
-      const lowerPrompt = prompt.toLowerCase();
-      if (lowerPrompt.includes('server on') || lowerPrompt.includes('server online') || lowerPrompt.includes('is server up') || lowerPrompt.includes('server status')) {
-        const embed = new EmbedBuilder()
-          .setColor(0x10B981)
-          .setTitle('🟢 KryloSMP Server Status')
-          .setDescription(
-            `KryloSMP is online and joinable!\n\n` +
-            `• ☕ **Java IP:** \`krylosmp.falix.gg:29273\`\n` +
-            `• 🪨 **Bedrock Port:** \`29273\`\n` +
-            `• 🛒 **Web Store:** https://krylosmp.web.app/\n\n` +
-            `Type \`/status\` to see live players!`
-          );
-        return await interaction.editReply({ embeds: [embed] });
+      let answer = null;
+      if (context.geminiDirectAsk) {
+        const sys = "You are Krims Code AI, official Discord assistant for Krylo's Skybase community and video production studio. Focus on community chat, YouTube video content, film crew auditions, and creator discussions. NEVER mention any Minecraft server, KSMP, or game IPs. Refer to the creator as Krylo.";
+        answer = await context.geminiDirectAsk(prompt, sys, interaction.guild?.name || "Krylo's Skybase").catch(() => null);
       }
 
-      const answer = `🤖 **Krims Code AI response to:** "${prompt}"\n\n` +
-        `KryloSMP features a custom Minecraft crossplay experience (Java 1.21.x + Bedrock port 29273), complete with economy, film crew applications, duels, and clan territory wars. ` +
-        `You can use \`/ip\` for connection details or \`/help\` for all commands!`;
+      if (!answer) {
+        answer = `🤖 **Krims Code AI:**\nI received your query: "*${prompt}*"\n\nWelcome to Krylo's Skybase! You can use \`/help\` for available commands or check <#1550902305568718948> for film crew auditions!`;
+      }
 
       return await interaction.editReply({ content: answer });
     }
@@ -417,13 +410,13 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     }
 
     if (commandName === 'github') {
+      const isSkybase = interaction.guildId === '1549875778575929446';
       const embed = new EmbedBuilder()
         .setColor(0x24292E)
         .setTitle('🐙 Official Krylo & Krims Code GitHub')
         .setDescription(
-          `Explore our open source bot repositories, web store code, and community tools!\n\n` +
+          `Explore our open source bot repositories and community tools!\n\n` +
           `• 📦 **Krims Discord Bot:** [github.com/Krylo-60/krims-discord-bot](https://github.com/Krylo-60/krims-discord-bot)\n` +
-          `• 🌐 **KryloSMP Web Store:** [krylosmp.web.app](https://krylosmp.web.app/)\n` +
           `• ⚡ **AI Personalizer Portal:** [krims-code-chatbot.vercel.app](https://krims-code-chatbot.vercel.app/)`
         )
         .setTimestamp();
@@ -435,14 +428,15 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     // 5. 🌐 SERVER, COMMUNITY & SUPPORT
     // ──────────────────────────────────────────────────────────
     if (commandName === 'help') {
+      const isSkybase = interaction.guildId === '1549875778575929446';
       const embed = new EmbedBuilder()
         .setColor(0x00E5FF)
-        .setTitle('📚 Krims Code AI & KryloSMP — Command Directory')
-        .setDescription('Below are all 97 slash commands available across the network:')
+        .setTitle(isSkybase ? "📚 Krims Code AI & Skybase — Command Directory" : "📚 Krims Code AI — Command Directory")
+        .setDescription('Below are official slash commands available in this server:')
         .addFields(
           { 
             name: '🤖 AI & Custom Bots', 
-            value: '`/setupbot`, `/about`, `/pricing`, `/ask`, `/diagnose`, `/github`' 
+            value: '`/about`, `/ask`, `/diagnose`, `/github`' 
           },
           { 
             name: '🎬 Skybase Film Crew', 
@@ -450,67 +444,69 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           },
           { 
             name: '📡 Server & Information', 
-            value: '`/ip`, `/status`, `/rules`, `/apply`, `/ticket`, `/close`, `/suggest`, `/announce`, `/serverinfo`, `/userinfo`, `/avatar`, `/link`, `/verify`' 
+            value: '`/status`, `/rules`, `/apply`, `/ticket`, `/close`, `/suggest`, `/announce`, `/serverinfo`, `/userinfo`, `/avatar`, `/link`, `/verify`' 
           },
           { 
             name: '🛡️ Moderation Suite', 
-            value: '`/warn`, `/mute`, `/unmute`, `/kick`, `/ban`, `/purge`, `/lockdown`, `/unlock`, `/slowmode`, `/afk`, `/remindme`, `/embed`, `/mcban`' 
+            value: '`/warn`, `/mute`, `/unmute`, `/kick`, `/ban`, `/purge`, `/lockdown`, `/unlock`, `/slowmode`, `/afk`, `/remindme`, `/embed`' 
           },
           { 
             name: '💰 Economy & Progression', 
-            value: '`/daily`, `/work`, `/bal`, `/pay`, `/slots`, `/spin`, `/chest`, `/jackpot`, `/quests`, `/shop`, `/store`, `/vote`, `/refer`, `/bump`, `/rank`, `/level`, `/leaderboard`, `/xpleaderboard`, `/clan`' 
+            value: '`/daily`, `/work`, `/bal`, `/pay`, `/slots`, `/spin`, `/chest`, `/jackpot`, `/quests`, `/shop`, `/vote`, `/refer`, `/rank`, `/level`, `/leaderboard`, `/xpleaderboard`, `/clan`' 
           },
           { 
-            name: '⚔️ PvP, Duels & RPG Universe', 
-            value: '`/pvp`, `/tournament`, `/challenge`, `/duel`, `/endduel`, `/bounty`, `/trade`, `/pet`, `/fish`, `/mine`, `/craft`, `/enchant`, `/raid`, `/profile`, `/inventory`, `/achievements`, `/heist`, `/rob`, `/lottery`, `/lootbox`' 
+            name: '⚔️ Duels, RPG & Universe', 
+            value: '`/challenge`, `/duel`, `/endduel`, `/bounty`, `/trade`, `/pet`, `/fish`, `/mine`, `/craft`, `/enchant`, `/raid`, `/profile`, `/inventory`, `/achievements`, `/heist`, `/rob`, `/lottery`, `/lootbox`' 
           },
           { 
             name: '🧭 Utility & Fun', 
             value: '`/locator`, `/coinflip`, `/roll`, `/eightball`, `/joke`, `/meme`, `/bday`, `/gameboost`, `/voice`' 
           }
         )
-        .setFooter({ text: 'All 97 commands audited & verified 100% operational' })
+        .setFooter({ text: "Krylo's Skybase • Verified Operational" })
         .setTimestamp();
 
       return await interaction.reply({ embeds: [embed] });
     }
 
     if (commandName === 'rules') {
+      const isSkybase = interaction.guildId === '1549875778575929446';
       const embed = new EmbedBuilder()
         .setColor(0xEF4444)
-        .setTitle('📜 KryloSMP & Skybase — Official Rules')
+        .setTitle(isSkybase ? "📜 Krylo's Skybase — Official Rules" : "📜 Official Community Rules")
         .setDescription(
-          `Welcome! To keep our community fair and enjoyable, please adhere to these official server rules:\n\n` +
-          `1️⃣ **Respect Everyone:** Harassment, toxicity, hate speech, or slurs result in immediate bans.\n` +
-          `2️⃣ **No Hacking / Cheating:** X-ray, Fly, KillAura, or speed hacks are strictly prohibited.\n` +
-          `3️⃣ **No Unapproved Griefing:** Griefing outside designated PvP/war territory is disallowed.\n` +
-          `4️⃣ **No Spam or Self-Promotion:** Do not advertise other servers without permission.\n` +
-          `5️⃣ **Listen to Staff:** Staff decisions are final. If you have an issue, use \`/ticket\`.\n` +
-          `6️⃣ **Follow Discord Terms of Service:** Maintain safety and integrity at all times.`
+          `Welcome! To keep our community fair, safe, and enjoyable, please adhere to these official server rules:\n\n` +
+          `1️⃣ **Respect Everyone:** Harassment, toxicity, hate speech, or slurs result in immediate moderation action.\n` +
+          `2️⃣ **No Cheating or Abuse:** Exploiting bugs, raiding, or spamming bot commands is strictly prohibited.\n` +
+          `3️⃣ **Keep Content Appropriate:** Keep all channels safe for work (SFW). No NSFW, graphic, or illegal content.\n` +
+          `4️⃣ **No Spam or Unsolicited Promotion:** Do not advertise external links, unsolicited DMs, or other servers without permission.\n` +
+          `5️⃣ **Listen to Staff & Leadership:** Staff decisions are final. If you have an issue, open a ticket.\n` +
+          `6️⃣ **Follow Discord Terms of Service:** Maintain community safety and integrity at all times.`
         )
         .setFooter({ text: 'Violations will receive official strikes via /warn' })
         .setTimestamp();
 
       const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setLabel('📜 Rules Channel').setStyle(ButtonStyle.Link).setURL('https://discord.com/channels/1549875778575929446/1549882276274245722')
+        new ButtonBuilder().setLabel('📜 Rules Channel').setStyle(ButtonStyle.Link).setURL(`https://discord.com/channels/${interaction.guildId || '1549875778575929446'}/1549882276278435841`)
       );
 
       return await interaction.reply({ embeds: [embed], components: [row] });
     }
 
     if (commandName === 'apply') {
+      const isSkybase = interaction.guildId === '1549875778575929446';
       const embed = new EmbedBuilder()
         .setColor(0x10B981)
-        .setTitle('📋 KryloSMP Staff & Creator Applications')
+        .setTitle(isSkybase ? "📋 Skybase Production & Staff Applications" : "📋 Community Staff Applications")
         .setDescription(
-          `We are actively recruiting passionate players to join our official team!\n\n` +
-          `• 🛡️ **Server Moderator / Helper:** Keep chat clean and support players.\n` +
-          `• 🔨 **World Builder:** Build custom spawns, arenas, and dungeon structures.\n` +
-          `• 💻 **Plugin Developer:** Code custom features and integrations.\n` +
-          `• 🎬 **Film Crew & Media:** Help produce YouTube videos and TikTok clips.\n\n` +
-          `Choose an application path below or open a ticket with \`/ticket\`!`
+          `We are actively recruiting passionate members to join our team!\n\n` +
+          `• 🎬 **Film Crew & Acting:** Act, build sets, and record in official YouTube video shoots!\n` +
+          `• 🛡️ **Community Moderator:** Keep chat safe, welcome new members, and support the community.\n` +
+          `• 🎨 **Media & Thumbnail Design:** Create art, graphics, and video teasers.\n` +
+          `• 💻 **Bot & System Developer:** Help develop custom tools, bots, and integrations.\n\n` +
+          `Click below to review audition status or apply in <#1550902305568718948>!`
         )
-        .setFooter({ text: 'Skybase & KryloSMP Recruitment' })
+        .setFooter({ text: "Krylo's Skybase • Official Recruitment" })
         .setTimestamp();
 
       const row = new ActionRowBuilder().addComponents(
@@ -541,18 +537,20 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     }
 
     if (commandName === 'link') {
+      const isSkybase = interaction.guildId === '1549875778575929446';
       const embed = new EmbedBuilder()
         .setColor(0x00E5FF)
-        .setTitle('🔗 Link Minecraft & Discord Account')
+        .setTitle('🔗 Connect Your Accounts — Showcase Badges')
         .setDescription(
-          `Connect your Minecraft account to receive in-game rewards, sync your chat rank, and unlock Discord perks!\n\n` +
-          `**Steps to Link:**\n` +
-          `1️⃣ Join the Minecraft server: \`krylosmp.falix.gg:29273\`\n` +
-          `2️⃣ Run \`/discord link\` in game to get your unique code.\n` +
-          `3️⃣ Run \`/verify code:<YOUR_CODE>\` here in Discord.\n\n` +
-          `*Alternatively, type \`/verify username:<YourIGN>\` to queue instant whitelist verification!*`
+          `Connect your external accounts to Discord to automatically showcase your verified creator badges in **<#1549882278245564546>**!\n\n` +
+          `**Supported Connections:**\n` +
+          `• 🔗 **YouTube Connected:** Link YouTube in Discord Settings ➔ Connections\n` +
+          `• 🔗 **Twitch Connected:** Link Twitch in Discord Settings ➔ Connections\n` +
+          `• 🎧 **Spotify Connected:** Link Spotify in Discord Settings ➔ Connections\n\n` +
+          `*Enable "Display on profile" in your Discord Connection settings, then visit <#1549882278245564546> to claim your badges!*`
         )
-        .setFooter({ text: 'KryloSMP Account Sync' });
+        .setFooter({ text: "Krylo's Skybase • Connected Account Roles" })
+        .setTimestamp();
 
       return await interaction.reply({ embeds: [embed] });
     }
@@ -560,39 +558,29 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     if (commandName === 'verify') {
       await interaction.deferReply({ ephemeral: true });
 
-      const code = interaction.options.getString('code');
-      const rawUsername = interaction.options.getString('username');
-      const mcUsername = (rawUsername || (code && !code.includes('-') && code.length > 2 ? code : interaction.user.username)).trim();
-
-      // Check if already has Verified role
-      const verifiedRole = interaction.guild?.roles?.cache?.find ? interaction.guild.roles.cache.find(r => r.name.toLowerCase() === 'verified' || r.name.toLowerCase() === 'member') : null;
+      const verifiedRole = interaction.guild?.roles?.cache?.find ? 
+        interaction.guild.roles.cache.find(r => r.name.toLowerCase() === 'verified' || r.name.toLowerCase() === 'member') : null;
+      
       if (verifiedRole && interaction.member?.roles?.cache?.has(verifiedRole.id)) {
-        return await interaction.editReply(`✅ You are already verified on this server as **${mcUsername}**!`);
+        return await interaction.editReply(`✅ You are already verified on this server!`);
       }
 
-      // Add Verified role
       if (verifiedRole && interaction.member) {
         await interaction.member.roles.add(verifiedRole).catch(() => {});
       }
 
-      // Record verification
-      try {
-        setPlayerVerification(interaction.user.id, mcUsername);
-      } catch (_) {}
-
-      // Queue welcome bonus
       updateSafeUserBalance(interaction.user.id, 500, xpData);
 
+      const isSkybase = interaction.guildId === '1549875778575929446';
       const embed = new EmbedBuilder()
         .setColor(0x10B981)
         .setTitle('🛡️ Account Verification Successful!')
         .setDescription(
-          `Welcome to KryloSMP <@${interaction.user.id}>!\n\n` +
-          `• **Minecraft Username:** \`${mcUsername}\`\n` +
-          `• **Status:** Verified Human Player ✅\n` +
+          `Welcome to **${isSkybase ? "Krylo's Skybase" : "the community"}**, <@${interaction.user.id}>!\n\n` +
+          `• **Status:** Verified Community Member ✅\n` +
           `• **Server Role:** Assigned **Verified** role!\n` +
-          `• **Welcome Bonus:** **+500 KryloCoins & 16x Free Diamonds** queued in-game!\n\n` +
-          `Connect now at \`krylosmp.falix.gg:29273\``
+          `• **Welcome Bonus:** **+500 Skybase Coins** added to your wallet!\n\n` +
+          `Head over to <#1549882279273308190> to get started and say hello in <#1549882277209571331>! 🚀`
         )
         .setTimestamp();
 
@@ -697,8 +685,8 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setDescription(
           `🔥 **The Admin Abuse event is commencing NOW!**\n\n` +
           `• 🎁 **Drop Party:** ${details}\n` +
-          `• 📍 **Location:** \`/spawn\` on \`krylosmp.falix.gg:29273\`\n` +
-          `• ⚠️ **Warning:** KeepInventory is ON during event. Have fun and collect loot!`
+          `• 📍 **Location:** Community Event Stage\n` +
+          `• ⚠️ **Warning:** Special event rules apply. Have fun and collect loot!`
         )
         .setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png')
         .setTimestamp();
@@ -719,6 +707,10 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     }
 
     if (commandName === 'mcban') {
+      if (interaction.guildId === '1549875778575929446') {
+        return await interaction.reply({ content: '❌ **Command unavailable.** This command is not available in this server.', ephemeral: true });
+      }
+
       const isStaff = interaction.user.id === KRYLO_USER_ID || interaction.member?.permissions?.has(PermissionFlagsBits.BanMembers);
       if (!isStaff) return await interaction.reply({ content: '❌ Staff permission required.', ephemeral: true });
 
@@ -735,9 +727,9 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setTitle('🔨 Network Ban Executed')
         .setDescription(
           `• **Discord User:** ${targetUser ? `<@${targetUser.id}>` : 'N/A'}\n` +
-          `• **Minecraft IGN:** \`${mcUsername || 'N/A'}\`\n` +
+          `• **Username:** \`${mcUsername || 'N/A'}\`\n` +
           `• **Reason:** ${reason}\n` +
-          `• **Enforcement:** Banned on Discord and queued for Minecraft IP ban.`
+          `• **Enforcement:** Banned on Discord and security blacklist logged.`
         )
         .setTimestamp();
 
@@ -815,7 +807,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
 
       const embed = new EmbedBuilder()
         .setColor(intColor)
-        .setTitle('🧭 Minecraft 90% Radar Locator Color')
+        .setTitle('🧭 Precision Radar Locator Color')
         .setDescription(
           `**Input:** \`${input}\`\n\n` +
           `• 🎨 **Render Hex Color:** \`${result.rawHex || hexColor}\`\n` +
@@ -823,7 +815,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           (result.rgb ? `• 📏 **90% Interpolated RGB:** \`rgb(${result.rgb.r}, ${result.rgb.g}, ${result.rgb.b})\`\n\n` : '\n\n') +
           `\`[  ████████████████████  ] 90% Calibrated\``
         )
-        .setFooter({ text: 'KryloSMP Radar Locator Engine' })
+        .setFooter({ text: 'Skybase Studio Color Calibration' })
         .setTimestamp();
 
       return await interaction.reply({ embeds: [embed] });
@@ -842,12 +834,12 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     }
 
     if (commandName === 'roll') {
-      const max = interaction.options.getInteger('max') || 6;
+      const max = interaction.options.getInteger('max') || 100;
       const roll = Math.floor(Math.random() * max) + 1;
       const embed = new EmbedBuilder()
-        .setColor(0x5865F2)
-        .setTitle('🎲 Dice Roll Result')
-        .setDescription(`You rolled a **${roll}** (out of 1–${max})! 🎲`)
+        .setColor(0x00E5FF)
+        .setTitle('🎲 Random Number Roll')
+        .setDescription(`<@${interaction.user.id}> rolled a **${roll}** *(1 - ${max})*!`)
         .setTimestamp();
 
       return await interaction.reply({ embeds: [embed] });
@@ -856,25 +848,21 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     if (commandName === 'eightball') {
       const question = interaction.options.getString('question');
       const answers = [
-        'It is certain! ✨',
-        'Without a doubt! 💎',
-        'You may rely on it. 🛡️',
-        'Yes, definitely! 🚀',
-        'Ask again later... ⏳',
-        'Better not tell you now. 🤫',
-        'Cannot predict now. 🔮',
-        'Don\'t count on it. ❌',
-        'My sources say no. 🛑',
-        'Very doubtful. 💀'
+        'It is certain.', 'Without a doubt.', 'Yes definitely.',
+        'You may rely on it.', 'As I see it, yes.', 'Most likely.',
+        'Signs point to yes.', 'Reply hazy, try again.', 'Ask again later.',
+        'Better not tell you now.', 'Cannot predict now.',
+        'Don\'t count on it.', 'My reply is no.', 'My sources say no.',
+        'Outlook not so good.', 'Very doubtful.'
       ];
       const answer = answers[Math.floor(Math.random() * answers.length)];
 
       const embed = new EmbedBuilder()
-        .setColor(0x9B59B6)
-        .setTitle('🎱 Magic 8-Ball Fortune')
+        .setColor(0x7C3AED)
+        .setTitle('🎱 Magic 8-Ball')
         .addFields(
-          { name: '❓ Question', value: question },
-          { name: '🔮 8-Ball Answer', value: `**${answer}**` }
+          { name: '❓ Question', value: question, inline: false },
+          { name: '🔮 Answer', value: `**${answer}**`, inline: false }
         )
         .setTimestamp();
 
@@ -883,18 +871,17 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
 
     if (commandName === 'joke') {
       const jokes = [
-        'Why do Minecraft players never get cold? Because they are surrounded by blocks!',
-        'Why did the Creeper cross the road? To blow up on the other side!',
-        'How does Steve get his exercise? Running around the block!',
-        'Why was the skeleton afraid to fight Steve? Because he didn\'t have the guts!',
-        'What is a Minecraft zombie\'s favorite meal? Steve\'s brains!',
-        'Why can\'t Endermen wear watches? Because they always lose track of time when teleporting!'
+        'Why do programmers prefer dark mode? Because light attracts bugs!',
+        'How many programmers does it take to change a light bulb? None, that is a hardware issue!',
+        'Why did the developer go broke? Because they used up all their cache!',
+        'What is an astronaut\'s favorite key on the keyboard? The space bar!',
+        'Why do robots love pizza? Because it comes in slices and bytes!'
       ];
       const joke = jokes[Math.floor(Math.random() * jokes.length)];
 
       const embed = new EmbedBuilder()
         .setColor(0x00FF66)
-        .setTitle('😂 Minecraft Joke')
+        .setTitle('😂 Community Joke')
         .setDescription(joke)
         .setTimestamp();
 
@@ -903,15 +890,15 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
 
     if (commandName === 'meme') {
       const memes = [
-        { caption: 'When you dig straight down and hear lava bubbling...', img: 'https://i.imgur.com/example.png' },
-        { caption: 'Spending 4 hours building a dirt hut while your friend builds a mansion.', img: 'https://i.imgur.com/example2.png' },
-        { caption: 'Finding 8 diamonds and then hearing a Creeper hiss right behind you: SSSSS...', img: 'https://i.imgur.com/example3.png' }
+        { caption: 'When you render an 8K video for 4 hours and find a typo in the title card...', img: 'https://i.imgur.com/example.png' },
+        { caption: 'Filming a cinematic shoot and someone walks straight through the frame.', img: 'https://i.imgur.com/example2.png' },
+        { caption: 'Editing timeline at 3 AM: Just one more audio adjustment...', img: 'https://i.imgur.com/example3.png' }
       ];
       const m = memes[Math.floor(Math.random() * memes.length)];
 
       const embed = new EmbedBuilder()
         .setColor(0xFFAA00)
-        .setTitle('🐸 KryloSMP Community Meme')
+        .setTitle('🐸 Community Meme')
         .setDescription(m.caption)
         .setFooter({ text: 'Have a funny meme? Post in #memes!' })
         .setTimestamp();
@@ -929,7 +916,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setDescription(
           `Everyone wish a massive Happy Birthday to <@${targetUser.id}>! 🥳🎈\n\n` +
           `🎁 **Birthday Gifts:**\n` +
-          `• **+1,000 KryloCoins** deposited to your vault!\n` +
+          `• **+1,000 Skybase Coins** deposited to your vault!\n` +
           `• 🌟 Double XP booster activated for the day!\n` +
           `• 👑 Special Birthday VIP badge!`
         )
@@ -942,14 +929,14 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     if (commandName === 'gameboost') {
       const embed = new EmbedBuilder()
         .setColor(0x00FF66)
-        .setTitle('⚡ 100+ FPS Minecraft Optimization Guide')
+        .setTitle('⚡ Gaming & Performance Optimization Guide')
         .setDescription(
-          `Boost your Minecraft FPS from 30 FPS to 120+ FPS with these steps:\n\n` +
-          `1️⃣ **Use Fabric + Sodium + Lithium + Iris:** Up to 300% faster rendering than vanilla.\n` +
-          `2️⃣ **Allocate 4GB - 6GB RAM:** In Minecraft launcher settings, set JVM argument: \`-Xmx4G -Xms4G\`.\n` +
-          `3️⃣ **Render Distance:** Set to 10–12 chunks with simulation distance 6.\n` +
-          `4️⃣ **Fast Graphics & Particles:** Turn off VSync in-game and cap max FPS to your monitor refresh rate.\n\n` +
-          `*Connect to \`krylosmp.falix.gg:29273\` for optimized low-latency multiplayer!*`
+          `Boost your gaming and recording performance with these steps:\n\n` +
+          `1️⃣ **Enable Hardware Acceleration:** Ensure GPU scheduling and performance drivers are up to date.\n` +
+          `2️⃣ **RAM Allocation:** Allocate sufficient RAM (6GB - 8GB) to performance-heavy applications.\n` +
+          `3️⃣ **Monitor Refresh Rate:** Cap frame rate to match your display refresh rate for smooth frame delivery.\n` +
+          `4️⃣ **Background Cleanup:** Close unnecessary background browser tabs while capturing video.\n\n` +
+          `*Optimized for ultra-smooth gameplay and video recording!*`
         )
         .setTimestamp();
 
@@ -967,12 +954,12 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     // 8. ⚔️ PVP & DUELS SUITE
     // ──────────────────────────────────────────────────────────
     if (commandName === 'pvp') {
-      const pvpChannel = interaction.guild.channels.cache.find(c => c.name.includes('pvp') || c.name.includes('duels'));
+      const pvpChannel = interaction.guild.channels.cache.find(c => c.name.includes('pvp') || c.name.includes('duels') || c.name.includes('bot-commands'));
       const embed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('⚔️ KryloSMP PvP Arena')
+        .setTitle('⚔️ Skybase PvP & Duel Arena')
         .setDescription(
-          `The official PvP battle arena is located in ${pvpChannel ? `<#${pvpChannel.id}>` : 'the PvP category'}!\n\n` +
+          `The official battle arena is active in ${pvpChannel ? `<#${pvpChannel.id}>` : 'the community channels'}!\n\n` +
           `• Challenge players to a 1v1 duel with \`/duel\` or \`/challenge\`\n` +
           `• Place bounties on rivals with \`/bounty\`\n` +
           `• Participate in monthly tournaments with \`/tournament\``
@@ -985,12 +972,12 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     if (commandName === 'tournament') {
       const embed = new EmbedBuilder()
         .setColor(0xFFAA00)
-        .setTitle('🏆 Monthly KryloSMP PvP Tournament')
+        .setTitle('🏆 Monthly Skybase Tournament')
         .setDescription(
           `The next official community tournament is scheduled for the end of the month!\n\n` +
-          `• 🥇 **1st Place:** 50,000 KryloCoins + Custom Discord Role + Champion Sword\n` +
-          `• 🥈 **2nd Place:** 25,000 KryloCoins + Rare Lootbox\n` +
-          `• 🥉 **3rd Place:** 10,000 KryloCoins\n\n` +
+          `• 🥇 **1st Place:** 50,000 Skybase Coins + Custom Discord Role + Champion Trophy\n` +
+          `• 🥈 **2nd Place:** 25,000 Skybase Coins + Rare Lootbox\n` +
+          `• 🥉 **3rd Place:** 10,000 Skybase Coins\n\n` +
           `Stay tuned in announcements for bracket registration!`
         )
         .setTimestamp();
@@ -1075,9 +1062,9 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setTitle('🪙 KryloCoins Balance')
         .setDescription(
           `💰 **Current Balance:** \`${balDisplay} KC\`\n\n` +
-          `Earn more KryloCoins by chatting, daily streaks (\`/daily\`), working (\`/work\`), or visiting the store (\`/shop\`)!`
+          `Earn more Skybase Coins by chatting, daily streaks (\`/daily\`), working (\`/work\`), or visiting the shop (\`/shop\`)!`
         )
-        .setFooter({ text: 'KryloSMP Economy Network' })
+        .setFooter({ text: "Krylo's Skybase • Community Economy" })
         .setTimestamp();
 
       return await interaction.reply({ embeds: [embed] });
@@ -1287,36 +1274,33 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     if (commandName === 'shop' || commandName === 'store') {
       const embed = new EmbedBuilder()
         .setColor(0x00E5FF)
-        .setTitle('🛒 KryloSMP Official Store & Ranks')
+        .setTitle('🛒 Skybase Community Rewards & Coin Shop')
         .setDescription(
-          `Explore our community perks, ranks, and crate keys!\n\n` +
-          `👑 **Ranks Available:**\n` +
-          `• **VIP:** Access to \`/fly\`, 3 Sethomes, Chat Prefix\n` +
-          `• **MVP:** Access to \`/feed\`, 5 Sethomes, Custom Nickname\n` +
-          `• **Krylo Champion:** All perks + Exclusive Discord Role & Private Lounge\n\n` +
-          `🌐 **Official Web Store:** https://krylosmp.web.app/`
+          `Welcome to the **Skybase Coin Shop**!\n\n` +
+          `Earn Skybase Coins by chatting, completing daily tasks (\`/daily\`), working (\`/work\`), and participating in film crew auditions!\n\n` +
+          `💎 **Available Rewards:**\n` +
+          `• 👑 **Custom Nickname Color:** 10,000 Coins\n` +
+          `• 🏷️ **Custom Personal Role:** 25,000 Coins\n` +
+          `• 🎬 **Film Shoot Priority Audition:** 50,000 Coins\n\n` +
+          `*Use \`/bal\` to check your coin balance!*`
         )
-        .setFooter({ text: 'Supports both KryloCoins and direct store checkout' })
+        .setFooter({ text: "Krylo's Skybase • Community Economy" })
         .setTimestamp();
 
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setLabel('🛒 Visit Store').setStyle(ButtonStyle.Link).setURL('https://krylosmp.web.app/')
-      );
-
-      return await interaction.reply({ embeds: [embed], components: [row] });
+      return await interaction.reply({ embeds: [embed] });
     }
 
     if (commandName === 'vote') {
       updateSafeUserBalance(interaction.user.id, 500, xpData);
+      const isSkybase = interaction.guildId === '1549875778575929446';
       const embed = new EmbedBuilder()
         .setColor(0x10B981)
-        .setTitle('🗳️ Vote for KryloSMP')
+        .setTitle(isSkybase ? "🗳️ Support Krylo's Skybase" : "🗳️ Support the Server")
         .setDescription(
-          `Vote for the server to support the community and claim **+500 KC** & a voting key in-game!\n\n` +
-          `• [Vote on TopG](https://topg.org)\n` +
-          `• [Vote on PlanetMinecraft](https://planetminecraft.com)\n\n` +
-          `*Thank you for supporting KryloSMP!*`
+          `Thank you for supporting **${isSkybase ? "Krylo's Skybase" : "our community"}**!\n\n` +
+          `Claim your **+500 Coins** reward for voting and helping our community grow! 🚀`
         )
+        .setFooter({ text: isSkybase ? "Krylo's Skybase Community" : "Community Vote" })
         .setTimestamp();
 
       return await interaction.reply({ embeds: [embed] });
@@ -1343,12 +1327,13 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     }
 
     if (commandName === 'bump') {
+      const isSkybase = interaction.guildId === '1549875778575929446';
       const embed = new EmbedBuilder()
         .setColor(0x5865F2)
         .setTitle('📢 Disboard Bump Reminder')
         .setDescription(
           `Help grow the community by bumping the server on Disboard with \`/bump\`!\n` +
-          `You can bump every **2 hours** to help new players discover KryloSMP.`
+          `You can bump every **2 hours** to help new members discover ${isSkybase ? "Krylo's Skybase" : "the server"}.`
         )
         .setTimestamp();
 
@@ -1524,7 +1509,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setTitle(title)
         .setDescription(message)
         .setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png')
-        .setFooter({ text: `Announced by ${interaction.user.tag} • KryloSMP Network` })
+        .setFooter({ text: `Announced by ${interaction.user.tag} • Krylo's Skybase` })
         .setTimestamp();
 
       return await interaction.reply({ embeds: [embed] });
@@ -1669,7 +1654,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
             { name: 'Hunger', value: `${pet.hunger}%`, inline: true },
             { name: 'Happiness', value: `${pet.happiness}%`, inline: true }
           )
-          .setFooter({ text: 'KryloSMP Companion Pets' });
+          .setFooter({ text: "Krylo's Skybase Companion Pets" });
         return await interaction.reply({ embeds: [embed] });
       }
 
@@ -1831,9 +1816,9 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .addFields(
           { name: '💰 Vault Balance', value: `\`${bal.toLocaleString()} KC\``, inline: true },
           { name: '🐾 Companion Pet', value: pet ? `${pet.name} (${pet.type})` : 'None (Use `/pet`)', inline: true },
-          { name: '🏅 Badges Unlocked', value: '🛡️ Verified Human\n⭐ Explorer\n⚔️ Arena Contender', inline: false }
+          { name: '🏅 Badges Unlocked', value: '🛡️ Verified Member\n⭐ Explorer\n⚔️ Arena Contender', inline: false }
         )
-        .setFooter({ text: 'KryloSMP Network Profile' })
+        .setFooter({ text: "Krylo's Skybase Profile" })
         .setTimestamp();
       return await interaction.reply({ embeds: [embed] });
     }
@@ -1857,8 +1842,8 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setColor(0xFFAA00)
         .setDescription(
           `✅ **First Steps:** Joined Krylo Discord Server\n` +
-          `✅ **Verified Human:** Linked Minecraft IGN to Discord\n` +
-          `✅ **Coin Hoarder:** Earned over 1,000 KryloCoins\n` +
+          `✅ **Verified Member:** Verified account access in Discord\n` +
+          `✅ **Coin Hoarder:** Earned over 1,000 Skybase Coins\n` +
           `✅ **Deep Diver:** Cast a fishing line into open waters\n` +
           `🔒 **Dragon Slayer:** Defeat the World Raid Boss\n` +
           `🔒 **Clan Warlord:** Lead a clan to the Top 3 leaderboard`

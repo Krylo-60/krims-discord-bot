@@ -7,9 +7,8 @@ const __dirname = path.dirname(__filename);
 const DB_PATH = path.resolve(__dirname, '../data/custom_commands.json');
 
 const DEFAULT_COMMANDS = [
-  { trigger: '!ip', response: '🎮 **Minecraft Server IP:** `krylosmp.falix.gg:29273`\n📱 **Bedrock Port:** `29273`\n✨ Join now on Paper 1.21 with Geyser crossplay!' },
   { trigger: '!discord', response: '💬 **Invite your friends:** https://discord.gg/2hSXQKHvvX' },
-  { trigger: '!vote', response: '⭐ **Vote for KryloSMP:** Boost your rank with a 10% vote bonus! [Vote Link](https://arcane.bot/vote)' }
+  { trigger: '!help', response: '📚 Type `/help` to see all available slash commands!' }
 ];
 
 let customCommandsCache = {};

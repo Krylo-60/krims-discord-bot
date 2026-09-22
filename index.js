@@ -148,11 +148,9 @@ async function groqVisionAsk(imageUrl, promptText = 'Analyze this image', sysTex
 }
 
 async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '') {
-  let defaultSys = 'You are Krims Code AI, a fast, intelligent, and helpful Discord AI assistant developed by Krims Code Studio. Friendly, helpful, concise with clean conversational tone and formatting. Do not repeatedly dump IP or store links on simple greetings unless explicitly requested. NEVER reveal private real names; refer to the creator as Krylo or Krylo Team.';
-  if (guildName && (guildName.toLowerCase().includes('krylo') || guildName.toLowerCase().includes('smp'))) {
-    defaultSys = 'You are Krims Code AI, the official intelligent assistant for KryloSMP Minecraft Network (IP: krylosmp.falix.gg:29273, Store: https://krylosmp-store.web.app/). Respond naturally, friendly, and concisely. Keep answers conversational; only share the IP and store when relevant or when the player asks for them. NEVER disclose private identity info (Krishiv); refer to the creator as Krylo or Krylo Team.';
-  } else if (guildName) {
-    defaultSys = `You are Krims Code AI, the friendly and intelligent Discord AI assistant for the "${guildName}" server community. Friendly, helpful, concise with clean markdown formatting. NEVER disclose private identity info (Krishiv); refer to the creator as Krylo or Krylo Team.`;
+  let defaultSys = 'You are Krims Code AI, a fast, intelligent, and helpful Discord AI assistant developed by Krims Code Studio for Krylo\'s Skybase community and video production studio. Friendly, helpful, concise with clean conversational markdown formatting. Assist members with community discussions, video film crew auditions, Discord features, and programming. NEVER mention any Minecraft server, KSMP, or server IP addresses. NEVER disclose private real names; refer to the creator as Krylo or Krylo Team.';
+  if (guildName) {
+    defaultSys = `You are Krims Code AI, the friendly and intelligent Discord AI assistant for the "${guildName}" server community. Friendly, helpful, concise with clean markdown formatting. NEVER mention any Minecraft server, KSMP, or server IP addresses. NEVER disclose private real names; refer to the creator as Krylo or Krylo Team.`;
   }
   const sysInstr = systemInstruction || defaultSys;
   
@@ -203,10 +201,7 @@ async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '') {
     } catch (e) {}
   }
 
-  if (guildName && (guildName.toLowerCase().includes('krylo') || guildName.toLowerCase().includes('smp'))) {
-    return "👋 Hello! I am **Krims Code AI**, official assistant for **KryloSMP**!\n🎮 **Server IP:** `krylosmp.falix.gg:29273`\n🛒 **Store:** https://krylosmp-store.web.app/\nHow can I help you today?";
-  }
-  return `👋 Hello! I am **Krims Code AI**, your friendly AI assistant for **${guildName || 'your server'}**! How can I help you today?`;
+  return `👋 Hello! I am **Krims Code AI**, your friendly AI assistant for **${guildName || "Krylo's Skybase"}**! How can I help you today?`;
 }
 
 /**
@@ -2707,15 +2702,24 @@ client.on('interactionCreate', async (interaction) => {
         const statusEmbed = new EmbedBuilder()
           .setColor(0x00F2FF)
           .setTitle('🔍 Verification & Account Status')
-          .setThumbnail(`https://mc-heads.net/avatar/${encodeURIComponent(linkedIgn !== 'Not Linked' ? linkedIgn : 'Steve')}/64`)
-          .addFields(
-            { name: '👤 Discord Account', value: `<@${interaction.user.id}>`, inline: true },
-            { name: '🎮 Linked Minecraft Username', value: linkedIgn !== 'Not Linked' ? `\`${linkedIgn}\`` : '❌ `Not Linked`', inline: true },
-            { name: '💰 KryloCoins Balance', value: `\`${balanceFormatted}\``, inline: true },
-            { name: '🌐 Server IP', value: (interaction.guildId === '1549875778575929446' || !isAdmin) ? '`🔒 Private`' : '`krylosmp.falix.gg:29273`', inline: true }
-          )
-          .setFooter({ text: 'KryloSMP Account Management System ⚡' })
-          .setTimestamp();
+        const isSkybase = interaction.guildId === '1549875778575929446';
+        if (isSkybase) {
+          statusEmbed
+            .addFields(
+              { name: '👤 Discord Account', value: `<@${interaction.user.id}>`, inline: true },
+              { name: '💰 Skybase Coins', value: `\`${balanceFormatted}\``, inline: true }
+            )
+            .setFooter({ text: "Krylo's Skybase Account Status ⚡" })
+            .setTimestamp();
+        } else {
+          statusEmbed
+            .addFields(
+              { name: '👤 Discord Account', value: `<@${interaction.user.id}>`, inline: true },
+              { name: '💰 Coins Balance', value: `\`${balanceFormatted}\``, inline: true }
+            )
+            .setFooter({ text: 'Community Account Management System ⚡' })
+            .setTimestamp();
+        }
 
         await interaction.editReply({ embeds: [statusEmbed] });
       } catch (err) {
@@ -2725,22 +2729,8 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     if (customId === 'copy_ip_btn') {
-      const isOwner = interaction.user.id === '1414143825538191373';
-      const isAdmin = isOwner || interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
-      if (interaction.guildId === '1549875778575929446' || !isAdmin) {
-        await interaction.reply({
-          content: '🔒 **Minecraft Server Status:** The server connection details are currently kept private for recording sessions and active development. Stay tuned for public launch announcements!',
-          ephemeral: true
-        });
-        return;
-      }
       await interaction.reply({
-        content: '🌐 **KryloSMP Connection Details (Staff Private):**\n\n' +
-                 '• **Java Server IP:** `krylosmp.falix.gg:29273` (Port: `25565`)\n' +
-                 '• **Bedrock IP:** `krylosmp.falix.gg:29273` (Port: `19132`)\n' +
-                 '• **Version:** `1.21.x`\n' +
-                 '• **Player Portal:** https://krylosmp.web.app/\n' +
-                 '• **KC Store:** https://krylosmp-store.web.app/',
+        content: '❌ **This action is not available.**',
         ephemeral: true
       });
       return;
@@ -2776,8 +2766,11 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     if (customId === 'btn_agree_rules') {
+      const isSkybase = interaction.guildId === '1549875778575929446';
       await interaction.reply({
-        content: '✅ **Rules Accepted!** You have acknowledged the KryloSMP server rules and gained member access. Enjoy your adventure on `krylosmp.falix.gg:29273`! 🚀',
+        content: isSkybase 
+          ? "✅ **Rules Accepted!** You have acknowledged the rules and unlocked full community access to **Krylo's Skybase**. Enjoy your stay! 🚀"
+          : "✅ **Rules Accepted!** You have acknowledged the server rules and gained member access. Enjoy your stay! 🚀",
         ephemeral: true
       }).catch(() => {});
       // Assign role in background after reply (non-blocking)
@@ -3388,7 +3381,8 @@ client.on('interactionCreate', async (interaction) => {
   return await handleMasterSlashCommand(interaction, client, {
     xpData,
     clanData,
-    getCachedGuildConfig
+    getCachedGuildConfig,
+    geminiDirectAsk
   });
 
   const { commandName } = interaction;
@@ -6840,12 +6834,12 @@ if (commandName === 'lootbox') {
         } else {
           // Instant helpful fallback response
           await interaction.editReply({
-            content: `🤖 **KryloSMP AI Assistant:**\nI processed your request regarding: "*${prompt}*"\n\n🎮 **Server IP:** \`krylosmp.falix.gg:29273\`\n🌐 **Portal & Store:** https://krylosmp.web.app/\n🎫 **Need Staff Support?** Open a ticket in <#1524878881918685405>!`
+            content: `🤖 **Krims Code AI:**\nI processed your request regarding: "*${prompt}*"\n\nFeel free to ask more questions or use \`/help\` to explore available server commands!`
           });
         }
       } catch (err) {
         await interaction.editReply({
-          content: `🤖 **KryloSMP AI Assistant:**\nI processed your query: "*${prompt}*"\n\n• Server is running Paper 1.21 on \`krylosmp.falix.gg:29273\`\n• For further help, visit <#1524878881918685405>!`
+          content: `🤖 **Krims Code AI:**\nI processed your query: "*${prompt}*"\n\nIf you need assistance, check \`/help\` or open a support ticket!`
         }).catch(() => {});
       }
     }
@@ -9893,18 +9887,17 @@ async function handleTicketMessage(message) {
       console.warn("Failed to load config for ticket response:", err.message);
     }
 
-    const ticketSystemInstruction = 
-      "You are Krims Support AI, the official support assistant for the KryloSMP Minecraft Server and Discord community. " +
-      "You were built by the Krylo Team to help players resolve their issues.\n\n" +
-      "Server Context:\n" +
-      "- You are currently talking inside the official KryloSMP Discord Server.\n" +
-      "- The Minecraft Server IP is: krylosmp.falix.gg:29273\n" +
-      "- The server supports Java (default port 25565) and Bedrock (default port 19132) cross-play.\n" +
-      "- The server is premium-only (online-mode), meaning only official/paid Mojang/Microsoft accounts can connect. Cracked launchers are blocked to protect against bot join attacks. Registering/logging in in-game is not required.\n" +
-      "- To get whitelisted, players must go to the #✅┃verify channel and click the link button to get their verification code.\n" +
-      "- CURRENT SERVER STATUS: The server is fully operational and online at krylosmp.falix.gg:29273.\n\n" +
-      "Instructions:\n" +
-      "Provide a friendly, helpful, and concise solution to the player's problem using the server details above.";
+    const isSkybase = message.guild?.id === '1549875778575929446';
+    const ticketSystemInstruction = isSkybase
+      ? "You are Krims Support AI, the official support assistant for Krylo's Skybase community and video production studio. " +
+        "You were built by the Krylo Team to help members with film crew applications, Discord roles, community events, and technical support.\n\n" +
+        "Instructions:\n" +
+        "- Be friendly, helpful, and concise.\n" +
+        "- For film crew audition inquiries, direct members to #crew-apply.\n" +
+        "- NEVER mention any Minecraft server, KSMP, or server IP addresses.\n" +
+        "- Never reveal private real identity information; refer to creator as Krylo or Krylo Team."
+      : "You are Krims Support AI, the official support assistant for the community server. " +
+        "Provide a friendly, helpful, and concise solution to the user's issue. Never reveal private real names.";
 
     let history = conversationHistory.get(message.channel.id) || [];
     
