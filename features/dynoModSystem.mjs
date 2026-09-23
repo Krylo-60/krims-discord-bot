@@ -219,36 +219,59 @@ export async function handleLockdown(interaction, isLock) {
     return true; // includes @everyone
   });
 
+  const permOverrides = {
+    SendMessages: isLock ? false : null,
+    SendMessagesInThreads: isLock ? false : null,
+    CreatePublicThreads: isLock ? false : null,
+  };
+
   /**
-   * Lock or unlock a single channel for ALL target roles.
+   * Lock or unlock a single channel.
+   * Only edits @everyone + roles that have an explicit SendMessages ALLOW overwrite,
+   * since those are the only ones that can bypass an @everyone deny.
+   * All role edits run in parallel via Promise.all for speed.
    */
   const lockChannel = async (ch) => {
-    for (const [, role] of targetRoles) {
-      if (isLock) {
-        await ch.permissionOverwrites.edit(role, {
-          SendMessages: false,
-          SendMessagesInThreads: false,
-          CreatePublicThreads: false,
-        });
-      } else {
-        await ch.permissionOverwrites.edit(role, {
-          SendMessages: null,
-          SendMessagesInThreads: null,
-          CreatePublicThreads: null,
-        });
+    // Always edit @everyone
+    const rolesToEdit = [everyoneRole];
+
+    // Find roles with explicit SendMessages ALLOW on this channel (bypass risk)
+    for (const [, overwrite] of ch.permissionOverwrites.cache) {
+      if (overwrite.type !== 0) continue; // 0 = role overwrite
+      const role = targetRoles.get(overwrite.id);
+      if (!role || role.id === everyoneRole.id) continue;
+      // If locking: target roles that ALLOW SendMessages (they'd bypass @everyone deny)
+      // If unlocking: target roles that DENY SendMessages (our previous lockdown set these)
+      if (isLock && overwrite.allow.has(PermissionFlagsBits.SendMessages)) {
+        rolesToEdit.push(role);
+      } else if (!isLock && overwrite.deny.has(PermissionFlagsBits.SendMessages)) {
+        rolesToEdit.push(role);
       }
     }
+
+    // Also catch roles with base-level SendMessages permission (guild-wide grant)
+    if (isLock) {
+      for (const [, role] of targetRoles) {
+        if (role.id === everyoneRole.id) continue;
+        if (rolesToEdit.includes(role)) continue;
+        if (role.permissions.has(PermissionFlagsBits.SendMessages)) {
+          rolesToEdit.push(role);
+        }
+      }
+    }
+
+    // Fire all edits in parallel
+    await Promise.all(rolesToEdit.map(role =>
+      ch.permissionOverwrites.edit(role, permOverrides)
+    ));
   };
 
   if (lockAll) {
     // ── SERVER-WIDE LOCKDOWN / UNLOCK ──
-    await interaction.reply({ content: isLock ? '🚨 Initiating server-wide lockdown — securing all roles…' : '🔓 Lifting server-wide lockdown…', ephemeral: false });
+    await interaction.reply({ content: isLock ? '🚨 Initiating server-wide lockdown…' : '🔓 Lifting server-wide lockdown…', ephemeral: false });
 
-    // Fetch all channels (ensure cache is populated)
     await guild.channels.fetch();
 
-    // Target public text (0), announcement (5), and forum (15) channels
-    // Skip channels where @everyone already cannot view (private/staff channels)
     const targetChannels = guild.channels.cache.filter(c => {
       if (c.type !== ChannelType.GuildText && c.type !== ChannelType.GuildAnnouncement && c.type !== ChannelType.GuildForum) return false;
       const perms = c.permissionsFor(everyoneRole);
@@ -258,21 +281,22 @@ export async function handleLockdown(interaction, isLock) {
     let secured = 0;
     let failed = 0;
 
-    for (const [, ch] of targetChannels) {
-      try {
-        await lockChannel(ch);
-        secured++;
-      } catch (err) {
-        failed++;
-        console.warn(`[Lockdown] Failed on #${ch.name}:`, err.message);
+    // Process channels in parallel batches of 5 for speed
+    const channelArr = [...targetChannels.values()];
+    for (let i = 0; i < channelArr.length; i += 5) {
+      const batch = channelArr.slice(i, i + 5);
+      const results = await Promise.allSettled(batch.map(ch => lockChannel(ch)));
+      for (const r of results) {
+        if (r.status === 'fulfilled') secured++;
+        else { failed++; console.warn('[Lockdown] Batch fail:', r.reason?.message); }
       }
     }
 
     const title = isLock ? '🚨 SERVER-WIDE LOCKDOWN ACTIVATED' : '🔓 SERVER-WIDE LOCKDOWN LIFTED';
     const color = isLock ? 0xFF0000 : 0x00FF88;
     const desc = isLock
-      ? `**${secured}** public channels have been locked down by <@${interaction.user.id}>.\n**All ${targetRoles.size} roles** denied — no one can send messages.${reason ? `\n\n**Reason:** ${reason}` : ''}`
-      : `**${secured}** channels have been unlocked by <@${interaction.user.id}>.\nAll role overrides cleared — chat is now open across the server!`;
+      ? `**${secured}** public channels locked down by <@${interaction.user.id}>.\nAll bypass roles denied — no one can send messages.${reason ? `\n\n**Reason:** ${reason}` : ''}`
+      : `**${secured}** channels unlocked by <@${interaction.user.id}>.\nChat is now open across the server!`;
 
     const statusEmbed = new EmbedBuilder()
       .setColor(color)
@@ -280,11 +304,8 @@ export async function handleLockdown(interaction, isLock) {
       .setDescription(desc)
       .addFields(
         { name: '🔒 Channels Secured', value: `\`${secured}\``, inline: true },
-        { name: '🎭 Roles Locked', value: `\`${targetRoles.size}\``, inline: true },
         { name: '❌ Failed', value: `\`${failed}\``, inline: true },
-        { name: '🛡️ Admin / Staff Roles', value: 'Unaffected', inline: true },
-        { name: '🤖 Bot Roles', value: 'Unaffected', inline: true },
-        { name: '🔐 Private Channels', value: 'Unaffected', inline: true }
+        { name: '🛡️ Admin / Bot Roles', value: 'Unaffected', inline: true }
       )
       .setFooter({ text: isLock ? 'Server Lockdown Protocol • Krims Code AI' : 'Lockdown Lifted • Krims Code AI' })
       .setTimestamp();
