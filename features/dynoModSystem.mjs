@@ -198,7 +198,8 @@ export async function handlePurge(interaction) {
 /**
  * /lockdown & /unlock command handler
  * Supports single-channel and server-wide (all: true) lockdown.
- * Also accepts a fakeInteraction shape from prefix commands (!lockdown all).
+ * Locks ALL roles (not just @everyone) so no role can bypass the lockdown.
+ * Skips roles with Administrator permission and managed bot roles.
  */
 export async function handleLockdown(interaction, isLock) {
   if (!interaction.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
@@ -211,9 +212,37 @@ export async function handleLockdown(interaction, isLock) {
   const guild = interaction.guild;
   const everyoneRole = guild.roles.everyone;
 
+  // Get all non-admin, non-bot roles to lock/unlock
+  const targetRoles = guild.roles.cache.filter(r => {
+    if (r.managed) return false;                                    // skip bot-managed roles
+    if (r.permissions.has(PermissionFlagsBits.Administrator)) return false; // skip admin roles
+    return true; // includes @everyone
+  });
+
+  /**
+   * Lock or unlock a single channel for ALL target roles.
+   */
+  const lockChannel = async (ch) => {
+    for (const [, role] of targetRoles) {
+      if (isLock) {
+        await ch.permissionOverwrites.edit(role, {
+          SendMessages: false,
+          SendMessagesInThreads: false,
+          CreatePublicThreads: false,
+        });
+      } else {
+        await ch.permissionOverwrites.edit(role, {
+          SendMessages: null,
+          SendMessagesInThreads: null,
+          CreatePublicThreads: null,
+        });
+      }
+    }
+  };
+
   if (lockAll) {
     // ── SERVER-WIDE LOCKDOWN / UNLOCK ──
-    await interaction.reply({ content: isLock ? '🚨 Initiating server-wide lockdown…' : '🔓 Lifting server-wide lockdown…', ephemeral: false });
+    await interaction.reply({ content: isLock ? '🚨 Initiating server-wide lockdown — securing all roles…' : '🔓 Lifting server-wide lockdown…', ephemeral: false });
 
     // Fetch all channels (ensure cache is populated)
     await guild.channels.fetch();
@@ -231,23 +260,7 @@ export async function handleLockdown(interaction, isLock) {
 
     for (const [, ch] of targetChannels) {
       try {
-        if (isLock) {
-          await ch.permissionOverwrites.edit(everyoneRole, {
-            SendMessages: false,
-            SendMessagesInThreads: false,
-            CreatePublicThreads: false,
-          });
-        } else {
-          // On unlock: reset to null (inherit) so channels return to their natural state
-          // But skip channels that were already locked before (rules, announcements, etc.)
-          // We detect these by checking if they had SendMessages DENY *and* no ViewChannel deny
-          // For safety, only unlock channels of type GuildText that are chat channels
-          await ch.permissionOverwrites.edit(everyoneRole, {
-            SendMessages: null,
-            SendMessagesInThreads: null,
-            CreatePublicThreads: null,
-          });
-        }
+        await lockChannel(ch);
         secured++;
       } catch (err) {
         failed++;
@@ -258,8 +271,8 @@ export async function handleLockdown(interaction, isLock) {
     const title = isLock ? '🚨 SERVER-WIDE LOCKDOWN ACTIVATED' : '🔓 SERVER-WIDE LOCKDOWN LIFTED';
     const color = isLock ? 0xFF0000 : 0x00FF88;
     const desc = isLock
-      ? `**${secured}** public channels have been locked down by <@${interaction.user.id}>.\nRegular members cannot send messages anywhere.${reason ? `\n\n**Reason:** ${reason}` : ''}`
-      : `**${secured}** channels have been unlocked by <@${interaction.user.id}>.\nChat is now open across the server!`;
+      ? `**${secured}** public channels have been locked down by <@${interaction.user.id}>.\n**All ${targetRoles.size} roles** denied — no one can send messages.${reason ? `\n\n**Reason:** ${reason}` : ''}`
+      : `**${secured}** channels have been unlocked by <@${interaction.user.id}>.\nAll role overrides cleared — chat is now open across the server!`;
 
     const statusEmbed = new EmbedBuilder()
       .setColor(color)
@@ -267,8 +280,11 @@ export async function handleLockdown(interaction, isLock) {
       .setDescription(desc)
       .addFields(
         { name: '🔒 Channels Secured', value: `\`${secured}\``, inline: true },
+        { name: '🎭 Roles Locked', value: `\`${targetRoles.size}\``, inline: true },
         { name: '❌ Failed', value: `\`${failed}\``, inline: true },
-        { name: '🛡️ Staff Channels', value: 'Unaffected', inline: true }
+        { name: '🛡️ Admin / Staff Roles', value: 'Unaffected', inline: true },
+        { name: '🤖 Bot Roles', value: 'Unaffected', inline: true },
+        { name: '🔐 Private Channels', value: 'Unaffected', inline: true }
       )
       .setFooter({ text: isLock ? 'Server Lockdown Protocol • Krims Code AI' : 'Lockdown Lifted • Krims Code AI' })
       .setTimestamp();
@@ -279,24 +295,12 @@ export async function handleLockdown(interaction, isLock) {
     // ── SINGLE CHANNEL LOCKDOWN / UNLOCK ──
     const channel = interaction.options?.getChannel?.('channel') || interaction.channel;
 
-    if (isLock) {
-      await channel.permissionOverwrites.edit(everyoneRole, {
-        SendMessages: false,
-        SendMessagesInThreads: false,
-        CreatePublicThreads: false,
-      });
-    } else {
-      await channel.permissionOverwrites.edit(everyoneRole, {
-        SendMessages: null,
-        SendMessagesInThreads: null,
-        CreatePublicThreads: null,
-      });
-    }
+    await lockChannel(channel);
 
     const title = isLock ? '🔒 CHANNEL LOCKED DOWN' : '🔓 CHANNEL UNLOCKED';
     const color = isLock ? 0xFF4444 : 0x00FF88;
     const desc = isLock
-      ? `This channel has been locked down by <@${interaction.user.id}>. Regular members cannot send messages.${reason ? `\n\n**Reason:** ${reason}` : ''}`
+      ? `This channel has been locked down by <@${interaction.user.id}>.\n**All ${targetRoles.size} roles** denied — no one can send messages.${reason ? `\n\n**Reason:** ${reason}` : ''}`
       : `This channel has been unlocked by <@${interaction.user.id}>. Chat is now open!`;
 
     const embed = new EmbedBuilder()
