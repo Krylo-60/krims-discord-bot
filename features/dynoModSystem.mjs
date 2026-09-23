@@ -1,4 +1,5 @@
 import { EmbedBuilder, PermissionFlagsBits, ChannelType } from 'discord.js';
+import { logDevEvent } from './devAuditLogger.mjs';
 
 // In-memory AFK and Reminders store
 export const afkUsers = new Map();
@@ -10,8 +11,16 @@ const warningsDb = new Map();
  */
 export async function sendModLog(guild, embed) {
   try {
-    const logChannel = guild.channels.cache.find(c => c.name.includes('mod-logs') || c.name.includes('audit-log') || c.name.includes('staff-logs'));
-    if (logChannel && logChannel.isTextBased()) {
+    const logChannel = guild.channels.cache.find(c => {
+      if (!c.isTextBased()) return false;
+      const norm = (c.name || '').normalize('NFKD').toLowerCase();
+      return norm.includes('flight-log') ||
+             norm.includes('mod-log') ||
+             norm.includes('audit-log') ||
+             norm.includes('staff-log') ||
+             norm.includes('warden-deck');
+    });
+    if (logChannel) {
       await logChannel.send({ embeds: [embed] });
     }
   } catch (e) {}
@@ -202,6 +211,7 @@ export async function handlePurge(interaction) {
  * Skips roles with Administrator permission and managed bot roles.
  */
 export async function handleLockdown(interaction, isLock) {
+  const startTime = Date.now();
   if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
     return interaction.reply({ content: '🚫 You need **Administrator** permission to use lockdown!', ephemeral: true });
   }
@@ -313,6 +323,25 @@ export async function handleLockdown(interaction, isLock) {
 
     await interaction.editReply({ content: '', embeds: [statusEmbed] });
     sendModLog(guild, statusEmbed);
+
+    // Record internal developer diagnostic audit log (retained for 3 days)
+    await logDevEvent({
+      category: 'LOCKDOWN',
+      action: isLock ? 'SERVER_LOCKDOWN' : 'SERVER_UNLOCK',
+      guildId: guild.id,
+      executor: { id: interaction.user.id, tag: interaction.user.tag || interaction.user.username },
+      status: failed > 0 ? (secured > 0 ? 'PARTIAL' : 'FAILED') : 'SUCCESS',
+      durationMs: Date.now() - startTime,
+      details: {
+        lockAll: true,
+        isLock,
+        reason: reason || 'None',
+        channelsSecured: secured,
+        channelsFailed: failed,
+        rolesTargeted: targetRoles.size,
+        channelList: [...targetChannels.values()].map(c => `#${c.name}`)
+      }
+    }).catch(e => console.warn('[Lockdown] Dev audit log notice:', e.message));
   } else {
     // ── SINGLE CHANNEL LOCKDOWN / UNLOCK ──
     const channel = interaction.options?.getChannel?.('channel') || interaction.channel;
@@ -336,6 +365,23 @@ export async function handleLockdown(interaction, isLock) {
 
     await interaction.editReply({ embeds: [embed] });
     sendModLog(guild, embed);
+
+    // Record internal developer diagnostic audit log (retained for 3 days)
+    await logDevEvent({
+      category: 'LOCKDOWN',
+      action: isLock ? 'CHANNEL_LOCKDOWN' : 'CHANNEL_UNLOCK',
+      guildId: guild.id,
+      executor: { id: interaction.user.id, tag: interaction.user.tag || interaction.user.username },
+      status: 'SUCCESS',
+      durationMs: Date.now() - startTime,
+      details: {
+        lockAll: false,
+        isLock,
+        reason: reason || 'None',
+        channel: `#${channel.name} (${channel.id})`,
+        rolesTargeted: targetRoles.size
+      }
+    }).catch(e => console.warn('[Lockdown] Dev audit log notice:', e.message));
   }
 }
 

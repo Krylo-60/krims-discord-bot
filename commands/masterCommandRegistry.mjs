@@ -243,6 +243,29 @@ export const masterCommandBuilders = [
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   new SlashCommandBuilder()
+    .setName('devlogs')
+    .setDescription('🛠️ Developer audit telemetry and diagnostic logs from the last 3 days (Owner only)')
+    .addStringOption(opt =>
+      opt.setName('category')
+        .setDescription('Filter logs by category')
+        .setRequired(false)
+        .addChoices(
+          { name: 'All Categories', value: 'all' },
+          { name: 'Lockdown Events', value: 'LOCKDOWN' },
+          { name: 'Errors & Warnings', value: 'ERROR' },
+          { name: 'Command Executions', value: 'COMMAND' }
+        )
+    )
+    .addIntegerOption(opt =>
+      opt.setName('limit')
+        .setDescription('Number of logs to view (default 10, max 25)')
+        .setMinValue(1)
+        .setMaxValue(25)
+        .setRequired(false)
+    )
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+
+  new SlashCommandBuilder()
     .setName('slowmode')
     .setDescription('⏳ Set channel slowmode cooldown in seconds (Staff only)')
     .addIntegerOption(opt => opt.setName('seconds').setDescription('Cooldown in seconds (0 to disable)').setRequired(true))

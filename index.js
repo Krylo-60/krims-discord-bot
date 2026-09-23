@@ -22,6 +22,7 @@ import { saveUserVerification, getUserVerification, syncLocalJsonToFirebase } fr
 import { getLocatorColor } from './features/locatorBarEngine.mjs';
 import { handleMessageXp, sendRankCard, handleRankCommand, startVoiceLevelTicker, handleVoiceStateUpdate, getUserLevel } from './features/mee6Levels.mjs';
 import { afkUsers, handleMute, handleUnmute, handleKick, handleBan, handleLockdown, handleSlowmode, handleAfk, handleRemindMe, handleEmbedBuilder } from './features/dynoModSystem.mjs';
+import { handleDevLogsCommand } from './features/devAuditLogger.mjs';
 import { getFalixStatus, sendFalixPowerSignal, sendFalixCommand } from './falixServerEngine.mjs';
 import { deliverStoreItem, STORE_CATALOG } from './storeDeliveryEngine.mjs';
 import { setPlayerVerification, getPlayer, getPlayerByIgn, addCoins, removeCoins, getBalance, claimDaily, transferCoins } from './databaseEngine.mjs';
@@ -3735,6 +3736,7 @@ client.on('interactionCreate', async (interaction) => {
   if (commandName === 'ban') return handleBan(interaction);
   if (commandName === 'lockdown') return handleLockdown(interaction, true);
   if (commandName === 'unlock') return handleLockdown(interaction, false);
+  if (commandName === 'devlogs') return handleDevLogsCommand(interaction);
   if (commandName === 'slowmode') return handleSlowmode(interaction);
   if (commandName === 'afk') return handleAfk(interaction);
   if (commandName === 'remindme') return handleRemindMe(interaction);
@@ -8285,6 +8287,35 @@ client.on('messageCreate', async (message) => {
       if (!replied) await message.reply(`❌ Lockdown error: ${err.message}`);
     }
     return;
+  }
+
+  // Command: !devlogs (Developer / Owner Only)
+  if (lowerMsg.startsWith('!devlogs') || lowerMsg.startsWith(botPrefix + 'devlogs')) {
+    const isDev = message.author.id === '1414143825538191373' || (message.guild && message.guild.ownerId === message.author.id);
+    if (!isDev) {
+      await message.reply('🔒 **Developer Diagnostics Restricted:** These audit telemetry logs are strictly reserved for internal bot developers.');
+      return;
+    }
+    const args = content.trim().split(/\s+/).slice(1);
+    const category = args[0] || 'all';
+    const limit = parseInt(args[1] || '10', 10);
+
+    const fakeInteraction = {
+      user: message.author,
+      author: message.author,
+      guild: message.guild,
+      channel: message.channel,
+      _category: category,
+      _limit: limit,
+      options: {
+        getString: (n) => n === 'category' ? category : null,
+        getInteger: (n) => n === 'limit' ? limit : null,
+      },
+      deferReply: async () => {},
+      reply: async (data) => message.reply(data),
+      editReply: async (data) => message.reply(data),
+    };
+    return handleDevLogsCommand(fakeInteraction);
   }
 
   // Command: !pvp
