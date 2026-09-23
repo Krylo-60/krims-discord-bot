@@ -268,7 +268,8 @@ export async function handleLockdown(interaction, isLock) {
 
   if (lockAll) {
     // ── SERVER-WIDE LOCKDOWN / UNLOCK ──
-    await interaction.reply({ content: isLock ? '🚨 Initiating server-wide lockdown…' : '🔓 Lifting server-wide lockdown…', ephemeral: false });
+    // Defer immediately so Discord doesn't time out
+    await interaction.deferReply();
 
     await guild.channels.fetch();
 
@@ -316,12 +317,15 @@ export async function handleLockdown(interaction, isLock) {
     // ── SINGLE CHANNEL LOCKDOWN / UNLOCK ──
     const channel = interaction.options?.getChannel?.('channel') || interaction.channel;
 
+    // Defer immediately so Discord doesn't time out
+    await interaction.deferReply();
+
     await lockChannel(channel);
 
     const title = isLock ? '🔒 CHANNEL LOCKED DOWN' : '🔓 CHANNEL UNLOCKED';
     const color = isLock ? 0xFF4444 : 0x00FF88;
     const desc = isLock
-      ? `This channel has been locked down by <@${interaction.user.id}>.\n**All ${targetRoles.size} roles** denied — no one can send messages.${reason ? `\n\n**Reason:** ${reason}` : ''}`
+      ? `This channel has been locked down by <@${interaction.user.id}>.\nAll bypass roles denied — no one can send messages.${reason ? `\n\n**Reason:** ${reason}` : ''}`
       : `This channel has been unlocked by <@${interaction.user.id}>. Chat is now open!`;
 
     const embed = new EmbedBuilder()
@@ -330,7 +334,7 @@ export async function handleLockdown(interaction, isLock) {
       .setDescription(desc)
       .setTimestamp();
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
     sendModLog(guild, embed);
   }
 }

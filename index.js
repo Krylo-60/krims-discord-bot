@@ -8270,8 +8270,11 @@ client.on('messageCreate', async (message) => {
         replied = true;
         return message.reply(typeof data === 'string' ? data : data);
       },
+      deferReply: async () => {
+        replied = true;
+        return; // no-op for prefix commands, editReply will send the result
+      },
       editReply: async (data) => {
-        // For prefix commands, just send a new message since we can't edit a reply easily
         return message.channel.send(typeof data === 'string' ? data : data);
       },
     };
