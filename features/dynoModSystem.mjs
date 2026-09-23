@@ -216,8 +216,8 @@ export async function handleLockdown(interaction, isLock) {
     return interaction.reply({ content: '🚫 You need **Administrator** permission to use lockdown!', ephemeral: true });
   }
 
-  // Detect "all" flag from slash option or prefix injection
-  const lockAll = interaction.options?.getBoolean?.('all') || interaction._lockAll || false;
+  // Detect "all" flag from slash option or prefix injection (strictly boolean true)
+  const lockAll = interaction.options?.getBoolean?.('all') === true || interaction._lockAll === true;
   const reason = interaction.options?.getString?.('reason') || interaction._reason || null;
   const guild = interaction.guild;
   const everyoneRole = guild.roles.everyone;
