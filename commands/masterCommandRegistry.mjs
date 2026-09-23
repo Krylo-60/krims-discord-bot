@@ -233,14 +233,14 @@ export const masterCommandBuilders = [
     .addBooleanOption(opt => opt.setName('all').setDescription('Lock down ALL public channels across the entire server').setRequired(false))
     .addChannelOption(opt => opt.setName('channel').setDescription('Specific channel to lock down').setRequired(false))
     .addStringOption(opt => opt.setName('reason').setDescription('Reason for lockdown').setRequired(false))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   new SlashCommandBuilder()
     .setName('unlock')
     .setDescription('🔓 Unlock channels or the entire server (Staff only)')
     .addBooleanOption(opt => opt.setName('all').setDescription('Unlock ALL channels across the entire server').setRequired(false))
     .addChannelOption(opt => opt.setName('channel').setDescription('Specific channel to unlock').setRequired(false))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   new SlashCommandBuilder()
     .setName('slowmode')

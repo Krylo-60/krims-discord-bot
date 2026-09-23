@@ -8242,7 +8242,7 @@ client.on('messageCreate', async (message) => {
     const isLock = isLockdownCmd;
     // Check permissions
     const isOwner = message.author.id === '1414143825538191373' || message.author.id === message.guild.ownerId;
-    const hasPerms = message.member?.permissions?.has(PermissionFlagsBits.ManageChannels);
+    const hasPerms = message.member?.permissions?.has(PermissionFlagsBits.Administrator);
     if (!isOwner && !hasPerms) {
       await message.reply('🚫 You do not have permission to manage channels!');
       return;

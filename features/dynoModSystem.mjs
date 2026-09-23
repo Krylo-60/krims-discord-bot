@@ -202,8 +202,8 @@ export async function handlePurge(interaction) {
  * Skips roles with Administrator permission and managed bot roles.
  */
 export async function handleLockdown(interaction, isLock) {
-  if (!interaction.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
-    return interaction.reply({ content: '🚫 You do not have permission to manage channels!', ephemeral: true });
+  if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+    return interaction.reply({ content: '🚫 You need **Administrator** permission to use lockdown!', ephemeral: true });
   }
 
   // Detect "all" flag from slash option or prefix injection
