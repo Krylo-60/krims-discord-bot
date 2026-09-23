@@ -5107,10 +5107,10 @@ client.on('interactionCreate', async (interaction) => {
 
     const publicEmbed = new EmbedBuilder()
       .setColor(0x00E5FF)
-      .setAuthor({ name: '🎭 Anonymous Community Member', iconURL: 'https://mc-heads.net/avatar/MHF_Question/64' })
+      .setAuthor({ name: '💡 Community Suggestion' })
       .setTitle('💡 New Server Suggestion')
       .setDescription(idea)
-      .setFooter({ text: '🎭 Anonymous Suggestion • React below to vote! (Identity hidden from public)' })
+      .setFooter({ text: '💡 Community Suggestion • React below to vote!' })
       .setTimestamp();
 
     const msg = await suggestCh.send({ embeds: [publicEmbed] });
@@ -5129,7 +5129,7 @@ client.on('interactionCreate', async (interaction) => {
       await modLogCh.send({ embeds: [staffEmbed] }).catch(() => {});
     }
 
-    await interaction.reply({ content: `✅ **Your suggestion was posted anonymously in ${suggestCh}!**\n*(Your identity is kept completely secret from regular players; only staff can see who submitted it in audit logs).*`, ephemeral: true });
+    await interaction.reply({ content: `✅ **Your suggestion was posted in ${suggestCh}!**\n*(Only staff can see submitter telemetry in audit logs).*`, ephemeral: true });
     return;
   }
 
