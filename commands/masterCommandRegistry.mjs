@@ -229,14 +229,17 @@ export const masterCommandBuilders = [
 
   new SlashCommandBuilder()
     .setName('lockdown')
-    .setDescription('🔒 Lock down a text channel to prevent messages (Staff only)')
-    .addChannelOption(opt => opt.setName('channel').setDescription('Channel to lock down').setRequired(false))
+    .setDescription('🔒 Lock down channels or the entire server to prevent messages (Staff only)')
+    .addBooleanOption(opt => opt.setName('all').setDescription('Lock down ALL public channels across the entire server').setRequired(false))
+    .addChannelOption(opt => opt.setName('channel').setDescription('Specific channel to lock down').setRequired(false))
+    .addStringOption(opt => opt.setName('reason').setDescription('Reason for lockdown').setRequired(false))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
 
   new SlashCommandBuilder()
     .setName('unlock')
-    .setDescription('🔓 Unlock a previously locked channel (Staff only)')
-    .addChannelOption(opt => opt.setName('channel').setDescription('Channel to unlock').setRequired(false))
+    .setDescription('🔓 Unlock channels or the entire server (Staff only)')
+    .addBooleanOption(opt => opt.setName('all').setDescription('Unlock ALL channels across the entire server').setRequired(false))
+    .addChannelOption(opt => opt.setName('channel').setDescription('Specific channel to unlock').setRequired(false))
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
 
   new SlashCommandBuilder()

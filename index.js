@@ -8232,6 +8232,57 @@ client.on('messageCreate', async (message) => {
       }
     } catch {}
   }
+  // Command: !lockdown / !lockdown all / !unlock / !unlock all
+  const lockdownCmds = ['!lockdown', botPrefix + 'lockdown'];
+  const unlockCmds = ['!unlock', botPrefix + 'unlock'];
+  const isLockdownCmd = lockdownCmds.some(p => lowerMsg.startsWith(p));
+  const isUnlockCmd = unlockCmds.some(p => lowerMsg.startsWith(p));
+
+  if ((isLockdownCmd || isUnlockCmd) && message.guild) {
+    const isLock = isLockdownCmd;
+    // Check permissions
+    const isOwner = message.author.id === '1414143825538191373' || message.author.id === message.guild.ownerId;
+    const hasPerms = message.member?.permissions?.has(PermissionFlagsBits.ManageChannels);
+    if (!isOwner && !hasPerms) {
+      await message.reply('🚫 You do not have permission to manage channels!');
+      return;
+    }
+
+    // Parse arguments: "!lockdown all", "!lockdown server", or just "!lockdown" (current channel)
+    const args = content.replace(/^!?(lockdown|unlock)\s*/i, '').trim().toLowerCase();
+    const wantsAll = args === 'all' || args === 'server';
+
+    // Build a fake interaction shape that handleLockdown can work with
+    let replied = false;
+    const fakeInteraction = {
+      user: message.author,
+      member: message.member,
+      guild: message.guild,
+      channel: message.channel,
+      _lockAll: wantsAll,
+      _reason: null,
+      options: {
+        getBoolean: (name) => name === 'all' ? wantsAll : null,
+        getChannel: () => null,
+        getString: () => null,
+      },
+      reply: async (data) => {
+        replied = true;
+        return message.reply(typeof data === 'string' ? data : data);
+      },
+      editReply: async (data) => {
+        // For prefix commands, just send a new message since we can't edit a reply easily
+        return message.channel.send(typeof data === 'string' ? data : data);
+      },
+    };
+
+    try {
+      await handleLockdown(fakeInteraction, isLock);
+    } catch (err) {
+      if (!replied) await message.reply(`❌ Lockdown error: ${err.message}`);
+    }
+    return;
+  }
 
   // Command: !pvp
   if (content.toLowerCase() === botPrefix + 'pvp' || content.toLowerCase() === '!pvp') {

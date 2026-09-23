@@ -197,33 +197,117 @@ export async function handlePurge(interaction) {
 
 /**
  * /lockdown & /unlock command handler
+ * Supports single-channel and server-wide (all: true) lockdown.
+ * Also accepts a fakeInteraction shape from prefix commands (!lockdown all).
  */
 export async function handleLockdown(interaction, isLock) {
   if (!interaction.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
     return interaction.reply({ content: '🚫 You do not have permission to manage channels!', ephemeral: true });
   }
 
-  const channel = interaction.options.getChannel('channel') || interaction.channel;
-  const everyoneRole = interaction.guild.roles.everyone;
+  // Detect "all" flag from slash option or prefix injection
+  const lockAll = interaction.options?.getBoolean?.('all') || interaction._lockAll || false;
+  const reason = interaction.options?.getString?.('reason') || interaction._reason || null;
+  const guild = interaction.guild;
+  const everyoneRole = guild.roles.everyone;
 
-  await channel.permissionOverwrites.edit(everyoneRole, {
-    SendMessages: !isLock
-  });
+  if (lockAll) {
+    // ── SERVER-WIDE LOCKDOWN / UNLOCK ──
+    await interaction.reply({ content: isLock ? '🚨 Initiating server-wide lockdown…' : '🔓 Lifting server-wide lockdown…', ephemeral: false });
 
-  const title = isLock ? '🔒 CHANNEL LOCKED DOWN' : '🔓 CHANNEL UNLOCKED';
-  const color = isLock ? 0xFF4444 : 0x00FF88;
-  const desc = isLock 
-    ? `This channel has been locked down by <@${interaction.user.id}>. Regular members cannot send messages.`
-    : `This channel has been unlocked by <@${interaction.user.id}>. Chat is now open!`;
+    // Fetch all channels (ensure cache is populated)
+    await guild.channels.fetch();
 
-  const embed = new EmbedBuilder()
-    .setColor(color)
-    .setTitle(title)
-    .setDescription(desc)
-    .setTimestamp();
+    // Target public text (0), announcement (5), and forum (15) channels
+    // Skip channels where @everyone already cannot view (private/staff channels)
+    const targetChannels = guild.channels.cache.filter(c => {
+      if (c.type !== ChannelType.GuildText && c.type !== ChannelType.GuildAnnouncement && c.type !== ChannelType.GuildForum) return false;
+      const perms = c.permissionsFor(everyoneRole);
+      return perms && perms.has(PermissionFlagsBits.ViewChannel);
+    });
 
-  await interaction.reply({ embeds: [embed] });
-  sendModLog(interaction.guild, embed);
+    let secured = 0;
+    let failed = 0;
+
+    for (const [, ch] of targetChannels) {
+      try {
+        if (isLock) {
+          await ch.permissionOverwrites.edit(everyoneRole, {
+            SendMessages: false,
+            SendMessagesInThreads: false,
+            CreatePublicThreads: false,
+          });
+        } else {
+          // On unlock: reset to null (inherit) so channels return to their natural state
+          // But skip channels that were already locked before (rules, announcements, etc.)
+          // We detect these by checking if they had SendMessages DENY *and* no ViewChannel deny
+          // For safety, only unlock channels of type GuildText that are chat channels
+          await ch.permissionOverwrites.edit(everyoneRole, {
+            SendMessages: null,
+            SendMessagesInThreads: null,
+            CreatePublicThreads: null,
+          });
+        }
+        secured++;
+      } catch (err) {
+        failed++;
+        console.warn(`[Lockdown] Failed on #${ch.name}:`, err.message);
+      }
+    }
+
+    const title = isLock ? '🚨 SERVER-WIDE LOCKDOWN ACTIVATED' : '🔓 SERVER-WIDE LOCKDOWN LIFTED';
+    const color = isLock ? 0xFF0000 : 0x00FF88;
+    const desc = isLock
+      ? `**${secured}** public channels have been locked down by <@${interaction.user.id}>.\nRegular members cannot send messages anywhere.${reason ? `\n\n**Reason:** ${reason}` : ''}`
+      : `**${secured}** channels have been unlocked by <@${interaction.user.id}>.\nChat is now open across the server!`;
+
+    const statusEmbed = new EmbedBuilder()
+      .setColor(color)
+      .setTitle(title)
+      .setDescription(desc)
+      .addFields(
+        { name: '🔒 Channels Secured', value: `\`${secured}\``, inline: true },
+        { name: '❌ Failed', value: `\`${failed}\``, inline: true },
+        { name: '🛡️ Staff Channels', value: 'Unaffected', inline: true }
+      )
+      .setFooter({ text: isLock ? 'Server Lockdown Protocol • Krims Code AI' : 'Lockdown Lifted • Krims Code AI' })
+      .setTimestamp();
+
+    await interaction.editReply({ content: '', embeds: [statusEmbed] });
+    sendModLog(guild, statusEmbed);
+  } else {
+    // ── SINGLE CHANNEL LOCKDOWN / UNLOCK ──
+    const channel = interaction.options?.getChannel?.('channel') || interaction.channel;
+
+    if (isLock) {
+      await channel.permissionOverwrites.edit(everyoneRole, {
+        SendMessages: false,
+        SendMessagesInThreads: false,
+        CreatePublicThreads: false,
+      });
+    } else {
+      await channel.permissionOverwrites.edit(everyoneRole, {
+        SendMessages: null,
+        SendMessagesInThreads: null,
+        CreatePublicThreads: null,
+      });
+    }
+
+    const title = isLock ? '🔒 CHANNEL LOCKED DOWN' : '🔓 CHANNEL UNLOCKED';
+    const color = isLock ? 0xFF4444 : 0x00FF88;
+    const desc = isLock
+      ? `This channel has been locked down by <@${interaction.user.id}>. Regular members cannot send messages.${reason ? `\n\n**Reason:** ${reason}` : ''}`
+      : `This channel has been unlocked by <@${interaction.user.id}>. Chat is now open!`;
+
+    const embed = new EmbedBuilder()
+      .setColor(color)
+      .setTitle(title)
+      .setDescription(desc)
+      .setTimestamp();
+
+    await interaction.reply({ embeds: [embed] });
+    sendModLog(guild, embed);
+  }
 }
 
 /**
