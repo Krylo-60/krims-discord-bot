@@ -16,12 +16,24 @@ export async function handleEmojiSubmissionMessage(message) {
     return false;
   }
 
-  // Check if message has an attachment or image URL
+  // Check if message has an attachment, image URL, Tenor/Giphy GIF, or embed
   const hasAttachment = message.attachments && message.attachments.size > 0;
   const content = message.content || '';
-  const hasImageUrl = /https?:\/\/.*\.(png|jpg|jpeg|gif|webp)(\?.*)?$/i.test(content) || /cdn\.discordapp\.com/i.test(content);
+  const hasImageUrl = /https?:\/\/.*\.(png|jpg|jpeg|gif|webp)(\?.*)?$/i.test(content) ||
+                      /cdn\.discordapp\.com/i.test(content) ||
+                      /tenor\.com/i.test(content) ||
+                      /giphy\.com/i.test(content);
+  const hasEmbedMedia = message.embeds && message.embeds.some(e => e.image || e.video || e.thumbnail);
 
-  if (!hasAttachment && !hasImageUrl) return false;
+  if (!hasAttachment && !hasImageUrl && !hasEmbedMedia) return false;
+
+  // Detect whether it's an animated GIF or static image
+  const isGif = /gif/i.test(content) ||
+                /tenor\.com/i.test(content) ||
+                /giphy\.com/i.test(content) ||
+                (hasAttachment && message.attachments.some(a => a.contentType?.includes('gif') || a.name?.toLowerCase().endsWith('.gif')));
+
+  const formatBadge = isGif ? '🎞️ **Animated GIF Emoji**' : '🖼️ **Static Image Emoji**';
 
   try {
     // 1. Auto-react with voting emojis
@@ -30,10 +42,11 @@ export async function handleEmojiSubmissionMessage(message) {
 
     // 2. Post an interactive selection panel for Admins/Krylo
     const embed = new EmbedBuilder()
-      .setColor(0xFD79A8)
-      .setTitle('🎨 New Emoji Submission')
+      .setColor(isGif ? 0xA29BFE : 0xFD79A8)
+      .setTitle(isGif ? '🎞️ New Animated GIF Emoji Submission' : '🎨 New Emoji Submission')
       .setDescription(
         `**Submitted by:** <@${message.author.id}>\n` +
+        `**Format:** ${formatBadge}\n` +
         `**Status:** 🗳️ **Community Voting Open**\n\n` +
         `React with ⭐ to upvote! Selections are **100% skill-based** (never rigged). If selected by Krylo, the creator earns the permanent <@&${EMOJI_ARTIST_ROLE_ID}> role!`
       )
