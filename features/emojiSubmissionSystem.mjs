@@ -5,17 +5,19 @@ export const GIF_ANIMATOR_ROLE_ID = '1552483857406754846'; // Animated GIF Anima
 export const STICKER_CREATOR_ROLE_ID = '1552798128724516914'; // Custom Sticker Creator
 export const KRYLO_USER_ID = '1414143825538191373';
 export const EMOJI_SUBMISSIONS_CHANNEL_ID = '1552482467527790612';
+export const STICKER_SUBMISSIONS_CHANNEL_ID = '1552799056844300378';
 export const ARTIST_LOUNGE_CHANNEL_ID = '1552485336062623876';
 
 /**
- * Handle new messages in #🎨・𝖾moji-𝗌ubmissions
+ * Handle new messages in #🎨・𝖾moji-𝗌ubmissions and #🏷️・𝗌ticker-𝗌ubmissions
  */
 export async function handleEmojiSubmissionMessage(message) {
   if (!message.guild || message.author.bot) return false;
-  if (
-    message.channel.id !== EMOJI_SUBMISSIONS_CHANNEL_ID &&
-    (!message.channel.name || !message.channel.name.includes('emoji-submissions'))
-  ) {
+
+  const isEmojiChannel = message.channel.id === EMOJI_SUBMISSIONS_CHANNEL_ID || (message.channel.name && message.channel.name.includes('emoji-submissions'));
+  const isStickerChannel = message.channel.id === STICKER_SUBMISSIONS_CHANNEL_ID || (message.channel.name && message.channel.name.includes('sticker-submissions'));
+
+  if (!isEmojiChannel && !isStickerChannel) {
     return false;
   }
 
@@ -30,32 +32,67 @@ export async function handleEmojiSubmissionMessage(message) {
 
   if (!hasAttachment && !hasImageUrl && !hasEmbedMedia) return false;
 
-  // Detect whether it's an animated GIF, sticker, or static image
-  const isGif = /gif/i.test(content) ||
-                /tenor\.com/i.test(content) ||
-                /giphy\.com/i.test(content) ||
-                (hasAttachment && message.attachments.some(a => a.contentType?.includes('gif') || a.name?.toLowerCase().endsWith('.gif')));
-  const isStickerMention = /sticker/i.test(content) || (hasAttachment && message.attachments.some(a => a.name?.toLowerCase().includes('sticker')));
-
-  let formatBadge = '🖼️ **Static Image Emoji**';
-  let embedColor = 0xFD79A8;
-  if (isGif) {
-    formatBadge = '🎞️ **Animated GIF Emoji**';
-    embedColor = 0xA29BFE;
-  } else if (isStickerMention) {
-    formatBadge = '🏷️ **Custom Server Sticker**';
-    embedColor = 0xFDCB6E;
-  }
-
   try {
     // 1. Auto-react with voting emojis
     await message.react('⭐').catch(() => {});
     await message.react('🔥').catch(() => {});
 
     // 2. Post an interactive selection panel for Admins/Krylo
+    let embedTitle = '🎨 New Emoji Submission';
+    let formatBadge = '🖼️ **Static Image Emoji**';
+    let embedColor = 0xFD79A8;
+    const buttons = [];
+
+    if (isStickerChannel) {
+      // ── DEDICATED STICKER CHANNEL ──
+      embedTitle = '🏷️ New Sticker Submission';
+      formatBadge = '🏷️ **Custom Server Sticker (320×320)**';
+      embedColor = 0xFDCB6E;
+
+      buttons.push(
+        new ButtonBuilder()
+          .setCustomId(`approve_emoji_${message.author.id}_${message.id}_sticker`)
+          .setLabel('🏆 Select & Grant Sticker Creator Role')
+          .setStyle(ButtonStyle.Success)
+          .setEmoji('🏷️')
+      );
+    } else {
+      // ── DEDICATED EMOJI CHANNEL ──
+      const isGif = /gif/i.test(content) ||
+                    /tenor\.com/i.test(content) ||
+                    /giphy\.com/i.test(content) ||
+                    (hasAttachment && message.attachments.some(a => a.contentType?.includes('gif') || a.name?.toLowerCase().endsWith('.gif')));
+
+      if (isGif) {
+        embedTitle = '🎞️ New Animated GIF Submission';
+        formatBadge = '🎞️ **Animated GIF Emoji**';
+        embedColor = 0xA29BFE;
+
+        buttons.push(
+          new ButtonBuilder()
+            .setCustomId(`approve_emoji_${message.author.id}_${message.id}_gif`)
+            .setLabel('🏆 Select & Grant GIF Animator Role')
+            .setStyle(ButtonStyle.Success)
+            .setEmoji('🎞️')
+        );
+      } else {
+        embedTitle = '🎨 New Emoji Submission';
+        formatBadge = '🖼️ **Static Image Emoji**';
+        embedColor = 0xFD79A8;
+
+        buttons.push(
+          new ButtonBuilder()
+            .setCustomId(`approve_emoji_${message.author.id}_${message.id}_pic`)
+            .setLabel('🏆 Select & Grant Artist Role')
+            .setStyle(ButtonStyle.Success)
+            .setEmoji('🎨')
+        );
+      }
+    }
+
     const embed = new EmbedBuilder()
       .setColor(embedColor)
-      .setTitle(isGif ? '🎞️ New Animated GIF Submission' : (isStickerMention ? '🏷️ New Sticker Submission' : '🎨 New Creative Submission'))
+      .setTitle(embedTitle)
       .setDescription(
         `**Submitted by:** <@${message.author.id}>\n` +
         `**Format:** ${formatBadge}\n` +
@@ -66,32 +103,6 @@ export async function handleEmojiSubmissionMessage(message) {
       )
       .setFooter({ text: "Krylo's Skybase • Creative Lab" })
       .setTimestamp();
-
-    const buttons = [];
-    if (isGif) {
-      buttons.push(
-        new ButtonBuilder()
-          .setCustomId(`approve_emoji_${message.author.id}_${message.id}_gif`)
-          .setLabel('🏆 Select & Grant GIF Animator Role')
-          .setStyle(ButtonStyle.Success)
-          .setEmoji('🎞️')
-      );
-    } else {
-      buttons.push(
-        new ButtonBuilder()
-          .setCustomId(`approve_emoji_${message.author.id}_${message.id}_pic`)
-          .setLabel('🎨 Select as Emoji (Artist Role)')
-          .setStyle(ButtonStyle.Success)
-          .setEmoji('🎨')
-      );
-      buttons.push(
-        new ButtonBuilder()
-          .setCustomId(`approve_emoji_${message.author.id}_${message.id}_sticker`)
-          .setLabel('🏷️ Select as Sticker (Creator Role)')
-          .setStyle(ButtonStyle.Primary)
-          .setEmoji('🏷️')
-      );
-    }
 
     const row = new ActionRowBuilder().addComponents(buttons);
 
