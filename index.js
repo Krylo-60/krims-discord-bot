@@ -32,6 +32,7 @@ import { handleCountingMessage, handleStickyMessage } from './countingAndStickyE
 import { handleCustomCommandExecution, getGuildCustomCommands, addGuildCustomCommand, deleteGuildCustomCommand } from './features/customCommandsManager.mjs';
 import { handleVideoCrewInteraction, setCrewAppStatus, getCrewAppStatus, isCrewAppOpen } from './features/videoCrewApplicationManager.mjs';
 import { handlePlatformRoleInteraction, setPlatformPublicStatus, getPlatformRoleStatus } from './features/platformRolePublisher.mjs';
+import { handleEmojiSubmissionMessage, handleEmojiSubmissionInteraction } from './features/emojiSubmissionSystem.mjs';
 import { handleMasterSlashCommand } from './commands/masterCommandHandler.mjs';
 import { masterCommandJson } from './commands/masterCommandRegistry.mjs';
 
@@ -1277,6 +1278,11 @@ client.on('interactionCreate', async (interaction) => {
     )
   ) {
     return await handlePlatformRoleInteraction(interaction);
+  }
+
+  // 🎨 Handle Community Emoji Submission Approvals
+  if (interaction.isButton() && interaction.customId.startsWith('approve_emoji_')) {
+    return await handleEmojiSubmissionInteraction(interaction);
   }
 
   // Handle DM / Global Button Interactions (e.g. KevinMC Setup Feedback)
@@ -6864,6 +6870,12 @@ client.on('messageCreate', async (message) => {
 
   // Note: #🔢┃counting is handled exclusively by countingAPP and StickyBot
   if (message.guild && message.channel.name && message.channel.name.includes('counting')) {
+    return;
+  }
+
+  // 🎨 Handle Community Emoji Submissions (#🎨・𝖾moji-𝗌ubmissions)
+  if (message.guild && message.channel.name && message.channel.name.includes('emoji-submissions')) {
+    await handleEmojiSubmissionMessage(message);
     return;
   }
 
