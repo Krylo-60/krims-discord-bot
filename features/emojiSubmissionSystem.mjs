@@ -35,7 +35,7 @@ export async function handleEmojiSubmissionMessage(message) {
       .setDescription(
         `**Submitted by:** <@${message.author.id}>\n` +
         `**Status:** 🗳️ **Community Voting Open**\n\n` +
-        `React with ⭐ to upvote this design! If selected by Krylo, the creator earns the <@&${EMOJI_ARTIST_ROLE_ID}> role.`
+        `React with ⭐ to upvote! Selections are **100% skill-based** (never rigged). If selected by Krylo, the creator earns the permanent <@&${EMOJI_ARTIST_ROLE_ID}> role!`
       )
       .setFooter({ text: "Krylo's Skybase • Emoji Lab" })
       .setTimestamp();
@@ -92,9 +92,9 @@ export async function handleEmojiSubmissionInteraction(interaction) {
       .setTitle('🎉 OFFICIAL EMOJI APPROVED & SELECTED!')
       .setDescription(
         `✨ **Congratulations <@${authorId}>!**\n\n` +
-        `Your custom emoji submission has been officially **selected and approved** by <@${interaction.user.id}>!\n\n` +
-        `🏆 **Reward Awarded:** You have been granted the prestigious **<@&${EMOJI_ARTIST_ROLE_ID}>** role!\n` +
-        `Thank you for helping create awesome content for **Krylo's Skybase**! 👑`
+        `Your custom emoji submission has been officially **selected and approved** by <@${interaction.user.id}> based on design skill and quality!\n\n` +
+        `🏆 **Permanent Reward:** You have been granted the prestigious **<@&${EMOJI_ARTIST_ROLE_ID}>** role!\n` +
+        `Even if emoji slots rotate in the future to make room for newer updates, this role is **yours forever** as verified recognition for helping build Krylo's Skybase! 👑`
       )
       .setFooter({ text: `Approved by ${interaction.user.tag} • Krylo's Skybase` })
       .setTimestamp();
