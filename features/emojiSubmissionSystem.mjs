@@ -1,6 +1,7 @@
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField } from 'discord.js';
 
-export const EMOJI_ARTIST_ROLE_ID = '1552482464641851525';
+export const EMOJI_ARTIST_ROLE_ID = '1552482464641851525'; // Static Pic Artist
+export const GIF_ANIMATOR_ROLE_ID = '1552483857406754846'; // Animated GIF Animator
 export const KRYLO_USER_ID = '1414143825538191373';
 export const EMOJI_SUBMISSIONS_CHANNEL_ID = '1552482467527790612';
 
@@ -34,6 +35,8 @@ export async function handleEmojiSubmissionMessage(message) {
                 (hasAttachment && message.attachments.some(a => a.contentType?.includes('gif') || a.name?.toLowerCase().endsWith('.gif')));
 
   const formatBadge = isGif ? '🎞️ **Animated GIF Emoji**' : '🖼️ **Static Image Emoji**';
+  const targetRoleId = isGif ? GIF_ANIMATOR_ROLE_ID : EMOJI_ARTIST_ROLE_ID;
+  const roleName = isGif ? '🎞️ Skybase GIF Animator' : '🎨 Skybase Emoji Artist';
 
   try {
     // 1. Auto-react with voting emojis
@@ -43,22 +46,22 @@ export async function handleEmojiSubmissionMessage(message) {
     // 2. Post an interactive selection panel for Admins/Krylo
     const embed = new EmbedBuilder()
       .setColor(isGif ? 0xA29BFE : 0xFD79A8)
-      .setTitle(isGif ? '🎞️ New Animated GIF Emoji Submission' : '🎨 New Emoji Submission')
+      .setTitle(isGif ? '🎞️ New Animated GIF Submission' : '🎨 New Emoji Submission')
       .setDescription(
         `**Submitted by:** <@${message.author.id}>\n` +
         `**Format:** ${formatBadge}\n` +
         `**Status:** 🗳️ **Community Voting Open**\n\n` +
-        `React with ⭐ to upvote! Selections are **100% skill-based** (never rigged). If selected by Krylo, the creator earns the permanent <@&${EMOJI_ARTIST_ROLE_ID}> role!`
+        `React with ⭐ to upvote! Selections are **100% skill-based** (never rigged). If selected by Krylo, the creator earns the permanent <@&${targetRoleId}> role!`
       )
       .setFooter({ text: "Krylo's Skybase • Emoji Lab" })
       .setTimestamp();
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId(`approve_emoji_${message.author.id}_${message.id}`)
-        .setLabel('🏆 Select & Grant Artist Role')
+        .setCustomId(`approve_emoji_${message.author.id}_${message.id}_${isGif ? 'gif' : 'pic'}`)
+        .setLabel(isGif ? '🏆 Select & Grant GIF Animator Role' : '🏆 Select & Grant Artist Role')
         .setStyle(ButtonStyle.Success)
-        .setEmoji('🎨')
+        .setEmoji(isGif ? '🎞️' : '🎨')
     );
 
     await message.reply({ embeds: [embed], components: [row] });
@@ -79,6 +82,11 @@ export async function handleEmojiSubmissionInteraction(interaction) {
   const parts = interaction.customId.split('_');
   const authorId = parts[2];
   const messageId = parts[3];
+  const type = parts[4] || 'pic';
+  const isGif = type === 'gif';
+
+  const roleId = isGif ? GIF_ANIMATOR_ROLE_ID : EMOJI_ARTIST_ROLE_ID;
+  const roleTitle = isGif ? '🎞️ Skybase GIF Animator' : '🎨 Skybase Emoji Artist';
 
   // Verify permission: Administrator or Krylo
   const isKrylo = interaction.user.id === KRYLO_USER_ID;
@@ -86,7 +94,7 @@ export async function handleEmojiSubmissionInteraction(interaction) {
 
   if (!isKrylo && !isAdmin) {
     await interaction.reply({
-      content: '❌ **Permission Denied:** Only **Krylo** and Server Administrators can officially select emojis and award the Artist role.',
+      content: '❌ **Permission Denied:** Only **Krylo** and Server Administrators can officially select emojis and award creator roles.',
       ephemeral: true
     });
     return true;
@@ -97,16 +105,16 @@ export async function handleEmojiSubmissionInteraction(interaction) {
   try {
     const member = await interaction.guild.members.fetch(authorId).catch(() => null);
     if (member) {
-      await member.roles.add(EMOJI_ARTIST_ROLE_ID, `Emoji accepted by ${interaction.user.tag}`);
+      await member.roles.add(roleId, `${isGif ? 'GIF' : 'Static'} emoji accepted by ${interaction.user.tag}`);
     }
 
     const approvedEmbed = new EmbedBuilder()
-      .setColor(0x00E5FF)
-      .setTitle('🎉 OFFICIAL EMOJI APPROVED & SELECTED!')
+      .setColor(isGif ? 0xA29BFE : 0x00E5FF)
+      .setTitle(`🎉 OFFICIAL ${isGif ? 'ANIMATED GIF' : 'EMOJI'} APPROVED & SELECTED!`)
       .setDescription(
         `✨ **Congratulations <@${authorId}>!**\n\n` +
-        `Your custom emoji submission has been officially **selected and approved** by <@${interaction.user.id}> based on design skill and quality!\n\n` +
-        `🏆 **Permanent Reward:** You have been granted the prestigious **<@&${EMOJI_ARTIST_ROLE_ID}>** role!\n` +
+        `Your custom ${isGif ? 'animated GIF' : 'emoji'} submission has been officially **selected and approved** by <@${interaction.user.id}> based on design skill and quality!\n\n` +
+        `🏆 **Permanent Reward:** You have been granted the prestigious **<@&${roleId}>** role!\n` +
         `Even if emoji slots rotate in the future to make room for newer updates, this role is **yours forever** as verified recognition for helping build Krylo's Skybase! 👑`
       )
       .setFooter({ text: `Approved by ${interaction.user.tag} • Krylo's Skybase` })
@@ -115,7 +123,7 @@ export async function handleEmojiSubmissionInteraction(interaction) {
     const disabledRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId('approved_disabled')
-        .setLabel('✅ Selected & Role Awarded')
+        .setLabel(`✅ Selected & ${isGif ? 'GIF Animator' : 'Artist'} Role Awarded`)
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(true)
     );
