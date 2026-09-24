@@ -2,6 +2,7 @@ import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, Permissions
 
 export const EMOJI_ARTIST_ROLE_ID = '1552482464641851525'; // Static Pic Artist
 export const GIF_ANIMATOR_ROLE_ID = '1552483857406754846'; // Animated GIF Animator
+export const STICKER_CREATOR_ROLE_ID = '1552798128724516914'; // Custom Sticker Creator
 export const KRYLO_USER_ID = '1414143825538191373';
 export const EMOJI_SUBMISSIONS_CHANNEL_ID = '1552482467527790612';
 export const ARTIST_LOUNGE_CHANNEL_ID = '1552485336062623876';
@@ -29,15 +30,22 @@ export async function handleEmojiSubmissionMessage(message) {
 
   if (!hasAttachment && !hasImageUrl && !hasEmbedMedia) return false;
 
-  // Detect whether it's an animated GIF or static image
+  // Detect whether it's an animated GIF, sticker, or static image
   const isGif = /gif/i.test(content) ||
                 /tenor\.com/i.test(content) ||
                 /giphy\.com/i.test(content) ||
                 (hasAttachment && message.attachments.some(a => a.contentType?.includes('gif') || a.name?.toLowerCase().endsWith('.gif')));
+  const isStickerMention = /sticker/i.test(content) || (hasAttachment && message.attachments.some(a => a.name?.toLowerCase().includes('sticker')));
 
-  const formatBadge = isGif ? '🎞️ **Animated GIF Emoji**' : '🖼️ **Static Image Emoji**';
-  const targetRoleId = isGif ? GIF_ANIMATOR_ROLE_ID : EMOJI_ARTIST_ROLE_ID;
-  const roleName = isGif ? '🎞️ Skybase GIF Animator' : '🎨 Skybase Emoji Artist';
+  let formatBadge = '🖼️ **Static Image Emoji**';
+  let embedColor = 0xFD79A8;
+  if (isGif) {
+    formatBadge = '🎞️ **Animated GIF Emoji**';
+    embedColor = 0xA29BFE;
+  } else if (isStickerMention) {
+    formatBadge = '🏷️ **Custom Server Sticker**';
+    embedColor = 0xFDCB6E;
+  }
 
   try {
     // 1. Auto-react with voting emojis
@@ -46,26 +54,46 @@ export async function handleEmojiSubmissionMessage(message) {
 
     // 2. Post an interactive selection panel for Admins/Krylo
     const embed = new EmbedBuilder()
-      .setColor(isGif ? 0xA29BFE : 0xFD79A8)
-      .setTitle(isGif ? '🎞️ New Animated GIF Submission' : '🎨 New Emoji Submission')
+      .setColor(embedColor)
+      .setTitle(isGif ? '🎞️ New Animated GIF Submission' : (isStickerMention ? '🏷️ New Sticker Submission' : '🎨 New Creative Submission'))
       .setDescription(
         `**Submitted by:** <@${message.author.id}>\n` +
         `**Format:** ${formatBadge}\n` +
         `**Status:** 🗳️ **Community Voting Open**\n\n` +
         `React with ⭐ to upvote! Selections are **100% skill-based** (never rigged).\n` +
         `⚠️ **Rule:** Max 1–2 submissions per 1–2 weeks (spammed entries will not be reviewed).\n\n` +
-        `If selected by Krylo, creator earns the permanent <@&${targetRoleId}> role and unlocks access to <#${ARTIST_LOUNGE_CHANNEL_ID}>!`
+        `If selected by Krylo, the creator earns an exclusive permanent creator role and unlocks VIP access to <#${ARTIST_LOUNGE_CHANNEL_ID}>!`
       )
-      .setFooter({ text: "Krylo's Skybase • Emoji Lab" })
+      .setFooter({ text: "Krylo's Skybase • Creative Lab" })
       .setTimestamp();
 
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`approve_emoji_${message.author.id}_${message.id}_${isGif ? 'gif' : 'pic'}`)
-        .setLabel(isGif ? '🏆 Select & Grant GIF Animator Role' : '🏆 Select & Grant Artist Role')
-        .setStyle(ButtonStyle.Success)
-        .setEmoji(isGif ? '🎞️' : '🎨')
-    );
+    const buttons = [];
+    if (isGif) {
+      buttons.push(
+        new ButtonBuilder()
+          .setCustomId(`approve_emoji_${message.author.id}_${message.id}_gif`)
+          .setLabel('🏆 Select & Grant GIF Animator Role')
+          .setStyle(ButtonStyle.Success)
+          .setEmoji('🎞️')
+      );
+    } else {
+      buttons.push(
+        new ButtonBuilder()
+          .setCustomId(`approve_emoji_${message.author.id}_${message.id}_pic`)
+          .setLabel('🎨 Select as Emoji (Artist Role)')
+          .setStyle(ButtonStyle.Success)
+          .setEmoji('🎨')
+      );
+      buttons.push(
+        new ButtonBuilder()
+          .setCustomId(`approve_emoji_${message.author.id}_${message.id}_sticker`)
+          .setLabel('🏷️ Select as Sticker (Creator Role)')
+          .setStyle(ButtonStyle.Primary)
+          .setEmoji('🏷️')
+      );
+    }
+
+    const row = new ActionRowBuilder().addComponents(buttons);
 
     await message.reply({ embeds: [embed], components: [row] });
     return true;
@@ -76,7 +104,7 @@ export async function handleEmojiSubmissionMessage(message) {
 }
 
 /**
- * Handle button interactions for emoji approval
+ * Handle button interactions for emoji and sticker approval
  */
 export async function handleEmojiSubmissionInteraction(interaction) {
   if (!interaction.isButton()) return false;
@@ -87,9 +115,27 @@ export async function handleEmojiSubmissionInteraction(interaction) {
   const messageId = parts[3];
   const type = parts[4] || 'pic';
   const isGif = type === 'gif';
+  const isSticker = type === 'sticker';
 
-  const roleId = isGif ? GIF_ANIMATOR_ROLE_ID : EMOJI_ARTIST_ROLE_ID;
-  const roleTitle = isGif ? '🎞️ Skybase GIF Animator' : '🎨 Skybase Emoji Artist';
+  let roleId = EMOJI_ARTIST_ROLE_ID;
+  let roleTitle = '🎨 Skybase Emoji Artist';
+  let embedTitle = '🎉 OFFICIAL EMOJI APPROVED & SELECTED!';
+  let embedColor = 0x00E5FF;
+  let buttonLabel = '✅ Selected & Emoji Artist Role Awarded';
+
+  if (isGif) {
+    roleId = GIF_ANIMATOR_ROLE_ID;
+    roleTitle = '🎞️ Skybase GIF Animator';
+    embedTitle = '🎉 OFFICIAL ANIMATED GIF APPROVED & SELECTED!';
+    embedColor = 0xA29BFE;
+    buttonLabel = '✅ Selected & GIF Animator Role Awarded';
+  } else if (isSticker) {
+    roleId = STICKER_CREATOR_ROLE_ID;
+    roleTitle = '🏷️ Skybase Sticker Creator';
+    embedTitle = '🎉 OFFICIAL STICKER APPROVED & SELECTED!';
+    embedColor = 0xFDCB6E;
+    buttonLabel = '✅ Selected & Sticker Creator Role Awarded';
+  }
 
   // Verify permission: Administrator or Krylo
   const isKrylo = interaction.user.id === KRYLO_USER_ID;
@@ -97,7 +143,7 @@ export async function handleEmojiSubmissionInteraction(interaction) {
 
   if (!isKrylo && !isAdmin) {
     await interaction.reply({
-      content: '❌ **Permission Denied:** Only **Krylo** and Server Administrators can officially select emojis and award creator roles.',
+      content: '❌ **Permission Denied:** Only **Krylo** and Server Administrators can officially select creations and award creator roles.',
       ephemeral: true
     });
     return true;
@@ -108,18 +154,20 @@ export async function handleEmojiSubmissionInteraction(interaction) {
   try {
     const member = await interaction.guild.members.fetch(authorId).catch(() => null);
     if (member) {
-      await member.roles.add(roleId, `${isGif ? 'GIF' : 'Static'} emoji accepted by ${interaction.user.tag}`);
+      await member.roles.add(roleId, `${roleTitle} accepted by ${interaction.user.tag}`);
     }
 
+    const creationType = isGif ? 'animated GIF' : (isSticker ? 'custom sticker' : 'custom emoji');
+
     const approvedEmbed = new EmbedBuilder()
-      .setColor(isGif ? 0xA29BFE : 0x00E5FF)
-      .setTitle(`🎉 OFFICIAL ${isGif ? 'ANIMATED GIF' : 'EMOJI'} APPROVED & SELECTED!`)
+      .setColor(embedColor)
+      .setTitle(embedTitle)
       .setDescription(
         `✨ **Congratulations <@${authorId}>!**\n\n` +
-        `Your custom ${isGif ? 'animated GIF' : 'emoji'} submission has been officially **selected and approved** by <@${interaction.user.id}> based on design skill and quality!\n\n` +
+        `Your ${creationType} submission has been officially **selected and approved** by <@${interaction.user.id}> based on design skill and polish!\n\n` +
         `🏆 **Permanent Reward:** You have been granted the prestigious **<@&${roleId}>** role!\n` +
-        `🚪 **VIP Studio Access:** You now have access to <#${ARTIST_LOUNGE_CHANNEL_ID}> where you can talk, share ideas, and collaborate with fellow artists and Krylo!\n\n` +
-        `Even if emoji slots rotate in the future to make room for newer updates, this role and lounge access are **yours forever** as verified recognition for helping build Krylo's Skybase! 👑`
+        `🚪 **VIP Studio Access:** You now have access to <#${ARTIST_LOUNGE_CHANNEL_ID}> where you can talk, share ideas, and collaborate with fellow creators and Krylo!\n\n` +
+        `Even if slots rotate in the future to make room for newer updates, this role and lounge access are **yours forever** as verified recognition for helping build Krylo's Skybase! 👑`
       )
       .setFooter({ text: `Approved by ${interaction.user.tag} • Krylo's Skybase` })
       .setTimestamp();
@@ -127,7 +175,7 @@ export async function handleEmojiSubmissionInteraction(interaction) {
     const disabledRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId('approved_disabled')
-        .setLabel(`✅ Selected & ${isGif ? 'GIF Animator' : 'Artist'} Role Awarded`)
+        .setLabel(buttonLabel)
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(true)
     );
