@@ -4,6 +4,7 @@ export const EMOJI_ARTIST_ROLE_ID = '1552482464641851525'; // Static Pic Artist
 export const GIF_ANIMATOR_ROLE_ID = '1552483857406754846'; // Animated GIF Animator
 export const KRYLO_USER_ID = '1414143825538191373';
 export const EMOJI_SUBMISSIONS_CHANNEL_ID = '1552482467527790612';
+export const ARTIST_LOUNGE_CHANNEL_ID = '1552485336062623876';
 
 /**
  * Handle new messages in #🎨・𝖾moji-𝗌ubmissions
@@ -51,7 +52,9 @@ export async function handleEmojiSubmissionMessage(message) {
         `**Submitted by:** <@${message.author.id}>\n` +
         `**Format:** ${formatBadge}\n` +
         `**Status:** 🗳️ **Community Voting Open**\n\n` +
-        `React with ⭐ to upvote! Selections are **100% skill-based** (never rigged). If selected by Krylo, the creator earns the permanent <@&${targetRoleId}> role!`
+        `React with ⭐ to upvote! Selections are **100% skill-based** (never rigged).\n` +
+        `⚠️ **Rule:** Max 1–2 submissions per 1–2 weeks (spammed entries will not be reviewed).\n\n` +
+        `If selected by Krylo, creator earns the permanent <@&${targetRoleId}> role and unlocks access to <#${ARTIST_LOUNGE_CHANNEL_ID}>!`
       )
       .setFooter({ text: "Krylo's Skybase • Emoji Lab" })
       .setTimestamp();
@@ -115,7 +118,8 @@ export async function handleEmojiSubmissionInteraction(interaction) {
         `✨ **Congratulations <@${authorId}>!**\n\n` +
         `Your custom ${isGif ? 'animated GIF' : 'emoji'} submission has been officially **selected and approved** by <@${interaction.user.id}> based on design skill and quality!\n\n` +
         `🏆 **Permanent Reward:** You have been granted the prestigious **<@&${roleId}>** role!\n` +
-        `Even if emoji slots rotate in the future to make room for newer updates, this role is **yours forever** as verified recognition for helping build Krylo's Skybase! 👑`
+        `🚪 **VIP Studio Access:** You now have access to <#${ARTIST_LOUNGE_CHANNEL_ID}> where you can talk, share ideas, and collaborate with fellow artists and Krylo!\n\n` +
+        `Even if emoji slots rotate in the future to make room for newer updates, this role and lounge access are **yours forever** as verified recognition for helping build Krylo's Skybase! 👑`
       )
       .setFooter({ text: `Approved by ${interaction.user.tag} • Krylo's Skybase` })
       .setTimestamp();
