@@ -472,22 +472,24 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     if (commandName === 'rules') {
       const isSkybase = interaction.guildId === '1549875778575929446';
       const embed = new EmbedBuilder()
-        .setColor(0xEF4444)
+        .setColor(0x00E5FF)
         .setTitle(isSkybase ? "📜 Krylo's Skybase — Official Rules" : "📜 Official Community Rules")
         .setDescription(
-          `Welcome! To keep our community fair, safe, and enjoyable, please adhere to these official server rules:\n\n` +
-          `1️⃣ **Respect Everyone:** Harassment, toxicity, hate speech, or slurs result in immediate moderation action.\n` +
-          `2️⃣ **No Cheating or Abuse:** Exploiting bugs, raiding, or spamming bot commands is strictly prohibited.\n` +
-          `3️⃣ **Keep Content Appropriate:** Keep all channels safe for work (SFW). No NSFW, graphic, or illegal content.\n` +
-          `4️⃣ **No Spam or Unsolicited Promotion:** Do not advertise external links, unsolicited DMs, or other servers without permission.\n` +
-          `5️⃣ **Listen to Staff & Leadership:** Staff decisions are final. If you have an issue, open a ticket.\n` +
-          `6️⃣ **Follow Discord Terms of Service:** Maintain community safety and integrity at all times.`
+          `Welcome! To keep our community fair, safe, and family-friendly, all members must adhere to these standards:\n\n` +
+          `1️⃣ **Profile & Conduct:** Clean usernames, avatars, and bios. No unpingable characters, slurs, or harassment.\n` +
+          `2️⃣ **Anti-Spam & Mentions:** No chat flooding or self-promo. Zero-tolerance for burst spamming Krylo or staff.\n` +
+          `3️⃣ **Family-Friendly (SFW):** No NSFW, gore, vulgar profanity, or political/religious debates.\n` +
+          `4️⃣ **Voice Chat (VC):** No channel hopping, no voice-changers, and no loud soundboards.\n` +
+          `5️⃣ **Fair Play & Integrity:** Strictly no hacked clients, cheats, dupes, exploits, or gambling.\n` +
+          `6️⃣ **Respect Creators & Content:** Credit original builds/art, and do not spoil upcoming videos/lore!\n` +
+          `7️⃣ **Staff Discretion:** Moderators reserve the right to enforce rules at their discretion.\n\n` +
+          `*For full details, read our complete guidelines in <#1549882276278435841>!*`
         )
         .setFooter({ text: 'Violations will receive official strikes via /warn' })
         .setTimestamp();
 
       const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setLabel('📜 Rules Channel').setStyle(ButtonStyle.Link).setURL(`https://discord.com/channels/${interaction.guildId || '1549875778575929446'}/1549882276278435841`)
+        new ButtonBuilder().setLabel('📜 Read Full Rules').setStyle(ButtonStyle.Link).setURL(`https://discord.com/channels/${interaction.guildId || '1549875778575929446'}/1549882276278435841`)
       );
 
       return await interaction.reply({ embeds: [embed], components: [row] });
