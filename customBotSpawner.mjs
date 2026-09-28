@@ -117,6 +117,28 @@ export class MultiBotManager {
       console.log(`[MultiBotManager] ✅ Bot "${client.user.tag}" is ONLINE for Guild ${guildId}!`);
       return { success: true, user: client.user };
     } catch (err) {
+      if (err.message?.includes('DisallowedIntents') || err.code === 'DisallowedIntents') {
+        console.warn(`[MultiBotManager] ⚠️ Privileged intents not enabled for ${botName}. Retrying with standard intents...`);
+        const basicClient = new Client({
+          intents: [
+            GatewayIntentBits.Guilds,
+            GatewayIntentBits.GuildMessages
+          ],
+          partials: [Partials.Message, Partials.Channel]
+        });
+        this.attachBrain(basicClient, config);
+        try {
+          await basicClient.login(token);
+          this.clients.set(guildId, basicClient);
+          this.configs.set(guildId, config);
+          console.log(`[MultiBotManager] ✅ Bot "${basicClient.user.tag}" is ONLINE with standard intents!`);
+          return { success: true, user: basicClient.user, note: 'Online with standard intents.' };
+        } catch (retryErr) {
+          console.error(`[MultiBotManager] Fallback login failed:`, retryErr.message);
+          return { success: false, error: retryErr.message };
+        }
+      }
+
       console.error(`[MultiBotManager] Failed login for ${botName || guildId}:`, err.message);
       updateCustomBotStatus(guildId, 'error');
       return { success: false, error: err.message };
