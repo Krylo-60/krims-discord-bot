@@ -35,6 +35,7 @@ import { handlePlatformRoleInteraction, setPlatformPublicStatus, getPlatformRole
 import { handleEmojiSubmissionMessage, handleEmojiSubmissionInteraction } from './features/emojiSubmissionSystem.mjs';
 import { handleMasterSlashCommand } from './commands/masterCommandHandler.mjs';
 import { masterCommandJson } from './commands/masterCommandRegistry.mjs';
+import { initTwitchBot } from './features/twitchBot.mjs';
 
 const guildConfigCache = new Map();
 const kryloPingStrikes = new Map();
@@ -10149,6 +10150,9 @@ if (token && token !== 'YOUR_DISCORD_TOKEN') {
 } else {
   console.log('[!] DISCORD_TOKEN is missing or mock. Add a valid Discord Bot Token in the .env file to start the bot.');
 }
+
+// Initialize Krims Code Twitch Chatbot (if configured in .env)
+initTwitchBot().catch(err => console.error('[TwitchBot] Initialization error:', err));
 
 // Global process error handlers to prevent crashes on Discord API timeouts/errors
 process.on('uncaughtException', (err) => {

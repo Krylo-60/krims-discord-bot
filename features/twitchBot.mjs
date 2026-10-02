@@ -1,0 +1,417 @@
+import tmi from 'tmi.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { GoogleGenAI } from '@google/genai';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DATA_FILE = path.join(__dirname, '..', 'data', 'twitch-users.json');
+
+// In-memory data store with JSON persistence
+let users = {};
+try {
+  if (fs.existsSync(DATA_FILE)) {
+    users = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+  }
+} catch (e) {
+  console.error('[TwitchBot] Error loading users database:', e.message);
+  users = {};
+}
+
+function saveUsers() {
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(users, null, 2), 'utf8');
+  } catch (e) {
+    console.error('[TwitchBot] Error saving users database:', e.message);
+  }
+}
+
+function getUser(username) {
+  const key = username.toLowerCase();
+  if (!users[key]) {
+    users[key] = {
+      username: key,
+      points: 150, // Starting welcome bonus!
+      messages: 0,
+      lastDaily: null,
+      wins: 0
+    };
+    saveUsers();
+  }
+  return users[key];
+}
+
+// Active Duels: key = targetUsername, val = { challenger, amount, expiresAt }
+const activeDuels = new Map();
+
+// Active Heist: { inProgress: false, participants: Map(username -> amount), timer: null }
+let activeHeist = {
+  inProgress: false,
+  participants: new Map(),
+  timer: null
+};
+
+// Active Trivia: { question, answer, reward, active: false }
+let activeTrivia = null;
+
+const TRIVIA_QUESTIONS = [
+  { q: "What is the rarest ore in Minecraft overworld?", a: "emerald" },
+  { q: "How many obsidian blocks are needed to make a minimal Nether Portal?", a: "10" },
+  { q: "What item do you feed a pig to breed it?", a: "carrot" },
+  { q: "What dimension does the Ender Dragon live in?", a: "end" },
+  { q: "What is the crafting recipe for a cake? (Which animal provides the milk?)", a: "cow" },
+  { q: "Which mob explodes when it gets close to the player?", a: "creeper" },
+  { q: "What is the max enchanting level in vanilla Minecraft?", a: "30" },
+  { q: "What tool is best for mining obsidian?", a: "diamond pickaxe" }
+];
+
+export async function initTwitchBot() {
+  const botUsername = process.env.TWITCH_BOT_USERNAME || 'krimscode';
+  const token = process.env.TWITCH_OAUTH_TOKEN;
+  const channel = process.env.TWITCH_CHANNEL;
+
+  if (!token || !channel) {
+    console.log('[TwitchBot] 🟣 Twitch integration ready! Set TWITCH_OAUTH_TOKEN and TWITCH_CHANNEL in .env to connect.');
+    return null;
+  }
+
+  const formattedToken = token.startsWith('oauth:') ? token : `oauth:${token}`;
+  const client = new tmi.Client({
+    options: { debug: false },
+    connection: {
+      reconnect: true,
+      secure: true
+    },
+    identity: {
+      username: botUsername.toLowerCase(),
+      password: formattedToken
+    },
+    channels: [channel.toLowerCase()]
+  });
+
+  client.on('connected', (addr, port) => {
+    console.log(`[TwitchBot] 🟣 Connected to Twitch chat as ${botUsername} in #${channel}!`);
+  });
+
+  client.on('message', async (targetChannel, tags, message, self) => {
+    if (self) return; // Don't reply to self
+
+    const username = tags.username.toLowerCase();
+    const displayName = tags['display-name'] || username;
+    const user = getUser(username);
+    user.messages += 1;
+    saveUsers();
+
+    const trimmed = message.trim();
+    const args = trimmed.split(' ');
+    const cmd = args[0].toLowerCase();
+
+    // 1. AI Chat Co-Host (@KrimsCode or !ask)
+    const isBotMentioned = trimmed.toLowerCase().includes(`@${botUsername.toLowerCase()}`);
+    if (cmd === '!ask' || isBotMentioned) {
+      const prompt = cmd === '!ask' ? args.slice(1).join(' ') : trimmed.replace(new RegExp(`@${botUsername}`, 'gi'), '').trim();
+      if (!prompt) {
+        client.say(targetChannel, `@${displayName} Yo! What's up? Ask me anything with !ask <question> or challenge someone with !duel!`);
+        return;
+      }
+
+      try {
+        const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+        if (apiKey) {
+          const ai = new GoogleGenAI({ apiKey });
+          const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `You are Krims Code, a witty, chill, and hype stream AI companion for Krylo's Twitch stream. Keep responses under 200 characters, no hashtags, no markdown formatting, directly address @${displayName}: ${prompt}`
+          });
+          const reply = response.text ? response.text.replace(/\n/g, ' ').trim() : "I'm drawing a blank right now, stream's too hype!";
+          client.say(targetChannel, reply.substring(0, 300));
+        } else {
+          client.say(targetChannel, `@${displayName} Krims Code AI is hyped and watching the stream!`);
+        }
+      } catch (err) {
+        console.error('[TwitchBot AI Error]', err.message);
+        client.say(targetChannel, `@${displayName} My brain glitched for a second, ask me again!`);
+      }
+      return;
+    }
+
+    // 2. Active Trivia Answer Checking
+    if (activeTrivia && activeTrivia.active) {
+      if (trimmed.toLowerCase().includes(activeTrivia.answer)) {
+        activeTrivia.active = false;
+        user.points += activeTrivia.reward;
+        saveUsers();
+        client.say(targetChannel, `🎉 GGs @${displayName}! You got the correct answer: "${activeTrivia.answer.toUpperCase()}"! You won +${activeTrivia.reward} KryloCoins! 🪙`);
+        activeTrivia = null;
+        return;
+      }
+    }
+
+    // 3. Economy & Wallet Commands
+    if (cmd === '!points' || cmd === '!coins' || cmd === '!wallet' || cmd === '!bal') {
+      const tier = getTier(user.points);
+      client.say(targetChannel, `@${displayName} You have 🪙 ${user.points} KryloCoins! Rank: ${tier} | Level ${Math.floor(user.messages / 20) + 1}`);
+      return;
+    }
+
+    if (cmd === '!daily') {
+      const today = new Date().toISOString().slice(0, 10);
+      if (user.lastDaily === today) {
+        client.say(targetChannel, `@${displayName} You already claimed your daily coins today! Come back tomorrow for +100 coins ⏳`);
+        return;
+      }
+      user.lastDaily = today;
+      user.points += 100;
+      saveUsers();
+      client.say(targetChannel, `🎁 @${displayName} claimed their daily bonus of +100 KryloCoins! Total: 🪙 ${user.points}`);
+      return;
+    }
+
+    // 4. Gamble / Slots Game
+    if (cmd === '!gamble' || cmd === '!slots') {
+      const amountStr = args[1];
+      let bet = 0;
+      if (amountStr === 'all') {
+        bet = user.points;
+      } else {
+        bet = parseInt(amountStr);
+      }
+
+      if (isNaN(bet) || bet <= 0) {
+        client.say(targetChannel, `@${displayName} Usage: !gamble <amount> (e.g. !gamble 50 or !gamble all)`);
+        return;
+      }
+
+      if (bet > user.points) {
+        client.say(targetChannel, `@${displayName} You only have 🪙 ${user.points} coins! You can't bet that much.`);
+        return;
+      }
+
+      const symbols = ['🍒', '💎', '👑', '🔥', '⭐', '💀'];
+      const r1 = symbols[Math.floor(Math.random() * symbols.length)];
+      const r2 = symbols[Math.floor(Math.random() * symbols.length)];
+      const r3 = symbols[Math.floor(Math.random() * symbols.length)];
+      const reel = `[ ${r1} | ${r2} | ${r3} ]`;
+
+      if (r1 === r2 && r2 === r3) {
+        // JACKPOT: 5x
+        const won = bet * 4;
+        user.points += won;
+        user.wins += 1;
+        saveUsers();
+        client.say(targetChannel, `🎰 @${displayName} spun ${reel} -> JACKPOT TRIPLE ${r1}! Won +🪙 ${won} coins! Total: 🪙 ${user.points} 🎉`);
+      } else if (r1 === r2 || r2 === r3 || r1 === r3) {
+        // DOUBLE: 2x
+        const won = bet;
+        user.points += won;
+        user.wins += 1;
+        saveUsers();
+        client.say(targetChannel, `🎰 @${displayName} spun ${reel} -> DOUBLE MATCH! Won +🪙 ${won} coins! Total: 🪙 ${user.points} ✨`);
+      } else {
+        // LOSS
+        user.points -= bet;
+        saveUsers();
+        client.say(targetChannel, `🎰 @${displayName} spun ${reel} -> Bust! Lost 🪙 ${bet} coins. Balance: 🪙 ${user.points}`);
+      }
+      return;
+    }
+
+    // 5. 1v1 Chat Duels
+    if (cmd === '!duel') {
+      const targetUser = (args[1] || '').replace('@', '').toLowerCase();
+      const amount = parseInt(args[2]);
+
+      if (!targetUser || isNaN(amount) || amount <= 0) {
+        client.say(targetChannel, `@${displayName} Usage: !duel @username <amount> (e.g. !duel @steve 50)`);
+        return;
+      }
+
+      if (targetUser === username) {
+        client.say(targetChannel, `@${displayName} You can't duel yourself!`);
+        return;
+      }
+
+      if (amount > user.points) {
+        client.say(targetChannel, `@${displayName} You don't have enough coins for that duel! (Balance: 🪙 ${user.points})`);
+        return;
+      }
+
+      const targetUserData = getUser(targetUser);
+      if (amount > targetUserData.points) {
+        client.say(targetChannel, `@${displayName} @${targetUser} only has 🪙 ${targetUserData.points} coins!`);
+        return;
+      }
+
+      activeDuels.set(targetUser, {
+        challenger: username,
+        challengerName: displayName,
+        amount,
+        expiresAt: Date.now() + 60000
+      });
+
+      client.say(targetChannel, `⚔️ DUEL CHALLENGE: @${displayName} challenged @${targetUser} to a 🪙 ${amount} coin duel! Type !accept within 60s!`);
+      return;
+    }
+
+    if (cmd === '!accept') {
+      const duel = activeDuels.get(username);
+      if (!duel) {
+        client.say(targetChannel, `@${displayName} You don't have any pending duel challenges!`);
+        return;
+      }
+
+      if (Date.now() > duel.expiresAt) {
+        activeDuels.delete(username);
+        client.say(targetChannel, `@${displayName} That duel challenge expired!`);
+        return;
+      }
+
+      const challengerUser = getUser(duel.challenger);
+      if (challengerUser.points < duel.amount || user.points < duel.amount) {
+        activeDuels.delete(username);
+        client.say(targetChannel, `@${displayName} One of the players no longer has enough coins! Duel cancelled.`);
+        return;
+      }
+
+      activeDuels.delete(username);
+      const challengerWon = Math.random() < 0.5;
+
+      if (challengerWon) {
+        challengerUser.points += duel.amount;
+        user.points -= duel.amount;
+        saveUsers();
+        client.say(targetChannel, `⚔️ DUEL FINISH: @${duel.challengerName} defeated @${displayName} and took 🪙 ${duel.amount} KryloCoins! 🏆`);
+      } else {
+        user.points += duel.amount;
+        challengerUser.points -= duel.amount;
+        saveUsers();
+        client.say(targetChannel, `⚔️ DUEL FINISH: @${displayName} defeated @${duel.challengerName} and took 🪙 ${duel.amount} KryloCoins! 🏆`);
+      }
+      return;
+    }
+
+    // 6. Group Vault Heist
+    if (cmd === '!heist') {
+      const amount = parseInt(args[1]) || 50;
+      if (user.points < amount) {
+        client.say(targetChannel, `@${displayName} You need at least 🪙 ${amount} coins to join the vault heist!`);
+        return;
+      }
+
+      if (!activeHeist.inProgress) {
+        activeHeist.inProgress = true;
+        activeHeist.participants.clear();
+        activeHeist.participants.set(username, { name: displayName, amount });
+
+        client.say(targetChannel, `🚨 HEIST STARTED by @${displayName}! A bank heist is assembling! Type "!heist <amount>" in the next 45 seconds to join the crew!`);
+
+        activeHeist.timer = setTimeout(() => {
+          executeHeist(targetChannel, client);
+        }, 45000);
+      } else {
+        activeHeist.participants.set(username, { name: displayName, amount });
+        client.say(targetChannel, `💼 @${displayName} joined the heist with 🪙 ${amount} coins! (${activeHeist.participants.size} crew members ready)`);
+      }
+      return;
+    }
+
+    // 7. Trivia Game
+    if (cmd === '!trivia') {
+      if (activeTrivia && activeTrivia.active) {
+        client.say(targetChannel, `❓ A trivia question is already active: "${activeTrivia.question}"`);
+        return;
+      }
+      const randomQ = TRIVIA_QUESTIONS[Math.floor(Math.random() * TRIVIA_QUESTIONS.length)];
+      activeTrivia = {
+        question: randomQ.q,
+        answer: randomQ.a.toLowerCase(),
+        reward: 50,
+        active: true
+      };
+      client.say(targetChannel, `🧠 TRIVIA TIME (Reward: 🪙 50 coins): ${randomQ.q} — Type the answer in chat!`);
+      return;
+    }
+
+    // 8. Leaderboard
+    if (cmd === '!leaderboard' || cmd === '!top') {
+      const sorted = Object.values(users).sort((a, b) => b.points - a.points).slice(0, 5);
+      const board = sorted.map((u, i) => `#${i + 1} ${u.username} (🪙${u.points})`).join(' | ');
+      client.say(targetChannel, `🏆 TOP CHATTERS: ${board || 'No stats yet!'}`);
+      return;
+    }
+
+    // 9. Interactive Fun Commands
+    if (cmd === '!hug') {
+      const target = args[1] ? args[1] : 'everyone';
+      client.say(targetChannel, `🤗 @${displayName} gives a big cozy hug to ${target}! ❤️`);
+      return;
+    }
+
+    if (cmd === '!coinflip') {
+      const res = Math.random() < 0.5 ? '🪙 HEADS' : '🪙 TAILS';
+      client.say(targetChannel, `@${displayName} flipped a coin: ${res}!`);
+      return;
+    }
+
+    if (cmd === '!ratebuild') {
+      const desc = args.slice(1).join(' ') || 'this build';
+      const score = Math.floor(Math.random() * 5) + 6; // 6 to 10
+      const remarks = ['Absolute masterpiece!', 'Clean detailing!', 'Solid survival starter!', 'Skybase approved!', 'Director Krylo would love this!'];
+      const remark = remarks[Math.floor(Math.random() * remarks.length)];
+      client.say(targetChannel, `🏗️ Krims Code rates "${desc}": ${score}/10! — ${remark}`);
+      return;
+    }
+
+    if (cmd === '!commands' || cmd === '!help') {
+      client.say(targetChannel, `🎮 KRIMS CODE COMMANDS: !points, !daily, !gamble <amt>, !duel @user <amt>, !heist <amt>, !trivia, !leaderboard, !ratebuild, !ask <question>`);
+      return;
+    }
+  });
+
+  try {
+    await client.connect();
+    return client;
+  } catch (err) {
+    console.error('[TwitchBot] Connection error:', err.message);
+    return null;
+  }
+}
+
+function getTier(points) {
+  if (points >= 2000) return '👑 Skybase Legend';
+  if (points >= 1000) return '🥇 Gold VIP';
+  if (points >= 500) return '🥈 Silver Regular';
+  return '🥉 Bronze Chatter';
+}
+
+function executeHeist(targetChannel, client) {
+  const crew = Array.from(activeHeist.participants.values());
+  activeHeist.inProgress = false;
+  activeHeist.participants.clear();
+
+  if (crew.length === 0) return;
+
+  // Chance of success scales from 50% up to 80% with more crew
+  const successRate = Math.min(0.85, 0.50 + (crew.length * 0.05));
+  const success = Math.random() < successRate;
+
+  if (success) {
+    let summary = [];
+    for (const member of crew) {
+      const u = getUser(member.name);
+      const won = Math.floor(member.amount * 1.5);
+      u.points += won;
+      summary.push(`@${member.name} (+🪙${won})`);
+    }
+    saveUsers();
+    client.say(targetChannel, `🚨 HEIST SUCCESS! The crew cracked the vault! Payouts: ${summary.join(', ')} 🎉💰`);
+  } else {
+    for (const member of crew) {
+      const u = getUser(member.name);
+      u.points = Math.max(0, u.points - member.amount);
+    }
+    saveUsers();
+    client.say(targetChannel, `🚨 HEIST BUSTED! The vault guards caught the crew! All ${crew.length} members lost their entry fee. Better luck next time! 🚔`);
+  }
+}
