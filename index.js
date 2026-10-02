@@ -35,7 +35,7 @@ import { handlePlatformRoleInteraction, setPlatformPublicStatus, getPlatformRole
 import { handleEmojiSubmissionMessage, handleEmojiSubmissionInteraction } from './features/emojiSubmissionSystem.mjs';
 import { handleMasterSlashCommand } from './commands/masterCommandHandler.mjs';
 import { masterCommandJson } from './commands/masterCommandRegistry.mjs';
-import { initTwitchBot } from './features/twitchBot.mjs';
+import { initTwitchBot, joinChannel, leaveChannel, getJoinedChannels } from './features/twitchBot.mjs';
 
 const guildConfigCache = new Map();
 const kryloPingStrikes = new Map();
@@ -10183,6 +10183,42 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true, message: 'Krylo SMP Store & Discord Bot Engine is Active!' }));
     return;
+  }
+
+  // Twitch Channels Management Endpoint
+  if (url.pathname === '/api/twitch/channels') {
+    if (req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, channels: getJoinedChannels() }));
+      return;
+    }
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', async () => {
+        try {
+          const payload = JSON.parse(body || '{}');
+          const { channel, action } = payload;
+          if (!channel) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'channel is required' }));
+          }
+          if (action === 'leave') {
+            const result = await leaveChannel(channel);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true, result, channels: getJoinedChannels() }));
+          } else {
+            const result = await joinChannel(channel);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ ok: true, result, channels: getJoinedChannels() }));
+          }
+        } catch (e) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: e.message }));
+        }
+      });
+      return;
+    }
   }
 
   // Custom Commands Endpoint

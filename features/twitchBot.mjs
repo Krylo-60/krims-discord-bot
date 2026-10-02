@@ -7,8 +7,9 @@ import { GoogleGenAI } from '@google/genai';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_FILE = path.join(__dirname, '..', 'data', 'twitch-users.json');
+const CHANNELS_FILE = path.join(__dirname, '..', 'data', 'twitch-channels.json');
 
-// In-memory data store with JSON persistence
+// In-memory data store with JSON persistence for user stats
 let users = {};
 try {
   if (fs.existsSync(DATA_FILE)) {
@@ -42,6 +43,35 @@ function getUser(username) {
   return users[key];
 }
 
+// Multi-Channel Persistence
+let joinedChannels = [];
+function loadChannels(defaultChannel) {
+  try {
+    if (fs.existsSync(CHANNELS_FILE)) {
+      joinedChannels = JSON.parse(fs.readFileSync(CHANNELS_FILE, 'utf8'));
+    }
+  } catch (e) {
+    console.error('[TwitchBot] Error loading channels list:', e.message);
+  }
+
+  if (!Array.isArray(joinedChannels) || joinedChannels.length === 0) {
+    joinedChannels = [defaultChannel ? defaultChannel.toLowerCase() : 'kryloplaysmc'];
+    saveChannels();
+  } else if (defaultChannel && !joinedChannels.includes(defaultChannel.toLowerCase())) {
+    joinedChannels.push(defaultChannel.toLowerCase());
+    saveChannels();
+  }
+  return joinedChannels;
+}
+
+function saveChannels() {
+  try {
+    fs.writeFileSync(CHANNELS_FILE, JSON.stringify(joinedChannels, null, 2), 'utf8');
+  } catch (e) {
+    console.error('[TwitchBot] Error saving channels list:', e.message);
+  }
+}
+
 // Active Duels: key = targetUsername, val = { challenger, amount, expiresAt }
 const activeDuels = new Map();
 
@@ -66,17 +96,63 @@ const TRIVIA_QUESTIONS = [
   { q: "What tool is best for mining obsidian?", a: "diamond pickaxe" }
 ];
 
-export async function initTwitchBot() {
-  const botUsername = process.env.TWITCH_BOT_USERNAME || 'krimscode';
-  const token = process.env.TWITCH_OAUTH_TOKEN;
-  const channel = process.env.TWITCH_CHANNEL;
+let globalTwitchClient = null;
 
-  if (!token || !channel) {
-    console.log('[TwitchBot] 🟣 Twitch integration ready! Set TWITCH_OAUTH_TOKEN and TWITCH_CHANNEL in .env to connect.');
+export function getJoinedChannels() {
+  return [...joinedChannels];
+}
+
+export async function joinChannel(channelName) {
+  const cleanName = channelName.replace('#', '').toLowerCase().trim();
+  if (!cleanName) return { success: false, error: 'Invalid channel name' };
+
+  if (!joinedChannels.includes(cleanName)) {
+    joinedChannels.push(cleanName);
+    saveChannels();
+  }
+
+  if (globalTwitchClient) {
+    try {
+      await globalTwitchClient.join(cleanName);
+      globalTwitchClient.say(cleanName, `👋 Hey everyone! Krims Code (by Krylo) has joined the stream! 🎮 Type !commands for games, slots, duels, trivia, and AI chat. Don't forget to /mod ${globalTwitchClient.getUsername()}!`);
+      return { success: true, channel: cleanName };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  }
+  return { success: true, channel: cleanName, pending: true };
+}
+
+export async function leaveChannel(channelName) {
+  const cleanName = channelName.replace('#', '').toLowerCase().trim();
+  joinedChannels = joinedChannels.filter(c => c !== cleanName);
+  saveChannels();
+
+  if (globalTwitchClient) {
+    try {
+      await globalTwitchClient.say(cleanName, `👋 Krims Code is now leaving this channel. Thanks for having me! Type !join in twitch.tv/kryloplaysmc to invite me back anytime.`);
+      await globalTwitchClient.part(cleanName);
+      return { success: true, channel: cleanName };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  }
+  return { success: true, channel: cleanName };
+}
+
+export async function initTwitchBot() {
+  const botUsername = process.env.TWITCH_BOT_USERNAME || 'kryloplaysmc';
+  const token = process.env.TWITCH_OAUTH_TOKEN;
+  const homeChannel = process.env.TWITCH_CHANNEL || 'kryloplaysmc';
+
+  if (!token) {
+    console.log('[TwitchBot] 🟣 Twitch integration ready! Set TWITCH_OAUTH_TOKEN in .env to connect.');
     return null;
   }
 
+  const initialChannels = loadChannels(homeChannel);
   const formattedToken = token.startsWith('oauth:') ? token : `oauth:${token}`;
+
   const client = new tmi.Client({
     options: { debug: false },
     connection: {
@@ -87,18 +163,24 @@ export async function initTwitchBot() {
       username: botUsername.toLowerCase(),
       password: formattedToken
     },
-    channels: [channel.toLowerCase()]
+    channels: initialChannels
   });
 
+  globalTwitchClient = client;
+
   client.on('connected', (addr, port) => {
-    console.log(`[TwitchBot] 🟣 Connected to Twitch chat as ${botUsername} in #${channel}!`);
+    console.log(`[TwitchBot] 🟣 Public Bot active! Connected as ${botUsername} in ${initialChannels.length} channels: ${initialChannels.join(', ')}`);
   });
 
   client.on('message', async (targetChannel, tags, message, self) => {
     if (self) return; // Don't reply to self
 
+    const cleanChannel = targetChannel.replace('#', '').toLowerCase();
     const username = tags.username.toLowerCase();
     const displayName = tags['display-name'] || username;
+    const isBroadcaster = tags.badges?.broadcaster === '1' || username === cleanChannel;
+    const isMod = tags.mod || isBroadcaster || username === 'kryloplaysmc';
+
     const user = getUser(username);
     user.messages += 1;
     saveUsers();
@@ -107,7 +189,53 @@ export async function initTwitchBot() {
     const args = trimmed.split(' ');
     const cmd = args[0].toLowerCase();
 
-    // 1. AI Chat Co-Host (@KrimsCode or !ask)
+    // 0. Public Multi-Channel Commands: !join and !leave
+    if (cmd === '!join') {
+      const targetJoin = (args[1] || username).replace('@', '').toLowerCase().trim();
+      if (!joinedChannels.includes(targetJoin)) {
+        joinedChannels.push(targetJoin);
+        saveChannels();
+        try {
+          await client.join(targetJoin);
+          client.say(targetChannel, `✅ @${displayName} Krims Code has joined #${targetJoin}! Make sure to "/mod ${botUsername}" in your chat so I can talk without limits! 🎮`);
+          client.say(targetJoin, `👋 Hey everyone! Krims Code (by Krylo) has officially arrived! 🎮 Type !commands for games, slots, duels, trivia, and AI chat!`);
+        } catch (e) {
+          client.say(targetChannel, `❌ @${displayName} Could not join #${targetJoin}: ${e.message}`);
+        }
+      } else {
+        client.say(targetChannel, `@${displayName} Krims Code is already active in #${targetJoin}!`);
+      }
+      return;
+    }
+
+    if (cmd === '!leave' || cmd === '!part') {
+      if (!isMod) {
+        client.say(targetChannel, `@${displayName} Only the channel broadcaster or moderator can use !leave.`);
+        return;
+      }
+
+      if (cleanChannel === homeChannel && username !== 'kryloplaysmc' && !args[1]) {
+        client.say(targetChannel, `@${displayName} You cannot remove Krims Code from its home channel!`);
+        return;
+      }
+
+      const channelToLeave = (args[1] || cleanChannel).replace('#', '').toLowerCase().trim();
+      client.say(targetChannel, `👋 Krims Code is now leaving #${channelToLeave}. Type !join in twitch.tv/kryloplaysmc anytime to invite me back!`);
+      
+      joinedChannels = joinedChannels.filter(c => c !== channelToLeave);
+      saveChannels();
+      try {
+        await client.part(channelToLeave);
+      } catch (e) {}
+      return;
+    }
+
+    if (cmd === '!channels') {
+      client.say(targetChannel, `🟣 Krims Code is currently active in ${joinedChannels.length} Twitch channels! Type !join to add me to your stream.`);
+      return;
+    }
+
+    // 1. AI Chat Co-Host (@kryloplaysmc or !ask)
     const isBotMentioned = trimmed.toLowerCase().includes(`@${botUsername.toLowerCase()}`);
     if (cmd === '!ask' || isBotMentioned) {
       const prompt = cmd === '!ask' ? args.slice(1).join(' ') : trimmed.replace(new RegExp(`@${botUsername}`, 'gi'), '').trim();
@@ -122,7 +250,7 @@ export async function initTwitchBot() {
           const ai = new GoogleGenAI({ apiKey });
           const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: `You are Krims Code, a witty, chill, and hype stream AI companion for Krylo's Twitch stream. Keep responses under 200 characters, no hashtags, no markdown formatting, directly address @${displayName}: ${prompt}`
+            contents: `You are Krims Code, a witty, chill, and hype stream AI companion for Krylo and friends. Keep responses under 200 characters, no hashtags, no markdown formatting, directly address @${displayName}: ${prompt}`
           });
           const reply = response.text ? response.text.replace(/\n/g, ' ').trim() : "I'm drawing a blank right now, stream's too hype!";
           client.say(targetChannel, reply.substring(0, 300));
@@ -364,7 +492,7 @@ export async function initTwitchBot() {
     }
 
     if (cmd === '!commands' || cmd === '!help') {
-      client.say(targetChannel, `🎮 KRIMS CODE COMMANDS: !points, !daily, !gamble <amt>, !duel @user <amt>, !heist <amt>, !trivia, !leaderboard, !ratebuild, !ask <question>`);
+      client.say(targetChannel, `🎮 KRIMS CODE COMMANDS: !join, !leave, !points, !daily, !gamble <amt>, !duel @user <amt>, !heist <amt>, !trivia, !leaderboard, !ratebuild, !ask <question>`);
       return;
     }
   });
