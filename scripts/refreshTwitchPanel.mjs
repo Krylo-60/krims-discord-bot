@@ -51,13 +51,25 @@ if (channel) {
       .setStyle(ButtonStyle.Link)
       .setURL('https://twitch.tv/kryloplaysmc'),
     new ButtonBuilder()
-      .setCustomId('btn_twitch_beta_faq')
-      .setLabel('❓ Why in Beta?')
-      .setStyle(ButtonStyle.Secondary)
+      .setLabel('📖 Roles & Perks')
+      .setStyle(ButtonStyle.Link)
+      .setURL('https://discord.com/channels/1549875778575929446/1549882278245564546')
   );
 
-  await channel.send({ embeds: [embed], components: [row] });
-  console.log('✅ Posted updated Twitch verification panel to #twitch-verify!');
+  // Auto-clean any old messages in channel first to guarantee zero duplicates!
+  const oldMsgs = await channel.messages.fetch({ limit: 20 });
+  for (const [id, m] of oldMsgs) {
+    await m.delete().catch(() => {});
+  }
+
+  const sentMsg = await channel.send({ embeds: [embed], components: [row] });
+  await sentMsg.pin().catch(() => {});
+  // Delete the automatic pin system message
+  const afterMsgs = await channel.messages.fetch({ limit: 5 });
+  for (const [id, m] of afterMsgs) {
+    if (id !== sentMsg.id) await m.delete().catch(() => {});
+  }
+  console.log('✅ Posted updated Twitch verification panel to #twitch-verify and pinned cleanly!');
 }
 
 // Register updated slash commands
