@@ -697,7 +697,14 @@ client.once('ready', async () => {
     }
     await client.application.commands.set(uniqueCommands);
     console.log(`[+] ${uniqueCommands.length} unique slash commands registered globally!`);
-    console.log('[+] Slash commands registered globally!');
+
+    // Also sync directly to Krylo's Skybase guild for instant 0-second cache updates
+    const skybaseGuild = client.guilds.cache.get('1549875778575929446');
+    if (skybaseGuild) {
+      await skybaseGuild.commands.set(uniqueCommands).catch(e => console.warn('[Guild Cmds] Sync warning:', e.message));
+      console.log('[+] Instant Guild commands synced to Krylo\'s Skybase!');
+    }
+    console.log('[+] Slash commands registered globally & locally in Skybase!');
 
   // Sync local data to Firebase cloud
   try {
