@@ -612,15 +612,6 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         const item = generateVerificationCode(interaction.user.id, interaction.user.tag || interaction.user.username);
         const payload = buildVerificationResponse(item);
 
-        try {
-          const wardenDeck = interaction.guild?.channels?.cache?.get('1549883558208868373') || await interaction.guild?.channels?.fetch('1549883558208868373').catch(() => null);
-          if (wardenDeck) {
-            wardenDeck.send({
-              content: `🔑 **[Twitch Code Generated]** <@${interaction.user.id}> generated verification code \`${item.code}\` (Expires in 15m). Awaiting entry in stream chat.`
-            }).catch(() => {});
-          }
-        } catch (e) {}
-
         return await interaction.editReply(payload);
       } catch (err) {
         console.error('[Twitch Verify Command Error]', err);
