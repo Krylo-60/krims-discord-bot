@@ -59,16 +59,14 @@ export async function syncRolesChannelEmbed(token) {
     // Build the supporter field dynamically with public connected badges
     let supporterValue = 
       `<@&1549918001380331632> ↠ Verified subscribers to **[Krylo on YouTube](https://www.youtube.com/@krylomcyt?sub_confirmation=1)**.\n` +
-      `*(💬 **Perk:** Being a subscriber gives you hoisted status & a higher chance of Krylo answering you!)*\n` +
+      `<@&${TWITCH_SUB_ROLE_ID}> ↠ Verified subscribers to **[Krylo on Twitch](https://twitch.tv/kryloplaysmc)**.\n` +
+      `*(👑 **VIP Perks:** Hoisted in member list, direct @Krylo mention privileges & 500 bonus KryloCoins!)*\n` +
+      `<@&1555976589336903696> ↠ Verified followers of **[kryloplaysmc](https://twitch.tv/kryloplaysmc)** on Twitch.\n` +
       `<@&1549916920629825686> ↠ Dedicated Krylo fans & Skybase community supporters.\n\n` +
       `**🔗 Connected Account Badges (Public Showcase):**\n` +
       `<@&1549918000352600076> ↠ Connected YouTube profiles.\n` +
       `<@&${TWITCH_CONN_ROLE_ID}> ↠ Connected Twitch accounts.\n` +
       `<@&${SPOTIFY_CONN_ROLE_ID}> ↠ Connected Spotify accounts.\n`;
-
-    if (currentStatus.twitchPublic) {
-      supporterValue += `\n<@&${TWITCH_SUB_ROLE_ID}> ↠ Verified subscribers to **Krylo on Twitch**!\n`;
-    }
 
     if (currentStatus.spotifyPublic) {
       supporterValue += `\n<@&${SPOTIFY_VIP_ROLE_ID}> ↠ Followers of **Krylo on Spotify**!\n`;

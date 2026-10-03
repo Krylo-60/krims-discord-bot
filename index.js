@@ -7244,11 +7244,18 @@ client.on('messageCreate', async (message) => {
             r.name.toLowerCase().includes('level 5')
           );
 
-          const isLevel30Plus = userLevel >= 30 || hasLevel30Role;
+          // Check VIP Supporters: Twitch Sub or YouTube Sub
+          const isTwitchSub = message.member?.roles?.cache?.has('1552083351953866845') || 
+                              message.member?.roles?.cache?.some(r => r.name.toLowerCase().includes('subbed to krylo on twitch'));
+          const isYouTubeSub = message.member?.roles?.cache?.has('1549918001380331632') || 
+                               message.member?.roles?.cache?.some(r => r.name.toLowerCase().includes('subbed to krylo on youtube'));
 
-          if (isLevel30Plus) {
-            // Allow Level 30+ veterans to mention Krylo - they earned it fair and square!
-            await message.react('🎖️').catch(() => {});
+          const isWhitelistedToMention = userLevel >= 30 || hasLevel30Role || isTwitchSub || isYouTubeSub;
+
+          if (isWhitelistedToMention) {
+            // Allow Twitch Subs, YouTube Subs, and Level 30+ veterans to mention Krylo!
+            const reactionEmoji = isTwitchSub ? '🟣' : (isYouTubeSub ? '🔴' : '🎖️');
+            await message.react(reactionEmoji).catch(() => {});
             return;
           }
 
@@ -7274,7 +7281,9 @@ client.on('messageCreate', async (message) => {
                   `• **Status:** \`Strike 1 / 2\` — **Official Warning**\n` +
                   `• **Next Strike:** Mentioning Krylo again in public chat will result in an **immediate BAN**!\n\n` +
                   `💬 **How to contact or unlock mentions:**\n` +
-                  `• **🎖️ Level 30+ Privilege:** Members who reach **Level 30** (Apex Pilot / Stratosphere Elite) earn the privilege to mention Krylo!\n` +
+                  `• **🟣 Twitch VIP Subscribers:** Subscribing to Krylo on Twitch unlocks mention privileges!\n` +
+                  `• **🔴 YouTube Subscribers:** Subscribing to Krylo on YouTube unlocks mention privileges!\n` +
+                  `• **🎖️ Level 30+ Privilege:** Members who reach **Level 30** (Apex Pilot / Stratosphere Elite) earn mention privileges!\n` +
                   `• **Direct Message (DM):** You can DM Krylo directly!\n` +
                   `• **Private Channels:** In designated channels where Krylo personally adds you.`
                 )
