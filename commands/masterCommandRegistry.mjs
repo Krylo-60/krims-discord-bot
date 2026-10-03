@@ -567,7 +567,12 @@ export const masterCommandBuilders = [
 
   new SlashCommandBuilder()
     .setName('supporters')
-    .setDescription('📊 View the live breakdown of YouTube Subscribers, Twitch Followers, and Dual Supporters!')
+    .setDescription('📊 View the live breakdown of YouTube Subscribers, Twitch Followers, and Dual Supporters!'),
+
+  new SlashCommandBuilder()
+    .setName('verifytwitch')
+    .setDescription('🟣 Get your secure code to link your Twitch in stream chat & claim roles!')
+    .addStringOption(opt => opt.setName('username').setDescription('Your Twitch username (optional)').setRequired(false))
 ];
 
 /**

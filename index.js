@@ -36,6 +36,7 @@ import { handleEmojiSubmissionMessage, handleEmojiSubmissionInteraction } from '
 import { handleMasterSlashCommand } from './commands/masterCommandHandler.mjs';
 import { masterCommandJson } from './commands/masterCommandRegistry.mjs';
 import { initTwitchBot, joinChannel, leaveChannel, getJoinedChannels } from './features/twitchBot.mjs';
+import { generateVerificationCode, toggleNicknameSync, getActiveCodeForUser, buildVerificationResponse, loadSupporters } from './features/twitchVerificationEngine.mjs';
 
 const guildConfigCache = new Map();
 const kryloPingStrikes = new Map();
@@ -1353,24 +1354,43 @@ client.on('interactionCreate', async (interaction) => {
 
     if (customId === 'btn_verify_twitch_sub') {
       try {
-        const modal = new ModalBuilder()
-          .setCustomId('modal_verify_twitch')
-          .setTitle('🟣 Twitch Follow Verification [BETA]');
-
-        const twitchInput = new TextInputBuilder()
-          .setCustomId('input_twitch_user')
-          .setLabel('Your Twitch Username')
-          .setStyle(TextInputStyle.Short)
-          .setPlaceholder('e.g. kryloplaysmc or your_twitch_name')
-          .setMinLength(2)
-          .setMaxLength(30)
-          .setRequired(true);
-
-        modal.addComponents(new ActionRowBuilder().addComponents(twitchInput));
-        return await interaction.showModal(modal);
+        await interaction.deferReply({ ephemeral: true }).catch(err => console.error('[Twitch Verify] deferReply error:', err));
+        const item = generateVerificationCode(interaction.user.id, interaction.user.tag || interaction.user.username);
+        const payload = buildVerificationResponse(item);
+        return await interaction.editReply(payload);
       } catch (err) {
         console.error('[Twitch Verify Button Error]', err);
-        return await interaction.reply({ content: '❌ Error opening verification modal: ' + err.message, ephemeral: true }).catch(() => {});
+        return await interaction.editReply({ content: '❌ Error generating verification code: ' + err.message }).catch(() => {});
+      }
+    }
+
+    if (customId.startsWith('btn_twitch_toggle_nick_')) {
+      try {
+        await interaction.deferUpdate().catch(() => {});
+        const updated = toggleNicknameSync(interaction.user.id);
+        if (!updated) {
+          return await interaction.followUp({ content: '❌ No active verification code found. Please click "Verify Twitch" to generate a code first!', ephemeral: true });
+        }
+        const payload = buildVerificationResponse(updated);
+        return await interaction.editReply(payload);
+      } catch (err) {
+        console.error('[Twitch Toggle Nick Error]', err);
+        return;
+      }
+    }
+
+    if (customId.startsWith('btn_twitch_regen_')) {
+      try {
+        await interaction.deferUpdate().catch(() => {});
+        const active = getActiveCodeForUser(interaction.user.id);
+        const syncNick = active ? active.syncNickname : false;
+        const item = generateVerificationCode(interaction.user.id, interaction.user.tag || interaction.user.username, syncNick);
+        item.expiresAt = Date.now() + 15 * 60 * 1000;
+        const payload = buildVerificationResponse(item);
+        return await interaction.editReply(payload);
+      } catch (err) {
+        console.error('[Twitch Regen Code Error]', err);
+        return;
       }
     }
 
@@ -2947,6 +2967,7 @@ client.on('interactionCreate', async (interaction) => {
 
     // Universal Fallback for any unhandled button
     if (!interaction.replied && !interaction.deferred) {
+      if (customId.startsWith('btn_twitch_')) return;
       if (customId.startsWith('btn_ctrl_')) {
         return await handleVideoCrewInteraction(interaction);
       }
@@ -10261,8 +10282,8 @@ if (token && token !== 'YOUR_DISCORD_TOKEN') {
   console.log('[!] DISCORD_TOKEN is missing or mock. Add a valid Discord Bot Token in the .env file to start the bot.');
 }
 
-// Initialize Krims Code Twitch Chatbot (if configured in .env)
-initTwitchBot().catch(err => console.error('[TwitchBot] Initialization error:', err));
+// Initialize Krims Code Twitch Chatbot (supports anonymous stream chat listener for instant verification)
+initTwitchBot(client).catch(err => console.error('[TwitchBot] Initialization error:', err));
 
 // Global process error handlers to prevent crashes on Discord API timeouts/errors
 process.on('uncaughtException', (err) => {

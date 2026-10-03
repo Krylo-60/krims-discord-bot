@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
+import { processTwitchChatCode } from './twitchVerificationEngine.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -140,36 +141,55 @@ export async function leaveChannel(channelName) {
   return { success: true, channel: cleanName };
 }
 
-export async function initTwitchBot() {
+let globalDiscordClient = null;
+
+export async function initTwitchBot(discordClient = null) {
+  if (discordClient) globalDiscordClient = discordClient;
   const botUsername = process.env.TWITCH_BOT_USERNAME || 'kryloplaysmc';
   const token = process.env.TWITCH_OAUTH_TOKEN;
   const homeChannel = process.env.TWITCH_CHANNEL || 'kryloplaysmc';
 
-  if (!token) {
-    console.log('[TwitchBot] 🟣 Twitch integration ready! Set TWITCH_OAUTH_TOKEN in .env to connect.');
-    return null;
-  }
-
   const initialChannels = loadChannels(homeChannel);
-  const formattedToken = token.startsWith('oauth:') ? token : `oauth:${token}`;
+  const formattedToken = token ? (token.startsWith('oauth:') ? token : `oauth:${token}`) : null;
 
-  const client = new tmi.Client({
+  const clientOptions = {
     options: { debug: false },
     connection: {
       reconnect: true,
       secure: true
     },
-    identity: {
+    channels: initialChannels
+  };
+
+  if (token && formattedToken) {
+    clientOptions.identity = {
       username: botUsername.toLowerCase(),
       password: formattedToken
-    },
-    channels: initialChannels
-  });
+    };
+  }
 
+  const client = new tmi.Client(clientOptions);
   globalTwitchClient = client;
 
+  // Safe wrapper for client.say to prevent crashes when running in anonymous listener mode
+  const rawSay = client.say.bind(client);
+  client.say = async (channel, message) => {
+    if (process.env.TWITCH_OAUTH_TOKEN) {
+      try {
+        return await rawSay(channel, message);
+      } catch (e) {
+        console.error('[TwitchBot Say Error]', e.message);
+      }
+    }
+    return Promise.resolve();
+  };
+
   client.on('connected', (addr, port) => {
-    console.log(`[TwitchBot] 🟣 Public Bot active! Connected as ${botUsername} in ${initialChannels.length} channels: ${initialChannels.join(', ')}`);
+    if (token) {
+      console.log(`[TwitchBot] 🟣 Public Bot active! Connected as ${botUsername} in ${initialChannels.length} channels: ${initialChannels.join(', ')}`);
+    } else {
+      console.log(`[TwitchBot] 🟣 Anonymous Chat Listener active in ${initialChannels.length} channel(s): ${initialChannels.join(', ')} (Real-time Stream Verification Ready!)`);
+    }
   });
 
   client.on('message', async (targetChannel, tags, message, self) => {
@@ -188,6 +208,38 @@ export async function initTwitchBot() {
     const trimmed = message.trim();
     const args = trimmed.split(' ');
     const cmd = args[0].toLowerCase();
+
+    // === Twitch Stream Verification Command ===
+    // Matches: !link <code>, !verify <code>, or direct <code> (e.g. SKY-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX)
+    const codeMatch = trimmed.match(/\b(sky-[a-z0-9-]+)\b/i);
+    if (cmd === '!link' || cmd === '!verify' || codeMatch) {
+      const targetCode = (cmd === '!link' || cmd === '!verify') ? (args[1] || (codeMatch ? codeMatch[1] : '')) : (codeMatch ? codeMatch[1] : cmd);
+      if (targetCode && targetCode.toLowerCase().startsWith('sky-')) {
+        try {
+          const res = await processTwitchChatCode(username, displayName, targetCode, globalDiscordClient);
+          if (res.success) {
+            console.log(`[TwitchBot] ✅ Successfully verified Twitch ${displayName} -> Discord @${res.entry.discordTag}`);
+            let replyMsg = `🎉 @${displayName} Verification successful! Your Twitch account is now linked to Discord user @${res.entry.discordTag}! Supporter role equipped! 👑🟣`;
+            if (res.nicknameStatus === 'blocked_krylo') {
+              replyMsg += ` (Note: Discord nickname was kept because 'Krylo' is a protected name)`;
+            } else if (res.nicknameStatus === 'updated') {
+              replyMsg += ` (Discord nickname updated to "${displayName}")`;
+            }
+            client.say(targetChannel, replyMsg);
+          } else {
+            console.log(`[TwitchBot] Verification attempt by ${displayName} with code "${targetCode}": ${res.reason}`);
+            if (res.reason === 'invalid_code') {
+              client.say(targetChannel, `@${displayName} Invalid or unknown verification code! Click "Verify Twitch" in Discord #🟣・𝗍𝗐𝗂𝗍𝖼𝗁-𝗏𝖾𝗋𝗂𝖿𝗒 to get your unique code.`);
+            } else if (res.reason === 'code_expired') {
+              client.say(targetChannel, `@${displayName} Verification code has expired. Please get a fresh code in Discord!`);
+            }
+          }
+        } catch (verErr) {
+          console.error('[TwitchBot] Verification error:', verErr);
+        }
+        return;
+      }
+    }
 
     // 0. Public Multi-Channel Commands: !join and !leave
     if (cmd === '!join') {
