@@ -1344,6 +1344,39 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
 
+    if (customId === 'btn_verify_twitch_sub') {
+      try {
+        const modal = new ModalBuilder()
+          .setCustomId('modal_verify_twitch')
+          .setTitle('🟣 Twitch Follow Verification [BETA]');
+
+        const twitchInput = new TextInputBuilder()
+          .setCustomId('input_twitch_user')
+          .setLabel('Your Twitch Username')
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder('e.g. kryloplaysmc or your_twitch_name')
+          .setMinLength(2)
+          .setMaxLength(30)
+          .setRequired(true);
+
+        modal.addComponents(new ActionRowBuilder().addComponents(twitchInput));
+        return await interaction.showModal(modal);
+      } catch (err) {
+        console.error('[Twitch Verify Button Error]', err);
+        return await interaction.reply({ content: '❌ Error opening verification modal: ' + err.message, ephemeral: true }).catch(() => {});
+      }
+    }
+
+    if (customId === 'btn_twitch_beta_faq') {
+      return await interaction.reply({
+        content: 
+          `🟣 **Why is Twitch Verification in Beta?**\n\n` +
+          `Krylo is currently setting up custom stream graphics, overlays, and video project schedules before doing the first official live stream on Twitch (**kryloplaysmc**)!\n\n` +
+          `By dropping a follow and verifying now during the **Beta**, you lock in early founder perks, the hoisted **🟣 Skybase • Subbed to Krylo on Twitch** role, and starting bonus KryloCoins in chat before the first stream begins! 🚀`,
+        ephemeral: true
+      });
+    }
+
     if (customId.startsWith('pronoun_')) {
       try {
         await interaction.deferReply({ ephemeral: true }).catch(err => console.error('[Pronoun] deferReply error:', err));
@@ -2923,6 +2956,76 @@ client.on('interactionCreate', async (interaction) => {
 
   if (interaction.isModalSubmit()) {
     const { customId } = interaction;
+
+    // --- Twitch Beta Follower Verification Modal ---
+    if (customId === 'modal_verify_twitch') {
+      await interaction.deferReply({ ephemeral: true });
+      const twitchUser = interaction.fields.getTextInputValue('input_twitch_user')?.trim();
+      const guild = interaction.guild;
+      if (!guild) return interaction.editReply('❌ This must be done inside the server.');
+
+      let member = interaction.member;
+      if (!member || !member.roles || !member.roles.cache) {
+        member = await guild.members.fetch(interaction.user.id).catch(() => null);
+      }
+      if (!member) return interaction.editReply('❌ Member not found in server.');
+
+      const TWITCH_SUB_ROLE_ID = '1552083351953866845'; // 🟣 Skybase • Subbed to Krylo on Twitch
+      const TWITCH_CONN_ROLE_ID = '1552083350876061756'; // 🔗 Twitch Connected
+      const YT_SUB_ROLE_ID = '1549918001380331632'; // 🔴 Skybase • Subbed to Krylo on YouTube
+
+      try {
+        await member.roles.add([TWITCH_SUB_ROLE_ID, TWITCH_CONN_ROLE_ID]);
+
+        // Save to data/twitch-beta-supporters.json
+        const betaFile = path.join(process.cwd(), 'data', 'twitch-beta-supporters.json');
+        let betaData = {};
+        try {
+          if (fs.existsSync(betaFile)) betaData = JSON.parse(fs.readFileSync(betaFile, 'utf8'));
+        } catch (e) {}
+        betaData[interaction.user.id] = {
+          discordId: interaction.user.id,
+          discordTag: interaction.user.tag || interaction.user.username,
+          twitchUsername: twitchUser,
+          verifiedAt: new Date().toISOString()
+        };
+        try {
+          fs.writeFileSync(betaFile, JSON.stringify(betaData, null, 2), 'utf8');
+        } catch (e) {}
+
+        const hasYt = member.roles.cache.has(YT_SUB_ROLE_ID);
+
+        const embed = new EmbedBuilder()
+          .setColor(0x9146FF)
+          .setTitle('🎉 Twitch Follow Verified! [BETA]')
+          .setDescription(
+            `Welcome aboard, **${twitchUser}**! You have officially verified your support for **[kryloplaysmc](https://twitch.tv/kryloplaysmc)**!\n\n` +
+            `**🎁 Roles Equipped to Your Profile:**\n` +
+            `• <@&${TWITCH_SUB_ROLE_ID}> — Hoisted with pride near the top of the member list!\n` +
+            `• <@&${TWITCH_CONN_ROLE_ID}> — Verified badge showcased on your Discord profile.\n\n` +
+            (hasYt 
+              ? `⭐ **DUAL SUPPORTER UNLOCKED!** You are verified on BOTH **YouTube** (<@&${YT_SUB_ROLE_ID}>) & **Twitch** (<@&${TWITCH_SUB_ROLE_ID}>)! You are an official Skybase Elite Supporter! 👑\n\n`
+              : `💡 *Tip: Subscribe to Krylo on YouTube in <#1549918052513095682> to unlock Dual Supporter status!*\n\n`) +
+            `*Thank you for supporting Krylo early during the Twitch Beta phase!*`
+          )
+          .setFooter({ text: "Krylo's Skybase • Twitch Beta Verification" })
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
+
+        // Log to Warden Deck
+        const wardenDeck = guild.channels.cache.get('1549883558208868373');
+        if (wardenDeck) {
+          wardenDeck.send({
+            content: `🟣 **[Twitch Beta Verification]** <@${interaction.user.id}> linked Twitch username **\`${twitchUser}\`** and claimed <@&${TWITCH_SUB_ROLE_ID}>! ${hasYt ? '⭐ *(Dual Supporter!)*' : ''}`
+          }).catch(() => {});
+        }
+      } catch (err) {
+        console.error('[Twitch Verify Modal Error]', err);
+        return interaction.editReply(`❌ Error equipping roles: ${err.message}`);
+      }
+      return;
+    }
 
     // --- Custom Bot Personalizer Modal Submission ---
     if (customId === 'modal_setup_custom_bot') {
