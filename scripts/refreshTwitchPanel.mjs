@@ -25,7 +25,7 @@ if (channel) {
       `✨ As soon as our Twitch bot sees your code in stream chat, your Twitch account is linked to your Discord profile and your roles are equipped instantly!\n\n` +
       `🎁 **Unlocked Rewards & Roles:**\n` +
       `• <@&1555976589336903696> — **Twitch Follower** *(Free for following Krylo!)*\n` +
-      `• <@&1552083350876061756> — **[Twitch Connected](https://discord.com/channels/@me)** *(Showcase badge on your profile!)*\n` +
+      `• <@&1552083350876061756> — **Twitch Connected** *(Showcase badge on your profile!)*\n` +
       `• <@&1552083351953866845> — **Twitch Subscribed** *(Exclusive VIP role for **[Paid & Prime Subscribers](https://www.twitch.tv/subs/kryloplaysmc)** — Hoisted + direct \`@Krylo\` mention privileges!)*\n` +
       `• +250 Bonus KryloCoins in stream chat (+500 for **[Paid Subscribers](https://www.twitch.tv/subs/kryloplaysmc)**)!\n` +
       `• ⭐ **Dual Supporter Status** if you are also subscribed on YouTube in <#1549918052513095682>!\n\n` +
