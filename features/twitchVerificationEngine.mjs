@@ -357,18 +357,19 @@ export function buildVerificationResponse(item) {
     .setColor(0x9146FF)
     .setTitle('🟣 Twitch Stream Chat Verification')
     .setDescription(
-      `To ensure total security and guarantee that you actually own your Twitch account, verification is done directly in the stream chat!\n\n` +
+      `To ensure total security and guarantee that you actually own your Twitch account, verification connects directly through **[Twitch Stream Chat](https://twitch.tv/kryloplaysmc)**!\n\n` +
       `🔑 **Your Secure One-Time Code:**\n` +
       `# \`${item.code}\`\n` +
       `⏳ **Code Expires:** <t:${expiresTimestamp}:R> (<t:${expiresTimestamp}:t>)\n\n` +
       `📋 **How to Verify in 2 Easy Steps:**\n` +
-      `1. Open Krylo's Twitch channel: **[twitch.tv/kryloplaysmc](https://twitch.tv/kryloplaysmc)**\n` +
-      `2. Type this exact command in the stream chat:\n` +
+      `1️⃣ Open Krylo's Twitch stream: **[twitch.tv/kryloplaysmc](https://twitch.tv/kryloplaysmc)**\n` +
+      `2️⃣ Send this exact command in the **[Live Chat](https://twitch.tv/kryloplaysmc)**:\n` +
       `   \`!link ${item.code}\`  *(or \`!verify ${item.code}\`)*\n\n` +
       `✨ As soon as you send that in chat, our Twitch bot will match your code, verify your account, and instantly equip:\n` +
-      `• <@&${TWITCH_FOLLOW_ROLE_ID}> *(Twitch Follower)*\n` +
-      `• <@&${TWITCH_CONN_ROLE_ID}> *(Twitch Connected Showoff)*\n` +
-      `⭐ *If you are an active paid/Prime Twitch Subscriber, you will also automatically receive the exclusive <@&${TWITCH_SUB_ROLE_ID}> role!*\n\n` +
+      `• <@&${TWITCH_FOLLOW_ROLE_ID}> ➔ **[Twitch Follower](https://twitch.tv/kryloplaysmc)** *(Free)*\n` +
+      `• <@&${TWITCH_CONN_ROLE_ID}> ➔ **[Twitch Connected](https://discord.com/channels/@me)** *(Showcase Badge)*\n` +
+      `⭐ *If you are an active paid/Prime Twitch Subscriber, you will also automatically receive the exclusive <@&${TWITCH_SUB_ROLE_ID}> role! (Subscribe at **[twitch.tv/subs/kryloplaysmc](https://www.twitch.tv/subs/kryloplaysmc)**)*\n\n` +
+      `🔗 **Quick Links:** **[Roles & Perks Directory](https://discord.com/channels/${SKYBASE_GUILD_ID}/1549882278245564546)** • **[YouTube Verify](https://discord.com/channels/${SKYBASE_GUILD_ID}/1549918052513095682)** • **[Server Rules](https://discord.com/channels/${SKYBASE_GUILD_ID}/1549882276278435841)**\n\n` +
       `🏷️ **Server Nickname Sync:** ${item.syncNickname ? '🟢 **ENABLED**' : '⚪ **DISABLED**'}\n` +
       `*When enabled, your Discord nickname will automatically match your Twitch display name upon verification.*\n` +
       `🛡️ *Security Rule: Any Twitch name containing "Krylo" cannot be set as a nickname to prevent impersonation.*`
