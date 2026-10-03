@@ -234,12 +234,12 @@ export async function processTwitchChatCode(twitchUsername, twitchDisplayName, r
           // 3. Check for Dual Supporter status (YouTube + Twitch)
           const hasYt = memberObj.roles.cache.has(YT_SUB_ROLE_ID);
 
-          // 4. Send announcement to #🟣・𝗍𝗐𝗂𝗍𝖼𝗁-𝗏𝖾𝗋𝗂𝖿𝗒
-          const verifyChannel = guild.channels.cache.get(TWITCH_VERIFY_CHANNEL_ID) || await guild.channels.fetch(TWITCH_VERIFY_CHANNEL_ID).catch(() => null);
-          if (verifyChannel) {
+          // 4. Send verification completion embed ONLY to Warden Deck (Owner, Admins & Mods)
+          const wardenDeck = guild.channels.cache.get(WARDEN_DECK_CHANNEL_ID) || await guild.channels.fetch(WARDEN_DECK_CHANNEL_ID).catch(() => null);
+          if (wardenDeck) {
             const verifyEmbed = new EmbedBuilder()
               .setColor(0x9146FF)
-              .setTitle('🎉 Twitch Stream Verification Complete!')
+              .setTitle('🎉 Twitch Stream Verification Complete! [STAFF AUDIT]')
               .setDescription(
                 `A member has securely linked their Twitch account via live stream chat!\n\n` +
                 `👤 **Discord Member:** <@${item.discordId}> (\`${item.discordTag}\`)\n` +
@@ -254,18 +254,10 @@ export async function processTwitchChatCode(twitchUsername, twitchDisplayName, r
                   : '') +
                 (hasYt ? `⭐ **DUAL SUPPORTER UNLOCKED!** Verified on both YouTube & Twitch! 👑\n` : '')
               )
-              .setFooter({ text: "Krylo's Skybase • Stream Chat Verification" })
+              .setFooter({ text: "Krylo's Skybase • Staff Audit Log" })
               .setTimestamp();
 
-            verifyChannel.send({ embeds: [verifyEmbed] }).catch(() => {});
-          }
-
-          // 5. Send log to Warden Deck
-          const wardenDeck = guild.channels.cache.get(WARDEN_DECK_CHANNEL_ID) || await guild.channels.fetch(WARDEN_DECK_CHANNEL_ID).catch(() => null);
-          if (wardenDeck) {
-            wardenDeck.send({
-              content: `🟣 **[Twitch Stream Verification]** <@${item.discordId}> entered code \`${cleanCode}\` in Twitch chat. Linked to **${twitchDisplayName}** (\`${twitchUsername}\`)! Nickname: \`${nicknameStatus}\``
-            }).catch(() => {});
+            wardenDeck.send({ embeds: [verifyEmbed] }).catch(() => {});
           }
         }
       }
