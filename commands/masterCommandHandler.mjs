@@ -593,6 +593,74 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       return await interaction.editReply({ embeds: [embed] });
     }
 
+    if (commandName === 'verifytwitch') {
+      await interaction.deferReply({ ephemeral: true });
+      const twitchUser = interaction.options.getString('username')?.trim();
+      const guild = interaction.guild;
+      if (!guild) return interaction.editReply('❌ This command must be used inside the server.');
+
+      let member = interaction.member;
+      if (!member || !member.roles || !member.roles.cache) {
+        member = await guild.members.fetch(interaction.user.id).catch(() => null);
+      }
+      if (!member) return interaction.editReply('❌ Member not found in server.');
+
+      const TWITCH_SUB_ROLE_ID = '1552083351953866845'; // 🟣 Skybase • Subbed to Krylo on Twitch
+      const TWITCH_CONN_ROLE_ID = '1552083350876061756'; // 🔗 Twitch Connected
+      const YT_SUB_ROLE_ID = '1549918001380331632'; // 🔴 Skybase • Subbed to Krylo on YouTube
+
+      try {
+        await member.roles.add(TWITCH_SUB_ROLE_ID);
+
+        // Save to data/twitch-beta-supporters.json
+        const betaFile = path.join(process.cwd(), 'data', 'twitch-beta-supporters.json');
+        let betaData = {};
+        try {
+          if (fs.existsSync(betaFile)) betaData = JSON.parse(fs.readFileSync(betaFile, 'utf8'));
+        } catch (e) {}
+        betaData[interaction.user.id] = {
+          discordId: interaction.user.id,
+          discordTag: interaction.user.tag || interaction.user.username,
+          twitchUsername: twitchUser,
+          verifiedAt: new Date().toISOString()
+        };
+        try {
+          fs.writeFileSync(betaFile, JSON.stringify(betaData, null, 2), 'utf8');
+        } catch (e) {}
+
+        const hasYt = member.roles.cache.has(YT_SUB_ROLE_ID);
+
+        const embed = new EmbedBuilder()
+          .setColor(0x9146FF)
+          .setTitle('🎉 Twitch Follow Verified! [BETA]')
+          .setDescription(
+            `Welcome aboard, **${twitchUser}**! You have officially verified your support for **[kryloplaysmc](https://twitch.tv/kryloplaysmc)**!\n\n` +
+            `**🎁 Role Equipped to Your Profile:**\n` +
+            `• <@&${TWITCH_SUB_ROLE_ID}> — Hoisted with pride near the top of the member list!\n\n` +
+            (hasYt 
+              ? `⭐ **DUAL SUPPORTER UNLOCKED!** You are verified on BOTH **YouTube** (<@&${YT_SUB_ROLE_ID}>) & **Twitch** (<@&${TWITCH_SUB_ROLE_ID}>)! You are an official Skybase Elite Supporter! 👑\n\n`
+              : `💡 *Tip: Subscribe to Krylo on YouTube in <#1549918052513095682> to unlock Dual Supporter status!*\n\n`) +
+            `*Thank you for supporting Krylo early during the Twitch Beta phase!*`
+          )
+          .setFooter({ text: "Krylo's Skybase • Twitch Beta Verification" })
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
+
+        // Log to Warden Deck
+        const wardenDeck = guild.channels.cache.get('1549883558208868373');
+        if (wardenDeck) {
+          wardenDeck.send({
+            content: `🟣 **[Twitch Beta Verification]** <@${interaction.user.id}> linked Twitch username **\`${twitchUser}\`** and claimed <@&${TWITCH_SUB_ROLE_ID}>! ${hasYt ? '⭐ *(Dual Supporter!)*' : ''}`
+          }).catch(() => {});
+        }
+      } catch (err) {
+        console.error('[Twitch Verify Command Error]', err);
+        return interaction.editReply(`❌ Error equipping roles: ${err.message}`);
+      }
+      return;
+    }
+
     if (commandName === 'verify') {
       await interaction.deferReply({ ephemeral: true });
 

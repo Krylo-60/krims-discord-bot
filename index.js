@@ -2982,7 +2982,7 @@ client.on('interactionCreate', async (interaction) => {
       const YT_SUB_ROLE_ID = '1549918001380331632'; // 🔴 Skybase • Subbed to Krylo on YouTube
 
       try {
-        await member.roles.add([TWITCH_SUB_ROLE_ID, TWITCH_CONN_ROLE_ID]);
+        await member.roles.add(TWITCH_SUB_ROLE_ID);
 
         // Save to data/twitch-beta-supporters.json
         const betaFile = path.join(process.cwd(), 'data', 'twitch-beta-supporters.json');
