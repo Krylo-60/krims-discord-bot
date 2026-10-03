@@ -215,6 +215,13 @@ export async function initTwitchBot(discordClient = null) {
     if (cmd === '!link' || cmd === '!verify' || codeMatch) {
       const targetCode = (cmd === '!link' || cmd === '!verify') ? (args[1] || (codeMatch ? codeMatch[1] : '')) : (codeMatch ? codeMatch[1] : cmd);
       if (targetCode && targetCode.toLowerCase().startsWith('sky-')) {
+        // Auto-delete the message from stream chat so no one else sees or copies the code!
+        if (tags && tags.id && process.env.TWITCH_OAUTH_TOKEN) {
+          try {
+            client.deletemessage(targetChannel, tags.id).catch(() => {});
+          } catch (delErr) {}
+        }
+
         try {
           const res = await processTwitchChatCode(username, displayName, targetCode, globalDiscordClient);
           if (res.success) {
