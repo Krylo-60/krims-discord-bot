@@ -47,7 +47,7 @@ import {
 } from '../databaseEngine.mjs';
 import { joinVoice, leaveVoice, getVoiceStatus } from '../voiceEngine.mjs';
 import { STORE_CATALOG } from '../storeDeliveryEngine.mjs';
-import { generateVerificationCode, buildVerificationResponse } from '../features/twitchVerificationEngine.mjs';
+import { generateVerificationCode, buildVerificationResponse, getPendingCodesList, loadSupporters } from '../features/twitchVerificationEngine.mjs';
 
 const KRYLO_USER_ID = '1414143825538191373';
 
@@ -575,6 +575,17 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
 
       const dualList = dualMembers.map(m => `<@${m.id}>`).slice(0, 15).join(', ') || '*No dual supporters verified yet — be the first!*';
 
+      const pendingCodes = getPendingCodesList();
+      const isStaffOrOwner = interaction.user.id === KRYLO_USER_ID || (interaction.member?.permissions && interaction.member.permissions.has(PermissionFlagsBits.ManageGuild));
+
+      let pendingDisplay = '';
+      if (isStaffOrOwner && pendingCodes.length > 0) {
+        pendingDisplay = `\n⏳ **Live Pending Codes (${pendingCodes.length}):**\n` +
+          pendingCodes.map(p => `• <@${p.discordId}>: \`${p.code}\` (<t:${Math.floor(p.expiresAt / 1000)}:R>)`).join('\n');
+      } else {
+        pendingDisplay = `\n⏳ **Active Pending Codes:** \`${pendingCodes.length}\` waiting for stream chat entry`;
+      }
+
       const embed = new EmbedBuilder()
         .setColor(0x00E5FF)
         .setTitle('📊 Krylo\'s Skybase — Creator Supporter Telemetry')
@@ -583,7 +594,8 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
           `🔴 **YouTube Subscribers:** \`${ytMembers.size}\` verified members\n` +
           `🟣 **Twitch Followers [BETA]:** \`${twitchMembers.size}\` verified members\n` +
-          `⭐ **Dual Supporters (Both YT + Twitch):** \`${dualMembers.size}\` members\n\n` +
+          `⭐ **Dual Supporters (Both YT + Twitch):** \`${dualMembers.size}\` members\n` +
+          pendingDisplay + `\n\n` +
           `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
           `**👑 Featured Dual Supporters:**\n${dualList}\n\n` +
           `👉 *Verify YouTube in <#1549918052513095682> and Twitch in <#1555933857037951127>!*`
@@ -599,6 +611,16 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         await interaction.deferReply({ ephemeral: true }).catch(err => console.error('[Twitch Verify] deferReply error:', err));
         const item = generateVerificationCode(interaction.user.id, interaction.user.tag || interaction.user.username);
         const payload = buildVerificationResponse(item);
+
+        try {
+          const wardenDeck = interaction.guild?.channels?.cache?.get('1549883558208868373') || await interaction.guild?.channels?.fetch('1549883558208868373').catch(() => null);
+          if (wardenDeck) {
+            wardenDeck.send({
+              content: `🔑 **[Twitch Code Generated]** <@${interaction.user.id}> generated verification code \`${item.code}\` (Expires in 15m). Awaiting entry in stream chat.`
+            }).catch(() => {});
+          }
+        } catch (e) {}
+
         return await interaction.editReply(payload);
       } catch (err) {
         console.error('[Twitch Verify Command Error]', err);

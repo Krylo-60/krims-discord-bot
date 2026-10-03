@@ -144,6 +144,22 @@ export function getActiveCodeForUser(discordId) {
 }
 
 /**
+ * Get all active pending codes
+ */
+export function getPendingCodesList() {
+  const now = Date.now();
+  const list = [];
+  for (const [code, item] of pendingVerifications.entries()) {
+    if (item.expiresAt > now) {
+      list.push(item);
+    } else {
+      pendingVerifications.delete(code);
+    }
+  }
+  return list;
+}
+
+/**
  * Process verification code received from Twitch stream chat
  */
 export async function processTwitchChatCode(twitchUsername, twitchDisplayName, rawCode, discordClient) {
