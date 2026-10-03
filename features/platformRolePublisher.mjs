@@ -109,6 +109,12 @@ export async function syncRolesChannelEmbed(token) {
           {
             type: 2, // BUTTON
             style: 5, // LINK
+            label: '🎬 Krylo on YouTube',
+            url: 'https://www.youtube.com/@krylomcyt?sub_confirmation=1'
+          },
+          {
+            type: 2, // BUTTON
+            style: 5, // LINK
             label: '🎮 Krylo on Twitch',
             url: 'https://twitch.tv/kryloplaysmc'
           }
