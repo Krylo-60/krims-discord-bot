@@ -12,6 +12,7 @@ const ROLES_CHANNEL_ID = '1549882278245564546';
 const ROLES_MESSAGE_ID = '1549882354074521712';
 const VERIFY_CHANNEL_ID = '1549918052513095682';
 const VERIFY_MESSAGE_ID = '1550176534688440362';
+const TWITCH_VERIFY_CHANNEL_ID = '1555933857037951127';
 
 const TWITCH_SUB_ROLE_ID = '1552083351953866845';
 const TWITCH_CONN_ROLE_ID = '1552083350876061756';
@@ -72,7 +73,7 @@ export async function syncRolesChannelEmbed(token) {
       supporterValue += `\n<@&${SPOTIFY_VIP_ROLE_ID}> ↠ Followers of **Krylo on Spotify**!\n`;
     }
 
-    supporterValue += `\n👉 *Link your accounts in Discord Settings ➔ Connections, or claim subscriber roles in <#${VERIFY_CHANNEL_ID}>!*\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+    supporterValue += `\n👉 *Claim YouTube Sub in <#${VERIFY_CHANNEL_ID}> and Twitch roles in <#${TWITCH_VERIFY_CHANNEL_ID}>!*\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
     // Robust field search for any variation of supporter field title
     const supporterFieldIndex = embed.fields.findIndex(f => 
@@ -89,13 +90,39 @@ export async function syncRolesChannelEmbed(token) {
       embed.fields[supporterFieldIndex].value = supporterValue;
     }
 
+    const components = [
+      {
+        type: 1, // ACTION_ROW
+        components: [
+          {
+            type: 2, // BUTTON
+            style: 5, // LINK
+            label: '🔴 Claim YouTube Sub',
+            url: `https://discord.com/channels/${GUILD_ID}/${VERIFY_CHANNEL_ID}`
+          },
+          {
+            type: 2, // BUTTON
+            style: 5, // LINK
+            label: '🟣 Claim Twitch Roles',
+            url: `https://discord.com/channels/${GUILD_ID}/${TWITCH_VERIFY_CHANNEL_ID}`
+          },
+          {
+            type: 2, // BUTTON
+            style: 5, // LINK
+            label: '🎮 Krylo on Twitch',
+            url: 'https://twitch.tv/kryloplaysmc'
+          }
+        ]
+      }
+    ];
+
     const patchRes = await fetch(`https://discord.com/api/v10/channels/${ROLES_CHANNEL_ID}/messages/${ROLES_MESSAGE_ID}`, {
       method: 'PATCH',
       headers: {
         Authorization: `Bot ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ embeds: [embed] })
+      body: JSON.stringify({ embeds: [embed], components })
     });
     return patchRes.ok;
   } catch (e) {
