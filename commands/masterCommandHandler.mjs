@@ -557,6 +557,42 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       return await interaction.reply({ embeds: [embed] });
     }
 
+    if (commandName === 'supporters') {
+      await interaction.deferReply();
+      const guild = interaction.guild;
+      if (!guild) return interaction.editReply('❌ This command must be used inside the server.');
+
+      await guild.members.fetch().catch(() => null);
+
+      const YT_ROLE = '1549918001380331632'; // 🔴 Skybase • Subbed to Krylo on YouTube
+      const TWITCH_ROLE = '1552083351953866845'; // 🟣 Skybase • Subbed to Krylo on Twitch
+      const TWITCH_CONN_ROLE = '1552083350876061756'; // 🔗 Twitch Connected
+
+      const ytMembers = guild.members.cache.filter(m => m.roles.cache.has(YT_ROLE));
+      const twitchMembers = guild.members.cache.filter(m => m.roles.cache.has(TWITCH_ROLE) || m.roles.cache.has(TWITCH_CONN_ROLE));
+      const dualMembers = guild.members.cache.filter(m => m.roles.cache.has(YT_ROLE) && (m.roles.cache.has(TWITCH_ROLE) || m.roles.cache.has(TWITCH_CONN_ROLE)));
+
+      const dualList = dualMembers.map(m => `<@${m.id}>`).slice(0, 15).join(', ') || '*No dual supporters verified yet — be the first!*';
+
+      const embed = new EmbedBuilder()
+        .setColor(0x00E5FF)
+        .setTitle('📊 Krylo\'s Skybase — Creator Supporter Telemetry')
+        .setDescription(
+          `Real-time cross-platform supporter breakdown across YouTube & Twitch!\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+          `🔴 **YouTube Subscribers:** \`${ytMembers.size}\` verified members\n` +
+          `🟣 **Twitch Followers [BETA]:** \`${twitchMembers.size}\` verified members\n` +
+          `⭐ **Dual Supporters (Both YT + Twitch):** \`${dualMembers.size}\` members\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+          `**👑 Featured Dual Supporters:**\n${dualList}\n\n` +
+          `👉 *Verify YouTube in <#1549918052513095682> and Twitch in <#1555933857037951127>!*`
+        )
+        .setFooter({ text: "Krylo's Skybase • Community Analytics" })
+        .setTimestamp();
+
+      return await interaction.editReply({ embeds: [embed] });
+    }
+
     if (commandName === 'verify') {
       await interaction.deferReply({ ephemeral: true });
 

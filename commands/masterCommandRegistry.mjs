@@ -563,7 +563,11 @@ export const masterCommandBuilders = [
         { name: 'Rare (500 KC)', value: 'rare' },
         { name: 'Epic (2,000 KC)', value: 'epic' },
         { name: 'Legendary (5,000 KC)', value: 'legendary' }
-      ))
+      )),
+
+  new SlashCommandBuilder()
+    .setName('supporters')
+    .setDescription('📊 View the live breakdown of YouTube Subscribers, Twitch Followers, and Dual Supporters!')
 ];
 
 /**
