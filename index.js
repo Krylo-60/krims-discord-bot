@@ -7280,12 +7280,13 @@ client.on('messageCreate', async (message) => {
                   `**<@${message.author.id}>, mentioning Krylo in public channels is strictly forbidden!**\n\n` +
                   `• **Status:** \`Strike 1 / 2\` — **Official Warning**\n` +
                   `• **Next Strike:** Mentioning Krylo again in public chat will result in an **immediate BAN**!\n\n` +
-                  `💬 **How to contact or unlock mentions:**\n` +
-                  `• **🟣 Twitch VIP Subscribers:** Subscribing to Krylo on Twitch unlocks mention privileges!\n` +
-                  `• **🔴 YouTube Subscribers:** Subscribing to Krylo on YouTube unlocks mention privileges!\n` +
-                  `• **🎖️ Level 30+ Privilege:** Members who reach **Level 30** (Apex Pilot / Stratosphere Elite) earn mention privileges!\n` +
-                  `• **Direct Message (DM):** You can DM Krylo directly!\n` +
-                  `• **Private Channels:** In designated channels where Krylo personally adds you.`
+                  `⛔ **CRITICAL SERVER RULE:**\n` +
+                  `**ONLY Level 30+ (<@&1549881446251106426>) and Twitch VIP Subscribers (<@&1552083351953866845>) are permitted to @Krylo!**\n` +
+                  `*Regular members pinging @Krylo without these roles will be automatically banned to protect chat from spam!*\n\n` +
+                  `💬 **How to unlock mentions:**\n` +
+                  `• **🟣 Twitch VIP Subscribers:** Subscribing to Krylo on Twitch in <#1555933857037951127> instantly unlocks mention privileges!\n` +
+                  `• **🎖️ Level 30+ Veterans:** Active chatters who reach Level 30 earn mention privileges!\n` +
+                  `• **Direct Message (DM):** You can DM Krylo directly!`
                 )
                 .setFooter({ text: 'Krylo\'s Skybase • Automated Protection' })
                 .setTimestamp();

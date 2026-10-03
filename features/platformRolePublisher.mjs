@@ -60,20 +60,20 @@ export async function syncRolesChannelEmbed(token) {
     // Build the supporter field dynamically with public connected badges
     let supporterValue = 
       `<@&1549918001380331632> ↠ Verified subscribers to **[Krylo on YouTube](https://www.youtube.com/@krylomcyt?sub_confirmation=1)**.\n` +
-      `<@&${TWITCH_SUB_ROLE_ID}> ↠ Verified subscribers to **[Krylo on Twitch](https://twitch.tv/kryloplaysmc)**.\n` +
-      `*(👑 **VIP Perks:** Hoisted in member list, direct @Krylo mention privileges & 500 bonus KryloCoins!)*\n` +
+      `<@&${TWITCH_SUB_ROLE_ID}> ↠ Verified subscribers to **[Krylo on Twitch](https://twitch.tv/kryloplaysmc)** *(👑 Hoisted VIP + 500 KC)*.\n` +
       `<@&1555976589336903696> ↠ Verified followers of **[kryloplaysmc](https://twitch.tv/kryloplaysmc)** on Twitch.\n` +
-      `<@&1549916920629825686> ↠ Dedicated Krylo fans & Skybase community supporters.\n\n` +
-      `**🔗 Connected Account Badges (Public Showcase):**\n` +
-      `<@&1549918000352600076> ↠ Connected YouTube profiles.\n` +
-      `<@&${TWITCH_CONN_ROLE_ID}> ↠ Connected Twitch accounts.\n` +
-      `<@&${SPOTIFY_CONN_ROLE_ID}> ↠ Connected Spotify accounts.\n`;
+      `<@&1549916920629825686> ↠ Dedicated Krylo fans & supporters.\n\n` +
+      `🚨 **ZERO-TOLERANCE @KRYLO PING POLICY:**\n` +
+      `⛔ **ONLY Level 30+ (<@&1549881446251106426>) & Twitch VIP Subs (<@&${TWITCH_SUB_ROLE_ID}>) can @Krylo!**\n` +
+      `*Anyone else pinging @Krylo in chat will be automatically banned for spam!*\n\n` +
+      `**🔗 Connected Showcase Badges:**\n` +
+      `<@&1549918000352600076> • <@&${TWITCH_CONN_ROLE_ID}> • <@&${SPOTIFY_CONN_ROLE_ID}>\n`;
 
     if (currentStatus.spotifyPublic) {
       supporterValue += `\n<@&${SPOTIFY_VIP_ROLE_ID}> ↠ Followers of **Krylo on Spotify**!\n`;
     }
 
-    supporterValue += `\n👉 *Claim YouTube Sub in <#${VERIFY_CHANNEL_ID}> and Twitch roles in <#${TWITCH_VERIFY_CHANNEL_ID}>!*\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+    supporterValue += `\n👉 *Claim YouTube Sub in <#${VERIFY_CHANNEL_ID}> & Twitch in <#${TWITCH_VERIFY_CHANNEL_ID}>!*\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
     // Robust field search for any variation of supporter field title
     const supporterFieldIndex = embed.fields.findIndex(f => 
@@ -88,6 +88,20 @@ export async function syncRolesChannelEmbed(token) {
         ? '🌟 YouTube, Twitch & Spotify Supporters' 
         : '🔴 YouTube & Krylo MC Supporters';
       embed.fields[supporterFieldIndex].value = supporterValue;
+    }
+
+    // Update Altitude Progression field to highlight Level 30 @Krylo privilege
+    const altitudeFieldIndex = embed.fields.findIndex(f => 
+      f.name.includes('Altitude') || f.name.includes('Activity Levels')
+    );
+    if (altitudeFieldIndex !== -1) {
+      embed.fields[altitudeFieldIndex].value = 
+        `<@&1549881446251106426> ↠ **Level 30** (Skybase Veterans) *(🎖️ **Perk:** Unlocks permission to mention @Krylo in chat — only Level 30+ & Twitch VIP Subs have this!)*\n` +
+        `<@&1549881447291293817> ↠ **Level 20** (Senior Aviators)\n` +
+        `<@&1549881448214036600> ↠ **Level 15** (Flight Officers)\n` +
+        `<@&1549881449757286431> ↠ **Level 5** (Base Navigators)\n` +
+        `<@&1549881450634149888> ↠ **Level 1** (Fresh Cadets)\n\n` +
+        `✨ *Levels are earned by actively chatting and hanging out in voice comms. Spamming does NOT increase XP!*`;
     }
 
     const components = [
@@ -130,6 +144,9 @@ export async function syncRolesChannelEmbed(token) {
       },
       body: JSON.stringify({ embeds: [embed], components })
     });
+    if (!patchRes.ok) {
+      console.error('[PlatformRoleStatus] Patch failed:', patchRes.status, await patchRes.text());
+    }
     return patchRes.ok;
   } catch (e) {
     console.error('[PlatformRoleStatus] Failed to sync roles embed:', e);
