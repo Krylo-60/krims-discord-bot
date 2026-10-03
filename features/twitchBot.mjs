@@ -223,10 +223,12 @@ export async function initTwitchBot(discordClient = null) {
         }
 
         try {
-          const res = await processTwitchChatCode(username, displayName, targetCode, globalDiscordClient);
+          const res = await processTwitchChatCode(username, displayName, targetCode, globalDiscordClient, tags);
           if (res.success) {
-            console.log(`[TwitchBot] ✅ Successfully verified Twitch ${displayName} -> Discord @${res.entry.discordTag}`);
-            let replyMsg = `🎉 @${displayName} Verification successful! Your Twitch account is now linked to Discord user @${res.entry.discordTag}! Supporter role equipped! 👑🟣`;
+            console.log(`[TwitchBot] ✅ Successfully verified Twitch ${displayName} (Sub: ${res.isSubscribed}) -> Discord @${res.entry.discordTag}`);
+            let replyMsg = res.isSubscribed
+              ? `🎉 @${displayName} Verification successful! Verified as an official Twitch SUBSCRIBER & FOLLOWER! VIP Sub & Follower roles equipped on Discord! 👑🟣`
+              : `🎉 @${displayName} Verification successful! Verified as an official Twitch FOLLOWER! Follower role equipped on Discord! 🟣 (Subscribe on Twitch anytime to unlock the VIP Subbed role!)`;
             if (res.nicknameStatus === 'blocked_krylo') {
               replyMsg += ` (Note: Discord nickname was kept because 'Krylo' is a protected name)`;
             } else if (res.nicknameStatus === 'updated') {

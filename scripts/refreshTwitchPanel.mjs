@@ -24,8 +24,10 @@ if (channel) {
       `   \`!verify SKY-XXXX\`  *(or \`!link SKY-XXXX\`)*\n\n` +
       `✨ As soon as our Twitch bot sees your code in stream chat, your Twitch account is linked to your Discord profile and your roles are equipped instantly!\n\n` +
       `🎁 **Unlocked Rewards & Roles:**\n` +
-      `• <@&1552083351953866845> — Hoisted near the top of the Skybase member list!\n` +
-      `• +250 Starting Bonus KryloCoins in stream chat!\n` +
+      `• <@&1555976589336903696> — **Twitch Follower** (Free for all followers!)\n` +
+      `• <@&1552083350876061756> — **Twitch Connected** (Showoff connection badge on your profile!)\n` +
+      `• <@&1552083351953866845> — **Twitch Subscribed** (Exclusive VIP role for active paid/Prime subscribers!)\n` +
+      `• +250 Bonus KryloCoins in stream chat (+500 for Subscribers)!\n` +
       `• ⭐ **Dual Supporter Status** if you are also subscribed on YouTube in <#1549918052513095682>!\n\n` +
       `🏷️ **Optional Nickname Sync:**\n` +
       `You can toggle whether your Discord nickname automatically matches your Twitch name.\n` +

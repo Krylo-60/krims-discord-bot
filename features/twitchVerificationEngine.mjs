@@ -12,7 +12,9 @@ const SUPPORTERS_FILE = path.join(__dirname, '..', 'data', 'twitch-beta-supporte
 const USERS_FILE = path.join(__dirname, '..', 'data', 'twitch-users.json');
 
 const SKYBASE_GUILD_ID = '1549875778575929446';
-const TWITCH_SUB_ROLE_ID = '1552083351953866845'; // 🟣 Skybase • Subbed to Krylo on Twitch
+const TWITCH_SUB_ROLE_ID = '1552083351953866845'; // 🟣 Skybase • Subbed to Krylo on Twitch (PAID)
+const TWITCH_FOLLOW_ROLE_ID = '1555976589336903696'; // 🟣 Skybase • Following Krylo on Twitch (FOLLOWER)
+const TWITCH_CONN_ROLE_ID = '1552083350876061756'; // 🔗 Twitch Connected (SHOWOFF)
 const YT_SUB_ROLE_ID = '1549918001380331632'; // 🔴 Skybase • Subbed to Krylo on YouTube
 const WARDEN_DECK_CHANNEL_ID = '1549883558208868373';
 const TWITCH_VERIFY_CHANNEL_ID = '1555933857037951127';
@@ -162,7 +164,7 @@ export function getPendingCodesList() {
 /**
  * Process verification code received from Twitch stream chat
  */
-export async function processTwitchChatCode(twitchUsername, twitchDisplayName, rawCode, discordClient) {
+export async function processTwitchChatCode(twitchUsername, twitchDisplayName, rawCode, discordClient, tags = null) {
   if (!rawCode) return { success: false, reason: 'missing_code' };
 
   let cleanCode = rawCode.trim().toUpperCase();
@@ -189,6 +191,17 @@ export async function processTwitchChatCode(twitchUsername, twitchDisplayName, r
   const supporters = loadSupporters();
   const existing = supporters[item.discordId];
 
+  // Detect subscriber status from Twitch chat tags
+  const isSubscribed = Boolean(
+    tags && (
+      tags.subscriber === true ||
+      tags.subscriber === '1' ||
+      tags.badges?.subscriber !== undefined ||
+      tags.badges?.founder !== undefined ||
+      tags.badges?.broadcaster !== undefined
+    )
+  );
+
   let nicknameStatus = 'none';
   if (item.syncNickname) {
     const containsKrylo = /krylo/i.test(twitchDisplayName) || /krylo/i.test(twitchUsername);
@@ -210,12 +223,27 @@ export async function processTwitchChatCode(twitchUsername, twitchDisplayName, r
       if (guild) {
         memberObj = await guild.members.fetch(item.discordId).catch(() => null);
         if (memberObj) {
-          // 1. Add Twitch Sub Role
-          await memberObj.roles.add(TWITCH_SUB_ROLE_ID).catch(err => {
-            console.error('[TwitchVerification] Error adding role:', err.message);
+          // 1. Always assign Follower and Connected (Showoff) Roles
+          await memberObj.roles.add(TWITCH_FOLLOW_ROLE_ID).catch(err => {
+            console.error('[TwitchVerification] Error adding follow role:', err.message);
+          });
+          await memberObj.roles.add(TWITCH_CONN_ROLE_ID).catch(err => {
+            console.error('[TwitchVerification] Error adding connected role:', err.message);
           });
 
-          // 2. Handle Nickname Synchronization with strict "Krylo" guardrail
+          // 2. Assign Subbed Role ONLY if verified subscriber
+          if (isSubscribed) {
+            await memberObj.roles.add(TWITCH_SUB_ROLE_ID).catch(err => {
+              console.error('[TwitchVerification] Error adding sub role:', err.message);
+            });
+          } else {
+            // Remove sub role if user is not actively subscribed
+            if (memberObj.roles.cache.has(TWITCH_SUB_ROLE_ID)) {
+              await memberObj.roles.remove(TWITCH_SUB_ROLE_ID).catch(() => {});
+            }
+          }
+
+          // 3. Handle Nickname Synchronization with strict "Krylo" guardrail
           if (nicknameStatus === 'pending_apply') {
             try {
               // If member is owner, Discord prevents bot from editing nickname
@@ -231,20 +259,29 @@ export async function processTwitchChatCode(twitchUsername, twitchDisplayName, r
             }
           }
 
-          // 3. Check for Dual Supporter status (YouTube + Twitch)
+          // 4. Check for Dual Supporter status (YouTube + Twitch)
           const hasYt = memberObj.roles.cache.has(YT_SUB_ROLE_ID);
 
-          // 4. Send verification completion embed ONLY to Warden Deck (Owner, Admins & Mods)
+          // 5. Send verification completion embed ONLY to Warden Deck (Owner, Admins & Mods)
           const wardenDeck = guild.channels.cache.get(WARDEN_DECK_CHANNEL_ID) || await guild.channels.fetch(WARDEN_DECK_CHANNEL_ID).catch(() => null);
           if (wardenDeck) {
+            const rolesEquipped = [
+              `<@&${TWITCH_FOLLOW_ROLE_ID}> *(Follower)*`,
+              `<@&${TWITCH_CONN_ROLE_ID}> *(Connected Showoff)*`
+            ];
+            if (isSubscribed) {
+              rolesEquipped.unshift(`<@&${TWITCH_SUB_ROLE_ID}> *(⭐ Paid/Prime Subscriber)*`);
+            }
+
             const verifyEmbed = new EmbedBuilder()
-              .setColor(0x9146FF)
+              .setColor(isSubscribed ? 0x9146FF : 0x00D2D3)
               .setTitle('🎉 Twitch Stream Verification Complete! [STAFF AUDIT]')
               .setDescription(
                 `A member has securely linked their Twitch account via live stream chat!\n\n` +
                 `👤 **Discord Member:** <@${item.discordId}> (\`${item.discordTag}\`)\n` +
                 `🟣 **Twitch Account:** [${twitchDisplayName}](https://twitch.tv/${twitchUsername.toLowerCase()})\n` +
-                `🎁 **Equipped Role:** <@&${TWITCH_SUB_ROLE_ID}>\n` +
+                `💎 **Twitch Status:** ${isSubscribed ? '⭐ **Active Subscriber** (Paid / Prime / Founder)' : '🆓 **Follower / Viewer** (Free)'}\n` +
+                `🎁 **Equipped Roles:**\n• ${rolesEquipped.join('\n• ')}\n\n` +
                 (item.syncNickname 
                   ? (nicknameStatus === 'updated' 
                       ? `🏷️ **Nickname:** Updated to \`${twitchDisplayName}\`\n` 
@@ -272,6 +309,7 @@ export async function processTwitchChatCode(twitchUsername, twitchDisplayName, r
     discordTag: item.discordTag,
     twitchUsername: twitchUsername.toLowerCase(),
     twitchDisplayName: twitchDisplayName,
+    isSubscribed,
     verifiedAt: new Date().toISOString(),
     syncNickname: item.syncNickname,
     nicknameStatus
@@ -288,13 +326,13 @@ export async function processTwitchChatCode(twitchUsername, twitchDisplayName, r
     if (!usersData[tKey]) {
       usersData[tKey] = {
         username: tKey,
-        points: 250, // Extra bonus for verified link!
+        points: isSubscribed ? 500 : 250, // Extra bonus for subscribers!
         messages: 0,
         lastDaily: null,
         wins: 0
       };
     } else {
-      usersData[tKey].points = (usersData[tKey].points || 0) + 100;
+      usersData[tKey].points = (usersData[tKey].points || 0) + (isSubscribed ? 250 : 100);
     }
     fs.writeFileSync(USERS_FILE, JSON.stringify(usersData, null, 2), 'utf8');
   } catch (e) {}
@@ -302,6 +340,7 @@ export async function processTwitchChatCode(twitchUsername, twitchDisplayName, r
   return {
     success: true,
     entry: item,
+    isSubscribed,
     twitchUsername,
     twitchDisplayName,
     nicknameStatus
@@ -326,7 +365,10 @@ export function buildVerificationResponse(item) {
       `1. Open Krylo's Twitch channel: **[twitch.tv/kryloplaysmc](https://twitch.tv/kryloplaysmc)**\n` +
       `2. Type this exact command in the stream chat:\n` +
       `   \`!link ${item.code}\`  *(or \`!verify ${item.code}\`)*\n\n` +
-      `✨ As soon as you send that in chat, our Twitch bot will match your code, verify your account, and instantly give you your **<@&${TWITCH_SUB_ROLE_ID}>** role!\n\n` +
+      `✨ As soon as you send that in chat, our Twitch bot will match your code, verify your account, and instantly equip:\n` +
+      `• <@&${TWITCH_FOLLOW_ROLE_ID}> *(Twitch Follower)*\n` +
+      `• <@&${TWITCH_CONN_ROLE_ID}> *(Twitch Connected Showoff)*\n` +
+      `⭐ *If you are an active paid/Prime Twitch Subscriber, you will also automatically receive the exclusive <@&${TWITCH_SUB_ROLE_ID}> role!*\n\n` +
       `🏷️ **Server Nickname Sync:** ${item.syncNickname ? '🟢 **ENABLED**' : '⚪ **DISABLED**'}\n` +
       `*When enabled, your Discord nickname will automatically match your Twitch display name upon verification.*\n` +
       `🛡️ *Security Rule: Any Twitch name containing "Krylo" cannot be set as a nickname to prevent impersonation.*`
