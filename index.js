@@ -268,7 +268,9 @@ const client = new Client({
     GatewayIntentBits.DirectMessages,
     GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildVoiceStates
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.AutoModerationExecution,
+    GatewayIntentBits.AutoModerationConfiguration
   ],
   partials: [
     Partials.Channel,
@@ -9484,6 +9486,55 @@ client.on('guildMemberUpdate', async (oldMember, newMember) => {
         console.warn(`[Nickname Guard] Error running nickname guard:`, err.message);
       }
     }
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// 🛡️ DISCORD AUTOMOD ACTION EXECUTION DISPATCHER
+// ═══════════════════════════════════════════════════════════
+client.on('autoModerationActionExecution', async (execution) => {
+  try {
+    const { guild, action, ruleTriggerType, userId, channelId, content, matchedKeyword, matchedContent } = execution;
+    if (!guild) return;
+
+    const WARDEN_DECK_CHANNEL_ID = '1549883558208868373';
+    const alertChannel = guild.channels.cache.get(WARDEN_DECK_CHANNEL_ID) || await guild.channels.fetch(WARDEN_DECK_CHANNEL_ID).catch(() => null);
+    if (!alertChannel) return;
+
+    const actionDescriptions = {
+      1: '🚫 Message Blocked',
+      2: '⚠️ Alert Dispatched',
+      3: '⏳ User Timed Out'
+    };
+
+    const triggerNames = {
+      1: 'Keyword / Malicious Link',
+      2: 'Harmful Link',
+      3: 'Suspected Spam Content',
+      4: 'Slurs & Inappropriate Content',
+      5: 'Mention Spam Raid',
+      6: 'Member Profile Filter'
+    };
+
+    const embed = new EmbedBuilder()
+      .setColor(0xFF4757)
+      .setTitle('🛡️ AutoMod Shield Triggered [AUDIT LOG]')
+      .setDescription(
+        `Discord AutoMod intercepted an unauthorized message or action!\n\n` +
+        `👤 **Member:** <@${userId}> (\`${userId}\`)\n` +
+        `📍 **Channel:** ${channelId ? `<#${channelId}>` : 'Unknown Channel'}\n` +
+        `🎯 **Violation Type:** \`${triggerNames[ruleTriggerType] || 'Trigger Type ' + ruleTriggerType}\`\n` +
+        `⚡ **Action Executed:** \`${actionDescriptions[action?.type] || 'Action ' + action?.type}\`\n` +
+        (matchedKeyword ? `🔍 **Matched Pattern:** \`${matchedKeyword}\`\n` : '') +
+        (matchedContent && matchedContent !== matchedKeyword ? `📝 **Matched Term:** \`${matchedContent}\`\n` : '') +
+        (content ? `\n💬 **Flagged Content:**\n\`\`\`${content.slice(0, 500)}\`\`\`` : '')
+      )
+      .setFooter({ text: "Krylo's Skybase • Automated Server Defense" })
+      .setTimestamp();
+
+    await alertChannel.send({ embeds: [embed] }).catch(() => {});
+  } catch (err) {
+    console.error('[AutoMod Action Execution Error]', err.message);
   }
 });
 
