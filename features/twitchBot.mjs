@@ -238,7 +238,7 @@ export async function initTwitchBot(discordClient = null) {
           } else {
             console.log(`[TwitchBot] Verification attempt by ${displayName} with code "${targetCode}": ${res.reason}`);
             if (res.reason === 'invalid_code') {
-              client.say(targetChannel, `@${displayName} Invalid or unknown verification code! Click "Verify Twitch" in Discord #🟣・𝗍𝗐𝗂𝗍𝖼𝗁-𝗏𝖾𝗋𝗂𝖿𝗒 to get your unique code.`);
+              client.say(targetChannel, `@${displayName} Invalid or unknown verification code! Click "Verify Twitch" in Discord #🟣・𝖳𝗐𝗂𝗍𝖼𝗁-𝗏𝖾𝗋𝗂𝖿𝗒 to get your unique code.`);
             } else if (res.reason === 'code_expired') {
               client.say(targetChannel, `@${displayName} Verification code has expired. Please get a fresh code in Discord!`);
             }
