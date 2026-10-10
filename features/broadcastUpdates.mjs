@@ -20,48 +20,46 @@ export async function broadcastUpdateToAllGuildsAndOwners() {
 
   const updateEmbed = new EmbedBuilder()
     .setColor(0x5865F2)
-    .setTitle('🚀 Krims Code AI • v5.2 Feature & Terms of Service Update')
+    .setTitle('🚀 Krims Code AI • v5.3 All-In-One Power Upgrade & Community Dispatch')
     .setDescription(
-      `Hello Server Owners & Community Members! 👋\n\n` +
-      `We have deployed a major upgrade to **Krims Code AI** across all servers. This release introduces **Persistent Neural Memory**, **Cross-Server Counting Game**, and our **Updated Terms of Service (ToS)**.`
+      `Hello Server Owners! 👋\n\n` +
+      `We have just deployed a brand-new **All-In-One Utility & Moderation Suite** to **Krims Code AI** across all your servers! Here is everything newly unlocked:`
     )
     .addFields(
       {
-        name: '🧠 1. Persistent Server AI Memory & Knowledge Base',
+        name: '🛠️ 1. All-In-One Utility Suite Now Live',
         value: 
-          '• **Continuous Memory:** Krims Code AI now remembers past server conversations, team lore, and facts across bot restarts.\n' +
-          '• **Admin Control:** Server Administrators can inspect memory stats or perform a complete wipe anytime using `/memory` or `!resetmemory`.\n' +
-          '• **Teach Facts:** Staff can teach permanent server knowledge using `/memory action:learn` or `!remember <fact>`.'
+          '• 🌐 **`/translate`** — Instant multi-language translation (English, Spanish, French, Japanese, etc.)\n' +
+          '• 🧮 **`/calc`** — Solve complex math formulas and expressions right in Discord chat\n' +
+          '• ☀️ **`/weather`** — Real-time worldwide weather conditions and forecasts\n' +
+          '• ⏰ **`/remind`** — Automated countdown reminder notifications sent directly to your DMs\n' +
+          '• 🏓 **`/ping`** — Live roundtrip latency, Discord gateway ping, and database response telemetry\n' +
+          '• 🧹 **`/clear`** — Lightning-fast message purges for staff\n' +
+          '• ⏱️ **`/uptime`** — Bot system metrics, heap memory, and operational runtime'
       },
       {
-        name: '🔢 2. Cross-Server Counting Game Engine',
-        value:
-          '• **Live Status Embed:** Real-time auto-updating status dashboard pinned in counting channels.\n' +
-          '• **Global Leaderboard:** Compete against other servers using `/counting action:leaderboard` or `!counting lb`!\n' +
-          '• **Link Channels:** Staff can link any channel using `/counting action:link` or `!setcounting`.'
+        name: '🧠 2. Persistent Neural Memory & Counting Game',
+        value: 
+          '• **Persistent Server Memory:** Remembers past conversations and lore across bot restarts (`/memory`).\n' +
+          '• **Cross-Server Counting:** Compete with other servers for the highest unbroken count (`/counting`).'
       },
       {
-        name: '🏷️ 3. Automatic Minecraft IGN Sync',
+        name: '❤️ 3. Support Us & Invite Krims Code AI to Your Other Servers!',
         value:
-          '• Automatically extracts Minecraft IGNs from roster channels and synchronizes server nicknames.\n' +
-          '• Integrates member identities directly into the bot\'s AI memory knowledge base.'
+          'If you and your members are enjoying **Krims Code AI**, please consider:\n' +
+          '• 🤝 **Sharing Krims Code:** Tell your server members, moderators, and friends about us!\n' +
+          '• ➕ **Adding Krims Code to Other Servers:** You can invite Krims Code AI to any of your friend groups or communities for FREE using `/getbot` or by clicking the bot profile!\n' +
+          '• ⭐ **Feedback & Ideas:** Let us know what features you want next using `/suggest`!'
       },
       {
-        name: '🛡️ 4. Open Team Communication (Restriction Removal)',
+        name: '📜 4. Updated Terms of Service (ToS) & Data Protection',
         value:
-          '• All restrictive mention warnings and strike penalties have been completely abolished across all servers.\n' +
-          '• Members and teammates can now freely communicate without false strike interruptions.'
-      },
-      {
-        name: '📜 5. Updated Terms of Service (ToS) & Data Privacy',
-        value:
-          '• **Data Isolation:** Each server\'s neural memory and facts are strictly isolated per server.\n' +
-          '• **Right to Erase:** Server owners hold 100% control to purge their server data with zero trace.\n' +
-          '• **Privacy Commitment:** We never sell, rent, or monetize your server conversations.\n' +
-          '• **Read Full Policy:** Type `/about` or visit https://krims-code-chatbot.vercel.app/terms'
+          '• Strict server data isolation per guild.\n' +
+          '• Server owners retain 100% control to view or erase their data anytime via `/memory action:reset`.\n' +
+          '• Full ToS details: type `/about` or visit https://krims-code-chatbot.vercel.app/terms'
       }
     )
-    .setFooter({ text: 'Krims Code Studio • Automated Server Owner Dispatch' })
+    .setFooter({ text: 'Krims Code AI • Direct Dispatch to Server Owners' })
     .setTimestamp();
 
   try {
