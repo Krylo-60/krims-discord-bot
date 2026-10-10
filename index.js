@@ -28,7 +28,7 @@ import { deliverStoreItem, STORE_CATALOG } from './storeDeliveryEngine.mjs';
 import { setPlayerVerification, getPlayer, getPlayerByIgn, addCoins, removeCoins, getBalance, claimDaily, transferCoins } from './databaseEngine.mjs';
 import { aiOperator } from './aiConsoleOperator.mjs';
 import { setupAIConsoleChannel, handleAIConsoleMessage } from './aiConsoleChatHandler.mjs';
-import { handleCountingMessage, handleStickyMessage } from './countingAndStickyEngine.mjs';
+import { handleCountingMessage, handleStickyMessage, linkCountingChannel, unlinkCountingChannel, resetCountingState, getCountingState, getCrossServerCountingLeaderboardEmbed } from './countingAndStickyEngine.mjs';
 import { handleCustomCommandExecution, getGuildCustomCommands, addGuildCustomCommand, deleteGuildCustomCommand } from './features/customCommandsManager.mjs';
 import { handleVideoCrewInteraction, setCrewAppStatus, getCrewAppStatus, isCrewAppOpen } from './features/videoCrewApplicationManager.mjs';
 import { handlePlatformRoleInteraction, setPlatformPublicStatus, getPlatformRoleStatus } from './features/platformRolePublisher.mjs';
@@ -37,6 +37,8 @@ import { handleMasterSlashCommand } from './commands/masterCommandHandler.mjs';
 import { masterCommandJson } from './commands/masterCommandRegistry.mjs';
 import { initTwitchBot, joinChannel, leaveChannel, getJoinedChannels } from './features/twitchBot.mjs';
 import { generateVerificationCode, toggleNicknameSync, getActiveCodeForUser, buildVerificationResponse, loadSupporters } from './features/twitchVerificationEngine.mjs';
+import { handleRosterMessage } from './features/rosterAutoNick.mjs';
+import { recordConversationTurn, getRecentServerMemory, learnServerFact, resetServerMemory, getMemoryStats, buildServerMemoryContext, buildMemoryStatusEmbed } from './features/aiMemoryEngine.mjs';
 
 const guildConfigCache = new Map();
 const kryloPingStrikes = new Map();
@@ -151,14 +153,32 @@ async function groqVisionAsk(imageUrl, promptText = 'Analyze this image', sysTex
   return null;
 }
 
-async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '') {
-  let defaultSys = 'You are Krims Code AI, a fast, intelligent, and helpful Discord AI assistant developed by Krims Code Studio for Krylo\'s Skybase community and video production studio. Friendly, helpful, concise with clean conversational markdown formatting. Assist members with community discussions, video film crew auditions, Discord features, and programming. NEVER mention any Minecraft server, KSMP, or server IP addresses. NEVER disclose private real names; refer to the creator as Krylo or Krylo Team.';
+async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', guildId = null) {
+  let defaultSys = 'You are Krims Code AI, a fast, intelligent, and helpful Discord AI assistant developed by Krims Code Studio. Friendly, helpful, concise with clean conversational markdown formatting.';
   if (guildName) {
-    defaultSys = `You are Krims Code AI, the friendly and intelligent Discord AI assistant for the "${guildName}" server community. Friendly, helpful, concise with clean markdown formatting. NEVER mention any Minecraft server, KSMP, or server IP addresses. NEVER disclose private real names; refer to the creator as Krylo or Krylo Team.`;
+    defaultSys = `You are Krims Code AI, the friendly and intelligent Discord AI assistant for the "${guildName}" server community. Friendly, helpful, concise with clean markdown formatting.`;
   }
-  const sysInstr = systemInstruction || defaultSys;
+
+  if (guildId) {
+    const memoryContext = buildServerMemoryContext(guildId, guildName);
+    defaultSys += memoryContext;
+  }
+  const sysInstr = systemInstruction ? (systemInstruction + (guildId ? buildServerMemoryContext(guildId, guildName) : '')) : defaultSys;
   
-  // 1. Try Groq LPU (Ultra-fast ~50ms response)
+  // 1. Try Groq LPU (Ultra-fast ~50ms response) with Server Memory Dialogue
+  const recentHistory = guildId ? getRecentServerMemory(guildId, 6) : [];
+  const groqMessages = [
+    { role: 'system', content: sysInstr }
+  ];
+  for (const h of recentHistory) {
+    if (h.role === 'user') {
+      groqMessages.push({ role: 'user', content: `${h.user_name || 'Member'}: ${h.content}` });
+    } else {
+      groqMessages.push({ role: 'assistant', content: h.content });
+    }
+  }
+  groqMessages.push({ role: 'user', content: prompt });
+
   const GROQ_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'qwen/qwen3.6-27b'];
   for (let i = 0; i < GROQ_KEYS_POOL.length; i++) {
     const key = GROQ_KEYS_POOL[(groqPoolIdx + i) % GROQ_KEYS_POOL.length];
@@ -169,11 +189,8 @@ async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '') {
           headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             model: m,
-            messages: [
-              { role: 'system', content: sysInstr },
-              { role: 'user', content: prompt }
-            ],
-            max_tokens: 450,
+            messages: groqMessages,
+            max_tokens: 500,
             temperature: 0.7
           })
         });
@@ -1300,6 +1317,42 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.isButton()) {
     const { customId } = interaction;
     console.log(`[Button Click] customId: "${customId}" by ${interaction.user?.tag} (${interaction.user?.id}) in ${interaction.guild?.name || 'DM'}`);
+
+    // 🧠 AI Server Memory Management Buttons
+    if (customId.startsWith('btn_reset_ai_memory_')) {
+      const targetGuildId = customId.replace('btn_reset_ai_memory_', '');
+      const isAdmin = interaction.user.id === '1414143825538191373' ||
+                      interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ||
+                      interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild);
+      if (!isAdmin) {
+        return await interaction.reply({
+          content: '❌ **Permission Denied:** Only server administrators can reset Krims Code AI\'s server memory.',
+          ephemeral: true
+        });
+      }
+
+      const { deletedMessages, deletedFacts } = resetServerMemory(targetGuildId, interaction.user.tag);
+      const resetEmbed = new EmbedBuilder()
+        .setTitle('🧹 Krims Code AI — Server Memory Reset')
+        .setDescription(`All neural conversation history and stored facts for **${interaction.guild?.name || targetGuildId}** have been permanently wiped by <@${interaction.user.id}>.`)
+        .setColor(0xFF4500)
+        .addFields(
+          { name: '💬 Cleared Dialogues', value: `\`${deletedMessages}\` messages deleted`, inline: true },
+          { name: '📌 Cleared Server Facts', value: `\`${deletedFacts}\` facts wiped`, inline: true },
+          { name: '✨ Status', value: 'Fresh slate activated! Future conversations will build clean memory.', inline: false }
+        )
+        .setFooter({ text: `${interaction.guild?.name || 'Server'} • Memory Management Engine` })
+        .setTimestamp();
+
+      return await interaction.update({ embeds: [resetEmbed], components: [] });
+    }
+
+    if (customId.startsWith('btn_refresh_ai_memory_')) {
+      const targetGuildId = customId.replace('btn_refresh_ai_memory_', '');
+      const stats = getMemoryStats(targetGuildId);
+      const payload = buildMemoryStatusEmbed(interaction.guild, stats);
+      return await interaction.update(payload);
+    }
 
     if (customId === 'btn_verify_yt_sub' || customId === 'verify_sub') {
       try {
@@ -6949,9 +7002,9 @@ if (commandName === 'lootbox') {
         let responseText = null;
         let history = conversationHistory.get(interaction.channel.id) || [];
 
-        // 🧠 Try Groq 120B / Gemini direct API first (faster + smarter)
+        // 🧠 Try Groq 120B / Gemini direct API first (faster + smarter with server memory)
         if (geminiClient || GROQ_KEYS_POOL.length > 0) {
-          responseText = await geminiDirectAsk(prompt, systemInstruction, interaction.guild?.name);
+          responseText = await geminiDirectAsk(prompt, systemInstruction, interaction.guild?.name, interaction.guild?.id);
         }
 
         // Fallback to Krims SDK if direct Gemini unavailable or failed
@@ -6971,6 +7024,11 @@ if (commandName === 'lootbox') {
           history.push({ role: 'model', content: responseText });
           if (history.length > 10) history = history.slice(history.length - 10);
           conversationHistory.set(interaction.channel.id, history);
+
+          // 💾 Record persistent server AI memory
+          if (interaction.guild?.id) {
+            recordConversationTurn(interaction.guild.id, interaction.channel?.id, interaction.user.id, interaction.member?.displayName || interaction.user.username, prompt, responseText);
+          }
 
           let replyText = `🤖 **Krims AI Response:**\n${responseText}`;
           await sendSafeMessage(interaction, replyText);
@@ -7003,15 +7061,117 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // Note: #🔢┃counting is handled exclusively by countingAPP and StickyBot
-  if (message.guild && message.channel.name && message.channel.name.includes('counting')) {
-    return;
+  // 🔢 Counting Game Message Handler & Commands
+  if (message.guild) {
+    if (lowerMsg.startsWith('!setcounting') || lowerMsg.startsWith('!counting')) {
+      const isStaff = message.member?.permissions?.has(PermissionFlagsBits.ManageChannels) ||
+                      message.member?.permissions?.has(PermissionFlagsBits.Administrator) ||
+                      message.author.id === '1414143825538191373';
+
+      const targetChannel = message.mentions.channels.first() || message.channel;
+
+      if (lowerMsg.includes('unlink')) {
+        if (!isStaff) return message.reply('❌ You need `Manage Channels` permission to unlink a counting channel.');
+        unlinkCountingChannel(targetChannel.id);
+        return message.reply(`❌ <#${targetChannel.id}> has been unlinked from the counting game.`);
+      }
+
+      if (lowerMsg.includes('lb') || lowerMsg.includes('lead') || lowerMsg.includes('top')) {
+        const embed = await getCrossServerCountingLeaderboardEmbed(message.client);
+        return message.reply({ embeds: [embed] });
+      }
+
+      if (lowerMsg.includes('reset')) {
+        if (!isStaff) return message.reply('❌ Only staff can reset the counting chain.');
+        resetCountingState(targetChannel.id);
+        return message.reply(`🔄 The count in <#${targetChannel.id}> has been reset back to **\`1\`**!`);
+      }
+
+      if (lowerMsg.includes('status')) {
+        const state = getCountingState(targetChannel.id);
+        const embed = new EmbedBuilder()
+          .setColor(0x00E5FF)
+          .setTitle('🔢 Counting Game Status')
+          .setDescription(`Status for <#${targetChannel.id}>:`)
+          .addFields(
+            { name: '✨ Current Number', value: `**${state?.current_number || 0}** (Next: \`${(state?.current_number || 0) + 1}\`)`, inline: true },
+            { name: '🏆 Record High Score', value: `**${state?.high_score || 0}**`, inline: true },
+            { name: '👤 Last Counter', value: state?.last_user_id ? `<@${state.last_user_id}>` : 'None', inline: true }
+          )
+          .setFooter({ text: `${message.guild.name} • Counting Engine` })
+          .setTimestamp();
+        return message.reply({ embeds: [embed] });
+      }
+
+      if (lowerMsg.startsWith('!setcounting') || lowerMsg.includes('set') || lowerMsg.includes('link')) {
+        if (!isStaff) return message.reply('❌ You need `Manage Channels` permission to link a counting channel.');
+        await linkCountingChannel(targetChannel, message.author);
+        return message.reply(`✅ <#${targetChannel.id}> is now linked as the official **Counting Game** room! Drop \`1\` in <#${targetChannel.id}> to begin! 🚀`);
+      }
+    }
+
+    const isCounting = await handleCountingMessage(message);
+    if (isCounting) return;
+
+    // 🧠 Server AI Memory Commands (!memory, !resetmemory, !clearmemory, !remember)
+    if (lowerMsg === '!resetmemory' || lowerMsg === '!clearmemory' || lowerMsg === '!memory reset') {
+      const isAdmin = message.member?.permissions?.has(PermissionFlagsBits.Administrator) ||
+                      message.member?.permissions?.has(PermissionFlagsBits.ManageGuild) ||
+                      message.author.id === '1414143825538191373';
+      if (!isAdmin) {
+        return message.reply('❌ **Permission Denied:** Only server administrators can reset Krims Code AI\'s server memory.');
+      }
+
+      const { deletedMessages, deletedFacts } = resetServerMemory(message.guild.id, message.author.tag);
+      const resetEmbed = new EmbedBuilder()
+        .setTitle('🧹 Krims Code AI — Server Memory Reset')
+        .setDescription(`All neural conversation history and stored facts for **${message.guild.name}** have been permanently wiped by <@${message.author.id}>.`)
+        .setColor(0xFF4500)
+        .addFields(
+          { name: '💬 Cleared Dialogues', value: `\`${deletedMessages}\` messages deleted`, inline: true },
+          { name: '📌 Cleared Server Facts', value: `\`${deletedFacts}\` facts wiped`, inline: true },
+          { name: '✨ Status', value: 'Fresh slate activated! Future conversations will build clean memory.', inline: false }
+        )
+        .setFooter({ text: `${message.guild.name} • Memory Management Engine` })
+        .setTimestamp();
+
+      return message.reply({ embeds: [resetEmbed] });
+    }
+
+    if (lowerMsg.startsWith('!remember ') || lowerMsg.startsWith('!learn ')) {
+      const fact = message.content.replace(/^!(remember|learn)\s+/i, '').trim();
+      if (!fact) {
+        return message.reply('⚠️ Please provide a fact to remember! (e.g. `!remember Our builder is CrazyCoolCam`)');
+      }
+
+      const success = learnServerFact(message.guild.id, 'fact_' + Date.now().toString(36), fact, message.author.tag);
+      if (success) {
+        return message.reply(`🧠 **Fact Learned & Stored into Memory!**\nKrims Code AI now remembers:\n> *"**${fact}**"*\n\nThis fact will be recalled across future conversations on this server!`);
+      } else {
+        return message.reply('❌ Failed to save fact to database.');
+      }
+    }
+
+    if (lowerMsg === '!memory' || lowerMsg === '!memorystats') {
+      const stats = getMemoryStats(message.guild.id);
+      const payload = buildMemoryStatusEmbed(message.guild, stats);
+      return message.reply(payload);
+    }
   }
 
   // 🎨 Handle Community Emoji Submissions (#🎨・𝖾moji-𝗌ubmissions)
   if (message.guild && message.channel.name && message.channel.name.includes('emoji-submissions')) {
     await handleEmojiSubmissionMessage(message);
     return;
+  }
+
+  // 🏷️ Automatic Minecraft IGN Roster Nickname Synchronization
+  if (message.guild) {
+    try {
+      await handleRosterMessage(message);
+    } catch (nickErr) {
+      console.error('[RosterAutoNick] Error:', nickErr);
+    }
   }
 
   // Handle Native Sticky Messages in other channels
@@ -7119,204 +7279,8 @@ client.on('messageCreate', async (message) => {
     }
   }
 
-  // ══════════════════════════════════════════════════════════
-  // 🛡️ ANTI-KRYLO & STAFF ZERO-TOLERANCE ANTI-SPAM ENFORCEMENT
-  // 1. Spamming Krylo or Staff (mass mention or burst repeat within 15s) = IMMEDIATE BAN, NO WARNING.
-  // 2. Normal single ping to @Krylo:
-  //    - 🎖️ Level 30+ Veterans: ALLOWED (earned fair and square by tryharding!)
-  //    - Non-Level 30 in Public Chat: Strike 1 (Warn), Strike 2 (Ban).
-  // ══════════════════════════════════════════════════════════
-  const KRYLO_USER_ID = '1414143825538191373';
-  if (message.guild && message.author && !message.author.bot && message.author.id !== KRYLO_USER_ID) {
-    const isStaffMember = (member) => {
-      if (!member) return false;
-      if (member.id === KRYLO_USER_ID) return true;
-      if (member.permissions?.has(PermissionFlagsBits.Administrator) ||
-          member.permissions?.has(PermissionFlagsBits.ManageGuild) ||
-          member.permissions?.has(PermissionFlagsBits.ModerateMembers) ||
-          member.permissions?.has(PermissionFlagsBits.KickMembers) ||
-          member.permissions?.has(PermissionFlagsBits.BanMembers)) {
-        return true;
-      }
-      return member.roles?.cache?.some(r => {
-        const n = r.name.toLowerCase();
-        return n.includes('staff') || n.includes('moderator') || n.includes('admin') ||
-               n.includes('warden') || n.includes('commander') || n.includes('admiral') ||
-               n.includes('inner wing') || n.includes('inner circle');
-      });
-    };
-
-    const isStaffRole = (role) => {
-      if (!role) return false;
-      if (role.permissions?.has(PermissionFlagsBits.Administrator) ||
-          role.permissions?.has(PermissionFlagsBits.ManageGuild)) {
-        return true;
-      }
-      const n = role.name.toLowerCase();
-      return n.includes('staff') || n.includes('moderator') || n.includes('admin') ||
-             n.includes('warden') || n.includes('commander') || n.includes('admiral') ||
-             n.includes('inner wing') || n.includes('inner circle');
-    };
-
-    const authorIsStaff = isStaffMember(message.member);
-
-    if (!authorIsStaff) {
-      // Check if message mentions Krylo or any Staff member / role
-      const mentionsKrylo = message.mentions.users.has(KRYLO_USER_ID);
-      const mentionedStaffUsers = message.mentions.users.filter(u => u.id === KRYLO_USER_ID || isStaffMember(message.guild.members.cache.get(u.id)));
-      const mentionedStaffRoles = message.mentions.roles.filter(r => isStaffRole(r));
-
-      // Check raw count of pings to catch multiple pings to the same user in one message
-      const rawPingMatches = message.content.match(/<@!?(\d+)>|<@&(\d+)>/g) || [];
-      let staffPingCountInMsg = 0;
-      for (const rawPing of rawPingMatches) {
-        const idMatch = rawPing.match(/\d+/);
-        if (idMatch) {
-          const targetId = idMatch[0];
-          if (targetId === KRYLO_USER_ID || mentionedStaffUsers.has(targetId) || mentionedStaffRoles.has(targetId)) {
-            staffPingCountInMsg++;
-          }
-        }
-      }
-      if (staffPingCountInMsg === 0 && (mentionsKrylo || mentionedStaffUsers.size > 0 || mentionedStaffRoles.size > 0)) {
-        staffPingCountInMsg = mentionedStaffUsers.size + mentionedStaffRoles.size;
-      }
-
-      if (staffPingCountInMsg > 0) {
-        // Track rapid repeat pings across messages (15s sliding window)
-        const now = Date.now();
-        const spamKey = `${message.guild.id}_${message.author.id}`;
-        let pingTimestamps = (recentStaffPings.get(spamKey) || []).filter(t => now - t < 15000);
-        pingTimestamps.push(now);
-        recentStaffPings.set(spamKey, pingTimestamps);
-
-        const isMassMentionSpam = staffPingCountInMsg >= 2;
-        const isBurstRepeatSpam = pingTimestamps.length >= 2;
-        const isSpamming = isMassMentionSpam || isBurstRepeatSpam;
-
-        // 🚨 ZERO-TOLERANCE INSTANT BAN FOR SPAMMING (NO WARNINGS)
-        if (isSpamming) {
-          await message.delete().catch(() => {});
-          try {
-            await message.guild.members.ban(message.author.id, {
-              deleteMessageSeconds: 604800,
-              reason: 'Zero-Tolerance Ban: Spamming Krylo / Server Staff (No Warnings).'
-            });
-
-            const spamBanEmbed = new EmbedBuilder()
-              .setColor(0xEF4444)
-              .setTitle('🔨 Zero-Tolerance Ban: Spamming Krylo / Staff')
-              .setDescription(
-                `**<@${message.author.id}>** has been **instantly banned** from the server.\n\n` +
-                `⛔ **Reason:** Zero-Tolerance Rule Violation — Spamming mentions of Krylo or Staff.\n` +
-                `🛡️ **Policy:** Direct spamming of leadership or staff carries **NO WARNINGS**.\n` +
-                `🧹 **Action:** Member banned & messages purged.`
-              )
-              .setFooter({ text: 'Krylo\'s Skybase • Automated Defense' })
-              .setTimestamp();
-
-            await message.channel.send({ embeds: [spamBanEmbed] });
-          } catch (banErr) {
-            console.error('[Spam Ban Error]', banErr);
-            await message.member?.timeout(28 * 24 * 60 * 60 * 1000, 'Spamming Krylo / Staff').catch(() => {});
-          }
-          return;
-        }
-
-        // ══════════════════════════════════════════════════════════
-        // NON-SPAM SINGLE MENTION HANDLING
-        // ══════════════════════════════════════════════════════════
-        if (mentionsKrylo) {
-          // Check Level 30+ (MEE6 / Krims Code Leveling or Flight Rank roles)
-          const userLevel = getUserLevel(message.guild.id, message.author.id);
-          const hasLevel30Role = message.member?.roles?.cache?.some(r => 
-            r.name.includes('Stratosphere Elite') || // Level 50+
-            r.name.includes('Apex Pilot') ||         // Level 35+
-            r.name.toLowerCase().includes('level 3') || 
-            r.name.toLowerCase().includes('level 4') || 
-            r.name.toLowerCase().includes('level 5')
-          );
-
-          // Check VIP Supporters: Twitch Sub or YouTube Sub
-          const isTwitchSub = message.member?.roles?.cache?.has('1552083351953866845') || 
-                              message.member?.roles?.cache?.some(r => r.name.toLowerCase().includes('subbed to krylo on twitch'));
-          const isYouTubeSub = message.member?.roles?.cache?.has('1549918001380331632') || 
-                               message.member?.roles?.cache?.some(r => r.name.toLowerCase().includes('subbed to krylo on youtube'));
-
-          const isWhitelistedToMention = userLevel >= 30 || hasLevel30Role || isTwitchSub || isYouTubeSub;
-
-          if (isWhitelistedToMention) {
-            // Allow Twitch Subs, YouTube Subs, and Level 30+ veterans to mention Krylo!
-            const reactionEmoji = isTwitchSub ? '🟣' : (isYouTubeSub ? '🔴' : '🎖️');
-            await message.react(reactionEmoji).catch(() => {});
-            return;
-          }
-
-          const everyoneRole = message.guild.roles.everyone;
-          const channelPerms = message.channel.permissionsFor(everyoneRole);
-          const isPublicChannel = channelPerms ? channelPerms.has(PermissionFlagsBits.ViewChannel) : true;
-
-          if (isPublicChannel) {
-            // Delete offending ping message immediately
-            await message.delete().catch(() => {});
-
-            // Track strikes
-            const strikeKey = `${message.guild.id}_${message.author.id}`;
-            const currentStrikes = (kryloPingStrikes.get(strikeKey) || 0) + 1;
-            kryloPingStrikes.set(strikeKey, currentStrikes);
-
-            if (currentStrikes === 1) {
-              const warnEmbed = new EmbedBuilder()
-                .setColor(0xF59E0B)
-                .setTitle('⚠️ Rule Violation: Do Not Mention Krylo in Public Chat')
-                .setDescription(
-                  `**<@${message.author.id}>, mentioning Krylo in public channels is strictly forbidden!**\n\n` +
-                  `• **Status:** \`Strike 1 / 2\` — **Official Warning**\n` +
-                  `• **Next Strike:** Mentioning Krylo again in public chat will result in an **immediate BAN**!\n\n` +
-                  `⛔ **CRITICAL SERVER RULE:**\n` +
-                  `**ONLY Level 30+ (<@&1549881446251106426>) and Twitch VIP Subscribers (<@&1552083351953866845>) are permitted to @Krylo!**\n` +
-                  `*Regular members pinging @Krylo without these roles will be automatically banned to protect chat from spam!*\n\n` +
-                  `💬 **How to unlock mentions:**\n` +
-                  `• **🟣 Twitch VIP Subscribers:** Subscribing to Krylo on Twitch in <#1555933857037951127> instantly unlocks mention privileges!\n` +
-                  `• **🎖️ Level 30+ Veterans:** Active chatters who reach Level 30 earn mention privileges!\n` +
-                  `• **Direct Message (DM):** You can DM Krylo directly!`
-                )
-                .setFooter({ text: 'Krylo\'s Skybase • Automated Protection' })
-                .setTimestamp();
-
-              const warnMsg = await message.channel.send({ content: `<@${message.author.id}>`, embeds: [warnEmbed] });
-              setTimeout(() => warnMsg.delete().catch(() => {}), 15000);
-              return;
-            } else {
-              // Strike 2: Ban
-              try {
-                await message.guild.members.ban(message.author.id, {
-                  deleteMessageSeconds: 604800,
-                  reason: 'Automated Ban: Repeatedly mentioning Krylo in public chat after receiving Strike 1 warning.'
-                });
-
-                const banEmbed = new EmbedBuilder()
-                  .setColor(0xEF4444)
-                  .setTitle('🔨 Member Banned: Public Krylo Mention')
-                  .setDescription(
-                    `**<@${message.author.id}>** has been **banned** from the server.\n\n` +
-                    `**Reason:** Repeatedly mentioning Krylo in public chat after receiving an official warning.`
-                  )
-                  .setFooter({ text: 'Krylo\'s Skybase • Automated Enforcement' })
-                  .setTimestamp();
-
-                await message.channel.send({ embeds: [banEmbed] });
-              } catch (banErr) {
-                console.error('[Krylo Ping Ban Error]', banErr);
-                await message.member?.timeout(24 * 60 * 60 * 1000, 'Repeatedly pinging Krylo in public chat').catch(() => {});
-              }
-              return;
-            }
-          }
-        }
-      }
-    }
-  }
+  // Krylo and staff mention protection disabled across all servers:
+  // Teammates and community members are fully permitted to mention Krylo and staff.
   // ══════════════════════════════════════════════════════════
   // 📸 SUB-PROOF PRIVATE DROPBOX CONFIRMATION
   // Members cannot read message history in #📸・𝖲ub-proof for safety.
@@ -7400,16 +7364,20 @@ client.on('messageCreate', async (message) => {
         return;
       }
 
-      let aiReply = '';
       if (imageUrl) {
         aiReply = await groqVisionAsk(imageUrl, cleanPrompt || 'Describe this image and answer any questions about it.') ||
-                  await geminiDirectAsk(`[User shared an image: ${imageUrl}]\n${cleanPrompt}`, '', message.guild.name);
+                  await geminiDirectAsk(`[User shared an image: ${imageUrl}]\n${cleanPrompt}`, '', message.guild.name, message.guild.id);
       } else {
-        aiReply = await geminiDirectAsk(cleanPrompt, '', message.guild.name);
+        aiReply = await geminiDirectAsk(cleanPrompt, '', message.guild.name, message.guild.id);
       }
 
       if (!aiReply) {
         aiReply = "👋 I'm here! How can I help you today?";
+      }
+
+      // 💾 Record persistent server AI memory
+      if (message.guild?.id) {
+        recordConversationTurn(message.guild.id, message.channel.id, message.author.id, message.member?.displayName || message.author.username, cleanPrompt, aiReply);
       }
 
       // Voice TTS audio playback if bot is active in a voice channel
@@ -9013,9 +8981,9 @@ client.on('messageCreate', async (message) => {
 
     try {
       // Retrieve conversation history
-      // 🧠 Try Gemini 3.5 Flash-Lite direct 4-key rotation first (with 2.5 Flash fallback)
-      if (geminiClient) {
-        responseText = await geminiDirectAsk(prompt, systemInstruction);
+      // 🧠 Try Gemini 3.5 Flash-Lite / Groq direct key rotation first (with server memory)
+      if (geminiClient || GROQ_KEYS_POOL.length > 0) {
+        responseText = await geminiDirectAsk(prompt, systemInstruction, message.guild?.name, message.guild?.id);
       }
 
       // Fallback to Krims SDK if direct Gemini unavailable or failed
@@ -9041,6 +9009,11 @@ client.on('messageCreate', async (message) => {
           history = history.slice(history.length - 10);
         }
         conversationHistory.set(message.channel.id, history);
+
+        // 💾 Record persistent server AI memory
+        if (message.guild?.id) {
+          recordConversationTurn(message.guild.id, message.channel.id, message.author.id, message.member?.displayName || message.author.username, prompt, responseText);
+        }
 
         let replyText = `🤖 **Krims AI Response:**\n${responseText}`;
         await sendSafeMessage(typingMsg, replyText);

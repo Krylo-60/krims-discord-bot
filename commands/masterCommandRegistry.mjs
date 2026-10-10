@@ -13,8 +13,19 @@ export const masterCommandBuilders = [
     .setDescription('Deploy your own custom Discord bot with the Krims Code AI brain!'),
 
   new SlashCommandBuilder()
-    .setName('custombot')
-    .setDescription('Deploy your own custom Discord bot with the Krims Code AI brain! (Alias)'),
+    .setName('memory')
+    .setDescription('🧠 View, manage, or reset Krims Code AI server memory (Admin can reset)')
+    .addStringOption(opt => opt.setName('action')
+      .setDescription('Action to perform')
+      .setRequired(false)
+      .addChoices(
+        { name: '📊 View Memory Matrix & Facts', value: 'view' },
+        { name: '🗑️ Reset Server Memory (Admin only)', value: 'reset' },
+        { name: '🧠 Remember Fact', value: 'learn' }
+      ))
+    .addStringOption(opt => opt.setName('fact')
+      .setDescription('Fact for the bot to remember (when using learn)')
+      .setRequired(false)),
 
   new SlashCommandBuilder()
     .setName('about')
@@ -54,8 +65,17 @@ export const masterCommandBuilders = [
     .setDescription('🔒 Close Skybase Film Crew applications and lock recruitment panel (Admin only)'),
 
   new SlashCommandBuilder()
-    .setName('startcrew')
-    .setDescription('🎬 Open Skybase Film Crew applications and activate recruitment panel (Admin only)'),
+    .setName('counting')
+    .setDescription('🔢 Configure and manage the server counting game channel')
+    .addChannelOption(opt => opt.setName('channel').setDescription('Channel to link as official counting room').setRequired(false))
+    .addStringOption(opt => opt.setName('action').setDescription('Action to perform (link, status, reset, unlink)').setRequired(false)
+      .addChoices(
+        { name: '🔗 Link Channel', value: 'set' },
+        { name: '🏆 Cross-Server Leaderboard', value: 'leaderboard' },
+        { name: '📊 Check Status & High Score', value: 'status' },
+        { name: '🔄 Reset Count to 1', value: 'reset' },
+        { name: '❌ Unlink Channel', value: 'unlink' }
+      )),
 
   new SlashCommandBuilder()
     .setName('stopcrew')

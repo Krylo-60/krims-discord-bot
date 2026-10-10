@@ -23,5 +23,28 @@
       "discriminator": "0",
       "announced_level": 1
     }
+  },
+  "1557852594242719775": {
+    "1283841949945823252": {
+      "xp": 785,
+      "level": 4,
+      "username": "biblestudycam",
+      "discriminator": "0",
+      "announced_level": 4
+    },
+    "1414143825538191373": {
+      "xp": 456,
+      "level": 2,
+      "username": "krylo_plays",
+      "discriminator": "0",
+      "announced_level": 2
+    },
+    "1533703991882416373": {
+      "xp": 471,
+      "level": 2,
+      "username": "st1llkill3r",
+      "discriminator": "0",
+      "announced_level": 2
+    }
   }
 }

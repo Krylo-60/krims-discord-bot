@@ -1,4 +1,4 @@
-import { EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import { EmbedBuilder, PermissionFlagsBits, ChannelType } from 'discord.js';
 import { db } from './databaseEngine.mjs';
 
 // Initialize SQLite tables for counting and sticky messages
@@ -6,6 +6,7 @@ try {
   db.exec(`
     CREATE TABLE IF NOT EXISTS counting_state (
       channel_id TEXT PRIMARY KEY,
+      guild_id TEXT,
       current_number INTEGER DEFAULT 0,
       last_user_id TEXT,
       high_score INTEGER DEFAULT 0
@@ -18,34 +19,263 @@ try {
       color INTEGER DEFAULT 55542,
       last_sticky_id TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS counting_user_stats (
+      user_id TEXT,
+      guild_id TEXT,
+      counts_count INTEGER DEFAULT 0,
+      PRIMARY KEY (user_id, guild_id)
+    );
   `);
 } catch (e) {
   console.warn('[Counting/Sticky DB Init]', e.message);
 }
 
-const stickyLocks = new Map();
+try {
+  db.exec(`ALTER TABLE counting_state ADD COLUMN guild_id TEXT;`);
+} catch (_) {}
 
 /**
- * Handles Counting Logic in #🔢┃counting
+ * Link a Discord channel as the server's official counting channel
+ */
+export async function linkCountingChannel(channel, user = null) {
+  const channelId = channel.id;
+  const guildId = channel.guild.id;
+
+  let existing = null;
+  try {
+    existing = db.prepare('SELECT * FROM counting_state WHERE channel_id = ?').get(channelId);
+  } catch (_) {}
+
+  if (!existing) {
+    try {
+      db.prepare('INSERT OR REPLACE INTO counting_state (channel_id, guild_id, current_number, last_user_id, high_score) VALUES (?, ?, ?, ?, ?)')
+        .run(channelId, guildId, 0, null, 0);
+    } catch (_) {}
+  } else {
+    try {
+      db.prepare('UPDATE counting_state SET guild_id = ? WHERE channel_id = ?').run(guildId, channelId);
+    } catch (_) {}
+  }
+
+  // Send an attractive start announcement embed into the linked channel
+  const startEmbed = new EmbedBuilder()
+    .setColor(0x00E5FF)
+    .setTitle('🔢 COUNTING CHANNEL LINKED & ACTIVE!')
+    .setDescription(
+      `This channel is now the official **Counting Game** room for **${channel.guild.name}**! 🚀\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `📜 **RULES OF THE GAME:**\n` +
+      `• **Start counting from number \`1\`!**\n` +
+      `• Members take turns counting up by 1 (\`1\`, \`2\`, \`3\`...).\n` +
+      `• **Rule 1:** You **cannot** count two numbers in a row!\n` +
+      `• **Rule 2:** If anyone enters the wrong number or double-counts, the count resets back to **\`1\`**!\n` +
+      `• **Milestones:** Every 25 numbers unlocks a celebration shoutout!\n\n` +
+      `✨ *Current Count:* **${existing?.current_number || 0}** (Next: **\`${(existing?.current_number || 0) + 1}\`**) | *Record High Score:* **${existing?.high_score || 0}**\n` +
+      `👉 **Drop \`${(existing?.current_number || 0) + 1}\` in chat to continue the chain!**`
+    )
+    .setFooter({ text: `${channel.guild.name} • Krims Counting Engine` })
+    .setTimestamp();
+
+  const sent = await channel.send({ embeds: [startEmbed] }).catch(() => {});
+  if (sent) {
+    try {
+      db.prepare('UPDATE counting_state SET status_message_id = ? WHERE channel_id = ?').run(sent.id, channelId);
+    } catch (_) {}
+  }
+
+  return {
+    success: true,
+    channelId,
+    currentNumber: existing?.current_number || 0,
+    highScore: existing?.high_score || 0
+  };
+}
+
+/**
+ * Updates the pinned/status embed in real time with live count and high score
+ */
+export async function updateLiveStatusEmbed(channel, state, options = {}) {
+  if (!channel || !state) return;
+  const statusMsgId = state.status_message_id;
+  if (!statusMsgId) return;
+
+  try {
+    const msg = await channel.messages.fetch(statusMsgId).catch(() => null);
+    if (!msg || !msg.embeds || msg.embeds.length === 0) return;
+
+    const originalEmbed = msg.embeds[0];
+    const curNum = state.current_number || 0;
+    const nextNum = curNum + 1;
+    const lastCounterName = options.lastCounter ? (options.lastCounter.displayName || options.lastCounter.username) : (state.last_user_id ? `<@${state.last_user_id}>` : 'None');
+    const statusText = options.statusText || (curNum > 0 ? '🔥 Active Chain!' : 'Ready to start!');
+
+    const updatedFields = originalEmbed.fields.map(f => {
+      if (f.name.includes('Status')) {
+        return {
+          name: '📊 Live Counting Status',
+          value: `\`\`\`yaml\nCurrent Count:  ${curNum}\nNext Number:    ${nextNum}\nHigh Score:     ${state.high_score || 0}\nLast Counter:   ${lastCounterName}\nStatus:         ${statusText}\n\`\`\``,
+          inline: false
+        };
+      }
+      return f;
+    });
+
+    const newEmbed = EmbedBuilder.from(originalEmbed).setFields(updatedFields);
+    await msg.edit({ embeds: [newEmbed] });
+  } catch (err) {
+    console.warn('[Counting] Failed to update live status embed:', err.message);
+  }
+}
+
+/**
+ * Unlink a counting channel
+ */
+export function unlinkCountingChannel(channelId) {
+  try {
+    db.prepare('DELETE FROM counting_state WHERE channel_id = ?').run(channelId);
+    return true;
+  } catch (err) {
+    console.error('[Counting] Unlink error:', err);
+    return false;
+  }
+}
+
+/**
+ * Reset count for a channel back to 0 (next is 1)
+ */
+export async function resetCountingState(channelId, channel = null) {
+  try {
+    db.prepare('UPDATE counting_state SET current_number = 0, last_user_id = NULL WHERE channel_id = ?').run(channelId);
+    const state = getCountingState(channelId);
+    if (state && channel) {
+      await updateLiveStatusEmbed(channel, state, {
+        statusText: '🔄 Reset by staff! Start with 1.',
+        lastCounter: null
+      });
+    }
+    return true;
+  } catch (err) {
+    console.error('[Counting] Reset error:', err);
+    return false;
+  }
+}
+
+/**
+ * Fetch counting state
+ */
+export function getCountingState(channelId) {
+  try {
+    return db.prepare('SELECT * FROM counting_state WHERE channel_id = ?').get(channelId);
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Generates Cross-Server Counting Leaderboard Embed
+ */
+export async function getCrossServerCountingLeaderboardEmbed(client) {
+  let rows = [];
+  try {
+    rows = db.prepare('SELECT * FROM counting_state ORDER BY high_score DESC, current_number DESC').all();
+  } catch (_) {}
+
+  // Top users across all servers
+  let topUsers = [];
+  try {
+    topUsers = db.prepare(`
+      SELECT user_id, SUM(counts_count) as total_counts 
+      FROM counting_user_stats 
+      GROUP BY user_id 
+      ORDER BY total_counts DESC 
+      LIMIT 5
+    `).all();
+  } catch (_) {}
+
+  const embed = new EmbedBuilder()
+    .setColor(0xF1C40F) // Gold Trophy
+    .setTitle('🏆 GLOBAL CROSS-SERVER COUNTING LEADERBOARD')
+    .setDescription(
+      `Compete across all Discord servers to claim the **Ultimate Counting Crown**! 👑\n` +
+      `Who holds the highest counting chain across our entire network?\n\n` +
+      `▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬`
+    )
+    .setTimestamp()
+    .setFooter({ text: 'Krims Code AI • Cross-Server Counting Championship' });
+
+  if (rows.length === 0) {
+    embed.addFields({
+      name: '🌐 Server Standings',
+      value: 'No servers have linked a counting channel yet! Use `/counting` or `!setcounting` to join the championship!'
+    });
+  } else {
+    const medalIcons = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣'];
+    const serverLines = await Promise.all(rows.map(async (row, idx) => {
+      const medal = medalIcons[idx] || `\`#${idx + 1}\``;
+      let guildName = 'Unknown Server';
+      if (row.guild_id && client?.guilds?.cache?.has(row.guild_id)) {
+        guildName = client.guilds.cache.get(row.guild_id).name;
+      } else if (row.guild_id) {
+        const fetched = await client?.guilds?.fetch(row.guild_id).catch(() => null);
+        if (fetched) guildName = fetched.name;
+      }
+      return `${medal} **${guildName}**\n↳ 🏆 **Record High Score:** \`${row.high_score || 0}\` | 🔢 **Current Count:** \`${row.current_number || 0}\` | 📍 <#${row.channel_id}>`;
+    }));
+
+    embed.addFields({
+      name: '🌐 Server Championship Rankings',
+      value: serverLines.join('\n\n').substring(0, 1024),
+      inline: false
+    });
+  }
+
+  if (topUsers.length > 0) {
+    const userRankings = topUsers.map((u, i) => {
+      const medal = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'][i] || `#${i + 1}`;
+      return `${medal} <@${u.user_id}> — **${u.total_counts}** verified counts`;
+    }).join('\n');
+
+    embed.addFields({
+      name: '👑 Top Community Counters (All Servers)',
+      value: userRankings,
+      inline: false
+    });
+  }
+
+  return embed;
+}
+
+/**
+ * Handles Counting Logic in linked channels or channels named 'counting'
  */
 export async function handleCountingMessage(message) {
-  if (message.author.bot) return;
-  if (!message.channel.name || !message.channel.name.includes('counting')) return;
-
-  const content = message.content.trim();
-  const num = parseInt(content, 10);
-  if (isNaN(num)) return; // Allow non-number chat or ignore
+  if (message.author.bot || !message.guild) return false;
 
   let state = null;
   try {
     state = db.prepare('SELECT * FROM counting_state WHERE channel_id = ?').get(message.channel.id);
   } catch (_) {}
 
+  // If not explicitly linked in DB, check if channel name has 'counting'
+  if (!state && (!message.channel.name || !message.channel.name.toLowerCase().includes('counting'))) {
+    return false;
+  }
+
+  const content = message.content.trim();
+  // Check if message is a clean number (e.g. "1", "42", "100")
+  if (!/^\d+$/.test(content)) {
+    return false; // Ignore non-numeric chat (allow normal chat or commands)
+  }
+
+  const num = parseInt(content, 10);
+  if (isNaN(num)) return false;
+
   if (!state) {
     state = { current_number: 0, last_user_id: null, high_score: 0 };
     try {
-      db.prepare('INSERT OR REPLACE INTO counting_state (channel_id, current_number, last_user_id, high_score) VALUES (?, ?, ?, ?)')
-        .run(message.channel.id, 0, null, 0);
+      db.prepare('INSERT OR REPLACE INTO counting_state (channel_id, guild_id, current_number, last_user_id, high_score) VALUES (?, ?, ?, ?, ?)')
+        .run(message.channel.id, message.guild.id, 0, null, 0);
     } catch (_) {}
   }
 
@@ -57,15 +287,25 @@ export async function handleCountingMessage(message) {
     const resetEmbed = new EmbedBuilder()
       .setColor(0xEF4444)
       .setTitle('❌ Counting Chain Broken!')
-      .setDescription(`**${message.author.displayName}** counted twice in a row!\nThe count resets back to **1**. Start over!`)
-      .setFooter({ text: `High Score: ${state.high_score}` });
+      .setDescription(`**${message.author.displayName || message.author.username}** counted twice in a row!\nThe count resets back to **\`1\`**. Start over!`)
+      .setFooter({ text: `Record High Score: ${state.high_score}` });
 
     try {
       db.prepare('UPDATE counting_state SET current_number = 0, last_user_id = NULL WHERE channel_id = ?').run(message.channel.id);
     } catch (_) {}
 
+    updateLiveStatusEmbed(message.channel, {
+      status_message_id: state.status_message_id,
+      current_number: 0,
+      high_score: state.high_score,
+      last_user_id: message.author.id
+    }, {
+      statusText: '❌ Chain broken! Start over at 1.',
+      lastCounter: message.author
+    });
+
     await message.channel.send({ embeds: [resetEmbed] });
-    return;
+    return true;
   }
 
   // Rule 2: Must be exact next number
@@ -74,15 +314,25 @@ export async function handleCountingMessage(message) {
     const resetEmbed = new EmbedBuilder()
       .setColor(0xEF4444)
       .setTitle('❌ Wrong Number!')
-      .setDescription(`**${message.author.displayName}** said **${num}**, but the next number was **${expectedNumber}**!\nThe count resets back to **1**. Start over!`)
-      .setFooter({ text: `High Score: ${state.high_score}` });
+      .setDescription(`**${message.author.displayName || message.author.username}** said **${num}**, but the next number was **${expectedNumber}**!\nThe count resets back to **\`1\`**. Start over!`)
+      .setFooter({ text: `Record High Score: ${state.high_score}` });
 
     try {
       db.prepare('UPDATE counting_state SET current_number = 0, last_user_id = NULL WHERE channel_id = ?').run(message.channel.id);
     } catch (_) {}
 
+    updateLiveStatusEmbed(message.channel, {
+      status_message_id: state.status_message_id,
+      current_number: 0,
+      high_score: state.high_score,
+      last_user_id: message.author.id
+    }, {
+      statusText: '❌ Chain broken! Start over at 1.',
+      lastCounter: message.author
+    });
+
     await message.channel.send({ embeds: [resetEmbed] });
-    return;
+    return true;
   }
 
   // Correct Number!
@@ -92,6 +342,26 @@ export async function handleCountingMessage(message) {
       .run(num, message.author.id, newHighScore, message.channel.id);
   } catch (_) {}
 
+  // Update user stats
+  try {
+    db.prepare(`
+      INSERT INTO counting_user_stats (user_id, guild_id, counts_count)
+      VALUES (?, ?, 1)
+      ON CONFLICT(user_id, guild_id) DO UPDATE SET counts_count = counts_count + 1
+    `).run(message.author.id, message.guild.id);
+  } catch (_) {}
+
+  // Live status embed update
+  updateLiveStatusEmbed(message.channel, {
+    status_message_id: state.status_message_id,
+    current_number: num,
+    high_score: newHighScore,
+    last_user_id: message.author.id
+  }, {
+    statusText: '🔥 Active Chain!',
+    lastCounter: message.author
+  });
+
   await message.react('✅').catch(() => {});
 
   // Milestone Celebration every 25 numbers
@@ -100,9 +370,12 @@ export async function handleCountingMessage(message) {
     const celeb = new EmbedBuilder()
       .setColor(0x00FF66)
       .setTitle(`🎉 Milestone Reached: ${num}!`)
-      .setDescription(`Awesome teamwork! Current count is **${num}**! Keep it going! 🚀`);
+      .setDescription(`🔥 Fantastic teamwork by **${message.author.displayName || message.author.username}** and the squad! Current count is **${num}**! Next is **${num + 1}**! 🚀`)
+      .setFooter({ text: `High Score: ${newHighScore}` });
     await message.channel.send({ embeds: [celeb] });
   }
+
+  return true;
 }
 
 const stickyTimers = new Map();

@@ -34,6 +34,21 @@ import {
   CREW_APPLY_CHANNEL_ID 
 } from '../features/videoCrewApplicationManager.mjs';
 
+import {
+  linkCountingChannel,
+  unlinkCountingChannel,
+  resetCountingState,
+  getCountingState,
+  getCrossServerCountingLeaderboardEmbed
+} from '../countingAndStickyEngine.mjs';
+
+import {
+  getMemoryStats,
+  resetServerMemory,
+  learnServerFact,
+  buildMemoryStatusEmbed
+} from '../features/aiMemoryEngine.mjs';
+
 import { getLocatorColor } from '../features/locatorBarEngine.mjs';
 import { handleRankCommand } from '../features/mee6Levels.mjs';
 import { 
@@ -212,6 +227,131 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       } catch (err) {
         return await interaction.editReply({ content: '📡 Server status check timed out.' });
       }
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // 🔢 COUNTING ENGINE COMMAND
+    // ──────────────────────────────────────────────────────────
+    if (commandName === 'counting') {
+      const targetChannel = interaction.options.getChannel('channel') || interaction.channel;
+      const action = interaction.options.getString('action') || (interaction.options.getChannel('channel') ? 'set' : 'status');
+
+      const isStaff = interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels) ||
+                      interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ||
+                      interaction.user.id === '1414143825538191373';
+
+      if (action === 'set') {
+        if (!isStaff) {
+          return await interaction.reply({ content: '❌ You need `Manage Channels` or `Administrator` permission to link a counting channel.', ephemeral: true });
+        }
+        await linkCountingChannel(targetChannel, interaction.user);
+        return await interaction.reply({
+          content: `✅ <#${targetChannel.id}> is now linked as the official **Counting Game** room! Drop \`1\` in <#${targetChannel.id}> to start counting! 🚀`,
+          ephemeral: false
+        });
+      }
+
+      if (action === 'leaderboard') {
+        const embed = await getCrossServerCountingLeaderboardEmbed(interaction.client);
+        return await interaction.reply({ embeds: [embed] });
+      }
+
+      if (action === 'status') {
+        const state = getCountingState(targetChannel.id);
+        const embed = new EmbedBuilder()
+          .setColor(0x00E5FF)
+          .setTitle('🔢 Counting Game Status')
+          .setDescription(`Status for channel <#${targetChannel.id}>:`)
+          .addFields(
+            { name: '✨ Current Number', value: `**${state?.current_number || 0}** (Next: \`${(state?.current_number || 0) + 1}\`)`, inline: true },
+            { name: '🏆 High Score', value: `**${state?.high_score || 0}**`, inline: true },
+            { name: '👤 Last Counter', value: state?.last_user_id ? `<@${state.last_user_id}>` : 'None', inline: true }
+          )
+          .setFooter({ text: `${interaction.guild.name} • Counting Engine` })
+          .setTimestamp();
+        return await interaction.reply({ embeds: [embed] });
+      }
+
+      if (action === 'reset') {
+        if (!isStaff) {
+          return await interaction.reply({ content: '❌ Only staff can reset the counting chain.', ephemeral: true });
+        }
+        resetCountingState(targetChannel.id);
+        return await interaction.reply({
+          content: `🔄 The count in <#${targetChannel.id}> has been reset back to **\`1\`**!`,
+          ephemeral: false
+        });
+      }
+
+      if (action === 'unlink') {
+        if (!isStaff) {
+          return await interaction.reply({ content: '❌ Only staff can unlink counting channels.', ephemeral: true });
+        }
+        unlinkCountingChannel(targetChannel.id);
+        return await interaction.reply({
+          content: `❌ <#${targetChannel.id}> has been unlinked from the counting game.`,
+          ephemeral: true
+        });
+      }
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // 🧠 SERVER AI MEMORY & ADMIN RESET COMMAND
+    // ──────────────────────────────────────────────────────────
+    if (commandName === 'memory') {
+      const action = interaction.options.getString('action') || 'view';
+      const isAdmin = interaction.user.id === KRYLO_USER_ID ||
+                      interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ||
+                      interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild);
+
+      if (action === 'reset') {
+        if (!isAdmin) {
+          return await interaction.reply({
+            content: '❌ **Permission Denied:** Only server administrators can reset Krims Code AI\'s server memory.',
+            ephemeral: true
+          });
+        }
+
+        const { deletedMessages, deletedFacts } = resetServerMemory(interaction.guild.id, interaction.user.tag);
+        const resetEmbed = new EmbedBuilder()
+          .setTitle('🧹 Krims Code AI — Server Memory Reset')
+          .setDescription(`All neural conversation history and stored facts for **${interaction.guild.name}** have been permanently wiped by <@${interaction.user.id}>.`)
+          .setColor(0xFF4500)
+          .addFields(
+            { name: '💬 Cleared Dialogues', value: `\`${deletedMessages}\` messages deleted`, inline: true },
+            { name: '📌 Cleared Server Facts', value: `\`${deletedFacts}\` facts wiped`, inline: true },
+            { name: '✨ Status', value: 'Fresh slate activated! New conversations will start fresh memory.', inline: false }
+          )
+          .setFooter({ text: `${interaction.guild.name} • Memory Management Engine` })
+          .setTimestamp();
+
+        return await interaction.reply({ embeds: [resetEmbed], ephemeral: false });
+      }
+
+      if (action === 'learn') {
+        const fact = interaction.options.getString('fact');
+        if (!fact || fact.trim().length === 0) {
+          return await interaction.reply({
+            content: '⚠️ Please provide a fact for Krims Code AI to remember using the `fact:` option!\n*Example:* `/memory action:learn fact:Our builder is CrazyCoolCam`',
+            ephemeral: true
+          });
+        }
+
+        const success = learnServerFact(interaction.guild.id, 'fact_' + Date.now().toString(36), fact, interaction.user.tag);
+        if (success) {
+          return await interaction.reply({
+            content: `🧠 **Fact Learned & Stored into Memory!**\nKrims Code AI now remembers:\n> *"**${fact.trim()}**"*\n\nThis fact will be recalled across future conversations on this server.`,
+            ephemeral: false
+          });
+        } else {
+          return await interaction.reply({ content: '❌ Failed to record memory to database.', ephemeral: true });
+        }
+      }
+
+      // Default: 'view'
+      const stats = getMemoryStats(interaction.guild.id);
+      const payload = buildMemoryStatusEmbed(interaction.guild, stats);
+      return await interaction.reply(payload);
     }
 
     // ──────────────────────────────────────────────────────────
