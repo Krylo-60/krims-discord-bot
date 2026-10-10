@@ -10819,3 +10819,19 @@ client.on('guildCreate', async (guild) => {
   updateBotPresence();
 });
 
+// ═══════════════════════════════════════════════════════════
+// 24/7 CLOUD HOST KEEP-ALIVE HEARTBEAT
+// Pings Render public URL every 5 minutes so counting & bot stay 100% active
+// ═══════════════════════════════════════════════════════════
+const RENDER_APP_URL = process.env.RENDER_EXTERNAL_URL || 'https://krims-discord-bot-d57m.onrender.com';
+setInterval(async () => {
+  try {
+    const res = await fetch(RENDER_APP_URL, { timeout: 10000 });
+    if (res.ok) {
+      console.log(`[Keep-Alive 24/7] 💓 Heartbeat pinged ${RENDER_APP_URL} (${res.status}) - Bot stays awake!`);
+    }
+  } catch (e) {
+    console.warn(`[Keep-Alive 24/7] Heartbeat notice: ${e.message}`);
+  }
+}, 300000); // Every 5 minutes
+

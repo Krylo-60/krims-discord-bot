@@ -74,6 +74,8 @@ if (neonUrl && neonUrl.startsWith('postgres')) {
   }
 }
 
+export { neonPool };
+
 // ═══════════════════════════════════════════════════════════
 // 🏛️ TABLE INITIALIZATION SCHEMA
 // ═══════════════════════════════════════════════════════════

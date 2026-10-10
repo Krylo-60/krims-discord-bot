@@ -1,5 +1,5 @@
 import { EmbedBuilder, PermissionFlagsBits, ChannelType } from 'discord.js';
-import { db } from './databaseEngine.mjs';
+import { db, neonPool } from './databaseEngine.mjs';
 
 // Initialize SQLite tables for counting and sticky messages
 try {
@@ -9,7 +9,8 @@ try {
       guild_id TEXT,
       current_number INTEGER DEFAULT 0,
       last_user_id TEXT,
-      high_score INTEGER DEFAULT 0
+      high_score INTEGER DEFAULT 0,
+      status_message_id TEXT
     );
 
     CREATE TABLE IF NOT EXISTS sticky_messages (
@@ -34,6 +35,53 @@ try {
 try {
   db.exec(`ALTER TABLE counting_state ADD COLUMN guild_id TEXT;`);
 } catch (_) {}
+try {
+  db.exec(`ALTER TABLE counting_state ADD COLUMN status_message_id TEXT;`);
+} catch (_) {}
+
+/**
+ * Sync state between Neon Postgres and local SQLite cache
+ */
+async function syncFromCloudPostgres() {
+  if (!neonPool) return;
+  try {
+    const client = await neonPool.connect();
+    const res = await client.query('SELECT * FROM counting_state');
+    for (const r of res.rows) {
+      db.prepare(`
+        INSERT OR REPLACE INTO counting_state (channel_id, guild_id, current_number, last_user_id, high_score, status_message_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(r.channel_id, r.guild_id, r.current_number, r.last_user_id, r.high_score, r.status_message_id);
+    }
+    client.release();
+  } catch (err) {
+    console.warn('[Counting Cloud Sync Notice]:', err.message);
+  }
+}
+
+// Initial pull on boot
+syncFromCloudPostgres().catch(() => {});
+
+async function pushToCloudPostgres(channelId, guildId, currentNum, lastUserId, highScore, statusMessageId = null) {
+  if (!neonPool) return;
+  try {
+    const client = await neonPool.connect();
+    await client.query(`
+      INSERT INTO counting_state (channel_id, guild_id, current_number, last_user_id, high_score, status_message_id, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      ON CONFLICT (channel_id) DO UPDATE SET
+        guild_id = EXCLUDED.guild_id,
+        current_number = EXCLUDED.current_number,
+        last_user_id = EXCLUDED.last_user_id,
+        high_score = EXCLUDED.high_score,
+        status_message_id = COALESCE(EXCLUDED.status_message_id, counting_state.status_message_id),
+        updated_at = NOW();
+    `, [channelId, guildId, currentNum, lastUserId, highScore, statusMessageId]);
+    client.release();
+  } catch (err) {
+    console.warn('[Counting Cloud Push Notice]:', err.message);
+  }
+}
 
 /**
  * Link a Discord channel as the server's official counting channel
@@ -257,8 +305,9 @@ export async function handleCountingMessage(message) {
     state = db.prepare('SELECT * FROM counting_state WHERE channel_id = ?').get(message.channel.id);
   } catch (_) {}
 
-  // If not explicitly linked in DB, check if channel name has 'counting'
-  if (!state && (!message.channel.name || !message.channel.name.toLowerCase().includes('counting'))) {
+  // If not explicitly linked in DB, check if channel name has 'counting' (supports Unicode / fonts)
+  const normChannelName = (message.channel.name || '').normalize('NFKD').toLowerCase();
+  if (!state && !normChannelName.includes('counting')) {
     return false;
   }
 
@@ -276,6 +325,7 @@ export async function handleCountingMessage(message) {
     try {
       db.prepare('INSERT OR REPLACE INTO counting_state (channel_id, guild_id, current_number, last_user_id, high_score) VALUES (?, ?, ?, ?, ?)')
         .run(message.channel.id, message.guild.id, 0, null, 0);
+      pushToCloudPostgres(message.channel.id, message.guild.id, 0, null, 0);
     } catch (_) {}
   }
 
@@ -292,6 +342,7 @@ export async function handleCountingMessage(message) {
 
     try {
       db.prepare('UPDATE counting_state SET current_number = 0, last_user_id = NULL WHERE channel_id = ?').run(message.channel.id);
+      pushToCloudPostgres(message.channel.id, message.guild.id, 0, null, state.high_score, state.status_message_id);
     } catch (_) {}
 
     updateLiveStatusEmbed(message.channel, {
@@ -319,6 +370,7 @@ export async function handleCountingMessage(message) {
 
     try {
       db.prepare('UPDATE counting_state SET current_number = 0, last_user_id = NULL WHERE channel_id = ?').run(message.channel.id);
+      pushToCloudPostgres(message.channel.id, message.guild.id, 0, null, state.high_score, state.status_message_id);
     } catch (_) {}
 
     updateLiveStatusEmbed(message.channel, {
@@ -340,6 +392,7 @@ export async function handleCountingMessage(message) {
   try {
     db.prepare('UPDATE counting_state SET current_number = ?, last_user_id = ?, high_score = ? WHERE channel_id = ?')
       .run(num, message.author.id, newHighScore, message.channel.id);
+    pushToCloudPostgres(message.channel.id, message.guild.id, num, message.author.id, newHighScore, state.status_message_id);
   } catch (_) {}
 
   // Update user stats
