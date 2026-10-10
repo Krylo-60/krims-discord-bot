@@ -458,17 +458,22 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     if (commandName === 'about' || commandName === 'getbot') {
       const embed = new EmbedBuilder()
         .setColor(0x00E5FF)
-        .setTitle('✨ About Krims Code AI & Custom Bot Engine')
+        .setTitle('✨ Krims Code AI • The Ultimate All-In-One Discord Bot')
         .setDescription(
-          `**Krims Code AI** is the next-generation Discord AI bot and multi-tenant bot host created by the Krylo Development Team.\n\n` +
-          `🌟 **Core Highlights:**\n` +
-          `• **Multi-Bot Hosting:** Host up to 100+ branded bots on a single unified cloud instance.\n` +
-          `• **Krims Neural Brain:** High-speed, context-aware coding, creative writing, and chat assistance.\n` +
-          `• **Full Economy & RPG:** Complete virtual economy, MEE6 chat levels, duels, clans, and stores.\n` +
-          `• **Dyno-Grade Moderation:** Auto-moderation, timeouts, strikes, mod-logs, and server lockdown.\n\n` +
-          `🎁 **Get Your Own Bot:** Type \`/setupbot\` to deploy a personalized bot for your server for FREE!`
+          `**Krims Code AI** is the complete all-in-one AI, gaming, moderation, and community assistant created by the Krylo Development Team.\n\n` +
+          `🌟 **Core Highlights & Capabilities:**\n` +
+          `• **🧠 Persistent Neural Memory:** Remembers conversations, facts, and server lore across bot restarts (\`/memory\`, \`/ask\`).\n` +
+          `• **🛡️ Dyno-Grade Moderation Suite:** Automated filters, timeouts, kicks, bans, and lightning bulk-purges (\`/warn\`, \`/mute\`, \`/clear\`).\n` +
+          `• **🔢 Cross-Server Counting Arena:** Compete with servers across our network for the longest unbroken count (\`/counting\`).\n` +
+          `• **💰 Full RPG Economy & Clans:** Mining, fishing, duels, casino, clans, and stores (\`/daily\`, \`/clan\`, \`/shop\`, \`/mine\`).\n` +
+          `• **⭐ MEE6 XP & Voice Leveling:** Chat and voice activity tracking with custom canvas rank cards (\`/rank\`, \`/leaderboard\`).\n` +
+          `• **🛠️ All-In-One Utilities:** Instant translation, formula calculation, worldwide weather & reminders (\`/translate\`, \`/calc\`, \`/weather\`, \`/remind\`).\n` +
+          `• **📡 Minecraft SMP Integration:** Real-time server telemetry, player locator radars, and webstore integration (\`/ip\`, \`/status\`, \`/store\`).\n\n` +
+          `❤️ **Love Krims Code? Support Us:**\n` +
+          `• Add Krims Code AI to your other servers for **FREE** by clicking on the bot's profile or running \`/getbot\`!\n` +
+          `• Share it with your friends, moderators, and communities to support our development!`
         )
-        .setFooter({ text: 'Krims Code AI • Created by Krylo-60' })
+        .setFooter({ text: 'Krims Code AI • Created with pride by Krylo Team' })
         .setTimestamp();
 
       const row = new ActionRowBuilder().addComponents(
