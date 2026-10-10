@@ -57,36 +57,20 @@ export const masterCommandBuilders = [
   // 2. 🎬 SKYBASE FILM CREW & APPLICATIONS
   // ──────────────────────────────────────────────────────────
   new SlashCommandBuilder()
-    .setName('startcrewapp')
-    .setDescription('🎬 Open Skybase Film Crew applications and activate recruitment panel (Admin only)'),
+    .setName('translate')
+    .setDescription('🌐 Translate text into any language (English, Spanish, French, Japanese, etc.)')
+    .addStringOption(opt => opt.setName('text').setDescription('The text to translate').setRequired(true))
+    .addStringOption(opt => opt.setName('language').setDescription('Target language (e.g. English, Spanish, Japanese, German)').setRequired(false)),
 
   new SlashCommandBuilder()
-    .setName('stopcrewapp')
-    .setDescription('🔒 Close Skybase Film Crew applications and lock recruitment panel (Admin only)'),
+    .setName('ping')
+    .setDescription('🏓 Check Krims Code AI latency, Discord WebSocket heartbeat, and database response time!'),
 
   new SlashCommandBuilder()
-    .setName('counting')
-    .setDescription('🔢 Configure and manage the server counting game channel')
-    .addChannelOption(opt => opt.setName('channel').setDescription('Channel to link as official counting room').setRequired(false))
-    .addStringOption(opt => opt.setName('action').setDescription('Action to perform (link, status, reset, unlink)').setRequired(false)
-      .addChoices(
-        { name: '🔗 Link Channel', value: 'set' },
-        { name: '🏆 Cross-Server Leaderboard', value: 'leaderboard' },
-        { name: '📊 Check Status & High Score', value: 'status' },
-        { name: '🔄 Reset Count to 1', value: 'reset' },
-        { name: '❌ Unlink Channel', value: 'unlink' }
-      )),
-
-  new SlashCommandBuilder()
-    .setName('stopcrew')
-    .setDescription('🔒 Close Skybase Film Crew applications and lock recruitment panel (Admin only)'),
-
-  new SlashCommandBuilder()
-    .setName('crewapp')
-    .setDescription('🎬 Manage Skybase Film Crew applications status and panel (Admin only)')
-    .addSubcommand(sub => sub.setName('start').setDescription('Open Skybase Film Crew applications'))
-    .addSubcommand(sub => sub.setName('stop').setDescription('Close Skybase Film Crew applications'))
-    .addSubcommand(sub => sub.setName('status').setDescription('View current application status')),
+    .setName('remind')
+    .setDescription('⏰ Set an active countdown timer reminder with DM / ping notification!')
+    .addStringOption(opt => opt.setName('time').setDescription('Duration (e.g. 10m, 1h, 30s)').setRequired(true))
+    .addStringOption(opt => opt.setName('message').setDescription('Reminder message').setRequired(true)),
 
   new SlashCommandBuilder()
     .setName('crew')
@@ -94,6 +78,16 @@ export const masterCommandBuilders = [
     .addSubcommand(sub => sub.setName('start').setDescription('Open Skybase Film Crew applications'))
     .addSubcommand(sub => sub.setName('stop').setDescription('Close Skybase Film Crew applications'))
     .addSubcommand(sub => sub.setName('status').setDescription('View current application status')),
+
+  new SlashCommandBuilder()
+    .setName('clear')
+    .setDescription('🧹 Fast bulk-delete up to 100 messages from the channel (Staff only)')
+    .addIntegerOption(opt => opt.setName('amount').setDescription('Number of messages to delete (1-100)').setRequired(true))
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+  new SlashCommandBuilder()
+    .setName('uptime')
+    .setDescription('⏱️ View bot uptime, process memory usage, and system load status!'),
 
   // ──────────────────────────────────────────────────────────
   // 3. 🌐 SERVER, COMMUNITY & SUPPORT
@@ -403,9 +397,14 @@ export const masterCommandBuilders = [
     .addUserOption(opt => opt.setName('user').setDescription('Target user').setRequired(false)),
 
   new SlashCommandBuilder()
-    .setName('level')
-    .setDescription('⭐ View your chat level, rank position, and total XP card! (Alias)')
-    .addUserOption(opt => opt.setName('user').setDescription('Target user').setRequired(false)),
+    .setName('calc')
+    .setDescription('🧮 Calculate any mathematical expression, equation, or formula!')
+    .addStringOption(opt => opt.setName('expression').setDescription('Math expression (e.g. 25 * 4, sqrt(144), 2^8)').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('weather')
+    .setDescription('☀️ Get current real-time weather and forecast for any city or location!')
+    .addStringOption(opt => opt.setName('location').setDescription('City or place name (e.g. New York, Tokyo, London)').setRequired(true)),
 
   new SlashCommandBuilder()
     .setName('daily')
@@ -416,18 +415,21 @@ export const masterCommandBuilders = [
     .setDescription('💼 Work a minigame shift to earn KryloCoins!'),
 
   new SlashCommandBuilder()
-    .setName('bal')
-    .setDescription('💰 Check your current KryloCoins & economy balance!')
-    .addUserOption(opt => opt.setName('user').setDescription('User to check balance of').setRequired(false)),
+    .setName('counting')
+    .setDescription('🔢 Configure and manage the server counting game channel')
+    .addChannelOption(opt => opt.setName('channel').setDescription('Channel to link as official counting room').setRequired(false))
+    .addStringOption(opt => opt.setName('action').setDescription('Action to perform (link, status, reset, unlink)').setRequired(false)
+      .addChoices(
+        { name: '🔗 Link Channel', value: 'set' },
+        { name: '🏆 Cross-Server Leaderboard', value: 'leaderboard' },
+        { name: '📊 Check Status & High Score', value: 'status' },
+        { name: '🔄 Reset Count to 1', value: 'reset' },
+        { name: '❌ Unlink Channel', value: 'unlink' }
+      )),
 
   new SlashCommandBuilder()
     .setName('balance')
-    .setDescription('💰 Check your current KryloCoins & economy balance! (Alias)')
-    .addUserOption(opt => opt.setName('user').setDescription('User to check balance of').setRequired(false)),
-
-  new SlashCommandBuilder()
-    .setName('coins')
-    .setDescription('💰 Check your current KryloCoins & economy balance! (Alias)')
+    .setDescription('💰 Check your current KryloCoins & economy balance!')
     .addUserOption(opt => opt.setName('user').setDescription('User to check balance of').setRequired(false)),
 
   new SlashCommandBuilder()

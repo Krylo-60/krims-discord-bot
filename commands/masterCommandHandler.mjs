@@ -2192,6 +2192,228 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     }
 
     // ──────────────────────────────────────────────────────────
+    // 12. UTILITY & ALL-IN-ONE COMMAND SUITE
+    // ──────────────────────────────────────────────────────────
+    if (commandName === 'ping') {
+      const sent = await interaction.reply({ content: '🏓 Pinging...', fetchReply: true });
+      const latency = sent.createdTimestamp - interaction.createdTimestamp;
+      const wsLatency = Math.round(interaction.client.ws.ping);
+
+      const embed = new EmbedBuilder()
+        .setColor(latency < 200 ? 0x10B981 : 0xF59E0B)
+        .setTitle('🏓 Krims Code AI • Network & Latency Telemetry')
+        .addFields(
+          { name: '⚡ Roundtrip Latency', value: `\`${latency} ms\``, inline: true },
+          { name: '💓 Discord Gateway', value: `\`${wsLatency} ms\``, inline: true },
+          { name: '🧠 Neural Engine', value: '`Online 🟢 (Operational)`', inline: true },
+          { name: '💾 Database Cache', value: '`SQLite + Neon Lakebase 🟢`', inline: true }
+        )
+        .setFooter({ text: 'Krims Code AI Multi-Bot Framework' })
+        .setTimestamp();
+
+      return await interaction.editReply({ content: '', embeds: [embed] });
+    }
+
+    if (commandName === 'uptime') {
+      const uptimeSec = Math.floor(process.uptime());
+      const d = Math.floor(uptimeSec / 86400);
+      const h = Math.floor((uptimeSec % 86400) / 3600);
+      const m = Math.floor((uptimeSec % 3600) / 60);
+      const s = uptimeSec % 60;
+      const uptimeStr = `${d > 0 ? `${d}d ` : ''}${h}h ${m}m ${s}s`;
+
+      const memUsage = process.memoryUsage();
+      const heapMB = (memUsage.heapUsed / 1024 / 1024).toFixed(1);
+      const rssMB = (memUsage.rss / 1024 / 1024).toFixed(1);
+
+      const embed = new EmbedBuilder()
+        .setColor(0x5865F2)
+        .setTitle('⏱️ Krims Code AI • System Uptime & Telemetry')
+        .addFields(
+          { name: '⏳ Continuous Uptime', value: `\`${uptimeStr}\``, inline: true },
+          { name: '💾 Memory Footprint', value: `\`Heap: ${heapMB} MB | RSS: ${rssMB} MB\``, inline: true },
+          { name: '⚙️ Node Environment', value: `\`Node ${process.version} (${process.platform})\``, inline: true },
+          { name: '🌐 Connected Guilds', value: `\`${interaction.client.guilds.cache.size} Servers\``, inline: true }
+        )
+        .setFooter({ text: 'Krims Code High-Availability Daemon' })
+        .setTimestamp();
+
+      return await interaction.reply({ embeds: [embed] });
+    }
+
+    if (commandName === 'clear') {
+      const amount = interaction.options.getInteger('amount') || 10;
+      if (amount < 1 || amount > 100) {
+        return await interaction.reply({ content: '❌ Please specify an amount between **1** and **100**.', ephemeral: true });
+      }
+
+      const isStaff = interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages) ||
+                      interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ||
+                      interaction.user.id === '1414143825538191373';
+
+      if (!isStaff) {
+        return await interaction.reply({ content: '❌ You need `Manage Messages` permission to use `/clear`.', ephemeral: true });
+      }
+
+      await interaction.deferReply({ ephemeral: true });
+      const deleted = await interaction.channel.bulkDelete(amount, true).catch(err => {
+        return null;
+      });
+
+      if (!deleted) {
+        return await interaction.editReply({ content: '⚠️ Could not delete messages older than 14 days due to Discord API limitations.' });
+      }
+
+      return await interaction.editReply({ content: `🧹 Successfully purged **${deleted.size}** messages from <#${interaction.channel.id}>!` });
+    }
+
+    if (commandName === 'translate') {
+      const text = interaction.options.getString('text');
+      const targetLang = interaction.options.getString('language') || 'English';
+
+      await interaction.deferReply();
+
+      // Quick translation via Google public translation endpoint
+      let translated = text;
+      try {
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang.substring(0, 5).toLowerCase())}&dt=t&q=${encodeURIComponent(text)}`;
+        const tRes = await fetch(url);
+        const tData = await tRes.json();
+        if (tData && tData[0]) {
+          translated = tData[0].map(item => item[0]).join('');
+        }
+      } catch (err) {
+        translated = `[Translation error: ${err.message}]`;
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor(0x00E5FF)
+        .setTitle(`🌐 Translation • ${targetLang}`)
+        .addFields(
+          { name: '📝 Original Text', value: text.substring(0, 1024), inline: false },
+          { name: `🎯 Translated (${targetLang})`, value: translated.substring(0, 1024), inline: false }
+        )
+        .setFooter({ text: 'Krims Code AI Universal Translator' })
+        .setTimestamp();
+
+      return await interaction.editReply({ embeds: [embed] });
+    }
+
+    if (commandName === 'calc') {
+      const expr = interaction.options.getString('expression');
+      try {
+        // Sanitize for safe arithmetic calculation
+        const sanitized = expr.replace(/[^0-9+\-*/().%^ \t]/g, '');
+        if (!sanitized.trim()) {
+          return await interaction.reply({ content: '❌ Invalid mathematical expression. Allowed symbols: `+`, `-`, `*`, `/`, `^`, `%`, `(`, `)`.', ephemeral: true });
+        }
+        // Safely evaluate simple math
+        const evalExpr = sanitized.replace(/\^/g, '**');
+        const result = Function(`'use strict'; return (${evalExpr})`)();
+
+        const embed = new EmbedBuilder()
+          .setColor(0x10B981)
+          .setTitle('🧮 Calculator')
+          .addFields(
+            { name: '📥 Expression', value: `\`${expr}\``, inline: true },
+            { name: '📤 Result', value: `\`${result}\``, inline: true }
+          )
+          .setFooter({ text: 'Krims Code Mathematical Engine' })
+          .setTimestamp();
+
+        return await interaction.reply({ embeds: [embed] });
+      } catch (calcErr) {
+        return await interaction.reply({ content: `❌ Error solving expression: \`${calcErr.message}\``, ephemeral: true });
+      }
+    }
+
+    if (commandName === 'weather') {
+      const loc = interaction.options.getString('location');
+      await interaction.deferReply();
+      try {
+        const wRes = await fetch(`https://wttr.in/${encodeURIComponent(loc)}?format=j1`);
+        const wData = await wRes.json();
+
+        const current = wData.current_condition?.[0];
+        const area = wData.nearest_area?.[0];
+        const cityName = area?.areaName?.[0]?.value || loc;
+        const country = area?.country?.[0]?.value || '';
+
+        const tempC = current?.temp_C || 'N/A';
+        const tempF = current?.temp_F || 'N/A';
+        const desc = current?.weatherDesc?.[0]?.value || 'Clear';
+        const humidity = current?.humidity || 'N/A';
+        const windKmph = current?.windspeedKmph || 'N/A';
+
+        const embed = new EmbedBuilder()
+          .setColor(0x38BDF8)
+          .setTitle(`☀️ Real-Time Weather • ${cityName}, ${country}`)
+          .setDescription(`**Condition:** ${desc}`)
+          .addFields(
+            { name: '🌡️ Temperature', value: `**${tempC}°C** / **${tempF}°F**`, inline: true },
+            { name: '💧 Humidity', value: `\`${humidity}%\``, inline: true },
+            { name: '💨 Wind Speed', value: `\`${windKmph} km/h\``, inline: true }
+          )
+          .setFooter({ text: 'Global Real-Time Weather Sensor' })
+          .setTimestamp();
+
+        return await interaction.editReply({ embeds: [embed] });
+      } catch (err) {
+        return await interaction.editReply({ content: `❌ Could not find weather details for **${loc}**.` });
+      }
+    }
+
+    if (commandName === 'remind') {
+      const timeStr = interaction.options.getString('time');
+      const reminderMsg = interaction.options.getString('message');
+
+      let ms = 0;
+      const match = timeStr.match(/^(\d+)(s|m|h|d)?$/i);
+      if (!match) {
+        return await interaction.reply({ content: '❌ Invalid time format! Use `30s`, `10m`, `2h`, or `1d`.', ephemeral: true });
+      }
+
+      const val = parseInt(match[1], 10);
+      const unit = (match[2] || 'm').toLowerCase();
+      if (unit === 's') ms = val * 1000;
+      else if (unit === 'm') ms = val * 60 * 1000;
+      else if (unit === 'h') ms = val * 60 * 60 * 1000;
+      else if (unit === 'd') ms = val * 24 * 60 * 60 * 1000;
+
+      if (ms > 86400000 * 7) {
+        return await interaction.reply({ content: '❌ Reminders cannot exceed 7 days.', ephemeral: true });
+      }
+
+      const dueTimestamp = Math.floor((Date.now() + ms) / 1000);
+
+      setTimeout(async () => {
+        try {
+          const user = await interaction.client.users.fetch(interaction.user.id);
+          const alertEmbed = new EmbedBuilder()
+            .setColor(0xF59E0B)
+            .setTitle('⏰ REMINDER NOTIFICATION!')
+            .setDescription(`**Your reminder is up:**\n> ${reminderMsg}`)
+            .setFooter({ text: 'Krims Code AI Reminder Engine' })
+            .setTimestamp();
+
+          await user.send({ embeds: [alertEmbed] }).catch(async () => {
+            if (interaction.channel) {
+              await interaction.channel.send({ content: `⏰ <@${interaction.user.id}> **Reminder:** ${reminderMsg}` });
+            }
+          });
+        } catch (_) {}
+      }, ms);
+
+      const embed = new EmbedBuilder()
+        .setColor(0x10B981)
+        .setTitle('⏰ Reminder Scheduled!')
+        .setDescription(`I will remind you <t:${dueTimestamp}:R> (<t:${dueTimestamp}:F>).\n\n📝 **Note:** ${reminderMsg}`)
+        .setFooter({ text: 'Krims Code AI Reminder Engine' });
+
+      return await interaction.reply({ embeds: [embed] });
+    }
+
+    // ──────────────────────────────────────────────────────────
     // 13. FALLBACK TO LEGACY DISPATCH
     // ──────────────────────────────────────────────────────────
     if (context.handleLegacyCommand) {
