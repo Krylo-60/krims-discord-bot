@@ -598,10 +598,10 @@ export async function handleCountingMessage(message) {
   });
 
   // 🤖 AI Counting Partner Automation Logic
-  const aiSession = getAiCountingSession(message.channel.id);
-  if (aiSession) {
+  const activeAiSession = getAiCountingSession(message.channel.id);
+  if (activeAiSession) {
     // Condition A: If someone else counts, the AI counting session terminates so the real community takes over!
-    if (message.author.id !== aiSession.initiatorId) {
+    if (message.author.id !== activeAiSession.initiatorId) {
       stopAiCountingSession(message.channel.id);
       try {
         const takeoverEmbed = new EmbedBuilder()
