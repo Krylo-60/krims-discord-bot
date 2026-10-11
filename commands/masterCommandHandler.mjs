@@ -63,6 +63,7 @@ import {
   getPlayer 
 } from '../databaseEngine.mjs';
 import { joinVoice, leaveVoice, getVoiceStatus } from '../voiceEngine.mjs';
+import { handleActivityCommand } from '../features/discordActivityEngine.mjs';
 import { STORE_CATALOG } from '../storeDeliveryEngine.mjs';
 import { generateVerificationCode, buildVerificationResponse, getPendingCodesList, loadSupporters } from '../features/twitchVerificationEngine.mjs';
 
@@ -1060,6 +1061,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     if (commandName === 'unlock') return await handleLockdown(interaction, false);
     if (commandName === 'slowmode') return await handleSlowmode(interaction);
     if (commandName === 'afk') return await handleAfk(interaction);
+    if (commandName === 'activity') return await handleActivityCommand(interaction);
     if (commandName === 'remindme') return await handleRemindMe(interaction);
     if (commandName === 'embed') return await handleEmbedBuilder(interaction);
 

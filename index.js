@@ -39,6 +39,13 @@ import { initTwitchBot, joinChannel, leaveChannel, getJoinedChannels } from './f
 import { generateVerificationCode, toggleNicknameSync, getActiveCodeForUser, buildVerificationResponse, loadSupporters } from './features/twitchVerificationEngine.mjs';
 import { handleRosterMessage } from './features/rosterAutoNick.mjs';
 import { recordConversationTurn, getRecentServerMemory, learnServerFact, resetServerMemory, getMemoryStats, buildServerMemoryContext, buildMemoryStatusEmbed } from './features/aiMemoryEngine.mjs';
+import { 
+  handleActivitySelectInteraction, 
+  DISCORD_ACTIVITIES, 
+  createActivityInvite, 
+  buildActivityLaunchPayload, 
+  buildActivitySelectMenu 
+} from './features/discordActivityEngine.mjs';
 
 const guildConfigCache = new Map();
 const kryloPingStrikes = new Map();
@@ -3568,6 +3575,11 @@ client.on('interactionCreate', async (interaction) => {
       } catch (e) {}
     }
     return;
+  }
+
+  // 🎮 Handle Discord Voice Activity StringSelectMenu Interactions
+  if (interaction.isStringSelectMenu() && (interaction.customId.startsWith('activity_select_game') || interaction.customId.startsWith('activity_launch_'))) {
+    return await handleActivitySelectInteraction(interaction);
   }
 
   if (!interaction.isChatInputCommand()) return;
@@ -7230,6 +7242,57 @@ client.on('messageCreate', async (message) => {
       const stats = getMemoryStats(message.guild.id);
       const payload = buildMemoryStatusEmbed(message.guild, stats);
       return message.reply(payload);
+    }
+
+    // 🚀 Discord Voice Activities & Games (!activity, !activities)
+    if (lowerMsg.startsWith('!activity') || lowerMsg.startsWith('!activities')) {
+      const parts = message.content.trim().split(/\s+/);
+      const gameKey = (parts[1] || '').toLowerCase().trim();
+      const memberVoice = message.member?.voice?.channel;
+
+      if (!memberVoice) {
+        const catalogEmbed = new EmbedBuilder()
+          .setColor(0xF59E0B)
+          .setTitle('🔊 Join a Voice Channel First!')
+          .setDescription(
+            `Discord Activities run directly inside **Voice Channels**! 🎙️\n\n` +
+            `1. Join any voice channel in this server\n` +
+            `2. Type \`!activity <game>\` or use \`/activity\`!\n\n` +
+            `**Popular Games:** \`youtube\`, \`chess\`, \`poker\`, \`gartic\`, \`puttparty\`, \`bobble\`, \`colonist\`, \`krimscode\``
+          )
+          .setFooter({ text: 'Krims Code AI • Voice Activities' });
+        const menu = buildActivitySelectMenu('activity_select_game_no_vc');
+        return message.reply({ embeds: [catalogEmbed], components: [menu] });
+      }
+
+      if (!gameKey || !DISCORD_ACTIVITIES[gameKey]) {
+        const catalogEmbed = new EmbedBuilder()
+          .setColor(0x00E5FF)
+          .setTitle('🚀 DISCORD VOICE ACTIVITIES CATALOG')
+          .setDescription(
+            `Select an activity from the menu below to launch inside <#${memberVoice.id}>!\n\n` +
+            `• 📺 **YouTube Together:** Watch YouTube in sync\n` +
+            `• ♟️ **Chess in the Park:** Multiplayer chess\n` +
+            `• 🃏 **Poker Night:** Texas Hold'em with chips\n` +
+            `• 🎨 **Gartic on Discord:** Multiplayer drawing\n` +
+            `• ⛳ **Putt Party:** Mini-golf tournaments\n` +
+            `• ⚽ **Bobble League:** RC car soccer\n` +
+            `• 🌾 **Colonist:** Catan strategy board game\n` +
+            `• ⚡ **Krims Code AI Portal:** Official embedded web app!\n`
+          )
+          .setFooter({ text: `Target Room: #${memberVoice.name}` });
+        const menu = buildActivitySelectMenu(`activity_launch_${memberVoice.id}`);
+        return message.reply({ embeds: [catalogEmbed], components: [menu] });
+      }
+
+      const activity = DISCORD_ACTIVITIES[gameKey];
+      try {
+        const invite = await createActivityInvite(memberVoice, activity.appId);
+        const payload = buildActivityLaunchPayload(activity, memberVoice, invite, message.author);
+        return message.reply(payload);
+      } catch (err) {
+        return message.reply(`❌ Could not launch **${activity.name}**: \`${err.message}\`. Make sure I have permission to create invites!`);
+      }
     }
   }
 

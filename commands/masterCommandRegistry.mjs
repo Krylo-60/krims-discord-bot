@@ -295,10 +295,30 @@ export const masterCommandBuilders = [
     .addStringOption(opt => opt.setName('reason').setDescription('AFK reason / notice').setRequired(false)),
 
   new SlashCommandBuilder()
-    .setName('remindme')
-    .setDescription('⏰ Set a personal reminder notification timer!')
-    .addStringOption(opt => opt.setName('time').setDescription('Time duration (e.g. 10m, 1h, 30s)').setRequired(true))
-    .addStringOption(opt => opt.setName('reminder').setDescription('Reminder message').setRequired(true)),
+    .setName('activity')
+    .setDescription('🚀 Launch Discord Voice Activities & Games (YouTube Together, Chess, Poker, Gartic & more!)')
+    .addStringOption(opt => opt.setName('game').setDescription('Select the Discord Activity or Mini-Game to launch').setRequired(false)
+      .addChoices(
+        { name: '📺 YouTube Together / Watch Together', value: 'youtube' },
+        { name: '♟️ Chess in the Park', value: 'chess' },
+        { name: '🃏 Poker Night', value: 'poker' },
+        { name: '🎨 Gartic on Discord', value: 'gartic' },
+        { name: '⛳ Putt Party (Mini Golf)', value: 'puttparty' },
+        { name: '⚽ Bobble League', value: 'bobble' },
+        { name: '✏️ Sketch Heads (Doodle Crew)', value: 'sketchheads' },
+        { name: '🔤 Letter League (Scrabble)', value: 'letterleague' },
+        { name: '🍪 Word Snacks', value: 'wordsnacks' },
+        { name: '🧙 SpellCast', value: 'spellcast' },
+        { name: '🏁 Checkers in the Park', value: 'checkers' },
+        { name: '🎴 Blazing 8s (Uno / Ocho)', value: 'blazing8s' },
+        { name: '🗺️ Land-io', value: 'landio' },
+        { name: '🌾 Colonist (Catan)', value: 'colonist' },
+        { name: '🧠 Know What I Meme', value: 'meme' },
+        { name: '📝 Jamspace (Interactive Whiteboard)', value: 'jamspace' },
+        { name: '⚡ Krims Code AI Portal (Web Activity)', value: 'krimscode' }
+      )
+    )
+    .addChannelOption(opt => opt.setName('channel').setDescription('Voice channel to launch the activity in (defaults to your current voice channel)').setRequired(false)),
 
   new SlashCommandBuilder()
     .setName('embed')
