@@ -28,7 +28,7 @@ import { deliverStoreItem, STORE_CATALOG } from './storeDeliveryEngine.mjs';
 import { setPlayerVerification, getPlayer, getPlayerByIgn, addCoins, removeCoins, getBalance, claimDaily, transferCoins } from './databaseEngine.mjs';
 import { aiOperator } from './aiConsoleOperator.mjs';
 import { setupAIConsoleChannel, handleAIConsoleMessage } from './aiConsoleChatHandler.mjs';
-import { handleCountingMessage, handleStickyMessage, linkCountingChannel, unlinkCountingChannel, resetCountingState, getCountingState, getCrossServerCountingLeaderboardEmbed } from './countingAndStickyEngine.mjs';
+import { handleCountingMessage, handleStickyMessage, linkCountingChannel, unlinkCountingChannel, resetCountingState, setCountingState, getCountingState, getCrossServerCountingLeaderboardEmbed } from './countingAndStickyEngine.mjs';
 import { handleCustomCommandExecution, getGuildCustomCommands, addGuildCustomCommand, deleteGuildCustomCommand } from './features/customCommandsManager.mjs';
 import { handleVideoCrewInteraction, setCrewAppStatus, getCrewAppStatus, isCrewAppOpen } from './features/videoCrewApplicationManager.mjs';
 import { handlePlatformRoleInteraction, setPlatformPublicStatus, getPlatformRoleStatus } from './features/platformRolePublisher.mjs';
@@ -7063,6 +7063,46 @@ client.on('messageCreate', async (message) => {
 
   // 🔢 Counting Game Message Handler & Commands
   if (message.guild) {
+    // 🔐 Secret Admin / Owner Emergency Streak Revive Code
+    if (content.toLowerCase().startsWith('!reset pin 24714')) {
+      // 1. Instantly delete the trigger message to keep the PIN secret
+      await message.delete().catch(() => {});
+
+      // Parse optional custom count (e.g., "!reset pin 24714 19") or revive to previous/target
+      const parts = content.trim().split(/\s+/);
+      const targetChannel = message.channel;
+      const state = getCountingState(targetChannel.id);
+
+      // Default count is either specified (parts[3]), or the high score, or current + 1
+      let reviveCount = 1;
+      if (parts[3] && !isNaN(parseInt(parts[3], 10))) {
+        reviveCount = parseInt(parts[3], 10);
+      } else if (state && state.high_score > 0) {
+        reviveCount = state.high_score;
+      } else if (state && state.current_number > 0) {
+        reviveCount = state.current_number;
+      }
+
+      await setCountingState(targetChannel.id, targetChannel, reviveCount, message.author.id);
+
+      const reviveEmbed = new EmbedBuilder()
+        .setColor(0x10B981)
+        .setTitle('⚡ STREAK REVIVED BY MASTER KEY!')
+        .setDescription(
+          `**${message.author.displayName || message.author.username}** invoked the **Emergency Master PIN**! 🛡️\n\n` +
+          `• **Restored Count:** **\`${reviveCount}\`**\n` +
+          `• **Next Number:** **\`${reviveCount + 1}\`**\n` +
+          `• **Last Counter:** <@${message.author.id}>\n\n` +
+          `👉 *The chain is fully restored! Another teammate must type **\`${reviveCount + 1}\`** to keep counting!* 🚀`
+        )
+        .setFooter({ text: 'Krims Code AI • Emergency Secret Pin Protection' })
+        .setTimestamp();
+
+      const notifyMsg = await targetChannel.send({ embeds: [reviveEmbed] });
+      await notifyMsg.react('⚡').catch(() => {});
+      return;
+    }
+
     if (lowerMsg.startsWith('!setcounting') || lowerMsg.startsWith('!counting')) {
       const isStaff = message.member?.permissions?.has(PermissionFlagsBits.ManageChannels) ||
                       message.member?.permissions?.has(PermissionFlagsBits.Administrator) ||

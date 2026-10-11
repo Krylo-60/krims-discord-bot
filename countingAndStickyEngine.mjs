@@ -190,21 +190,31 @@ export function unlinkCountingChannel(channelId) {
 }
 
 /**
- * Reset count for a channel back to 0 (next is 1)
+ * Revive or set specific count for a channel
  */
-export async function resetCountingState(channelId, channel = null) {
+export async function setCountingState(channelId, channel, count, lastUserId, highScore = null) {
   try {
-    db.prepare('UPDATE counting_state SET current_number = 0, last_user_id = NULL WHERE channel_id = ?').run(channelId);
+    const effectiveHighScore = highScore !== null ? highScore : count;
+    db.prepare('UPDATE counting_state SET current_number = ?, last_user_id = ?, high_score = MAX(high_score, ?) WHERE channel_id = ?')
+      .run(count, lastUserId, effectiveHighScore, channelId);
+
     const state = getCountingState(channelId);
-    if (state && channel) {
-      await updateLiveStatusEmbed(channel, state, {
-        statusText: '🔄 Reset by staff! Start with 1.',
-        lastCounter: null
-      });
+    if (state) {
+      pushToCloudPostgres(channelId, state.guild_id, count, lastUserId, state.high_score, state.status_message_id);
+      if (channel) {
+        let lastUserObj = null;
+        if (lastUserId && channel.client) {
+          lastUserObj = await channel.client.users.fetch(lastUserId).catch(() => null);
+        }
+        await updateLiveStatusEmbed(channel, state, {
+          statusText: '🔥 Active Chain (Revived)!',
+          lastCounter: lastUserObj
+        });
+      }
     }
     return true;
   } catch (err) {
-    console.error('[Counting] Reset error:', err);
+    console.error('[Counting] Set state error:', err);
     return false;
   }
 }
