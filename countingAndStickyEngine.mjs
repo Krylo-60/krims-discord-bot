@@ -242,6 +242,93 @@ export async function setCountingState(channelId, channel, count, lastUserId, hi
   }
 }
 
+// ──────────────────────────────────────────────────────────
+// 🤖 AI COUNTING PARTNER ENGINE
+// ──────────────────────────────────────────────────────────
+// Active sessions: channelId => { active: true, initiatorId: '...', expiresAt: timestamp, timer: Timeout }
+export const aiCountingSessions = new Map();
+// Rate limits for non-owners: userId => [timestamps of attempts within last 15 min]
+export const aiCountingRateLimits = new Map();
+
+const KRYLO_USER_ID = '1414143825538191373';
+
+export function getAiCountingSession(channelId) {
+  const session = aiCountingSessions.get(channelId);
+  if (!session) return null;
+  if (Date.now() > session.expiresAt) {
+    clearTimeout(session.timer);
+    aiCountingSessions.delete(channelId);
+    return null;
+  }
+  return session;
+}
+
+export function stopAiCountingSession(channelId, reason = null) {
+  const session = aiCountingSessions.get(channelId);
+  if (session) {
+    clearTimeout(session.timer);
+    aiCountingSessions.delete(channelId);
+    return true;
+  }
+  return false;
+}
+
+export function startAiCountingSession(channel, user) {
+  const channelId = channel.id;
+  const isOwner = user.id === KRYLO_USER_ID;
+
+  // Rate limiting for non-owners: 5 tries, lasting 15 minutes each window
+  if (!isOwner) {
+    const now = Date.now();
+    const attempts = (aiCountingRateLimits.get(user.id) || []).filter(t => now - t < 15 * 60 * 1000);
+    if (attempts.length >= 5) {
+      const oldest = attempts[0];
+      const waitMin = Math.ceil((15 * 60 * 1000 - (now - oldest)) / 60000);
+      return {
+        success: false,
+        error: `⏳ You have used all **5 AI Counting tries**! Please wait **${waitMin}m** before starting another AI counting session.`
+      };
+    }
+    attempts.push(now);
+    aiCountingRateLimits.set(user.id, attempts);
+  }
+
+  // Clear existing session timer if any
+  const existing = aiCountingSessions.get(channelId);
+  if (existing) clearTimeout(existing.timer);
+
+  const durationMs = 15 * 60 * 1000; // 15 minutes
+  const expiresAt = Date.now() + durationMs;
+
+  const timer = setTimeout(async () => {
+    aiCountingSessions.delete(channelId);
+    try {
+      const endEmbed = new EmbedBuilder()
+        .setColor(0x64748B)
+        .setTitle('⏱️ AI COUNTING SESSION ENDED')
+        .setDescription('The 15-minute AI Counting Partner session has expired! Regular team counting rules apply.')
+        .setFooter({ text: 'Krims Code AI • AI Counting Partner' });
+      await channel.send({ embeds: [endEmbed] });
+    } catch (_) {}
+  }, durationMs);
+
+  const session = {
+    active: true,
+    initiatorId: user.id,
+    expiresAt,
+    timer
+  };
+  aiCountingSessions.set(channelId, session);
+
+  const remainingTries = isOwner ? 'Unlimited 👑' : `${5 - (aiCountingRateLimits.get(user.id)?.length || 0)} / 5`;
+
+  return {
+    success: true,
+    expiresAt,
+    remainingTries
+  };
+}
+
 /**
  * Fetch counting state
  */
@@ -448,17 +535,67 @@ export async function handleCountingMessage(message) {
     lastCounter: message.author
   });
 
-  await message.react('✅').catch(() => {});
+  // 🤖 AI Counting Partner Automation Logic
+  const aiSession = getAiCountingSession(message.channel.id);
+  if (aiSession) {
+    // Condition A: If someone else counts, the AI counting session terminates so the real community takes over!
+    if (message.author.id !== aiSession.initiatorId) {
+      stopAiCountingSession(message.channel.id);
+      try {
+        const takeoverEmbed = new EmbedBuilder()
+          .setColor(0x38BDF8)
+          .setTitle('👥 SQUAD TAKEOVER!')
+          .setDescription(`**${message.author.displayName || message.author.username}** joined the counting arena! AI Counting Partner mode paused so the squad can count together!`)
+          .setFooter({ text: 'The Half Lifes • Team Counting' });
+        await message.channel.send({ embeds: [takeoverEmbed] });
+      } catch (_) {}
+    } else {
+      // Condition B: The active player counted! Krims Code AI automatically responds with the next number!
+      const botNextNumber = num + 1;
+      const botHighScore = Math.max(newHighScore, botNextNumber);
+      const botUser = message.client.user;
 
-  // Milestone Celebration every 25 numbers
-  if (num % 25 === 0) {
-    await message.react('🎉').catch(() => {});
-    const celeb = new EmbedBuilder()
-      .setColor(0x00FF66)
-      .setTitle(`🎉 Milestone Reached: ${num}!`)
-      .setDescription(`🔥 Fantastic teamwork by **${message.author.displayName || message.author.username}** and the squad! Current count is **${num}**! Next is **${num + 1}**! 🚀`)
-      .setFooter({ text: `High Score: ${newHighScore}` });
-    await message.channel.send({ embeds: [celeb] });
+      setTimeout(async () => {
+        try {
+          // Verify session is still valid
+          const currentAi = getAiCountingSession(message.channel.id);
+          if (!currentAi) return;
+
+          // Bot counts next number
+          const botMsg = await message.channel.send(`${botNextNumber}`);
+          await botMsg.react('✅').catch(() => {});
+
+          // Update state in DB & cloud
+          db.prepare('UPDATE counting_state SET current_number = ?, last_user_id = ?, high_score = ? WHERE channel_id = ?')
+            .run(botNextNumber, botUser.id, botHighScore, message.channel.id);
+          pushToCloudPostgres(message.channel.id, message.guild.id, botNextNumber, botUser.id, botHighScore, state.status_message_id);
+
+          // Update status dashboard
+          updateLiveStatusEmbed(message.channel, {
+            status_message_id: state.status_message_id,
+            current_number: botNextNumber,
+            high_score: botHighScore,
+            last_user_id: botUser.id
+          }, {
+            statusText: '🤖 AI Counting Partner Active!',
+            lastCounter: botUser
+          });
+
+          // Milestone check for bot's number
+          if (botNextNumber % 25 === 0) {
+            await botMsg.react('🎉').catch(() => {});
+            const celeb = new EmbedBuilder()
+              .setColor(0x00FF66)
+              .setTitle(`🎉 Milestone Reached: ${botNextNumber}!`)
+              .setDescription(`🔥 Fantastic teamwork between **${message.author.displayName || message.author.username}** and **Krims Code AI**! Current count is **${botNextNumber}**! Next is **${botNextNumber + 1}**! 🚀`)
+              .setFooter({ text: `High Score: ${botHighScore}` });
+            await message.channel.send({ embeds: [celeb] });
+          }
+        } catch (botErr) {
+          console.warn('[AI Counting Partner Bot Error]:', botErr.message);
+        }
+      }, 1200); // 1.2 second natural human-like delay
+    }
   }
 
   return true;

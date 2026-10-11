@@ -28,7 +28,7 @@ import { deliverStoreItem, STORE_CATALOG } from './storeDeliveryEngine.mjs';
 import { setPlayerVerification, getPlayer, getPlayerByIgn, addCoins, removeCoins, getBalance, claimDaily, transferCoins } from './databaseEngine.mjs';
 import { aiOperator } from './aiConsoleOperator.mjs';
 import { setupAIConsoleChannel, handleAIConsoleMessage } from './aiConsoleChatHandler.mjs';
-import { handleCountingMessage, handleStickyMessage, linkCountingChannel, unlinkCountingChannel, resetCountingState, setCountingState, getCountingState, getCrossServerCountingLeaderboardEmbed } from './countingAndStickyEngine.mjs';
+import { handleCountingMessage, handleStickyMessage, linkCountingChannel, unlinkCountingChannel, resetCountingState, setCountingState, getCountingState, getCrossServerCountingLeaderboardEmbed, startAiCountingSession, stopAiCountingSession } from './countingAndStickyEngine.mjs';
 import { handleCustomCommandExecution, getGuildCustomCommands, addGuildCustomCommand, deleteGuildCustomCommand } from './features/customCommandsManager.mjs';
 import { handleVideoCrewInteraction, setCrewAppStatus, getCrewAppStatus, isCrewAppOpen } from './features/videoCrewApplicationManager.mjs';
 import { handlePlatformRoleInteraction, setPlatformPublicStatus, getPlatformRoleStatus } from './features/platformRolePublisher.mjs';
@@ -7114,6 +7114,38 @@ client.on('messageCreate', async (message) => {
         if (!isStaff) return message.reply('❌ You need `Manage Channels` permission to unlink a counting channel.');
         unlinkCountingChannel(targetChannel.id);
         return message.reply(`❌ <#${targetChannel.id}> has been unlinked from the counting game.`);
+      }
+
+      if (lowerMsg.includes('ai')) {
+        const result = startAiCountingSession(targetChannel, message.author);
+        if (!result.success) {
+          return message.reply(result.error);
+        }
+        const state = getCountingState(targetChannel.id);
+        const cur = state ? state.current_number : 0;
+        const next = cur + 1;
+        const dueTime = Math.floor(result.expiresAt / 1000);
+
+        const aiEmbed = new EmbedBuilder()
+          .setColor(0x00E5FF)
+          .setTitle('🤖 AI COUNTING PARTNER ACTIVATED!')
+          .setDescription(
+            `Krims Code AI is now your personal counting partner in <#${targetChannel.id}>! 🤝\n\n` +
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+            `• **Session Initiator:** <@${message.author.id}>\n` +
+            `• **Current Number:** \`${cur}\` ➔ Next to say: **\`${next}\`**\n` +
+            `• **Session Duration:** Active until <t:${dueTime}:R> (15 Minutes)\n` +
+            `• **Remaining Tries:** \`${result.remainingTries}\`\n\n` +
+            `🎯 **HOW IT WORKS:**\n` +
+            `1. You say **\`${next}\`**.\n` +
+            `2. Krims Code AI automatically responds with **\`${next + 1}\`**!\n` +
+            `3. You take turns climbing the leaderboard!\n` +
+            `4. If any teammate joins in and counts, AI mode automatically pauses so the real squad takes over! 👥`
+          )
+          .setFooter({ text: 'The Half Lifes • AI Counting Partner' })
+          .setTimestamp();
+
+        return message.reply({ embeds: [aiEmbed] });
       }
 
       if (lowerMsg.includes('lb') || lowerMsg.includes('lead') || lowerMsg.includes('top')) {

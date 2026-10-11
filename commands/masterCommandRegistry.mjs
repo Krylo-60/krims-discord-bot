@@ -41,8 +41,12 @@ export const masterCommandBuilders = [
 
   new SlashCommandBuilder()
     .setName('ask')
-    .setDescription('Ask the Krims Code AI neural brain any question or query!')
-    .addStringOption(opt => opt.setName('prompt').setDescription('Your question or prompt').setRequired(true)),
+    .setDescription('Ask Krims Code AI or activate /ai counting partner mode!')
+    .addStringOption(opt => opt.setName('prompt').setDescription('Your question or prompt').setRequired(false))
+    .addStringOption(opt => opt.setName('action').setDescription('Action to perform (e.g. counting partner mode)').setRequired(false)
+      .addChoices(
+        { name: '🔢 AI Counting Partner Mode', value: 'counting' }
+      )),
 
   new SlashCommandBuilder()
     .setName('diagnose')
@@ -418,8 +422,9 @@ export const masterCommandBuilders = [
     .setName('counting')
     .setDescription('🔢 Configure and manage the server counting game channel')
     .addChannelOption(opt => opt.setName('channel').setDescription('Channel to link as official counting room').setRequired(false))
-    .addStringOption(opt => opt.setName('action').setDescription('Action to perform (link, status, reset, unlink)').setRequired(false)
+    .addStringOption(opt => opt.setName('action').setDescription('Action to perform (link, status, reset, unlink, ai)').setRequired(false)
       .addChoices(
+        { name: '🤖 AI Counting Mode (Count with Krims AI)', value: 'ai' },
         { name: '🔗 Link Channel', value: 'set' },
         { name: '🏆 Cross-Server Leaderboard', value: 'leaderboard' },
         { name: '📊 Check Status & High Score', value: 'status' },

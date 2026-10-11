@@ -39,7 +39,9 @@ import {
   unlinkCountingChannel,
   resetCountingState,
   getCountingState,
-  getCrossServerCountingLeaderboardEmbed
+  getCrossServerCountingLeaderboardEmbed,
+  startAiCountingSession,
+  stopAiCountingSession
 } from '../countingAndStickyEngine.mjs';
 
 import {
@@ -249,6 +251,39 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           content: `✅ <#${targetChannel.id}> is now linked as the official **Counting Game** room! Drop \`1\` in <#${targetChannel.id}> to start counting! 🚀`,
           ephemeral: false
         });
+      }
+
+      if (action === 'ai') {
+        const result = startAiCountingSession(targetChannel, interaction.user);
+        if (!result.success) {
+          return await interaction.reply({ content: result.error, ephemeral: true });
+        }
+
+        const state = getCountingState(targetChannel.id);
+        const cur = state ? state.current_number : 0;
+        const next = cur + 1;
+        const dueTime = Math.floor(result.expiresAt / 1000);
+
+        const aiEmbed = new EmbedBuilder()
+          .setColor(0x00E5FF)
+          .setTitle('🤖 AI COUNTING PARTNER ACTIVATED!')
+          .setDescription(
+            `Krims Code AI is now your personal counting partner in <#${targetChannel.id}>! 🤝\n\n` +
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+            `• **Session Initiator:** <@${interaction.user.id}>\n` +
+            `• **Current Number:** \`${cur}\` ➔ Next to say: **\`${next}\`**\n` +
+            `• **Session Duration:** Active until <t:${dueTime}:R> (15 Minutes)\n` +
+            `• **Remaining Tries:** \`${result.remainingTries}\`\n\n` +
+            `🎯 **HOW IT WORKS:**\n` +
+            `1. You say **\`${next}\`**.\n` +
+            `2. Krims Code AI automatically responds with **\`${next + 1}\`**!\n` +
+            `3. You take turns climbing the leaderboard!\n` +
+            `4. If any teammate joins in and counts, AI mode automatically pauses so the real squad takes over! 👥`
+          )
+          .setFooter({ text: 'The Half Lifes • AI Counting Partner' })
+          .setTimestamp();
+
+        return await interaction.reply({ embeds: [aiEmbed] });
       }
 
       if (action === 'leaderboard') {
@@ -510,10 +545,47 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     }
 
     if (commandName === 'ask') {
-      await interaction.deferReply();
+      const action = interaction.options.getString('action');
       const prompt = interaction.options.getString('prompt');
+
+      // 🤖 AI Counting Partner Mode shortcut via /ask
+      if (action === 'counting' || (prompt && (prompt.toLowerCase().trim() === 'counting' || prompt.toLowerCase().trim() === 'ai counting' || prompt.toLowerCase().trim() === '/ai counting'))) {
+        const targetChannel = interaction.channel;
+        const result = startAiCountingSession(targetChannel, interaction.user);
+        if (!result.success) {
+          return await interaction.reply({ content: result.error, ephemeral: true });
+        }
+
+        const state = getCountingState(targetChannel.id);
+        const cur = state ? state.current_number : 0;
+        const next = cur + 1;
+        const dueTime = Math.floor(result.expiresAt / 1000);
+
+        const aiEmbed = new EmbedBuilder()
+          .setColor(0x00E5FF)
+          .setTitle('🤖 AI COUNTING PARTNER ACTIVATED!')
+          .setDescription(
+            `Krims Code AI is now your personal counting partner in <#${targetChannel.id}>! 🤝\n\n` +
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+            `• **Session Initiator:** <@${interaction.user.id}>\n` +
+            `• **Current Number:** \`${cur}\` ➔ Next to say: **\`${next}\`**\n` +
+            `• **Session Duration:** Active until <t:${dueTime}:R> (15 Minutes)\n` +
+            `• **Remaining Tries:** \`${result.remainingTries}\`\n\n` +
+            `🎯 **HOW IT WORKS:**\n` +
+            `1. You say **\`${next}\`**.\n` +
+            `2. Krims Code AI automatically responds with **\`${next + 1}\`**!\n` +
+            `3. You take turns climbing the leaderboard!\n` +
+            `4. If any teammate joins in and counts, AI mode automatically pauses so the real squad takes over! 👥`
+          )
+          .setFooter({ text: 'The Half Lifes • AI Counting Partner' })
+          .setTimestamp();
+
+        return await interaction.reply({ embeds: [aiEmbed] });
+      }
+
+      await interaction.deferReply();
       if (!prompt) {
-        return await interaction.editReply({ content: '❓ Please provide a question or query for the AI.' });
+        return await interaction.editReply({ content: '❓ Please provide a question or select an action (e.g. `/ask action:counting`).' });
       }
 
       let answer = null;
