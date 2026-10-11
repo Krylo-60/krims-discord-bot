@@ -322,10 +322,57 @@ export function startAiCountingSession(channel, user) {
 
   const remainingTries = isOwner ? 'Unlimited 👑' : `${5 - (aiCountingRateLimits.get(user.id)?.length || 0)} / 5`;
 
+  const state = getCountingState(channelId);
+  const initiatorIsLastCounter = Boolean(state && state.last_user_id === user.id && state.current_number > 0);
+
+  // If initiator was the last counter, Krims Code AI automatically takes the first turn!
+  if (initiatorIsLastCounter) {
+    const botUser = channel.client?.user;
+    const botNum = state.current_number + 1;
+    const botHighScore = Math.max(state.high_score || 0, botNum);
+
+    setTimeout(async () => {
+      try {
+        const curAi = getAiCountingSession(channelId);
+        if (!curAi) return;
+
+        const botMsg = await channel.send(`${botNum}`);
+        await botMsg.react('✅').catch(() => {});
+
+        db.prepare('UPDATE counting_state SET current_number = ?, last_user_id = ?, high_score = ? WHERE channel_id = ?')
+          .run(botNum, botUser?.id || '1523794466740371586', botHighScore, channelId);
+        pushToCloudPostgres(channelId, channel.guild?.id, botNum, botUser?.id || '1523794466740371586', botHighScore, state.status_message_id);
+
+        updateLiveStatusEmbed(channel, {
+          status_message_id: state.status_message_id,
+          current_number: botNum,
+          high_score: botHighScore,
+          last_user_id: botUser?.id || '1523794466740371586'
+        }, {
+          statusText: '🤖 AI Counting Partner Active!',
+          lastCounter: botUser || { displayName: 'Krims Code AI' }
+        });
+
+        if (botNum % 25 === 0) {
+          await botMsg.react('🎉').catch(() => {});
+          const celeb = new EmbedBuilder()
+            .setColor(0x00FF66)
+            .setTitle(`🎉 Milestone Reached: ${botNum}!`)
+            .setDescription(`🔥 Fantastic teamwork between **Krims Code AI** and the squad! Current count is **${botNum}**! Next is **${botNum + 1}**! 🚀`)
+            .setFooter({ text: `High Score: ${botHighScore}` });
+          await channel.send({ embeds: [celeb] });
+        }
+      } catch (err) {
+        console.warn('[AI Counting Auto First Turn Error]:', err.message);
+      }
+    }, 1200);
+  }
+
   return {
     success: true,
     expiresAt,
-    remainingTries
+    remainingTries,
+    initiatorIsLastCounter
   };
 }
 
@@ -452,31 +499,46 @@ export async function handleCountingMessage(message) {
   const expectedNumber = state.current_number + 1;
 
   // Rule 1: Cannot count twice in a row
+  const aiSession = getAiCountingSession(message.channel.id);
+  const isAiSessionCounter = aiSession && aiSession.initiatorId === message.author.id;
+
   if (state.last_user_id === message.author.id && state.current_number > 0) {
-    await message.react('❌').catch(() => {});
-    const resetEmbed = new EmbedBuilder()
-      .setColor(0xEF4444)
-      .setTitle('❌ Counting Chain Broken!')
-      .setDescription(`**${message.author.displayName || message.author.username}** counted twice in a row!\nThe count resets back to **\`1\`**. Start over!`)
-      .setFooter({ text: `Record High Score: ${state.high_score}` });
+    if (isAiSessionCounter) {
+      if (num === expectedNumber) {
+        // In AI Counting partner mode, if the session initiator says the expected number, allow it!
+        // The bot will naturally respond with the subsequent number.
+      } else {
+        const warnMsg = await message.reply('⏳ **Wait for Krims Code AI!** Let your AI partner take its turn before counting again!').catch(() => {});
+        setTimeout(() => warnMsg?.delete().catch(() => {}), 4000);
+        await message.delete().catch(() => {});
+        return true;
+      }
+    } else {
+      await message.react('❌').catch(() => {});
+      const resetEmbed = new EmbedBuilder()
+        .setColor(0xEF4444)
+        .setTitle('❌ Counting Chain Broken!')
+        .setDescription(`**${message.author.displayName || message.author.username}** counted twice in a row!\nThe count resets back to **\`1\`**. Start over!`)
+        .setFooter({ text: `Record High Score: ${state.high_score}` });
 
-    try {
-      db.prepare('UPDATE counting_state SET current_number = 0, last_user_id = NULL WHERE channel_id = ?').run(message.channel.id);
-      pushToCloudPostgres(message.channel.id, message.guild.id, 0, null, state.high_score, state.status_message_id);
-    } catch (_) {}
+      try {
+        db.prepare('UPDATE counting_state SET current_number = 0, last_user_id = NULL WHERE channel_id = ?').run(message.channel.id);
+        pushToCloudPostgres(message.channel.id, message.guild.id, 0, null, state.high_score, state.status_message_id);
+      } catch (_) {}
 
-    updateLiveStatusEmbed(message.channel, {
-      status_message_id: state.status_message_id,
-      current_number: 0,
-      high_score: state.high_score,
-      last_user_id: message.author.id
-    }, {
-      statusText: '❌ Chain broken! Start over at 1.',
-      lastCounter: message.author
-    });
+      updateLiveStatusEmbed(message.channel, {
+        status_message_id: state.status_message_id,
+        current_number: 0,
+        high_score: state.high_score,
+        last_user_id: message.author.id
+      }, {
+        statusText: '❌ Chain broken! Start over at 1.',
+        lastCounter: message.author
+      });
 
-    await message.channel.send({ embeds: [resetEmbed] });
-    return true;
+      await message.channel.send({ embeds: [resetEmbed] });
+      return true;
+    }
   }
 
   // Rule 2: Must be exact next number

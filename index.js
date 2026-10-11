@@ -7133,14 +7133,16 @@ client.on('messageCreate', async (message) => {
             `Krims Code AI is now your personal counting partner in <#${targetChannel.id}>! 🤝\n\n` +
             `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
             `• **Session Initiator:** <@${message.author.id}>\n` +
-            `• **Current Number:** \`${cur}\` ➔ Next to say: **\`${next}\`**\n` +
+            `• **Current Number:** \`${cur}\`\n` +
+            (result.initiatorIsLastCounter
+              ? `• **First Turn:** Since you counted \`${cur}\`, **Krims Code AI is dropping \`${next}\` right now!** 🤖\n• **Your Turn:** Respond with **\`${next + 1}\`**!\n`
+              : `• **Next to say:** **\`${next}\`** (You say \`${next}\`, Krims Code AI says \`${next + 1}\`!)\n`) +
             `• **Session Duration:** Active until <t:${dueTime}:R> (15 Minutes)\n` +
             `• **Remaining Tries:** \`${result.remainingTries}\`\n\n` +
             `🎯 **HOW IT WORKS:**\n` +
-            `1. You say **\`${next}\`**.\n` +
-            `2. Krims Code AI automatically responds with **\`${next + 1}\`**!\n` +
-            `3. You take turns climbing the leaderboard!\n` +
-            `4. If any teammate joins in and counts, AI mode automatically pauses so the real squad takes over! 👥`
+            `1. You and Krims Code AI take turns climbing the streak!\n` +
+            `2. No waiting for offline teammates — climb the high score anytime!\n` +
+            `3. If any teammate joins in and counts, AI mode automatically pauses so the real squad takes over! 👥`
           )
           .setFooter({ text: 'The Half Lifes • AI Counting Partner' })
           .setTimestamp();
