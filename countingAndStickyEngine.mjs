@@ -190,6 +190,29 @@ export function unlinkCountingChannel(channelId) {
 }
 
 /**
+ * Reset count for a channel back to 0 (next is 1)
+ */
+export async function resetCountingState(channelId, channel = null) {
+  try {
+    db.prepare('UPDATE counting_state SET current_number = 0, last_user_id = NULL WHERE channel_id = ?').run(channelId);
+    const state = getCountingState(channelId);
+    if (state) {
+      pushToCloudPostgres(channelId, state.guild_id, 0, null, state.high_score, state.status_message_id);
+      if (channel) {
+        await updateLiveStatusEmbed(channel, state, {
+          statusText: '🔄 Reset by staff! Start with 1.',
+          lastCounter: null
+        });
+      }
+    }
+    return true;
+  } catch (err) {
+    console.error('[Counting] Reset error:', err);
+    return false;
+  }
+}
+
+/**
  * Revive or set specific count for a channel
  */
 export async function setCountingState(channelId, channel, count, lastUserId, highScore = null) {
