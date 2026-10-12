@@ -7077,11 +7077,45 @@ if (commandName === 'lootbox') {
 // Prefix Message Commands Handler (Legacy fallback & DMs)
 // Dedup guard to prevent processing the same message twice
 const processedMessages = new Set();
+const userMessageHistory = new Map(); // key: userId -> [{ content, time }]
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   const content = (message.content || '').trim();
   const lowerMsg = content.toLowerCase();
+
+  // 🛡️ Anti-Spam & Rapid Flood Protection Shield
+  if (message.guild && !message.author.bot) {
+    const isImmune = message.author.id === '1414143825538191373' || message.member?.permissions?.has(PermissionFlagsBits.Administrator);
+    if (!isImmune) {
+      const userId = message.author.id;
+      const now = Date.now();
+      if (!userMessageHistory.has(userId)) {
+        userMessageHistory.set(userId, []);
+      }
+      const history = userMessageHistory.get(userId);
+      history.push({ content: message.content, time: now });
+
+      // Keep only last 5 seconds
+      const recent = history.filter(h => now - h.time < 5000);
+      userMessageHistory.set(userId, recent);
+
+      const isFlooding = recent.length >= 5;
+      const sameMsgCount = recent.filter(h => h.content.trim().toLowerCase() === message.content.trim().toLowerCase() && h.content.trim().length > 3).length;
+      const isRepeating = sameMsgCount >= 3;
+
+      if (isFlooding || isRepeating) {
+        await message.delete().catch(() => {});
+        const warn = await message.channel.send(`⚠️ <@${userId}>, **please stop spamming!** Keep the chat clean and readable.`).catch(() => {});
+        if (warn) setTimeout(() => warn.delete().catch(() => {}), 4000);
+
+        if (recent.length >= 7 && message.member?.moderatable) {
+          await message.member.timeout(60 * 1000, 'Automated Anti-Spam Shield: Rapid message flooding').catch(() => {});
+        }
+        return;
+      }
+    }
+  }
 
   // Handle #🤖┃ai-console-chat natural language server admin messages
   if (message.guild && message.channel.name && message.channel.name.includes('ai-console-chat')) {
