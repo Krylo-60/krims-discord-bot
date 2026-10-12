@@ -472,6 +472,26 @@ export async function handleCountingMessage(message) {
     state = db.prepare('SELECT * FROM counting_state WHERE channel_id = ?').get(message.channel.id);
   } catch (_) {}
 
+  // If not in local SQLite, query directly from Neon Postgres before anything else
+  if (!state && neonPool) {
+    try {
+      const pgClient = await neonPool.connect();
+      const res = await pgClient.query('SELECT * FROM counting_state WHERE channel_id = $1', [message.channel.id]);
+      pgClient.release();
+      if (res.rows.length > 0) {
+        state = res.rows[0];
+        try {
+          db.prepare(`
+            INSERT OR REPLACE INTO counting_state (channel_id, guild_id, current_number, last_user_id, high_score, status_message_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `).run(state.channel_id, state.guild_id, state.current_number, state.last_user_id, state.high_score, state.status_message_id);
+        } catch (_) {}
+      }
+    } catch (e) {
+      console.warn('[Direct Neon Fallback Notice]:', e.message);
+    }
+  }
+
   // If not explicitly linked in DB, check if channel name has 'counting' (supports Unicode / fonts)
   const normChannelName = (message.channel.name || '').normalize('NFKD').toLowerCase();
   if (!state && !normChannelName.includes('counting')) {
@@ -570,12 +590,27 @@ export async function handleCountingMessage(message) {
   }
 
   // Correct Number!
+  await message.react('✅').catch((err) => {
+    console.warn('[Counting Reaction Notice]:', err.message);
+  });
+
   const newHighScore = Math.max(state.high_score || 0, num);
   try {
     db.prepare('UPDATE counting_state SET current_number = ?, last_user_id = ?, high_score = ? WHERE channel_id = ?')
       .run(num, message.author.id, newHighScore, message.channel.id);
     pushToCloudPostgres(message.channel.id, message.guild.id, num, message.author.id, newHighScore, state.status_message_id);
   } catch (_) {}
+
+  // Milestone Celebration every 25 numbers
+  if (num % 25 === 0) {
+    await message.react('🎉').catch(() => {});
+    const celeb = new EmbedBuilder()
+      .setColor(0x00FF66)
+      .setTitle(`🎉 Milestone Reached: ${num}!`)
+      .setDescription(`🔥 Fantastic teamwork by **${message.author.displayName || message.author.username}** and the squad! Current count is **${num}**! Next is **${num + 1}**! 🚀`)
+      .setFooter({ text: `High Score: ${newHighScore}` });
+    await message.channel.send({ embeds: [celeb] }).catch(() => {});
+  }
 
   // Update user stats
   try {
