@@ -52,6 +52,11 @@ import {
   getKlipyTrending, 
   buildKlipyEmbed 
 } from './features/klipyGifEngine.mjs';
+import { 
+  deployClanReactionRolePanel, 
+  handleReactionRoleAdd, 
+  handleReactionRoleRemove 
+} from './features/reactionRolesEngine.mjs';
 
 const guildConfigCache = new Map();
 const kryloPingStrikes = new Map();
@@ -7363,6 +7368,57 @@ client.on('messageCreate', async (message) => {
     await handleStickyMessage(message);
   }
 
+  // 💬 Trigger Auto-Reactions (Chat Keywords) & 📸 Media Showcase Upvote/Downvote
+  if (message.guild && !message.author.bot) {
+    const normCh = (message.channel.name || '').normalize('NFKD').toLowerCase();
+    const isCounting = normCh.includes('counting');
+
+    // 📸 Media / Showcase Auto-Reactions (Upvote / Downvote)
+    const isMediaChannel = /clip|media|meme|screenshot|showcase|art|video/.test(normCh);
+    const hasMedia = message.attachments.size > 0 || /(https?:\/\/[^\s]+)/i.test(message.content);
+    if (isMediaChannel && hasMedia) {
+      message.react('⬆️').catch(() => {});
+      message.react('⬇️').catch(() => {});
+    }
+
+    // 💬 Trigger Auto-Reactions (Chat Keywords - active everywhere except counting channel)
+    if (!isCounting) {
+      const lowerText = message.content.toLowerCase();
+      // 1. "gg" -> 🏆
+      if (/\b(gg|ggs)\b/i.test(lowerText)) {
+        message.react('🏆').catch(() => {});
+      }
+      // 2. "krylo" -> 👑
+      if (/\bkrylo\b/i.test(lowerText)) {
+        message.react('👑').catch(() => {});
+      }
+      // 3. "w" or "win" -> 🔥
+      if (/\b(w|win|wins|winner)\b/i.test(lowerText)) {
+        message.react('🔥').catch(() => {});
+      }
+      // 4. "rip" or "l" -> 💀
+      if (/\b(rip|l|oof|dead)\b/i.test(lowerText)) {
+        message.react('💀').catch(() => {});
+      }
+    }
+  }
+
+  // 🎭 Setup Reaction Roles Command (!setupreactionroles, !reactionroles)
+  if (
+    lowerMsg === '!setupreactionroles' ||
+    lowerMsg === '!setup-roles' ||
+    lowerMsg === '!reactionroles'
+  ) {
+    const isAdmin = message.author.id === '1414143825538191373' || message.member?.permissions?.has(PermissionFlagsBits.Administrator);
+    if (!isAdmin) {
+      return message.reply('❌ Only Krylo and Administrators can deploy reaction role panels.');
+    }
+    const panelMsg = await deployClanReactionRolePanel(message.channel);
+    if (panelMsg) {
+      return message.reply('✅ **Reaction Roles Panel successfully deployed!** Members can now click emojis to get roles.').catch(() => {});
+    }
+  }
+
   // 🎬 Natural Text Command Triggers for Skybase Crew Applications
   const normalizedCrewCmd = lowerMsg.replace(/\s+/g, ' ').trim();
   if (
@@ -9421,6 +9477,12 @@ client.on('messageReactionAdd', async (reaction, user) => {
   if (reaction.partial) await reaction.fetch().catch(() => {});
   if (reaction.message.partial) await reaction.message.fetch().catch(() => {});
 
+  // 🏷️ Clan & Multi-Guild Reaction Roles Engine
+  try {
+    const clanHandled = await handleReactionRoleAdd(reaction, user);
+    if (clanHandled) return;
+  } catch (_) {}
+
   // ═══════════════════════════════════════════
   // ⭐ STARBOARD SYSTEM — Auto-feature starred messages
   // ═══════════════════════════════════════════
@@ -9503,6 +9565,12 @@ client.on('messageReactionRemove', async (reaction, user) => {
   if (user.bot) return;
   if (reaction.partial) await reaction.fetch().catch(() => {});
   if (reaction.message.partial) await reaction.message.fetch().catch(() => {});
+
+  // 🏷️ Clan & Multi-Guild Reaction Roles Engine
+  try {
+    const clanRemoved = await handleReactionRoleRemove(reaction, user);
+    if (clanRemoved) return;
+  } catch (_) {}
 
   // Pronoun Reaction Roles (Message 1550237661124497490 in #🏷️・roles)
   if (reaction.message.id === '1550237661124497490') {

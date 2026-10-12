@@ -594,6 +594,21 @@ export async function handleCountingMessage(message) {
     console.warn('[Counting Reaction Notice]:', err.message);
   });
 
+  // Dynamic Reaction 1: Server Owner Recognition (👑)
+  if (message.author.id === '1414143825538191373') {
+    await message.react('👑').catch(() => {});
+  }
+
+  // Dynamic Reaction 2: Fire Streak for 10+ (🔥)
+  if (num >= 10) {
+    await message.react('🔥').catch(() => {});
+  }
+
+  // Dynamic Reaction 3: Century Milestone (💯)
+  if (num % 100 === 0) {
+    await message.react('💯').catch(() => {});
+  }
+
   const newHighScore = Math.max(state.high_score || 0, num);
   try {
     db.prepare('UPDATE counting_state SET current_number = ?, last_user_id = ?, high_score = ? WHERE channel_id = ?')
@@ -601,7 +616,7 @@ export async function handleCountingMessage(message) {
     pushToCloudPostgres(message.channel.id, message.guild.id, num, message.author.id, newHighScore, state.status_message_id);
   } catch (_) {}
 
-  // Milestone Celebration every 25 numbers
+  // Milestone Celebration every 25 numbers (🎉)
   if (num % 25 === 0) {
     await message.react('🎉').catch(() => {});
     const celeb = new EmbedBuilder()
