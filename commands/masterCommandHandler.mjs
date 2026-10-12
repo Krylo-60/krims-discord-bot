@@ -64,6 +64,7 @@ import {
 } from '../databaseEngine.mjs';
 import { joinVoice, leaveVoice, getVoiceStatus } from '../voiceEngine.mjs';
 import { handleActivityCommand } from '../features/discordActivityEngine.mjs';
+import { handleGifCommand } from '../features/klipyGifEngine.mjs';
 import { STORE_CATALOG } from '../storeDeliveryEngine.mjs';
 import { generateVerificationCode, buildVerificationResponse, getPendingCodesList, loadSupporters } from '../features/twitchVerificationEngine.mjs';
 
@@ -2322,6 +2323,10 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setTimestamp();
 
       return await interaction.reply({ embeds: [embed] });
+    }
+
+    if (commandName === 'gif' || commandName === 'klipy') {
+      return await handleGifCommand(interaction);
     }
 
     if (commandName === 'clear') {

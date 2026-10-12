@@ -46,6 +46,12 @@ import {
   buildActivityLaunchPayload, 
   buildActivitySelectMenu 
 } from './features/discordActivityEngine.mjs';
+import { 
+  handleKlipyButtonInteraction, 
+  searchKlipy, 
+  getKlipyTrending, 
+  buildKlipyEmbed 
+} from './features/klipyGifEngine.mjs';
 
 const guildConfigCache = new Map();
 const kryloPingStrikes = new Map();
@@ -1318,6 +1324,11 @@ client.on('interactionCreate', async (interaction) => {
   // 🎨 Handle Community Emoji Submission Approvals
   if (interaction.isButton() && interaction.customId.startsWith('approve_emoji_')) {
     return await handleEmojiSubmissionInteraction(interaction);
+  }
+
+  // 🎬 Handle KLIPY GIF 'Next' Button
+  if (interaction.isButton() && interaction.customId.startsWith('btn_klipy_next_')) {
+    return await handleKlipyButtonInteraction(interaction);
   }
 
   // Handle DM / Global Button Interactions (e.g. KevinMC Setup Feedback)
@@ -7293,6 +7304,24 @@ client.on('messageCreate', async (message) => {
       } catch (err) {
         return message.reply(`❌ Could not launch **${activity.name}**: \`${err.message}\`. Make sure I have permission to create invites!`);
       }
+    }
+
+    // 🎬 KLIPY GIF & Meme Commands (!gif, !klipy)
+    if (lowerMsg.startsWith('!gif') || lowerMsg.startsWith('!klipy')) {
+      const query = message.content.replace(/^!(gif|klipy)\s*/i, '').trim();
+      let items = [];
+      if (query.length > 0) {
+        items = await searchKlipy(query, 'gifs', 15);
+      } else {
+        items = await getKlipyTrending('gifs', 15);
+      }
+
+      if (!items || items.length === 0) {
+        return message.reply(`❌ No GIFs found on **KLIPY** for \`${query || 'Trending'}\`.`);
+      }
+
+      const payload = buildKlipyEmbed(items[0], query || 'Trending', 0, items.length, 'gifs');
+      return message.reply(payload);
     }
   }
 

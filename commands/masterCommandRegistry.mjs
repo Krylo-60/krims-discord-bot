@@ -84,10 +84,17 @@ export const masterCommandBuilders = [
     .addSubcommand(sub => sub.setName('status').setDescription('View current application status')),
 
   new SlashCommandBuilder()
-    .setName('clear')
-    .setDescription('🧹 Fast bulk-delete up to 100 messages from the channel (Staff only)')
-    .addIntegerOption(opt => opt.setName('amount').setDescription('Number of messages to delete (1-100)').setRequired(true))
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+    .setName('gif')
+    .setDescription('🎬 Search and send GIFs, stickers, memes & clips powered by KLIPY!')
+    .addStringOption(opt => opt.setName('search').setDescription('Search query (e.g. minecraft, hype, victory, gg)').setRequired(false))
+    .addStringOption(opt => opt.setName('type').setDescription('Content type (gifs, stickers, memes, clips)').setRequired(false)
+      .addChoices(
+        { name: '🎬 Animated GIFs', value: 'gifs' },
+        { name: '✨ Stickers', value: 'stickers' },
+        { name: '🧠 Memes', value: 'memes' },
+        { name: '📹 Video Clips', value: 'clips' }
+      )
+    ),
 
   new SlashCommandBuilder()
     .setName('uptime')
