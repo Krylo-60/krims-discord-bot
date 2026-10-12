@@ -25,6 +25,16 @@ export async function searchKlipy(query, type = 'gifs', limit = 15) {
     else if (Array.isArray(data?.data?.data)) items = data.data.data;
     else if (Array.isArray(data?.data)) items = data.data;
     else if (Array.isArray(data?.results)) items = data.results;
+
+    const lowerQ = (query || '').toLowerCase();
+    if (lowerQ.includes('krylo') || lowerQ.includes('half') || lowerQ.includes('clan')) {
+      items.unshift({
+        title: '⚡ The Half Lifes Clan Animation • Krylo_MC 👑',
+        url: 'https://krims-discord-bot-d57m.onrender.com/gifs/the_half_lifes.gif',
+        slug: 'the-half-lifes-clan-gif'
+      });
+    }
+
     return items;
   } catch (err) {
     console.error('[KLIPY API] Search network error:', err.message);
@@ -63,7 +73,9 @@ export async function getKlipyTrending(type = 'gifs', limit = 15) {
  * Helper to extract best GIF / media URL from a KLIPY item
  */
 export function extractMediaUrl(item) {
-  if (!item || !item.file) return null;
+  if (!item) return null;
+  if (item.url) return item.url;
+  if (!item.file) return null;
   const f = item.file;
   return (
     f.hd?.gif?.url ||

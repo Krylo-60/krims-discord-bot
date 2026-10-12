@@ -7323,6 +7323,24 @@ client.on('messageCreate', async (message) => {
       const payload = buildKlipyEmbed(items[0], query || 'Trending', 0, items.length, 'gifs');
       return message.reply(payload);
     }
+
+    // ⚡ Free Nitro Custom Clan Animated GIF (!halflifes, !hl, !krylo, :halflifes:, :krylo:)
+    if (
+      lowerMsg === '!halflifes' ||
+      lowerMsg === '!hl' ||
+      lowerMsg === '!krylo' ||
+      lowerMsg === ':halflifes:' ||
+      lowerMsg === ':krylo:'
+    ) {
+      const gifUrl = 'https://krims-discord-bot-d57m.onrender.com/gifs/the_half_lifes.gif';
+      const embed = new EmbedBuilder()
+        .setColor(0x00FF88)
+        .setTitle('⚡ THE HALF LIFES ⚡')
+        .setDescription('👑 **Official Squad Animation** • Domination on Minecraft SMP\n🔗 [Open High-Res GIF](' + gifUrl + ')')
+        .setImage(gifUrl)
+        .setFooter({ text: 'The Half Lifes • Free Animated GIF (No Nitro Needed!)' });
+      return message.reply({ embeds: [embed] });
+    }
   }
 
   // 🎨 Handle Community Emoji Submissions (#🎨・𝖾moji-𝗌ubmissions)
@@ -10515,6 +10533,21 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true, message: 'Krylo SMP Store & Discord Bot Engine is Active!' }));
     return;
+  }
+
+  // Static GIF & Assets Serving for Free Discord GIF usage (No Nitro needed)
+  if (url.pathname.startsWith('/gifs/')) {
+    const filename = path.basename(url.pathname);
+    const filePath = path.join(process.cwd(), 'public', 'gifs', filename);
+    if (fs.existsSync(filePath)) {
+      res.writeHead(200, {
+        'Content-Type': 'image/gif',
+        'Cache-Control': 'public, max-age=86400',
+        'Access-Control-Allow-Origin': '*'
+      });
+      fs.createReadStream(filePath).pipe(res);
+      return;
+    }
   }
 
   // Twitch Channels Management Endpoint
