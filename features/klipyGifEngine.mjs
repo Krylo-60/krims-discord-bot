@@ -20,7 +20,11 @@ export async function searchKlipy(query, type = 'gifs', limit = 15) {
       return [];
     }
     const data = await res.json();
-    const items = data.data || data.results || (Array.isArray(data) ? data : []);
+    let items = [];
+    if (Array.isArray(data)) items = data;
+    else if (Array.isArray(data?.data?.data)) items = data.data.data;
+    else if (Array.isArray(data?.data)) items = data.data;
+    else if (Array.isArray(data?.results)) items = data.results;
     return items;
   } catch (err) {
     console.error('[KLIPY API] Search network error:', err.message);
@@ -43,7 +47,11 @@ export async function getKlipyTrending(type = 'gifs', limit = 15) {
       return [];
     }
     const data = await res.json();
-    const items = data.data || data.results || (Array.isArray(data) ? data : []);
+    let items = [];
+    if (Array.isArray(data)) items = data;
+    else if (Array.isArray(data?.data?.data)) items = data.data.data;
+    else if (Array.isArray(data?.data)) items = data.data;
+    else if (Array.isArray(data?.results)) items = data.results;
     return items;
   } catch (err) {
     console.error('[KLIPY API] Trending network error:', err.message);
