@@ -146,42 +146,42 @@ def generate_card(avatar_input, mc_head_input, username, member_count, server_na
 
     if phase == 1:
         # Phase 1: Initial Arrival / Pending IGN
-        draw.text((tX, 80), '⚡  SYSTEM ENTRY // NEW OPERATIVE DETECTED', fill=(0, 255, 200, 240), font=tag_font)
+        draw.text((tX, 80), '[+] SYSTEM ENTRY // NEW OPERATIVE DETECTED', fill=(0, 255, 200, 240), font=tag_font)
         draw.text((tX, 115), f'WELCOME TO {server_name.upper()}', fill=(220, 230, 242, 255), font=welcome_font)
         draw.text((tX, 150), username, fill=(0, 255, 255, 255), font=name_font)
         draw.line([(tX, 225), (W - 90, 225)], fill=(0, 255, 200, 120), width=2)
 
         # Badges
         draw.rectangle([tX, 245, tX + 180, 288], fill=(15, 30, 45, 220), outline=(0, 255, 136, 220), width=2)
-        draw.text((tX + 90, 266), f'🛡️ MEMBER #{num_str}', fill=(0, 255, 136, 255), font=badge_font, anchor='mm')
+        draw.text((tX + 90, 266), f'MEMBER #{num_str}', fill=(0, 255, 136, 255), font=badge_font, anchor='mm')
 
         draw.rectangle([tX + 195, 245, tX + 490, 288], fill=(35, 25, 15, 220), outline=(245, 158, 11, 220), width=2)
-        draw.text((tX + 342, 266), '⏳ PENDING MINECRAFT IGN', fill=(245, 158, 11, 255), font=badge_font, anchor='mm')
+        draw.text((tX + 342, 266), 'PENDING MINECRAFT IGN', fill=(245, 158, 11, 255), font=badge_font, anchor='mm')
 
         # Footer
         draw.rectangle([tX, 340, W - 90, 385], fill=(8, 16, 28, 230), outline=(0, 255, 200, 80), width=1)
-        draw.text((tX + 20, 362), '⚔️ CO-LEADER: KryloMCYT  •  👑 LEADER: st1LLkill3r  •  DROP IGN IN #ROSTER', fill=(160, 185, 210, 255), font=footer_font, anchor='lm')
+        draw.text((tX + 20, 362), 'CO-LEADER: KryloMCYT  •  LEADER: st1LLkill3r  •  DROP IGN IN #ROSTER', fill=(160, 185, 210, 255), font=footer_font, anchor='lm')
 
     else:
         # Phase 2: Roster Verified with Minecraft IGN
-        draw.text((tX, 80), '✅  ROSTER CONFIRMED // OPERATIVE VERIFIED', fill=(0, 255, 136, 255), font=tag_font)
+        draw.text((tX, 80), '[+] ROSTER CONFIRMED // OPERATIVE VERIFIED', fill=(0, 255, 136, 255), font=tag_font)
         draw.text((tX, 115), f'{server_name.upper()} • CLAN OPERATIVE', fill=(220, 230, 242, 255), font=welcome_font)
         draw.text((tX, 150), username, fill=(0, 255, 136, 255), font=name_font)
         draw.line([(tX, 225), (W - 90, 225)], fill=(0, 255, 200, 120), width=2)
 
         # Badges
         draw.rectangle([tX, 245, tX + 180, 288], fill=(15, 30, 45, 220), outline=(0, 255, 136, 220), width=2)
-        draw.text((tX + 90, 266), f'🛡️ MEMBER #{num_str}', fill=(0, 255, 136, 255), font=badge_font, anchor='mm')
+        draw.text((tX + 90, 266), f'MEMBER #{num_str}', fill=(0, 255, 136, 255), font=badge_font, anchor='mm')
 
         draw.rectangle([tX + 195, 245, tX + 465, 288], fill=(15, 40, 30, 220), outline=(0, 255, 136, 220), width=2)
-        draw.text((tX + 330, 266), '✅ VERIFIED SMP ROSTER', fill=(0, 255, 136, 255), font=badge_font, anchor='mm')
+        draw.text((tX + 330, 266), 'VERIFIED SMP ROSTER', fill=(0, 255, 136, 255), font=badge_font, anchor='mm')
 
         draw.rectangle([tX + 480, 245, tX + 680, 288], fill=(20, 25, 45, 220), outline=(0, 255, 255, 220), width=2)
-        draw.text((tX + 580, 266), '⚔️ CLAN COMBATANT', fill=(0, 255, 255, 255), font=badge_font, anchor='mm')
+        draw.text((tX + 580, 266), 'CLAN COMBATANT', fill=(0, 255, 255, 255), font=badge_font, anchor='mm')
 
         # Footer
         draw.rectangle([tX, 340, W - 90, 385], fill=(8, 16, 28, 230), outline=(0, 255, 200, 80), width=1)
-        draw.text((tX + 20, 362), '⚔️ CO-LEADER: KryloMCYT  •  👑 LEADER: st1LLkill3r  •  BASE COMMS: UNLOCKED', fill=(160, 185, 210, 255), font=footer_font, anchor='lm')
+        draw.text((tX + 20, 362), 'CO-LEADER: KryloMCYT  •  LEADER: st1LLkill3r  •  BASE COMMS: UNLOCKED', fill=(160, 185, 210, 255), font=footer_font, anchor='lm')
 
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     img.convert('RGB').save(out_path, quality=95)

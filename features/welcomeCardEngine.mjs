@@ -187,9 +187,12 @@ export async function handleRosterIgnWelcomeUpdate(guild, userId, ign) {
       WHERE user_id = ? AND guild_id = ?
     `).get(userId, guild.id);
 
-    const welcomeCh = guild.channels.cache.get(HALF_LIFES_WELCOME_CHANNEL_ID) ||
+    const welcomeCh = await guild.channels.fetch(HALF_LIFES_WELCOME_CHANNEL_ID).catch(() => null) ||
                       guild.channels.cache.find(c => c.name.includes('welcome'));
-    if (!welcomeCh) return;
+    if (!welcomeCh) {
+      console.warn('[WelcomeCardEngine] Welcome channel not found');
+      return;
+    }
 
     const member = await guild.members.fetch(userId).catch(() => null);
     const memberCount = record ? record.member_count : guild.memberCount;
