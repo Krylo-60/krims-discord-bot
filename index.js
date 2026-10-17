@@ -1361,8 +1361,100 @@ client.on('interactionCreate', async (interaction) => {
 
   // Handle DM / Global Button Interactions (e.g. KevinMC Setup Feedback)
   if (interaction.isButton()) {
-    const { customId } = interaction;
-    console.log(`[Button Click] customId: "${customId}" by ${interaction.user?.tag} (${interaction.user?.id}) in ${interaction.guild?.name || 'DM'}`);
+    // 🎫 Krims Code Support Hub - Interactive Ticket Buttons
+    if (customId.startsWith('krims_ticket_')) {
+      await interaction.deferReply({ ephemeral: true });
+      const deptMap = {
+        'krims_ticket_support': { name: 'Support', emoji: '🎫', title: 'General Support' },
+        'krims_ticket_bug': { name: 'Bug', emoji: '🐛', title: 'Bug Report' },
+        'krims_ticket_feature': { name: 'Feature', emoji: '💡', title: 'Feature Request' },
+        'krims_ticket_setup': { name: 'Integration', emoji: '⚙️', title: 'Server Setup & Integration' }
+      };
+      const dept = deptMap[customId] || { name: 'Support', emoji: '🎫', title: 'Support Ticket' };
+      const guild = interaction.guild;
+      if (!guild) return await interaction.editReply({ content: '❌ Tickets can only be created inside the server.' });
+
+      const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15);
+      const ticketChannelName = `ticket-${dept.name.toLowerCase()}-${cleanUsername}`;
+
+      const existing = guild.channels.cache.find(c => c.name === ticketChannelName);
+      if (existing) {
+        return await interaction.editReply({ content: `⚠️ You already have an open ticket in <#${existing.id}>!` });
+      }
+
+      let parentCat = guild.channels.cache.find(c => c.type === ChannelType.GuildCategory && (c.name.includes('SUPPORT') || c.name.includes('TICKETS')));
+
+      const staffRoles = guild.roles.cache.filter(r => 
+        r.name.includes('Support') || 
+        r.name.includes('Executive') || 
+        r.name.includes('Developer')
+      );
+
+      const permissionOverwrites = [
+        { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },
+        { id: interaction.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles] },
+        { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels] }
+      ];
+
+      for (const [_, role] of staffRoles) {
+        permissionOverwrites.push({
+          id: role.id,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+        });
+      }
+
+      try {
+        const ticketChannel = await guild.channels.create({
+          name: ticketChannelName,
+          type: ChannelType.GuildText,
+          parent: parentCat ? parentCat.id : null,
+          permissionOverwrites,
+          topic: `Krims Support Ticket for ${interaction.user.tag} (${interaction.user.id}) | Dept: ${dept.title}`
+        });
+
+        const closeRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('krims_close_ticket')
+            .setLabel('Close Ticket')
+            .setEmoji('🔒')
+            .setStyle(ButtonStyle.Danger)
+        );
+
+        const ticketGreeting = new EmbedBuilder()
+          .setTitle(`${dept.emoji} ${dept.title} — Ticket Opened`)
+          .setDescription(
+            `Hello <@${interaction.user.id}>! Welcome to your private support channel.\n\n` +
+            `Our engineering and support team have been notified. Please describe your issue, request, or idea in detail below.\n\n` +
+            `**Department:** \`${dept.title}\`\n` +
+            `**Opened By:** <@${interaction.user.id}> (\`${interaction.user.tag}\`)\n` +
+            `**AI Assistant:** Krims Support AI is standing by to help assist immediately!\n\n` +
+            `When you are finished, click **Close Ticket** below.`
+          )
+          .setColor(0x00F2FF)
+          .setThumbnail(client.user.displayAvatarURL({ extension: 'png', size: 512 }))
+          .setFooter({ text: 'Krims Code Ticket Engine' })
+          .setTimestamp();
+
+        await ticketChannel.send({ content: `<@${interaction.user.id}>`, embeds: [ticketGreeting], components: [closeRow] });
+
+        return await interaction.editReply({ content: `✅ **Ticket created successfully!** Head over to <#${ticketChannel.id}>.` });
+      } catch (err) {
+        console.error('Error creating ticket channel:', err);
+        return await interaction.editReply({ content: `❌ Failed to create ticket channel: ${err.message}` });
+      }
+    }
+
+    if (customId === 'krims_close_ticket') {
+      const channel = interaction.channel;
+      if (!channel || !channel.name.startsWith('ticket-')) {
+        return await interaction.reply({ content: '❌ This button can only be used inside ticket channels.', ephemeral: true });
+      }
+      await interaction.reply('🔒 **Closing ticket in 5 seconds...** Thank you for contacting Krims Support!');
+      setTimeout(async () => {
+        await channel.delete('Ticket closed by user').catch(() => {});
+      }, 5000);
+      return;
+    }
 
     // 🧠 AI Server Memory Management Buttons
     if (customId.startsWith('btn_reset_ai_memory_')) {
@@ -7473,6 +7565,25 @@ client.on('messageCreate', async (message) => {
     const panelMsg = await deployClanReactionRolePanel(message.channel);
     if (panelMsg) {
       return message.reply('✅ **Reaction Roles Panel successfully deployed!** Members can now click emojis to get roles.').catch(() => {});
+    }
+  }
+
+  // ⚡ Deploy Krims Code Support & Updates Server Command (!deploy-support-hub)
+  if (lowerMsg === '!deploy-support-hub' || lowerMsg.startsWith('!deploy-support-hub ') || lowerMsg === '!setup-krims-support') {
+    const isAuthorized = message.author.id === '1414143825538191373' ||
+                         (message.guild && message.guild.ownerId === message.author.id) ||
+                         message.member?.permissions?.has(PermissionFlagsBits.Administrator);
+    if (!isAuthorized) {
+      return message.reply('❌ Only server administrators and the bot owner can deploy the Support Hub.');
+    }
+    const statusMsg = await message.reply('🚀 **Initializing Krims Code Support & Updates deployment engine...** Please wait 5-10 seconds while all categories, channels, roles, and embeds are built.');
+    try {
+      const { deployKrimsSupportServer } = await import('./scripts/setupKrimsSupportServer.mjs');
+      const result = await deployKrimsSupportServer(message.guild.id, client);
+      return statusMsg.edit(`✅ **Krims Code Support Hub deployed successfully!**\nAll channels, roles, embeds, and permissions are live.\n${result.inviteUrl ? `🔗 **Permanent Server Invite:** ${result.inviteUrl}` : ''}`);
+    } catch (err) {
+      console.error('Error in !deploy-support-hub:', err);
+      return statusMsg.edit(`❌ **Deployment failed:** ${err.message}`);
     }
   }
 
