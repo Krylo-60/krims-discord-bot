@@ -66,6 +66,10 @@ import {
   startServerContextWatcher, 
   runAllGuildScans 
 } from './features/serverContextWatcher.mjs';
+import { 
+  initAISelfHealing, 
+  diagnoseAndIsolateBug 
+} from './features/aiSelfHealingEngine.mjs';
 
 const guildConfigCache = new Map();
 const kryloPingStrikes = new Map();
@@ -700,6 +704,11 @@ client.once('ready', async () => {
     startServerContextWatcher(client, geminiDirectAsk);
   } catch (cwErr) {
     console.warn('[ContextWatcher] Start notice:', cwErr.message);
+  }
+  try {
+    initAISelfHealing(client, geminiDirectAsk);
+  } catch (shErr) {
+    console.warn('[SelfHealing] Start notice:', shErr.message);
   }
 
   // Setup #🤖┃ai-console-chat channel
@@ -10714,9 +10723,15 @@ initTwitchBot(client).catch(err => console.error('[TwitchBot] Initialization err
 // Global process error handlers to prevent crashes on Discord API timeouts/errors
 process.on('uncaughtException', (err) => {
   console.error('[CRITICAL] Uncaught Exception:', err);
+  try {
+    diagnoseAndIsolateBug(err, 'Global Uncaught Exception');
+  } catch (_) {}
 });
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[CRITICAL] Unhandled Rejection at:', promise, 'reason:', reason);
+  try {
+    diagnoseAndIsolateBug(reason instanceof Error ? reason : new Error(String(reason)), 'Global Unhandled Rejection');
+  } catch (_) {}
 });
 
 // HTTP Server with Web Store In-Game Item Delivery Webhook API
