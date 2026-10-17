@@ -5,6 +5,7 @@
  */
 
 import { learnServerFact } from './aiMemoryEngine.mjs';
+import { handleRosterIgnWelcomeUpdate } from './welcomeCardEngine.mjs';
 
 export function extractIgn(content, isRosterChannel = false) {
   if (!content) return null;
@@ -61,6 +62,13 @@ export async function handleRosterMessage(message) {
       `Discord user @${member.user.username} (${member.user.tag}) has verified Minecraft IGN: "${ign}".`,
       'Roster Sync'
     );
+
+    // Trigger live update of Welcome Card in #welcome
+    try {
+      handleRosterIgnWelcomeUpdate(message.guild, member.id, ign).catch(err => {
+        console.warn('[RosterAutoNick] Welcome Card update notice:', err.message);
+      });
+    } catch (_) {}
 
     // Already matches
     if (member.nickname === ign || (!member.nickname && member.user.username === ign)) {

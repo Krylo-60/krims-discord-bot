@@ -127,6 +127,7 @@ start*
 *.js.bak
 *.bak
 *.py
+!scripts/generate_welcome_card.py
 *.jar
 *.ps1
 *.sk
@@ -139,6 +140,7 @@ APPLICATION_TEMPLATES.md
 *.zip
 *.jpg
 *.png
+!assets/**
 server_webhooks.json
 xp.json
 megaData.json

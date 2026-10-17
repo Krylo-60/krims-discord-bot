@@ -57,6 +57,11 @@ import {
   handleReactionRoleAdd, 
   handleReactionRoleRemove 
 } from './features/reactionRolesEngine.mjs';
+import { 
+  handleGuildMemberAddWelcome, 
+  renderWelcomeCard, 
+  HALF_LIFES_GUILD_ID 
+} from './features/welcomeCardEngine.mjs';
 
 const guildConfigCache = new Map();
 const kryloPingStrikes = new Map();
@@ -7453,6 +7458,67 @@ client.on('messageCreate', async (message) => {
     }
   }
 
+  // 🛡️ Test Clan Welcome Card Command (!testwelcome [phase 1|2] [ign])
+  if (lowerMsg.startsWith('!testwelcome')) {
+    const isAdmin = message.author.id === '1414143825538191373' || 
+                    message.author.id === '1533703991882416373' || 
+                    message.member?.permissions?.has(PermissionFlagsBits.Administrator);
+    if (!isAdmin) {
+      return message.reply('❌ Only Clan Leaders and Administrators can run `!testwelcome`.');
+    }
+
+    const parts = message.content.trim().split(/\s+/);
+    const phaseArg = parseInt(parts[1], 10) === 2 ? 2 : 1;
+    const testIgn = parts[2] || (phaseArg === 2 ? 'KryloMCYT' : null);
+
+    const statusMsg = await message.reply(`⏳ Generating Phase ${phaseArg} Welcome Card preview...`);
+    try {
+      const avatarUrl = message.author.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true });
+      const mcHeadUrl = testIgn ? `https://mc-heads.net/avatar/${testIgn}/128.png` : '';
+      const cardBuffer = await renderWelcomeCard({
+        avatarUrl,
+        mcHeadUrl,
+        username: testIgn || message.author.username,
+        memberCount: message.guild ? message.guild.memberCount : 5,
+        serverName: "THE HALF LIFE'S",
+        phase: phaseArg
+      });
+
+      if (!cardBuffer) {
+        return statusMsg.edit('❌ Failed to render card. Check bot logs for details.');
+      }
+
+      const attachment = new AttachmentBuilder(cardBuffer, { name: `welcome_test_p${phaseArg}.png` });
+      const embed = new EmbedBuilder()
+        .setColor(phaseArg === 2 ? 0x00FF88 : 0x00FFFF)
+        .setTitle(phaseArg === 2 ? '✅ [PREVIEW] OPERATIVE VERIFIED & ROSTER DEPLOYED' : '⚡ [PREVIEW] NEW OPERATIVE DEPLOYED — THE HALF LIFE\'S')
+        .setDescription(
+          phaseArg === 2
+            ? `**Test Verification:** <@${message.author.id}> linked Minecraft IGN **\`${testIgn}\`**!\n\n` +
+              `• 🏷️ **Verified In-Game Name:** \`${testIgn}\`\n` +
+              `• 🌐 **SMP Combat Status:** Active Clan Combatant\n` +
+              `• 💬 **Squad Chat:** <#1557859357419507853>`
+            : `Welcome <@${message.author.id}> to **The Half Life's**! 🛡️⚔️\n\n` +
+              `• 📜 **Read Clan Creed & Rules:** <#1557857077983199343>\n` +
+              `• 📋 **Drop your Minecraft IGN in** <#1557858900806738050> to verify your roster card!\n` +
+              `• 🎨 **Pick your chat color & region in** <#1557879482813911181>\n` +
+              `• 💬 **Introduce yourself in** <#1557859357419507853>`
+        )
+        .setImage(`attachment://welcome_test_p${phaseArg}.png`)
+        .setFooter({ text: `⚔️ CO-LEADER: KryloMCYT • 👑 LEADER: st1LLkill3r • Operative #${message.guild ? message.guild.memberCount : 5}` })
+        .setTimestamp();
+
+      await statusMsg.edit({
+        content: `⚔️ **Welcome Card Test (Phase ${phaseArg}):**`,
+        embeds: [embed],
+        files: [attachment]
+      });
+    } catch (testErr) {
+      statusMsg.edit(`❌ Error during test: ${testErr.message}`);
+    }
+    return;
+  }
+
   // 🎬 Natural Text Command Triggers for Skybase Crew Applications
   const normalizedCrewCmd = lowerMsg.replace(/\s+/g, ' ').trim();
   if (
@@ -9407,6 +9473,16 @@ async function generateWelcomeCard(avatarUrl, username, memberCount) {
 }
 
 client.on('guildMemberAdd', async (member) => {
+  // 🛡️ The Half Life's Clan Operative Arrival Terminal System
+  if (member.guild.id === HALF_LIFES_GUILD_ID || member.guild.name.toLowerCase().includes('half')) {
+    try {
+      await handleGuildMemberAddWelcome(member);
+    } catch (err) {
+      console.warn('[HalfLifes Welcome] Error handling member join:', err.message);
+    }
+    return;
+  }
+
   // Works across ALL Krylo guilds
   if (!member.guild.name.toLowerCase().includes('krylo')) return;
 

@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "test": "node --check index.js"
+    "test": "node --check index.js",
+    "postinstall": "pip3 install pillow || pip install pillow || python3 -m pip install pillow || true"
   },
   "dependencies": {
     "@discordjs/voice": "^0.19.2",
