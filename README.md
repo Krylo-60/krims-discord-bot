@@ -1,42 +1,45 @@
-# Krims Code AI 🤖
+# Krims Code AI 🤖 • Tactical Clan & Community Bot
 
-[![Discord Bot](https://img.shields.io/badge/Discord.js-v14.14-5865F2?logo=discord&logoColor=white)](https://discord.js.org/)
+[![Discord.js](https://img.shields.io/badge/Discord.js-v14.14-5865F2?logo=discord&logoColor=white)](https://discord.js.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-v20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![Krims Neural AI](https://img.shields.io/badge/AI-Krims%20Neural%20Engine-8A2BE2?logo=openai&logoColor=white)](#)
-[![Render](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=white)](https://render.com/)
+[![AI Engine](https://img.shields.io/badge/AI-Gemini%203.5%20%7C%20Groq%20LPU-00F2FF?logo=google&logoColor=white)](#)
+[![Hosting](https://img.shields.io/badge/Deploy-Render%20Cloud-46E3B7?logo=render&logoColor=white)](https://render.com/)
+[![License](https://img.shields.io/badge/License-Proprietary%20%7C%20All%20Rights%20Reserved-FF0055.svg)](#-license)
 
-**Krims Code AI** is a state-of-the-art Discord community and enterprise management bot built with **Discord.js v14**, **Krims Neural AI Core**, and **Render Cloud Infrastructure**. It powers high-scale servers with 97 unified slash commands, custom Jimp-rendered leveling cards, video production crew audition pipelines, connected platform role showcases, and automated Dyno-grade moderation.
+**Krims Code AI** is an advanced, autonomous Discord intelligence and server operations platform designed and developed by **KryloMCYT** and **Krims Code Studio**. It powers competitive SMP team headquarters (**The Half Life's**) and content creation studios (**Krylo's Skybase**) with dual-phase dynamic visual cards, autonomous AI self-healing, real-time message contextual awareness, automated Minecraft roster synchronization, and Dyno-grade moderation.
 
 ---
 
-## ⚡ Core Systems
+## ⚡ Flagship Systems & Capabilities
 
-### 🤖 1. Proprietary Krims Neural AI Core
-* **`/ask <prompt>`**: Intelligent, contextual responses powered by Krims Code's hybrid neural router with custom safety guidelines and studio awareness.
-* **`/diagnose`**: Live diagnostic overview of system latency, memory allocation, Discord Gateway health, and API connectivity.
-* **Automated Support**: Context-aware assistance for incoming server queries and audition tickets.
+### 🛡️ 1. The Half Life's Elite Clan Operations
+* **Dual-Phase Adaptive Welcome Cards:**
+  * **Phase 1 (Arrival):** Generates a custom Dark Cyber / Neon Shield welcome card in `#👋・𝖶elcome` featuring the member's Discord avatar, electric cyan cyber halo, member count number (`MEMBER #005`), and `⏳ PENDING MINECRAFT IGN`.
+  * **Phase 2 (Roster Verified):** When an operative posts their in-game name in `#📋・𝖱oster`, the bot **live-edits their original welcome message in real time**, attaching their official 3D Minecraft skin head badge, IGN, and updating their status to `✅ VERIFIED SMP ROSTER`.
+* **Automatic Minecraft IGN Nickname Synchronization:** Automatically detects Minecraft IGNs posted in `#📋・𝖱oster` and syncs the member's server nickname while updating persistent AI memory.
+* **Cosmetic Chat Color & Single-Region Engine:** Self-service emoji reaction panels allowing members to choose from 9 custom cosmetic colors with smart swapping, and single-region role enforcement (NA, EU, Asia).
 
-### 🎬 2. Film Crew & Audition Management
-* **Audition Controls**: Staff and director commands (`/startcrewapp`, `/stopcrewapp`, `/crewapp status`) to open or close recruitment panels in real time.
-* **Modal Applications**: Dynamic, interactive application modals submitted directly to private moderator review lounges.
-* **Recruitment Hub**: Embed state synchronization across recruitment channels with instantaneous button lockouts upon closure.
+### 🧠 2. Autonomous AI Self-Healing & Crash Isolation
+* **Zero-Crash Fault Tolerance:** Global runtime exception handlers catch unhandled rejections and runtime exceptions, isolating the failure to keep the bot 100% online.
+* **Automated AI Root-Cause Analysis:** Connects runtime stack traces to the Gemini / Groq multi-brain router to automatically diagnose bugs, determine root causes, and propose recommended patches.
+* **Audit & Staff Logs:** Automatically dispatches bug diagnostics to `#📋・𝖲taff-logs` and records telemetry in SQLite `dev_audit_logs`.
+* **Continuous Auto-Updater:** Checks GitHub origin every 5 minutes (`git fetch`), automatically pulling new code updates, installing dependencies, and hot-restarting without manual intervention.
 
-### 👑 3. MEE6-Grade Leveling & Dynamic Rank Cards
-* **Custom Graphical Cards (`/rank`)**: High-performance PNG card generation via Jimp featuring custom avatars, level badges, dynamic progress bars, and server owner prestige flair.
-* **XP Tracking**: Real-time message XP rewards, voice channel time accumulation, and configurable cooldown throttles.
-* **Chat Leaderboards (`/leaderboard`)**: Dynamic top-10 member rankings with medals and owner badges.
+### 📡 3. 30-Minute Situational Context Watcher
+* **Scheduled Channel Scans:** Every 30 minutes, scans active conversations across `#💬・𝖳eam-chat`, `#📋・𝖱oster`, and announcements.
+* **Conversational Memory Integration:** Feeds chat highlights and building/PvP plans directly into `server_ai_facts` and `server_ai_memory`.
+* **Proactive & Fun Chat Banter:** Occasionally drops witty, motivating, and clan-themed comments into `#💬・𝖳eam-chat` to hype up builders, miners, and PvP combatants with built-in anti-spam rate limiting.
+* **Manual Trigger:** On-demand instant scan available via `!forcescan`.
 
-### 🛡️ 4. Dyno-Grade Moderation & Security
-* **Full Moderation Suite**: `/warn`, `/mute`, `/unmute`, `/kick`, `/ban`, `/purge`, `/lockdown`, `/unlock`, `/slowmode`.
-* **AutoMod Safeguards**: Automated protection against mention spam, malicious invites, and suspicious content.
-* **Role Hierarchy Guards**: Administrative bypass protections and safety checks for server owners and moderators.
+### 🛡️ 4. Anti-Raid & Server Security Guard
+* **Anti-Server Advertising & Invite Blocker:** Strict real-time filter that instantly deletes unauthorized Discord invite links or server advertising attempts and issues warning strikes.
+* **Anti-Flood & Duplicate Spam Shield:** Automatically throttles message floods (5+ messages within 3 seconds) and mutes offending accounts.
+* **Profanity & Slur Filter:** Automatic sanitization and strike issuance for blacklisted terms.
 
-### 🔗 5. Connected Platform Verification & Roles
-* **Public Identity Badges**: Showcase badges for verified YouTube, Twitch, and Spotify connections.
-* **Privacy Controls**: Secure management consoles for releasing special platform follower and subscriber roles on demand.
-
-### 💰 6. Economy, Progression & Minigames
-* Virtual coins, daily login rewards (`/daily`), quests, duels (`/duel`), chest rewards, and clan management.
+### 🎬 5. Skybase Video Production & Film Crew Management
+* **Recruitment Controls:** Staff commands (`/startcrewapp`, `/stopcrewapp`) to open and close video production auditions.
+* **Interactive Modal Applications:** Direct modal submission pipeline sending candidate auditions to private staff review channels.
+* **Dynamic MEE6 Leveling & Jimp Graphical Rank Cards:** Custom `/rank` cards rendered on the fly, voice XP timers, and server leaderboards.
 
 ---
 
@@ -53,64 +56,24 @@
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Deployment & Operations
 
-### Prerequisites
-* [Node.js](https://nodejs.org/) v18.0.0 or higher
-* npm (bundled with Node.js)
-* A Discord Bot Application created on the [Discord Developer Portal](https://discord.com/developers/applications)
-
-### Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Krylo-60/krims-discord-bot.git
-   cd krims-discord-bot
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Configure Environment Variables:**
-   Create a `.env` file in the project root:
-   ```env
-   DISCORD_TOKEN=your_discord_bot_token_here
-   CLIENT_ID=your_discord_client_id_here
-   AI_API_KEY=your_ai_api_key_here
-   PORT=3000
-   ```
-
-4. **Register Slash Commands:**
-   Deploy all 97 unified commands to Discord's Gateway:
-   ```bash
-   node deployMasterUnifiedCommands.mjs
-   ```
-
-5. **Start the Bot:**
-   ```bash
-   npm start
-   ```
-
----
-
-## 🌐 Cloud Deployment (Render)
-
-This bot is optimized for 24/7 continuous operation on [Render](https://render.com) Web Services.
-
-* **Build Command:** `npm install`
-* **Start Command:** `npm start`
-* **Health Check Path:** `/` (returns HTTP 200 JSON status)
-
----
-
-## 🔒 Security & Privacy
-
-* All bot tokens, API keys, and local environment files are strictly excluded from version control via `.gitignore`.
-* Private administration consoles and audit channels are restricted via Discord snowflake permissions and owner ID validation.
+### Cloud Runtime
+Optimized for 24/7 continuous operation on [Render](https://render.com) Web Services and Linux containers.
+* **Runtime:** Node.js v20+ with Python 3 + Pillow asset rendering
+* **Databases:** SQLite (WAL mode) + Neon Serverless Postgres + FalixNodes MySQL
+* **Keep-Alive:** Internal 5-minute health check pinger preventing container hibernation
 
 ---
 
 ## 📜 License
-Distributed under the MIT License. See `LICENSE` for more information.
+
+**Copyright © 2026 KryloMCYT & Krims Code Studio. All rights reserved.**
+
+This repository and all associated source code, graphics, font bundles, database schemas, and algorithms are **strictly proprietary and confidential**. 
+
+> [!CAUTION]
+> **STRICTLY NO COPYING, FORKING, REDISTRIBUTION, OR REVERSE ENGINEERING.**
+> No part of this software may be copied, reproduced, cloned, mirrored, sold, or distributed in any form without explicit, prior written permission from the copyright holders. Any unauthorized copying or replication will be met with immediate DMCA copyright enforcement.
+
+See the full [LICENSE](file:///LICENSE) document for complete terms.
