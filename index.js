@@ -3327,46 +3327,22 @@ client.on('interactionCreate', async (interaction) => {
       }
 
       try {
-        let ticketChannel = null;
-        try {
-        ticketChannel = await guild.channels.create({
+        const ticketChannel = await guild.channels.create({
           name: ticketChannelName,
           type: ChannelType.GuildText,
           parent: parentCat ? parentCat.id : null,
-          permissionOverwrites,
-          topic: `Reason: ${subject} | Member: @${interaction.user.tag} (${interaction.user.id}) | Status: 🟢 Active`
-        });
-      } catch (createErr) {
-        console.warn('[Ticket Creation] Primary creation failed, retrying fallback:', createErr.message);
-        ticketChannel = await guild.channels.create({
-          name: ticketChannelName,
-          type: ChannelType.GuildText,
-          permissionOverwrites
-        }).catch(err => {
-          console.error('[Ticket Creation] Fallback creation failed:', err);
-          return null;
+          topic: `Reason: ${subject.replace(/[\r\n]+/g, ' ').slice(0, 100)} | Member: @${interaction.user.tag} (${interaction.user.id}) | Status: 🟢 Active`
         });
 
-        if (ticketChannel && parentCat) {
-          await ticketChannel.setParent(parentCat.id).catch(() => {});
-        }
-      }
+        // Apply strict private ticket permissions
+        await ticketChannel.permissionOverwrites.set(permissionOverwrites).catch(permErr => {
+          console.warn('[Ticket Creation] Non-fatal overwrite warning:', permErr.message);
+        });
 
-      if (ticketChannel && typeof ticketChannel.send !== 'function') {
-        ticketChannel = await client.channels.fetch(ticketChannel.id).catch(() => ticketChannel);
-      }
-
-      if (!ticketChannel || typeof ticketChannel.send !== 'function') {
-        await guild.channels.fetch().catch(() => {});
-        const cached = guild.channels.cache.find(c => c.name.toLowerCase() === ticketChannelName.toLowerCase());
-        if (cached) {
-          ticketChannel = await client.channels.fetch(cached.id).catch(() => cached);
-        }
-      }
-
-      if (!ticketChannel || typeof ticketChannel.send !== 'function') {
-        throw new Error('Ticket channel creation failed to return a valid messaging channel.');
-      }
+        // Ensure channel is ready for text operations
+        const readyChannel = typeof ticketChannel.send === 'function' 
+          ? ticketChannel 
+          : await client.channels.fetch(ticketChannel.id);
 
         const closeRow = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
@@ -3407,9 +3383,9 @@ client.on('interactionCreate', async (interaction) => {
           ? `🚨 **URGENT BASE SECURITY ALERT!**\n${pingsToMention}`
           : `📬 **New Clan Ticket Dispatch**\n${pingsToMention}`;
 
-        await ticketChannel.send({ content: pingHeader, embeds: [ticketGreeting], components: [closeRow] });
+        await readyChannel.send({ content: pingHeader, embeds: [ticketGreeting], components: [closeRow] });
 
-        return await interaction.editReply({ content: `✅ **Clan ticket created!** Head over to <#${ticketChannel.id}>.` });
+        return await interaction.editReply({ content: `✅ **Clan ticket created!** Head over to <#${readyChannel.id}>.` });
       } catch (err) {
         console.error('Error creating clan ticket channel:', err);
         return await interaction.editReply({ content: `❌ Failed to create clan ticket channel: ${err.message}` });
@@ -3495,46 +3471,22 @@ client.on('interactionCreate', async (interaction) => {
       }
 
       try {
-        let ticketChannel = null;
-        try {
-        ticketChannel = await guild.channels.create({
+        const ticketChannel = await guild.channels.create({
           name: ticketChannelName,
           type: ChannelType.GuildText,
           parent: parentCat ? parentCat.id : null,
-          permissionOverwrites,
-          topic: `Reason: ${subject} | Member: @${interaction.user.tag} (${interaction.user.id}) | Status: 🟢 Active`
-        });
-      } catch (createErr) {
-        console.warn('[Krims Ticket Creation] Primary creation failed, retrying fallback:', createErr.message);
-        ticketChannel = await guild.channels.create({
-          name: ticketChannelName,
-          type: ChannelType.GuildText,
-          permissionOverwrites
-        }).catch(err => {
-          console.error('[Krims Ticket Creation] Fallback creation failed:', err);
-          return null;
+          topic: `Reason: ${subject.replace(/[\r\n]+/g, ' ').slice(0, 100)} | Member: @${interaction.user.tag} (${interaction.user.id}) | Status: 🟢 Active`
         });
 
-        if (ticketChannel && parentCat) {
-          await ticketChannel.setParent(parentCat.id).catch(() => {});
-        }
-      }
+        // Apply strict private ticket permissions
+        await ticketChannel.permissionOverwrites.set(permissionOverwrites).catch(permErr => {
+          console.warn('[Krims Ticket Creation] Non-fatal overwrite warning:', permErr.message);
+        });
 
-      if (ticketChannel && typeof ticketChannel.send !== 'function') {
-        ticketChannel = await client.channels.fetch(ticketChannel.id).catch(() => ticketChannel);
-      }
-
-      if (!ticketChannel || typeof ticketChannel.send !== 'function') {
-        await guild.channels.fetch().catch(() => {});
-        const cached = guild.channels.cache.find(c => c.name.toLowerCase() === ticketChannelName.toLowerCase());
-        if (cached) {
-          ticketChannel = await client.channels.fetch(cached.id).catch(() => cached);
-        }
-      }
-
-      if (!ticketChannel || typeof ticketChannel.send !== 'function') {
-        throw new Error('Ticket channel creation failed to return a valid messaging channel.');
-      }
+        // Ensure channel is ready for text operations
+        const readyChannel = typeof ticketChannel.send === 'function' 
+          ? ticketChannel 
+          : await client.channels.fetch(ticketChannel.id);
 
         const closeRow = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
@@ -3560,9 +3512,9 @@ client.on('interactionCreate', async (interaction) => {
           .setTimestamp();
 
         const pingMessage = `${staffPings.join(' ')} <@${interaction.user.id}>`;
-        await ticketChannel.send({ content: pingMessage, embeds: [ticketGreeting], components: [closeRow] });
+        await readyChannel.send({ content: pingMessage, embeds: [ticketGreeting], components: [closeRow] });
 
-        return await interaction.editReply({ content: `✅ **Ticket created!** Head over to <#${ticketChannel.id}>.` });
+        return await interaction.editReply({ content: `✅ **Ticket created!** Head over to <#${readyChannel.id}>.` });
       } catch (err) {
         console.error('Error creating ticket channel:', err);
         return await interaction.editReply({ content: `❌ Failed to create ticket channel: ${err.message}` });
