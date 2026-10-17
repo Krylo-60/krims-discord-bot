@@ -1365,17 +1365,42 @@ client.on('interactionCreate', async (interaction) => {
     if (customId.startsWith('krims_ticket_')) {
       await interaction.deferReply({ ephemeral: true });
       const deptMap = {
-        'krims_ticket_support': { name: 'Support', emoji: '🎫', title: 'General Support' },
-        'krims_ticket_bug': { name: 'Bug', emoji: '🐛', title: 'Bug Report' },
-        'krims_ticket_feature': { name: 'Feature', emoji: '💡', title: 'Feature Request' },
-        'krims_ticket_setup': { name: 'Integration', emoji: '⚙️', title: 'Server Setup & Integration' }
+        'krims_ticket_support': {
+          category: 'support',
+          emoji: '🎫',
+          title: 'General Support',
+          reason: 'Bot configuration, command assistance, permissions, and general ecosystem troubleshooting.'
+        },
+        'krims_ticket_bug': {
+          category: 'bug',
+          emoji: '🐛',
+          title: 'Bug Report',
+          reason: 'Unexpected bot error, command failure, crash exception, or database synchronization bug.'
+        },
+        'krims_ticket_feature': {
+          category: 'feature',
+          emoji: '💡',
+          title: 'Feature Request',
+          reason: 'New command idea, system feature proposal, or enhancement suggestion for Krims Bot.'
+        },
+        'krims_ticket_setup': {
+          category: 'setup',
+          emoji: '⚙️',
+          title: 'Server Setup & Integration',
+          reason: 'Requesting custom bot integration, SMP verification bridge, or automated server onboarding.'
+        }
       };
-      const dept = deptMap[customId] || { name: 'Support', emoji: '🎫', title: 'Support Ticket' };
+      const dept = deptMap[customId] || {
+        category: 'support',
+        emoji: '🎫',
+        title: 'Support Ticket',
+        reason: 'General inquiry and support request.'
+      };
       const guild = interaction.guild;
       if (!guild) return await interaction.editReply({ content: '❌ Tickets can only be created inside the server.' });
 
       const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15);
-      const ticketChannelName = `ticket-${dept.name.toLowerCase()}-${cleanUsername}`;
+      const ticketChannelName = `${dept.category}-${cleanUsername}`;
 
       const existing = guild.channels.cache.find(c => c.name === ticketChannelName);
       if (existing) {
@@ -1391,16 +1416,18 @@ client.on('interactionCreate', async (interaction) => {
       );
 
       const permissionOverwrites = [
-        { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },
+        { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
         { id: interaction.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles] },
         { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels] }
       ];
 
+      const staffPings = [];
       for (const [_, role] of staffRoles) {
         permissionOverwrites.push({
           id: role.id,
           allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
         });
+        staffPings.push(`<@&${role.id}>`);
       }
 
       try {
@@ -1409,7 +1436,7 @@ client.on('interactionCreate', async (interaction) => {
           type: ChannelType.GuildText,
           parent: parentCat ? parentCat.id : null,
           permissionOverwrites,
-          topic: `Krims Support Ticket for ${interaction.user.tag} (${interaction.user.id}) | Dept: ${dept.title}`
+          topic: `Reason: ${dept.reason} | Member: @${interaction.user.tag} (${interaction.user.id}) | Status: 🟢 Active`
         });
 
         const closeRow = new ActionRowBuilder().addComponents(
@@ -1424,20 +1451,21 @@ client.on('interactionCreate', async (interaction) => {
           .setTitle(`${dept.emoji} ${dept.title} — Ticket Opened`)
           .setDescription(
             `Hello <@${interaction.user.id}>! Welcome to your private support channel.\n\n` +
-            `Our engineering and support team have been notified. Please describe your issue, request, or idea in detail below.\n\n` +
-            `**Department:** \`${dept.title}\`\n` +
-            `**Opened By:** <@${interaction.user.id}> (\`${interaction.user.tag}\`)\n` +
-            `**AI Assistant:** Krims Support AI is standing by to help assist immediately!\n\n` +
-            `When you are finished, click **Close Ticket** below.`
+            `**📋 Reason:** ${dept.reason}\n` +
+            `**👤 Opened By:** <@${interaction.user.id}> (\`${interaction.user.tag}\`)\n` +
+            `**👥 Staff Notified:** ${staffPings.length > 0 ? staffPings.join(' ') : 'Executives & Developers'}\n\n` +
+            `Please describe your request, issue, or proposal in detail below. Staff has been notified and will assist you shortly!\n\n` +
+            `When finished, click **Close Ticket** below.`
           )
           .setColor(0x00F2FF)
           .setThumbnail(client.user.displayAvatarURL({ extension: 'png', size: 512 }))
           .setFooter({ text: 'Krims Code Ticket Engine' })
           .setTimestamp();
 
-        await ticketChannel.send({ content: `<@${interaction.user.id}>`, embeds: [ticketGreeting], components: [closeRow] });
+        const pingMessage = `${staffPings.join(' ')} <@${interaction.user.id}>`;
+        await ticketChannel.send({ content: pingMessage, embeds: [ticketGreeting], components: [closeRow] });
 
-        return await interaction.editReply({ content: `✅ **Ticket created successfully!** Head over to <#${ticketChannel.id}>.` });
+        return await interaction.editReply({ content: `✅ **Ticket created!** Head over to <#${ticketChannel.id}>.` });
       } catch (err) {
         console.error('Error creating ticket channel:', err);
         return await interaction.editReply({ content: `❌ Failed to create ticket channel: ${err.message}` });
@@ -1446,7 +1474,13 @@ client.on('interactionCreate', async (interaction) => {
 
     if (customId === 'krims_close_ticket' || customId === 'halflife_close_ticket') {
       const channel = interaction.channel;
-      if (!channel || !channel.name.startsWith('ticket-')) {
+      const isTicketChannel = channel && (
+        channel.name.startsWith('ticket-') ||
+        channel.parent?.name?.toLowerCase().includes('ticket') ||
+        channel.topic?.toLowerCase().includes('reason:') ||
+        channel.topic?.toLowerCase().includes('member:')
+      );
+      if (!channel || !isTicketChannel) {
         return await interaction.reply({ content: '❌ This button can only be used inside ticket channels.', ephemeral: true });
       }
       await interaction.reply('🔒 **Closing ticket in 5 seconds...** Thank you!');
@@ -1460,17 +1494,47 @@ client.on('interactionCreate', async (interaction) => {
     if (customId.startsWith('halflife_ticket_')) {
       await interaction.deferReply({ ephemeral: true });
       const deptMap = {
-        'halflife_ticket_leadership': { name: 'leadership', emoji: '👑', title: 'Leadership Inquiry', alert: false },
-        'halflife_ticket_emergency': { name: 'emergency', emoji: '🚨', title: 'Base Compromise / Emergency Alert', alert: true },
-        'halflife_ticket_gear': { name: 'requisition', emoji: '⚔️', title: 'Gear & Supply Requisition', alert: false },
-        'halflife_ticket_general': { name: 'general', emoji: '❓', title: 'General Clan Support', alert: false }
+        'halflife_ticket_leadership': {
+          category: 'leadership',
+          emoji: '👑',
+          title: 'Leadership Inquiry',
+          reason: 'Direct private communication with Clan Leaders regarding sensitive clan strategy, high command decisions, or partnership.',
+          alert: false
+        },
+        'halflife_ticket_emergency': {
+          category: 'emergency',
+          emoji: '🚨',
+          title: 'Base Compromise Alert',
+          reason: 'URGENT: Leaked base coordinates, suspected traitor infiltration, perimeter breach, or active enemy clan raid!',
+          alert: true
+        },
+        'halflife_ticket_gear': {
+          category: 'gear',
+          emoji: '⚔️',
+          title: 'Gear & Supply Requisition',
+          reason: 'Requisitioning totems of undying, enchanted netherite gear, PvP kits, potions, or building supplies from clan vault.',
+          alert: false
+        },
+        'halflife_ticket_general': {
+          category: 'general',
+          emoji: '❓',
+          title: 'General Clan Support',
+          reason: 'General inquiry regarding squad roles, Minecraft IGN verification, rules, or Elite SMP connection help.',
+          alert: false
+        }
       };
-      const dept = deptMap[customId] || { name: 'support', emoji: '🛡️', title: 'Clan Support', alert: false };
+      const dept = deptMap[customId] || {
+        category: 'support',
+        emoji: '🛡️',
+        title: 'Clan Support',
+        reason: 'General clan inquiry and support request.',
+        alert: false
+      };
       const guild = interaction.guild;
       if (!guild) return await interaction.editReply({ content: '❌ Tickets can only be created inside the server.' });
 
       const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15);
-      const ticketChannelName = `ticket-${dept.name}-${cleanUsername}`;
+      const ticketChannelName = `${dept.category}-${cleanUsername}`;
 
       const existing = guild.channels.cache.find(c => c.name === ticketChannelName);
       if (existing) {
@@ -1483,7 +1547,8 @@ client.on('interactionCreate', async (interaction) => {
       const clanStaffRoles = guild.roles.cache.filter(r =>
         r.name.includes('Leader') ||
         r.name.includes('Administrator') ||
-        r.name.includes('Moderator')
+        r.name.includes('Moderator') ||
+        r.name.includes('Vanguard')
       );
 
       const permissionOverwrites = [
@@ -1505,7 +1570,7 @@ client.on('interactionCreate', async (interaction) => {
           type: ChannelType.GuildText,
           parent: parentCat ? parentCat.id : null,
           permissionOverwrites,
-          topic: `The Half Life's Clan Ticket for ${interaction.user.tag} (${interaction.user.id}) | Department: ${dept.title}`
+          topic: `Reason: ${dept.reason} | Member: @${interaction.user.tag} (${interaction.user.id}) | Status: 🟢 Active`
         });
 
         const closeRow = new ActionRowBuilder().addComponents(
@@ -1516,14 +1581,26 @@ client.on('interactionCreate', async (interaction) => {
             .setStyle(ButtonStyle.Danger)
         );
 
+        // Ping all Admins, Mods, Leaders, and the Member
+        const pingsToMention = [
+          '<@&1559250428099698820>', // Team leader St1llkill3r
+          '<@&1559250425872519220>', // Team Co-Leader Krylo
+          '<@&1557855846094999572>', // 👑 Team Leader
+          '<@&1557855847500091443>', // ⚔️ Co-Leader
+          '<@&1557865642659414132>', // ⚡ Clan Administrator
+          '<@&1557865646119854213>', // 🛡️ Clan Moderator
+          '<@&1557855848607387719>', // 🛡️ Clan Vanguard
+          `<@${interaction.user.id}>` // The member who opened the ticket
+        ].join(' ');
+
         const ticketGreeting = new EmbedBuilder()
           .setTitle(`${dept.emoji} ${dept.title} — Clan Dispatch Opened`)
           .setDescription(
             `Hello <@${interaction.user.id}>! You have opened a private channel with **The Half Life's** Clan Command.\n\n` +
-            `**Department:** \`${dept.title}\`\n` +
-            `**Opened By:** <@${interaction.user.id}> (\`${interaction.user.tag}\`)\n` +
-            `**Clan Commanders:** <@&1559250428099698820> (\`st1LLkill3r\`) and <@&1559250425872519220> (\`Krylo\`)\n\n` +
-            `Please state your message, incident details, or request below. Staff will respond shortly!\n\n` +
+            `**📋 Reason:** ${dept.reason}\n` +
+            `**👤 Opened By:** <@${interaction.user.id}> (\`${interaction.user.tag}\`)\n` +
+            `**👑 Leadership & Staff Alert:** All Clan Leaders, Administrators, and Moderators have been summoned.\n\n` +
+            `Please state your message, incident details, or requisition below. High Command will assist you shortly!\n\n` +
             `When resolved, click **Close Ticket** below.`
           )
           .setColor(dept.alert ? 0xFF0000 : 0x00F2FF)
@@ -1531,12 +1608,11 @@ client.on('interactionCreate', async (interaction) => {
           .setFooter({ text: 'The Half Life\'s Clan Ticket System • Powered by Krims Bot' })
           .setTimestamp();
 
-        let pingContent = `<@${interaction.user.id}>`;
-        if (dept.alert) {
-          pingContent += ` 🚨 <@&1559250428099698820> <@&1559250425872519220> **URGENT BASE SECURITY ALERT!**`;
-        }
+        let pingHeader = dept.alert 
+          ? `🚨 **URGENT BASE SECURITY ALERT!**\n${pingsToMention}`
+          : `📬 **New Clan Ticket Dispatch**\n${pingsToMention}`;
 
-        await ticketChannel.send({ content: pingContent, embeds: [ticketGreeting], components: [closeRow] });
+        await ticketChannel.send({ content: pingHeader, embeds: [ticketGreeting], components: [closeRow] });
 
         return await interaction.editReply({ content: `✅ **Clan ticket created!** Head over to <#${ticketChannel.id}>.` });
       } catch (err) {
