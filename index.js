@@ -678,7 +678,7 @@ function updateBotPresence() {
   const serverCount = client.guilds.cache.size || 1;
   const activities = [
     { name: `/help • Serving ${serverCount} servers`, type: 3 }, // Watching
-    { name: `/ask • Krims Code AI v5.0`, type: 0 }, // Playing
+    { name: `/ask • Krims Code AI v5.3`, type: 0 }, // Playing
     { name: `krims-bot-dashboard.vercel.app`, type: 3 }, // Watching
     { name: `Krims Code Studio ⚡`, type: 0 } // Playing
   ];

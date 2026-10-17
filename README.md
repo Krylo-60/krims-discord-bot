@@ -1,5 +1,6 @@
-# Krims Code AI 🤖 • Tactical Clan & Community Bot
+# Krims Code AI 🤖 • Tactical Clan & Community Bot (v5.3)
 
+[![Version](https://img.shields.io/badge/Release-v5.3%20Enterprise-00FFFF?logo=rocket&logoColor=white)](#)
 [![Discord.js](https://img.shields.io/badge/Discord.js-v14.14-5865F2?logo=discord&logoColor=white)](https://discord.js.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-v20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![AI Engine](https://img.shields.io/badge/AI-Gemini%203.5%20%7C%20Groq%20LPU-00F2FF?logo=google&logoColor=white)](#)
