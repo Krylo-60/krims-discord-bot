@@ -184,11 +184,23 @@ export async function handleReactionRoleAdd(reaction, user) {
     if (isClanPanel) {
       try {
         const member = await reaction.message.guild.members.fetch(user.id);
-        if (member && !member.roles.cache.has(roleConfig.id)) {
-          await member.roles.add(roleConfig.id);
-          console.log(`[ReactionRoles] Added ${roleConfig.name} to ${member.displayName}`);
-          await user.send(`✅ You received the **${roleConfig.name}** role in **${reaction.message.guild.name}**!`).catch(() => {});
-          return true;
+        if (member) {
+          // Region Roles: enforce maximum 1 region per member
+          const regionRoleIds = ['1557877149975707648', '1557877151309500558', '1557877152454545499'];
+          if (regionRoleIds.includes(roleConfig.id)) {
+            for (const rId of regionRoleIds) {
+              if (rId !== roleConfig.id && member.roles.cache.has(rId)) {
+                await member.roles.remove(rId).catch(() => {});
+              }
+            }
+          }
+
+          if (!member.roles.cache.has(roleConfig.id)) {
+            await member.roles.add(roleConfig.id);
+            console.log(`[ReactionRoles] Added ${roleConfig.name} to ${member.displayName}`);
+            await user.send(`✅ You received the **${roleConfig.name}** role in **${reaction.message.guild.name}**!`).catch(() => {});
+            return true;
+          }
         }
       } catch (err) {
         console.warn('[ReactionRoles Add Error]:', err.message);
