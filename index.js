@@ -1361,115 +1361,73 @@ client.on('interactionCreate', async (interaction) => {
 
   // Handle DM / Global Button Interactions (e.g. KevinMC Setup Feedback)
   if (interaction.isButton()) {
-    // 🎫 Krims Code Support Hub - Interactive Ticket Buttons
+    // 🎫 Krims Code Support Hub - Interactive Ticket Buttons (Trigger Modal Popup)
     if (customId.startsWith('krims_ticket_')) {
-      await interaction.deferReply({ ephemeral: true });
       const deptMap = {
         'krims_ticket_support': {
-          category: 'support',
-          emoji: '🎫',
-          title: 'General Support',
-          reason: 'Bot configuration, command assistance, permissions, and general ecosystem troubleshooting.'
+          title: 'General Support Request',
+          subjectLabel: 'Subject / Issue Summary',
+          subjectPlaceholder: 'e.g. Help configuring bot commands on my server',
+          detailsLabel: 'Detailed Explanation',
+          detailsPlaceholder: 'Describe your issue, error message, or question...'
         },
         'krims_ticket_bug': {
-          category: 'bug',
-          emoji: '🐛',
-          title: 'Bug Report',
-          reason: 'Unexpected bot error, command failure, crash exception, or database synchronization bug.'
+          title: 'Bug & Crash Report',
+          subjectLabel: 'Bug Summary / Command Name',
+          subjectPlaceholder: 'e.g. !balance command timeout or crash trace',
+          detailsLabel: 'Reproduction Steps & Error Trace',
+          detailsPlaceholder: 'What happened? Provide error details, channel, or command run...'
         },
         'krims_ticket_feature': {
-          category: 'feature',
-          emoji: '💡',
-          title: 'Feature Request',
-          reason: 'New command idea, system feature proposal, or enhancement suggestion for Krims Bot.'
+          title: 'Feature Proposal',
+          subjectLabel: 'Feature Title',
+          subjectPlaceholder: 'e.g. Add custom welcome cards for role X',
+          detailsLabel: 'Feature Proposal & Use Case',
+          detailsPlaceholder: 'Explain how this feature should work and why it helps...'
         },
         'krims_ticket_setup': {
-          category: 'setup',
-          emoji: '⚙️',
           title: 'Server Setup & Integration',
-          reason: 'Requesting custom bot integration, SMP verification bridge, or automated server onboarding.'
+          subjectLabel: 'Server Name & Type',
+          subjectPlaceholder: 'e.g. Minecraft SMP / Community Server / Clan',
+          detailsLabel: 'Integration Requirements',
+          detailsPlaceholder: 'What custom integrations, roles, or bridges do you need?'
         }
       };
+
       const dept = deptMap[customId] || {
-        category: 'support',
-        emoji: '🎫',
         title: 'Support Ticket',
-        reason: 'General inquiry and support request.'
+        subjectLabel: 'Reason for Contact',
+        subjectPlaceholder: 'Summary of your inquiry...',
+        detailsLabel: 'Details',
+        detailsPlaceholder: 'Provide further information...'
       };
-      const guild = interaction.guild;
-      if (!guild) return await interaction.editReply({ content: '❌ Tickets can only be created inside the server.' });
 
-      const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15);
-      const ticketChannelName = `${dept.category}-${cleanUsername}`;
+      const modal = new ModalBuilder()
+        .setCustomId(`modal_${customId}`)
+        .setTitle(dept.title.slice(0, 45));
 
-      const existing = guild.channels.cache.find(c => c.name === ticketChannelName);
-      if (existing) {
-        return await interaction.editReply({ content: `⚠️ You already have an open ticket in <#${existing.id}>!` });
-      }
+      const subjectInput = new TextInputBuilder()
+        .setCustomId('ticket_subject')
+        .setLabel(dept.subjectLabel.slice(0, 45))
+        .setPlaceholder(dept.subjectPlaceholder.slice(0, 100))
+        .setStyle(TextInputStyle.Short)
+        .setMaxLength(100)
+        .setRequired(true);
 
-      let parentCat = guild.channels.cache.find(c => c.type === ChannelType.GuildCategory && (c.name.includes('SUPPORT') || c.name.includes('TICKETS')));
+      const detailsInput = new TextInputBuilder()
+        .setCustomId('ticket_details')
+        .setLabel(dept.detailsLabel.slice(0, 45))
+        .setPlaceholder(dept.detailsPlaceholder.slice(0, 100))
+        .setStyle(TextInputStyle.Paragraph)
+        .setMaxLength(1000)
+        .setRequired(true);
 
-      const staffRoles = guild.roles.cache.filter(r => 
-        r.name.includes('Support') || 
-        r.name.includes('Executive') || 
-        r.name.includes('Developer')
+      modal.addComponents(
+        new ActionRowBuilder().addComponents(subjectInput),
+        new ActionRowBuilder().addComponents(detailsInput)
       );
 
-      const permissionOverwrites = [
-        { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
-        { id: interaction.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles] },
-        { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels] }
-      ];
-
-      const staffPings = [];
-      for (const [_, role] of staffRoles) {
-        permissionOverwrites.push({
-          id: role.id,
-          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-        });
-        staffPings.push(`<@&${role.id}>`);
-      }
-
-      try {
-        const ticketChannel = await guild.channels.create({
-          name: ticketChannelName,
-          type: ChannelType.GuildText,
-          parent: parentCat ? parentCat.id : null,
-          permissionOverwrites,
-          topic: `Reason: ${dept.reason} | Member: @${interaction.user.tag} (${interaction.user.id}) | Status: 🟢 Active`
-        });
-
-        const closeRow = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId('krims_close_ticket')
-            .setLabel('Close Ticket')
-            .setEmoji('🔒')
-            .setStyle(ButtonStyle.Danger)
-        );
-
-        const ticketGreeting = new EmbedBuilder()
-          .setTitle(`${dept.emoji} ${dept.title} — Ticket Opened`)
-          .setDescription(
-            `Hello <@${interaction.user.id}>! Welcome to your private support channel.\n\n` +
-            `**📋 Reason:** ${dept.reason}\n` +
-            `**👤 Opened By:** <@${interaction.user.id}> (\`${interaction.user.tag}\`)\n` +
-            `**👥 Staff Notified:** ${staffPings.length > 0 ? staffPings.join(' ') : 'Executives & Developers'}\n\n` +
-            `Please describe your request, issue, or proposal in detail below. Staff has been notified and will assist you shortly!\n\n` +
-            `When finished, click **Close Ticket** below.`
-          )
-          .setColor(0x00F2FF)
-          .setThumbnail(client.user.displayAvatarURL({ extension: 'png', size: 512 }))
-          .setFooter({ text: 'Krims Code Ticket Engine' })
-          .setTimestamp();
-
-        const pingMessage = `${staffPings.join(' ')} <@${interaction.user.id}>`;
-        await ticketChannel.send({ content: pingMessage, embeds: [ticketGreeting], components: [closeRow] });
-
-        return await interaction.editReply({ content: `✅ **Ticket created!** Head over to <#${ticketChannel.id}>.` });
-      } catch (err) {
-        console.error('Error creating ticket channel:', err);
-        return await interaction.editReply({ content: `❌ Failed to create ticket channel: ${err.message}` });
-      }
+      return await interaction.showModal(modal);
     }
 
     if (customId === 'krims_close_ticket' || customId === 'halflife_close_ticket') {
@@ -1483,142 +1441,80 @@ client.on('interactionCreate', async (interaction) => {
       if (!channel || !isTicketChannel) {
         return await interaction.reply({ content: '❌ This button can only be used inside ticket channels.', ephemeral: true });
       }
-      await interaction.reply('🔒 **Closing ticket in 5 seconds...** Thank you!');
+      await interaction.reply('🔒 **Closing ticket channel in 5 seconds...** Thank you!');
       setTimeout(async () => {
         await channel.delete('Ticket closed by user').catch(() => {});
       }, 5000);
       return;
     }
 
-    // 🛡️ The Half Life's Clan Command - Interactive Ticket Buttons
+    // 🛡️ The Half Life's Clan Command - Interactive Ticket Buttons (Trigger Modal Popup)
     if (customId.startsWith('halflife_ticket_')) {
-      await interaction.deferReply({ ephemeral: true });
       const deptMap = {
         'halflife_ticket_leadership': {
-          category: 'leadership',
-          emoji: '👑',
-          title: 'Leadership Inquiry',
-          reason: 'Direct private communication with Clan Leaders regarding sensitive clan strategy, high command decisions, or partnership.',
-          alert: false
+          title: 'Contact Clan Leadership',
+          subjectLabel: 'Subject / Reason',
+          subjectPlaceholder: 'e.g. Alliance proposal / Clan strategy / Private inquiry',
+          detailsLabel: 'Message to Leaders',
+          detailsPlaceholder: 'Explain what you want to discuss with St1llkill3r and Krylo...'
         },
         'halflife_ticket_emergency': {
-          category: 'emergency',
-          emoji: '🚨',
           title: 'Base Compromise Alert',
-          reason: 'URGENT: Leaked base coordinates, suspected traitor infiltration, perimeter breach, or active enemy clan raid!',
-          alert: true
+          subjectLabel: 'Incident Summary (URGENT)',
+          subjectPlaceholder: 'e.g. Leaked Coords / Perimeter Breach / Traitor Alert',
+          detailsLabel: 'Urgent Details (Coords, Suspects, Threat)',
+          detailsPlaceholder: 'State exact coordinates, suspect IGNs, active raids, or breach points...'
         },
         'halflife_ticket_gear': {
-          category: 'gear',
-          emoji: '⚔️',
           title: 'Gear & Supply Requisition',
-          reason: 'Requisitioning totems of undying, enchanted netherite gear, PvP kits, potions, or building supplies from clan vault.',
-          alert: false
+          subjectLabel: 'Requisition Item / Purpose',
+          subjectPlaceholder: 'e.g. Raid Kit / 10 Totems / Netherite Set for War',
+          detailsLabel: 'Items, Quantities & War Objective',
+          detailsPlaceholder: 'List the supplies needed, quantity, and planned use...'
         },
         'halflife_ticket_general': {
-          category: 'general',
-          emoji: '❓',
           title: 'General Clan Support',
-          reason: 'General inquiry regarding squad roles, Minecraft IGN verification, rules, or Elite SMP connection help.',
-          alert: false
+          subjectLabel: 'Question / Topic',
+          subjectPlaceholder: 'e.g. Verification help / Rank promotion / Elite SMP help',
+          detailsLabel: 'Description',
+          detailsPlaceholder: 'How can Clan Command assist you?'
         }
       };
+
       const dept = deptMap[customId] || {
-        category: 'support',
-        emoji: '🛡️',
-        title: 'Clan Support',
-        reason: 'General clan inquiry and support request.',
-        alert: false
+        title: 'Clan Support Ticket',
+        subjectLabel: 'Subject',
+        subjectPlaceholder: 'Brief summary...',
+        detailsLabel: 'Details',
+        detailsPlaceholder: 'Explain your request...'
       };
-      const guild = interaction.guild;
-      if (!guild) return await interaction.editReply({ content: '❌ Tickets can only be created inside the server.' });
 
-      const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15);
-      const ticketChannelName = `${dept.category}-${cleanUsername}`;
+      const modal = new ModalBuilder()
+        .setCustomId(`modal_${customId}`)
+        .setTitle(dept.title.slice(0, 45));
 
-      const existing = guild.channels.cache.find(c => c.name === ticketChannelName);
-      if (existing) {
-        return await interaction.editReply({ content: `⚠️ You already have an open ticket in <#${existing.id}>!` });
-      }
+      const subjectInput = new TextInputBuilder()
+        .setCustomId('ticket_subject')
+        .setLabel(dept.subjectLabel.slice(0, 45))
+        .setPlaceholder(dept.subjectPlaceholder.slice(0, 100))
+        .setStyle(TextInputStyle.Short)
+        .setMaxLength(100)
+        .setRequired(true);
 
-      let parentCat = guild.channels.cache.find(c => c.type === ChannelType.GuildCategory && c.name.includes('ACTIVE CLAN TICKETS'));
+      const detailsInput = new TextInputBuilder()
+        .setCustomId('ticket_details')
+        .setLabel(dept.detailsLabel.slice(0, 45))
+        .setPlaceholder(dept.detailsPlaceholder.slice(0, 100))
+        .setStyle(TextInputStyle.Paragraph)
+        .setMaxLength(1000)
+        .setRequired(true);
 
-      // Key clan leadership & moderation roles
-      const clanStaffRoles = guild.roles.cache.filter(r =>
-        r.name.includes('Leader') ||
-        r.name.includes('Administrator') ||
-        r.name.includes('Moderator') ||
-        r.name.includes('Vanguard')
+      modal.addComponents(
+        new ActionRowBuilder().addComponents(subjectInput),
+        new ActionRowBuilder().addComponents(detailsInput)
       );
 
-      const permissionOverwrites = [
-        { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
-        { id: interaction.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles] },
-        { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels] }
-      ];
-
-      for (const [_, role] of clanStaffRoles) {
-        permissionOverwrites.push({
-          id: role.id,
-          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-        });
-      }
-
-      try {
-        const ticketChannel = await guild.channels.create({
-          name: ticketChannelName,
-          type: ChannelType.GuildText,
-          parent: parentCat ? parentCat.id : null,
-          permissionOverwrites,
-          topic: `Reason: ${dept.reason} | Member: @${interaction.user.tag} (${interaction.user.id}) | Status: 🟢 Active`
-        });
-
-        const closeRow = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId('halflife_close_ticket')
-            .setLabel('Close Ticket')
-            .setEmoji('🔒')
-            .setStyle(ButtonStyle.Danger)
-        );
-
-        // Ping all Admins, Mods, Leaders, and the Member
-        const pingsToMention = [
-          '<@&1559250428099698820>', // Team leader St1llkill3r
-          '<@&1559250425872519220>', // Team Co-Leader Krylo
-          '<@&1557855846094999572>', // 👑 Team Leader
-          '<@&1557855847500091443>', // ⚔️ Co-Leader
-          '<@&1557865642659414132>', // ⚡ Clan Administrator
-          '<@&1557865646119854213>', // 🛡️ Clan Moderator
-          '<@&1557855848607387719>', // 🛡️ Clan Vanguard
-          `<@${interaction.user.id}>` // The member who opened the ticket
-        ].join(' ');
-
-        const ticketGreeting = new EmbedBuilder()
-          .setTitle(`${dept.emoji} ${dept.title} — Clan Dispatch Opened`)
-          .setDescription(
-            `Hello <@${interaction.user.id}>! You have opened a private channel with **The Half Life's** Clan Command.\n\n` +
-            `**📋 Reason:** ${dept.reason}\n` +
-            `**👤 Opened By:** <@${interaction.user.id}> (\`${interaction.user.tag}\`)\n` +
-            `**👑 Leadership & Staff Alert:** All Clan Leaders, Administrators, and Moderators have been summoned.\n\n` +
-            `Please state your message, incident details, or requisition below. High Command will assist you shortly!\n\n` +
-            `When resolved, click **Close Ticket** below.`
-          )
-          .setColor(dept.alert ? 0xFF0000 : 0x00F2FF)
-          .setThumbnail(client.user.displayAvatarURL({ extension: 'png', size: 512 }))
-          .setFooter({ text: 'The Half Life\'s Clan Ticket System • Powered by Krims Bot' })
-          .setTimestamp();
-
-        let pingHeader = dept.alert 
-          ? `🚨 **URGENT BASE SECURITY ALERT!**\n${pingsToMention}`
-          : `📬 **New Clan Ticket Dispatch**\n${pingsToMention}`;
-
-        await ticketChannel.send({ content: pingHeader, embeds: [ticketGreeting], components: [closeRow] });
-
-        return await interaction.editReply({ content: `✅ **Clan ticket created!** Head over to <#${ticketChannel.id}>.` });
-      } catch (err) {
-        console.error('Error creating clan ticket channel:', err);
-        return await interaction.editReply({ content: `❌ Failed to create clan ticket channel: ${err.message}` });
-      }
+      return await interaction.showModal(modal);
     }
 
     // 🧠 AI Server Memory Management Buttons
@@ -3343,6 +3239,258 @@ client.on('interactionCreate', async (interaction) => {
 
   if (interaction.isModalSubmit()) {
     const { customId } = interaction;
+
+    // 🛡️ The Half Life's Clan Command - Modal Ticket Submission Handler
+    if (customId.startsWith('modal_halflife_ticket_')) {
+      await interaction.deferReply({ ephemeral: true });
+      const deptMap = {
+        'modal_halflife_ticket_leadership': {
+          category: 'leadership',
+          emoji: '👑',
+          title: 'Leadership Inquiry',
+          defaultReason: 'Direct communication with Clan Leaders.',
+          alert: false
+        },
+        'modal_halflife_ticket_emergency': {
+          category: 'emergency',
+          emoji: '🚨',
+          title: 'Base Compromise Alert',
+          defaultReason: 'URGENT: Leaked coordinates, traitor suspicion, or base breach!',
+          alert: true
+        },
+        'modal_halflife_ticket_gear': {
+          category: 'gear',
+          emoji: '⚔️',
+          title: 'Gear & Supply Requisition',
+          defaultReason: 'Supplies, totems, and gear from clan vault.',
+          alert: false
+        },
+        'modal_halflife_ticket_general': {
+          category: 'general',
+          emoji: '❓',
+          title: 'General Clan Support',
+          defaultReason: 'General inquiry and clan assistance.',
+          alert: false
+        }
+      };
+
+      const dept = deptMap[customId] || {
+        category: 'support',
+        emoji: '🛡️',
+        title: 'Clan Support',
+        defaultReason: 'Clan inquiry.',
+        alert: false
+      };
+
+      const guild = interaction.guild;
+      if (!guild) return await interaction.editReply({ content: '❌ Tickets can only be created inside the server.' });
+
+      const subject = interaction.fields.getTextInputValue('ticket_subject')?.trim() || dept.defaultReason;
+      const details = interaction.fields.getTextInputValue('ticket_details')?.trim() || 'No additional details provided.';
+
+      const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15);
+      const ticketChannelName = `${dept.category}-${cleanUsername}`;
+
+      const existing = guild.channels.cache.find(c => c.name === ticketChannelName);
+      if (existing) {
+        return await interaction.editReply({ content: `⚠️ You already have an open ticket in <#${existing.id}>!` });
+      }
+
+      let parentCat = guild.channels.cache.find(c => c.type === ChannelType.GuildCategory && c.name.includes('ACTIVE CLAN TICKETS'));
+
+      // Key clan leadership & moderation roles
+      const clanStaffRoles = guild.roles.cache.filter(r =>
+        r.name.includes('Leader') ||
+        r.name.includes('Administrator') ||
+        r.name.includes('Moderator') ||
+        r.name.includes('Vanguard')
+      );
+
+      const permissionOverwrites = [
+        { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+        { id: interaction.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles] },
+        { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels] }
+      ];
+
+      for (const [_, role] of clanStaffRoles) {
+        permissionOverwrites.push({
+          id: role.id,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+        });
+      }
+
+      try {
+        const ticketChannel = await guild.channels.create({
+          name: ticketChannelName,
+          type: ChannelType.GuildText,
+          parent: parentCat ? parentCat.id : null,
+          permissionOverwrites,
+          topic: `Reason: ${subject} | Member: @${interaction.user.tag} (${interaction.user.id}) | Status: 🟢 Active`
+        });
+
+        const closeRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('halflife_close_ticket')
+            .setLabel('Close Ticket')
+            .setEmoji('🔒')
+            .setStyle(ButtonStyle.Danger)
+        );
+
+        // Ping all Admins, Mods, Leaders, and the Member
+        const pingsToMention = [
+          '<@&1559250428099698820>', // Team leader St1llkill3r
+          '<@&1559250425872519220>', // Team Co-Leader Krylo
+          '<@&1557855846094999572>', // 👑 Team Leader
+          '<@&1557855847500091443>', // ⚔️ Co-Leader
+          '<@&1557865642659414132>', // ⚡ Clan Administrator
+          '<@&1557865646119854213>', // 🛡️ Clan Moderator
+          '<@&1557855848607387719>', // 🛡️ Clan Vanguard
+          `<@${interaction.user.id}>` // The member who opened the ticket
+        ].join(' ');
+
+        const ticketGreeting = new EmbedBuilder()
+          .setTitle(`${dept.emoji} ${dept.title} — ${subject}`)
+          .setDescription(
+            `Hello <@${interaction.user.id}>! Your private ticket channel has been established with **The Half Life's** Clan Command.\n\n` +
+            `**📋 Reason / Subject:** ${subject}\n` +
+            `**📝 Submitted Details:**\n>>> ${details}\n\n` +
+            `**👤 Opened By:** <@${interaction.user.id}> (\`${interaction.user.tag}\`)\n` +
+            `**👑 Leadership & Staff Alert:** All Clan Leaders, Administrators, and Moderators have been summoned.\n\n` +
+            `Clan Command will assist you directly in this channel. When your issue is resolved, click **Close Ticket** below.`
+          )
+          .setColor(dept.alert ? 0xFF0000 : 0x00F2FF)
+          .setThumbnail(client.user.displayAvatarURL({ extension: 'png', size: 512 }))
+          .setFooter({ text: 'The Half Life\'s Clan Ticket System • Powered by Krims Bot' })
+          .setTimestamp();
+
+        let pingHeader = dept.alert 
+          ? `🚨 **URGENT BASE SECURITY ALERT!**\n${pingsToMention}`
+          : `📬 **New Clan Ticket Dispatch**\n${pingsToMention}`;
+
+        await ticketChannel.send({ content: pingHeader, embeds: [ticketGreeting], components: [closeRow] });
+
+        return await interaction.editReply({ content: `✅ **Clan ticket created!** Head over to <#${ticketChannel.id}>.` });
+      } catch (err) {
+        console.error('Error creating clan ticket channel:', err);
+        return await interaction.editReply({ content: `❌ Failed to create clan ticket channel: ${err.message}` });
+      }
+    }
+
+    // 🎫 Krims Code Support Hub - Modal Ticket Submission Handler
+    if (customId.startsWith('modal_krims_ticket_')) {
+      await interaction.deferReply({ ephemeral: true });
+      const deptMap = {
+        'modal_krims_ticket_support': {
+          category: 'support',
+          emoji: '🎫',
+          title: 'General Support',
+          defaultReason: 'Bot setup, permissions, and command troubleshooting.'
+        },
+        'modal_krims_ticket_bug': {
+          category: 'bug',
+          emoji: '🐛',
+          title: 'Bug Report',
+          defaultReason: 'Bot error or crash trace report.'
+        },
+        'modal_krims_ticket_feature': {
+          category: 'feature',
+          emoji: '💡',
+          title: 'Feature Request',
+          defaultReason: 'Feature proposal or bot enhancement.'
+        },
+        'modal_krims_ticket_setup': {
+          category: 'setup',
+          emoji: '⚙️',
+          title: 'Server Setup & Integration',
+          defaultReason: 'Custom bot integration or SMP bridge setup.'
+        }
+      };
+
+      const dept = deptMap[customId] || {
+        category: 'support',
+        emoji: '🎫',
+        title: 'Support Ticket',
+        defaultReason: 'Support request.'
+      };
+
+      const guild = interaction.guild;
+      if (!guild) return await interaction.editReply({ content: '❌ Tickets can only be created inside the server.' });
+
+      const subject = interaction.fields.getTextInputValue('ticket_subject')?.trim() || dept.defaultReason;
+      const details = interaction.fields.getTextInputValue('ticket_details')?.trim() || 'No additional details provided.';
+
+      const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15);
+      const ticketChannelName = `${dept.category}-${cleanUsername}`;
+
+      const existing = guild.channels.cache.find(c => c.name === ticketChannelName);
+      if (existing) {
+        return await interaction.editReply({ content: `⚠️ You already have an open ticket in <#${existing.id}>!` });
+      }
+
+      let parentCat = guild.channels.cache.find(c => c.type === ChannelType.GuildCategory && (c.name.includes('SUPPORT') || c.name.includes('TICKETS')));
+
+      const staffRoles = guild.roles.cache.filter(r => 
+        r.name.includes('Support') || 
+        r.name.includes('Executive') || 
+        r.name.includes('Developer')
+      );
+
+      const permissionOverwrites = [
+        { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+        { id: interaction.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles] },
+        { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels] }
+      ];
+
+      const staffPings = [];
+      for (const [_, role] of staffRoles) {
+        permissionOverwrites.push({
+          id: role.id,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+        });
+        staffPings.push(`<@&${role.id}>`);
+      }
+
+      try {
+        const ticketChannel = await guild.channels.create({
+          name: ticketChannelName,
+          type: ChannelType.GuildText,
+          parent: parentCat ? parentCat.id : null,
+          permissionOverwrites,
+          topic: `Reason: ${subject} | Member: @${interaction.user.tag} (${interaction.user.id}) | Status: 🟢 Active`
+        });
+
+        const closeRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('krims_close_ticket')
+            .setLabel('Close Ticket')
+            .setEmoji('🔒')
+            .setStyle(ButtonStyle.Danger)
+        );
+
+        const ticketGreeting = new EmbedBuilder()
+          .setTitle(`${dept.emoji} ${dept.title} — ${subject}`)
+          .setDescription(
+            `Hello <@${interaction.user.id}>! Welcome to your private support channel.\n\n` +
+            `**📋 Reason / Subject:** ${subject}\n` +
+            `**📝 Submitted Details:**\n>>> ${details}\n\n` +
+            `**👤 Opened By:** <@${interaction.user.id}> (\`${interaction.user.tag}\`)\n` +
+            `**👥 Staff Notified:** ${staffPings.length > 0 ? staffPings.join(' ') : 'Executives & Developers'}\n\n` +
+            `Please wait while our staff reviews your details. When finished, click **Close Ticket** below.`
+          )
+          .setColor(0x00F2FF)
+          .setThumbnail(client.user.displayAvatarURL({ extension: 'png', size: 512 }))
+          .setFooter({ text: 'Krims Code Ticket Engine' })
+          .setTimestamp();
+
+        const pingMessage = `${staffPings.join(' ')} <@${interaction.user.id}>`;
+        await ticketChannel.send({ content: pingMessage, embeds: [ticketGreeting], components: [closeRow] });
+
+        return await interaction.editReply({ content: `✅ **Ticket created!** Head over to <#${ticketChannel.id}>.` });
+      } catch (err) {
+        console.error('Error creating ticket channel:', err);
+        return await interaction.editReply({ content: `❌ Failed to create ticket channel: ${err.message}` });
+      }
+    }
 
     // --- Twitch Beta Follower Verification Modal ---
     if (customId === 'modal_verify_twitch') {
