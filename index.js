@@ -3327,17 +3327,46 @@ client.on('interactionCreate', async (interaction) => {
       }
 
       try {
-        const ticketChannel = await guild.channels.create({
+        let ticketChannel = null;
+        try {
+        ticketChannel = await guild.channels.create({
           name: ticketChannelName,
           type: ChannelType.GuildText,
           parent: parentCat ? parentCat.id : null,
           permissionOverwrites,
           topic: `Reason: ${subject} | Member: @${interaction.user.tag} (${interaction.user.id}) | Status: 🟢 Active`
         });
+      } catch (createErr) {
+        console.warn('[Ticket Creation] Primary creation failed, retrying fallback:', createErr.message);
+        ticketChannel = await guild.channels.create({
+          name: ticketChannelName,
+          type: ChannelType.GuildText,
+          permissionOverwrites
+        }).catch(err => {
+          console.error('[Ticket Creation] Fallback creation failed:', err);
+          return null;
+        });
 
-        if (!ticketChannel || typeof ticketChannel.send !== 'function') {
-          throw new Error('Ticket channel was not returned properly by Discord API.');
+        if (ticketChannel && parentCat) {
+          await ticketChannel.setParent(parentCat.id).catch(() => {});
         }
+      }
+
+      if (ticketChannel && typeof ticketChannel.send !== 'function') {
+        ticketChannel = await client.channels.fetch(ticketChannel.id).catch(() => ticketChannel);
+      }
+
+      if (!ticketChannel || typeof ticketChannel.send !== 'function') {
+        await guild.channels.fetch().catch(() => {});
+        const cached = guild.channels.cache.find(c => c.name.toLowerCase() === ticketChannelName.toLowerCase());
+        if (cached) {
+          ticketChannel = await client.channels.fetch(cached.id).catch(() => cached);
+        }
+      }
+
+      if (!ticketChannel || typeof ticketChannel.send !== 'function') {
+        throw new Error('Ticket channel creation failed to return a valid messaging channel.');
+      }
 
         const closeRow = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
@@ -3466,17 +3495,46 @@ client.on('interactionCreate', async (interaction) => {
       }
 
       try {
-        const ticketChannel = await guild.channels.create({
+        let ticketChannel = null;
+        try {
+        ticketChannel = await guild.channels.create({
           name: ticketChannelName,
           type: ChannelType.GuildText,
           parent: parentCat ? parentCat.id : null,
           permissionOverwrites,
           topic: `Reason: ${subject} | Member: @${interaction.user.tag} (${interaction.user.id}) | Status: 🟢 Active`
         });
+      } catch (createErr) {
+        console.warn('[Krims Ticket Creation] Primary creation failed, retrying fallback:', createErr.message);
+        ticketChannel = await guild.channels.create({
+          name: ticketChannelName,
+          type: ChannelType.GuildText,
+          permissionOverwrites
+        }).catch(err => {
+          console.error('[Krims Ticket Creation] Fallback creation failed:', err);
+          return null;
+        });
 
-        if (!ticketChannel || typeof ticketChannel.send !== 'function') {
-          throw new Error('Ticket channel was not returned properly by Discord API.');
+        if (ticketChannel && parentCat) {
+          await ticketChannel.setParent(parentCat.id).catch(() => {});
         }
+      }
+
+      if (ticketChannel && typeof ticketChannel.send !== 'function') {
+        ticketChannel = await client.channels.fetch(ticketChannel.id).catch(() => ticketChannel);
+      }
+
+      if (!ticketChannel || typeof ticketChannel.send !== 'function') {
+        await guild.channels.fetch().catch(() => {});
+        const cached = guild.channels.cache.find(c => c.name.toLowerCase() === ticketChannelName.toLowerCase());
+        if (cached) {
+          ticketChannel = await client.channels.fetch(cached.id).catch(() => cached);
+        }
+      }
+
+      if (!ticketChannel || typeof ticketChannel.send !== 'function') {
+        throw new Error('Ticket channel creation failed to return a valid messaging channel.');
+      }
 
         const closeRow = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
