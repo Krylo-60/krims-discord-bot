@@ -5,7 +5,7 @@
  */
 import os from 'os';
 import crypto from 'crypto';
-import { Client, GuildScheduledEventEntityType, GuildScheduledEventPrivacyLevel, GatewayIntentBits, Partials, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder, GuildChannelManager, RoleManager } from 'discord.js';
+import { Client, GuildScheduledEventEntityType, GuildScheduledEventPrivacyLevel, GatewayIntentBits, Partials, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder, GuildChannelManager, RoleManager, OverwriteType } from 'discord.js';
 import { KrimsClient } from '@krishivpb60/krims-code-sdk';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
@@ -3313,14 +3313,15 @@ client.on('interactionCreate', async (interaction) => {
       );
 
       const permissionOverwrites = [
-        { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
-        { id: interaction.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles] },
-        { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels] }
+        { id: guild.roles.everyone.id, type: OverwriteType.Role, deny: [PermissionFlagsBits.ViewChannel] },
+        { id: interaction.user.id, type: OverwriteType.Member, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles] },
+        { id: client.user.id, type: OverwriteType.Member, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels] }
       ];
 
       for (const [_, role] of clanStaffRoles) {
         permissionOverwrites.push({
           id: role.id,
+          type: OverwriteType.Role,
           allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
         });
       }
@@ -3333,6 +3334,10 @@ client.on('interactionCreate', async (interaction) => {
           permissionOverwrites,
           topic: `Reason: ${subject} | Member: @${interaction.user.tag} (${interaction.user.id}) | Status: 🟢 Active`
         });
+
+        if (!ticketChannel || typeof ticketChannel.send !== 'function') {
+          throw new Error('Ticket channel was not returned properly by Discord API.');
+        }
 
         const closeRow = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
@@ -3445,15 +3450,16 @@ client.on('interactionCreate', async (interaction) => {
       );
 
       const permissionOverwrites = [
-        { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
-        { id: interaction.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles] },
-        { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels] }
+        { id: guild.roles.everyone.id, type: OverwriteType.Role, deny: [PermissionFlagsBits.ViewChannel] },
+        { id: interaction.user.id, type: OverwriteType.Member, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles] },
+        { id: client.user.id, type: OverwriteType.Member, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels] }
       ];
 
       const staffPings = [];
       for (const [_, role] of staffRoles) {
         permissionOverwrites.push({
           id: role.id,
+          type: OverwriteType.Role,
           allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
         });
         staffPings.push(`<@&${role.id}>`);
@@ -3467,6 +3473,10 @@ client.on('interactionCreate', async (interaction) => {
           permissionOverwrites,
           topic: `Reason: ${subject} | Member: @${interaction.user.tag} (${interaction.user.id}) | Status: 🟢 Active`
         });
+
+        if (!ticketChannel || typeof ticketChannel.send !== 'function') {
+          throw new Error('Ticket channel was not returned properly by Discord API.');
+        }
 
         const closeRow = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
@@ -8151,8 +8161,30 @@ client.on('messageCreate', async (message) => {
   // 💬 BOT MENTION AI SPEAK / CHAT HANDLER
   // ══════════════════════════════════════════════════════════
   if (message.guild && message.mentions.has(client.user.id) && !message.mentions.everyone) {
+    const directMentionRegex = new RegExp(`<@!?${client.user.id}>`);
+    
+    // If the mention came solely from a message reply without explicitly typing the bot's mention, ignore it
+    if (message.reference && !directMentionRegex.test(message.content)) {
+      return;
+    }
+
+    // Exclude private staff, admin, logs, and ticket channels from AI banter unless explicitly @mentioned
+    const chName = message.channel.name?.toLowerCase() || '';
+    const parentName = message.channel.parent?.name?.toLowerCase() || '';
+    if (
+      chName.includes('admin') ||
+      chName.includes('staff') ||
+      chName.includes('lead') ||
+      chName.includes('ticket') ||
+      chName.includes('log') ||
+      parentName.includes('staff') ||
+      parentName.includes('admin')
+    ) {
+      if (!directMentionRegex.test(message.content)) return;
+    }
+
     let cleanPrompt = message.content
-      .replace(new RegExp(`<@!?${client.user.id}>`, 'g'), '')
+      .replace(directMentionRegex, '')
       .trim();
 
     // Check for attached images

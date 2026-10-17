@@ -27,10 +27,16 @@ export async function scanGuildContext(guild, geminiAskFn) {
     const textChannels = guild.channels.cache.filter(c => 
       c.type === ChannelType.GuildText &&
       c.viewable &&
-      !c.name.includes('log') &&
-      !c.name.includes('ticket') &&
-      !c.name.includes('admin') &&
-      !c.name.includes('rules')
+      !c.name.toLowerCase().includes('log') &&
+      !c.name.toLowerCase().includes('ticket') &&
+      !c.name.toLowerCase().includes('admin') &&
+      !c.name.toLowerCase().includes('staff') &&
+      !c.name.toLowerCase().includes('lead') &&
+      !c.name.toLowerCase().includes('mod') &&
+      !c.name.toLowerCase().includes('rules') &&
+      !c.name.toLowerCase().includes('command') &&
+      !c.parent?.name?.toLowerCase().includes('staff') &&
+      !c.parent?.name?.toLowerCase().includes('command')
     );
 
     let totalNewMessages = 0;
@@ -105,7 +111,24 @@ export async function scanGuildContext(guild, geminiAskFn) {
 async function maybeChimeInForFun(channel, recentHumanMessages, geminiAskFn, guild) {
   // Only chime into team chat, lounge, or general discussion channels
   const name = channel.name.toLowerCase();
-  const isTargetChannel = name.includes('team-chat') || name.includes('general') || name.includes('lounge') || name.includes('chat');
+  const parentName = channel.parent?.name?.toLowerCase() || '';
+
+  // Strictly block staff, admin, leadership, logs, tickets, or command categories
+  if (
+    name.includes('admin') ||
+    name.includes('staff') ||
+    name.includes('lead') ||
+    name.includes('mod') ||
+    name.includes('ticket') ||
+    name.includes('log') ||
+    parentName.includes('staff') ||
+    parentName.includes('command') ||
+    parentName.includes('admin')
+  ) {
+    return;
+  }
+
+  const isTargetChannel = name.includes('team-chat') || name.includes('general') || name.includes('lounge');
   if (!isTargetChannel) return;
 
   const now = Date.now();
