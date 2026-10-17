@@ -45,6 +45,7 @@ const DEFAULT_SERVER_FACTS = {
     { key: 'team_identity', value: 'The Half Life\'s — Competitive Minecraft SMP team focused on strategic base design, PvP warfare, and coordinate defense.' },
     { key: 'team_leader', value: 'st1LLkill3r (IGN: st1LLkill3r) is Team Leader and KryloMCYT (Discord: krylo_plays) is Team Co-Leader of The Half Life\'s.' },
     { key: 'builder_specialist', value: 'CrazyCoolCam (Minecraft IGN: CrazyCoolCam) — Builder, Redstone Engineer, and underground miner.' },
+    { key: 'minecraft_server', value: 'Elite SMP by Ledgy. Java IP: EliteSmp.gg | Bedrock IP: Mc.eliteSmp.gg (Port 19132) | Discord: https://discord.gg/XBgjQxbWpb' },
     { key: 'team_creed', value: 'We fight down to the half-heart. Loyalty to the squad above all. Never leak base coordinates.' }
   ],
   // Krylo\'s Skybase Community Server

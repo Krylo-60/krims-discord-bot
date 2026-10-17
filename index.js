@@ -8628,8 +8628,9 @@ client.on('messageCreate', async (message) => {
         }
 
         // 2. Anti-Server Advertisement & Invite Link Filter
-        const serverAdRegex = /(discord\.(gg|io|me|li)\/.+|discord(app)?\.com\/invite\/.+|join\s+(?:my|this|another|our|new)\s+server|\.aternos\.me|\.minehut\.gg|\.falix\.gg|insanityz|elitesmp\.gg)/i;
-        if (serverAdRegex.test(msgContent)) {
+        const isWhitelistedServer = msgContent.includes('elitesmp.gg') || msgContent.includes('xbgjqxbwpb');
+        const serverAdRegex = /(discord\.(gg|io|me|li)\/.+|discord(app)?\.com\/invite\/.+|join\s+(?:my|this|another|our|new)\s+server|\.aternos\.me|\.minehut\.gg|\.falix\.gg|insanityz)/i;
+        if (!isWhitelistedServer && serverAdRegex.test(msgContent)) {
           await handleViolation(message, 'mentioning or advertising other servers is strictly prohibited', `Content: \`${message.content}\``);
           return;
         }
