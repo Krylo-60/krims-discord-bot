@@ -1444,16 +1444,105 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
 
-    if (customId === 'krims_close_ticket') {
+    if (customId === 'krims_close_ticket' || customId === 'halflife_close_ticket') {
       const channel = interaction.channel;
       if (!channel || !channel.name.startsWith('ticket-')) {
         return await interaction.reply({ content: '❌ This button can only be used inside ticket channels.', ephemeral: true });
       }
-      await interaction.reply('🔒 **Closing ticket in 5 seconds...** Thank you for contacting Krims Support!');
+      await interaction.reply('🔒 **Closing ticket in 5 seconds...** Thank you!');
       setTimeout(async () => {
         await channel.delete('Ticket closed by user').catch(() => {});
       }, 5000);
       return;
+    }
+
+    // 🛡️ The Half Life's Clan Command - Interactive Ticket Buttons
+    if (customId.startsWith('halflife_ticket_')) {
+      await interaction.deferReply({ ephemeral: true });
+      const deptMap = {
+        'halflife_ticket_leadership': { name: 'leadership', emoji: '👑', title: 'Leadership Inquiry', alert: false },
+        'halflife_ticket_emergency': { name: 'emergency', emoji: '🚨', title: 'Base Compromise / Emergency Alert', alert: true },
+        'halflife_ticket_gear': { name: 'requisition', emoji: '⚔️', title: 'Gear & Supply Requisition', alert: false },
+        'halflife_ticket_general': { name: 'general', emoji: '❓', title: 'General Clan Support', alert: false }
+      };
+      const dept = deptMap[customId] || { name: 'support', emoji: '🛡️', title: 'Clan Support', alert: false };
+      const guild = interaction.guild;
+      if (!guild) return await interaction.editReply({ content: '❌ Tickets can only be created inside the server.' });
+
+      const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15);
+      const ticketChannelName = `ticket-${dept.name}-${cleanUsername}`;
+
+      const existing = guild.channels.cache.find(c => c.name === ticketChannelName);
+      if (existing) {
+        return await interaction.editReply({ content: `⚠️ You already have an open ticket in <#${existing.id}>!` });
+      }
+
+      let parentCat = guild.channels.cache.find(c => c.type === ChannelType.GuildCategory && c.name.includes('ACTIVE CLAN TICKETS'));
+
+      // Key clan leadership & moderation roles
+      const clanStaffRoles = guild.roles.cache.filter(r =>
+        r.name.includes('Leader') ||
+        r.name.includes('Administrator') ||
+        r.name.includes('Moderator')
+      );
+
+      const permissionOverwrites = [
+        { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+        { id: interaction.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles] },
+        { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels] }
+      ];
+
+      for (const [_, role] of clanStaffRoles) {
+        permissionOverwrites.push({
+          id: role.id,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+        });
+      }
+
+      try {
+        const ticketChannel = await guild.channels.create({
+          name: ticketChannelName,
+          type: ChannelType.GuildText,
+          parent: parentCat ? parentCat.id : null,
+          permissionOverwrites,
+          topic: `The Half Life's Clan Ticket for ${interaction.user.tag} (${interaction.user.id}) | Department: ${dept.title}`
+        });
+
+        const closeRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('halflife_close_ticket')
+            .setLabel('Close Ticket')
+            .setEmoji('🔒')
+            .setStyle(ButtonStyle.Danger)
+        );
+
+        const ticketGreeting = new EmbedBuilder()
+          .setTitle(`${dept.emoji} ${dept.title} — Clan Dispatch Opened`)
+          .setDescription(
+            `Hello <@${interaction.user.id}>! You have opened a private channel with **The Half Life's** Clan Command.\n\n` +
+            `**Department:** \`${dept.title}\`\n` +
+            `**Opened By:** <@${interaction.user.id}> (\`${interaction.user.tag}\`)\n` +
+            `**Clan Commanders:** <@&1559250428099698820> (\`st1LLkill3r\`) and <@&1559250425872519220> (\`Krylo\`)\n\n` +
+            `Please state your message, incident details, or request below. Staff will respond shortly!\n\n` +
+            `When resolved, click **Close Ticket** below.`
+          )
+          .setColor(dept.alert ? 0xFF0000 : 0x00F2FF)
+          .setThumbnail(client.user.displayAvatarURL({ extension: 'png', size: 512 }))
+          .setFooter({ text: 'The Half Life\'s Clan Ticket System • Powered by Krims Bot' })
+          .setTimestamp();
+
+        let pingContent = `<@${interaction.user.id}>`;
+        if (dept.alert) {
+          pingContent += ` 🚨 <@&1559250428099698820> <@&1559250425872519220> **URGENT BASE SECURITY ALERT!**`;
+        }
+
+        await ticketChannel.send({ content: pingContent, embeds: [ticketGreeting], components: [closeRow] });
+
+        return await interaction.editReply({ content: `✅ **Clan ticket created!** Head over to <#${ticketChannel.id}>.` });
+      } catch (err) {
+        console.error('Error creating clan ticket channel:', err);
+        return await interaction.editReply({ content: `❌ Failed to create clan ticket channel: ${err.message}` });
+      }
     }
 
     // 🧠 AI Server Memory Management Buttons
