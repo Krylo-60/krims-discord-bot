@@ -62,6 +62,10 @@ import {
   renderWelcomeCard, 
   HALF_LIFES_GUILD_ID 
 } from './features/welcomeCardEngine.mjs';
+import { 
+  startServerContextWatcher, 
+  runAllGuildScans 
+} from './features/serverContextWatcher.mjs';
 
 const guildConfigCache = new Map();
 const kryloPingStrikes = new Map();
@@ -692,6 +696,11 @@ client.once('ready', async () => {
   setInterval(updateBotPresence, 60 * 1000);
   aiOperator.client = client;
   aiOperator.start();
+  try {
+    startServerContextWatcher(client, geminiDirectAsk);
+  } catch (cwErr) {
+    console.warn('[ContextWatcher] Start notice:', cwErr.message);
+  }
 
   // Setup #🤖┃ai-console-chat channel
   const mainGuild = client.guilds.cache.get('1524878881918685405');
@@ -7515,6 +7524,25 @@ client.on('messageCreate', async (message) => {
       });
     } catch (testErr) {
       statusMsg.edit(`❌ Error during test: ${testErr.message}`);
+    }
+    return;
+  }
+
+  // 📡 Force Context Scan Command (!forcescan)
+  if (lowerMsg === '!forcescan' || lowerMsg === '!scancontext' || lowerMsg === '!scanmessages') {
+    const isAdmin = message.author.id === '1414143825538191373' || 
+                    message.author.id === '1533703991882416373' || 
+                    message.member?.permissions?.has(PermissionFlagsBits.Administrator);
+    if (!isAdmin) {
+      return message.reply('❌ Only Clan Leaders and Administrators can run `!forcescan`.');
+    }
+
+    const scanNotice = await message.reply('🔍 **Scanning server messages & updating AI contextual memory...**');
+    try {
+      await runAllGuildScans(client, geminiDirectAsk);
+      await scanNotice.edit('✅ **Server Context Scan Complete!** The bot is now up to date on all recent discussions and plans.');
+    } catch (scanErr) {
+      await scanNotice.edit(`❌ Scan failed: ${scanErr.message}`);
     }
     return;
   }
