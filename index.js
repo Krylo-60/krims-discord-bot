@@ -1361,6 +1361,9 @@ client.on('interactionCreate', async (interaction) => {
 
   // Handle DM / Global Button Interactions (e.g. KevinMC Setup Feedback)
   if (interaction.isButton()) {
+    const { customId } = interaction;
+    console.log(`[Button Click] customId: "${customId}" by ${interaction.user?.tag} (${interaction.user?.id}) in ${interaction.guild?.name || 'DM'}`);
+
     // 🎫 Krims Code Support Hub - Interactive Ticket Buttons (Trigger Modal Popup)
     if (customId.startsWith('krims_ticket_')) {
       const deptMap = {
@@ -3285,18 +3288,21 @@ client.on('interactionCreate', async (interaction) => {
       const guild = interaction.guild;
       if (!guild) return await interaction.editReply({ content: '❌ Tickets can only be created inside the server.' });
 
+      await guild.channels.fetch().catch(() => {});
+      await guild.roles.fetch().catch(() => {});
+
       const subject = interaction.fields.getTextInputValue('ticket_subject')?.trim() || dept.defaultReason;
       const details = interaction.fields.getTextInputValue('ticket_details')?.trim() || 'No additional details provided.';
 
       const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15);
       const ticketChannelName = `${dept.category}-${cleanUsername}`;
 
-      const existing = guild.channels.cache.find(c => c.name === ticketChannelName);
+      const existing = guild.channels.cache.find(c => c.name.toLowerCase() === ticketChannelName.toLowerCase());
       if (existing) {
         return await interaction.editReply({ content: `⚠️ You already have an open ticket in <#${existing.id}>!` });
       }
 
-      let parentCat = guild.channels.cache.find(c => c.type === ChannelType.GuildCategory && c.name.includes('ACTIVE CLAN TICKETS'));
+      let parentCat = guild.channels.cache.get('1561109169526931456') || guild.channels.cache.find(c => c.type === ChannelType.GuildCategory && c.name.includes('ACTIVE CLAN TICKETS'));
 
       // Key clan leadership & moderation roles
       const clanStaffRoles = guild.roles.cache.filter(r =>
@@ -3416,13 +3422,16 @@ client.on('interactionCreate', async (interaction) => {
       const guild = interaction.guild;
       if (!guild) return await interaction.editReply({ content: '❌ Tickets can only be created inside the server.' });
 
+      await guild.channels.fetch().catch(() => {});
+      await guild.roles.fetch().catch(() => {});
+
       const subject = interaction.fields.getTextInputValue('ticket_subject')?.trim() || dept.defaultReason;
       const details = interaction.fields.getTextInputValue('ticket_details')?.trim() || 'No additional details provided.';
 
       const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15);
       const ticketChannelName = `${dept.category}-${cleanUsername}`;
 
-      const existing = guild.channels.cache.find(c => c.name === ticketChannelName);
+      const existing = guild.channels.cache.find(c => c.name.toLowerCase() === ticketChannelName.toLowerCase());
       if (existing) {
         return await interaction.editReply({ content: `⚠️ You already have an open ticket in <#${existing.id}>!` });
       }
