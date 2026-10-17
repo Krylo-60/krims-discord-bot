@@ -478,7 +478,7 @@ async function handleMessageXP(message) {
         .setColor(0x00F2FF)
         .setTitle('🎉 LEVEL UP!')
         .setDescription(`Congratulations <@${userId}>, you have reached **Level ${xpData[userId].level}**! 🎉\nKeep chatting to unlock cool status!`)
-        .setFooter({ text: 'KryloSMP Chat Leveling ⚡' })
+        .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'Community'} Chat Leveling ⚡` })
         .setTimestamp();
       
       await message.channel.send({ embeds: [levelUpEmbed] });
@@ -3948,7 +3948,7 @@ client.on('interactionCreate', async (interaction) => {
           { name: 'RGB Breakdown', value: `R: \`${res.rgb.r}\` G: \`${res.rgb.g}\` B: \`${res.rgb.b}\``, inline: true },
           { name: 'BossBar Preview', value: `\`[ ▬▬▬▬▬ ⬥ COLOR ⬥ ▬▬▬▬▬ ]\``, inline: true }
         )
-        .setFooter({ text: 'KryloSMP Locator Radar Engine' })
+        .setFooter({ text: `${interaction?.guild?.name || 'Community'} Locator Radar Engine` })
         .setTimestamp();
       return interaction.editReply({ embeds: [embed] });
     }
@@ -3969,7 +3969,7 @@ client.on('interactionCreate', async (interaction) => {
         { name: '🌐 Web Radar Tool', value: '[Open Interactive Tool](https://krylosmp-store.web.app/#locator)' }
       )
       .setImage(`https://mc-heads.net/body/${encodeURIComponent(res.username)}/right`)
-      .setFooter({ text: 'KryloSMP Radar Protocol • locatorbar.crab.trade Engine' })
+      .setFooter({ text: `${interaction?.guild?.name || 'Community'} Radar Protocol` })
       .setTimestamp();
 
     return interaction.editReply({ embeds: [embed] });
@@ -4080,7 +4080,7 @@ client.on('interactionCreate', async (interaction) => {
           `*Join in ~15-25 seconds as chunks finish loading!*`
         )
         .setColor(0x00FF88)
-        .setFooter({ text: 'Powered by KryloSMP Executive Bot • FalixNodes API v2' })
+        .setFooter({ text: `Powered by ${interaction?.guild?.name || 'Clan Bot'} • Server Systems` })
         .setTimestamp();
 
       return interaction.editReply({ embeds: [embed] });
@@ -4801,7 +4801,7 @@ client.on('interactionCreate', async (interaction) => {
         { name: '🥳 Leave a Birthday Message!', value: `Wish ${targetName} a Happy Birthday down below!` }
       )
       .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
-      .setFooter({ text: 'KryloSMP Birthday Event • Special Celebration' })
+      .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'Community'} Birthday Celebration` })
       .setTimestamp();
 
     await interaction.reply({ content: `🎉 @everyone **IT'S ${targetName.toUpperCase()}'S BIRTHDAY!** 🎂🎈`, embeds: [bdayEmbed] });
@@ -4865,7 +4865,7 @@ client.on('interactionCreate', async (interaction) => {
       .setColor(0x00F2FF)
       .setTitle('🏆 Top 10 Active Chatters - XP Leaderboard')
       .setDescription(lbText)
-      .setFooter({ text: 'KryloSMP Chat Leveling ⚡' })
+      .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'Community'} Chat Leveling ⚡` })
       .setTimestamp();
       
     await interaction.reply({ embeds: [embed] });
@@ -5072,7 +5072,7 @@ client.on('interactionCreate', async (interaction) => {
           );
         }
 
-        embed.setFooter({ text: 'KryloSMP Status Tracker' }).setTimestamp();
+        embed.setFooter({ text: `${interaction?.guild?.name || 'Community'} Status Tracker` }).setTimestamp();
 
         await interaction.editReply({ embeds: [embed] });
       } else {
@@ -5092,7 +5092,7 @@ client.on('interactionCreate', async (interaction) => {
           );
         }
 
-        embed.setFooter({ text: 'KryloSMP Status Tracker' }).setTimestamp();
+        embed.setFooter({ text: `${interaction?.guild?.name || 'Community'} Status Tracker` }).setTimestamp();
 
         await interaction.editReply({ embeds: [embed] });
       }
@@ -5301,7 +5301,7 @@ client.on('interactionCreate', async (interaction) => {
         .setColor(0x00F2FF)
         .setTitle('🏆 KryloSMP Chat Activity Leaderboard')
         .setDescription(leaderboardText)
-        .setFooter({ text: 'KryloSMP Chat Leveling ⚡' })
+        .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'Community'} Chat Leveling ⚡` })
         .setTimestamp();
 
       await interaction.editReply({ embeds: [embed] });
@@ -5944,7 +5944,7 @@ client.on('interactionCreate', async (interaction) => {
           `• **Global Jackpot Pool:** **${jackpotPool.toLocaleString()} KryloCoins** ⛃\n\n` +
           `*Spin again in 1 hour for free!* ⚡`
         )
-        .setFooter({ text: 'Krylo-Wheel • KryloSMP Casino 🎡', iconURL: 'https://mc-heads.net/avatar/KryloSMP/32' })
+        .setFooter({ text: `Krylo-Wheel • ${(interaction?.guild || message?.guild)?.name || 'Community'} Casino 🎡` })
         .setTimestamp();
 
       await interaction.editReply({ embeds: [spinEmbed] });
@@ -5986,7 +5986,7 @@ client.on('interactionCreate', async (interaction) => {
           '• **+150 XP** Chat Leveling Bonus!\n\n' +
           '*Come back in 24 hours for your next Lucky Chest!* ⚔️'
         )
-        .setFooter({ text: 'KryloSMP Daily Lucky Chest 📦' })
+        .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'Community'} Daily Lucky Chest 📦` })
         .setTimestamp();
 
       await interaction.editReply({ embeds: [chestEmbed] });
@@ -6008,7 +6008,7 @@ client.on('interactionCreate', async (interaction) => {
           '• Land on **DIAMOND JACKPOT** on `/spin` to claim the grand prize!\n' +
           '• Daily auto-payouts to top active chatters on Sundays! 💎'
         )
-        .setFooter({ text: 'KryloSMP Jackpot System 💰' })
+        .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'Community'} Jackpot System 💰` })
         .setTimestamp();
 
       await interaction.editReply({ embeds: [jackpotEmbed] });
@@ -6048,7 +6048,7 @@ client.on('interactionCreate', async (interaction) => {
           `3. 🛒 **Market Merchant:** Buy 2 items from /shop\n   ${getBar(q.shopItemsBought, 2)} (${q.shopItemsBought}/2)\n   *Reward:* **+1,500 KC** ⛃\n\n` +
           `4. 🤝 **Community Recruiter:** Refer 1 friend via /refer\n   ${getBar(q.referrals, 1)} (${q.referrals}/1)\n   *Reward:* **+3,000 KC** ⛃`
         )
-        .setFooter({ text: 'KryloSMP Season Quests • Complete & Claim Rewards ⚡' })
+        .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'Community'} Season Quests ⚡` })
         .setTimestamp();
 
       await interaction.reply({ embeds: [questEmbed] });
@@ -6179,7 +6179,7 @@ client.on('interactionCreate', async (interaction) => {
             '• **Perks:** +10% Exp Boost for all members!'
           )
 
-          .setFooter({ text: 'KryloSMP Clan System 🏰' })
+          .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'The Half Lifes'} Clan System 🏰` })
           .setTimestamp();
 
         await interaction.editReply({ embeds: [clanEmbed] });
@@ -6219,7 +6219,7 @@ client.on('interactionCreate', async (interaction) => {
           .setColor(0xFF0055)
           .setTitle(`💥 CLAN DISBANDED: [${disbandedTag}] ${disbandedName}`)
           .setDescription(`The clan **[${disbandedTag}] ${disbandedName}** has been permanently disbanded by <@${userId}>. Its private role & text channel have been removed.`)
-          .setFooter({ text: 'KryloSMP Clan System 🏰' })
+          .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'The Half Lifes'} Clan System 🏰` })
           .setTimestamp();
 
         await interaction.reply({ embeds: [disbandEmbed] });
@@ -6360,7 +6360,7 @@ client.on('interactionCreate', async (interaction) => {
             `• **Clan Leader:** <@${userClan.leaderId}>\n` +
             `• **Active Members:** **${userClan.members.length}**`
           )
-          .setFooter({ text: 'KryloSMP Clan Vault 🏰' })
+          .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'The Half Lifes'} Clan Vault 🏰` })
           .setTimestamp();
 
         await interaction.reply({ embeds: [depositEmbed] });
@@ -6390,7 +6390,7 @@ client.on('interactionCreate', async (interaction) => {
             { name: '🎭 Clan Role', value: userClan.roleId ? `<@&${userClan.roleId}>` : 'None', inline: true },
             { name: '💬 Private Channel', value: userClan.channelId ? `<#${userClan.channelId}>` : 'None', inline: true }
           )
-          .setFooter({ text: 'KryloSMP Clan System 🏰' })
+          .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'The Half Lifes'} Clan System 🏰` })
           .setTimestamp();
 
         await interaction.reply({ embeds: [infoEmbed] });
@@ -6409,7 +6409,7 @@ client.on('interactionCreate', async (interaction) => {
           .setColor(0xFFAA00)
           .setTitle('🏰 TOP CLANS LEADERBOARD')
           .setDescription(desc)
-          .setFooter({ text: 'KryloSMP Top Clans 🏆' })
+          .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'The Half Lifes'} Top Clans 🏆` })
           .setTimestamp();
 
         await interaction.reply({ embeds: [lbEmbed] });
@@ -6482,7 +6482,7 @@ if (commandName === 'bounty') {
         .setTitle('🎯 BOUNTY PLACED')
         .setColor(0x00FF66)
         .setDescription(`**${interaction.user.username}** placed a **${amount.toLocaleString()} KC** bounty on **${target.username}**! 🎯\n\n**Total Bounty on ${target.username}**: **${(currentBounty + amount).toLocaleString()} KC**`)
-        .setFooter({ text: 'KryloSMP Bounty System • Season 3' })
+        .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'The Half Lifes'} Bounty System` })
         .setTimestamp();
     
     await interaction.reply({ embeds: [embed] });
@@ -6558,7 +6558,7 @@ if (commandName === 'pet') {
                 { name: 'Hunger', value: `${pet.hunger}%`, inline: true },
                 { name: 'Happiness', value: `${pet.happiness}%`, inline: true }
             )
-            .setFooter({ text: 'KryloSMP Pets' });
+            .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'Community'} Pets` });
         await interaction.reply({ embeds: [embed] });
         return;
     }
@@ -6776,7 +6776,7 @@ if (commandName === 'profile') {
             { name: 'Pet 🐾', value: pet ? `${pet.name} (${pet.type})` : 'None', inline: true },
             { name: 'Achievements 🏆', value: '3/50 Unlocked', inline: true }
         )
-        .setFooter({ text: 'KryloSMP Network' })
+        .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'Community'} Network` })
         .setTimestamp();
     await interaction.reply({ embeds: [embed] });
     return;
@@ -7031,7 +7031,7 @@ if (commandName === 'lootbox') {
                 '• ⚡ **Status:** 24/7 Monitored by UptimeRobot & Krims AI'
               : '⚠️ **The server appears offline or undergoing maintenance.**\n\nPlease check the Play.hosting panel or open a support ticket in `#🎫┃support-tickets`!'
           )
-          .setFooter({ text: 'Krylo SMP Bot • Real-Time Socket Probe ⚡' })
+          .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'Community'} • Real-Time Socket Probe ⚡` })
           .setTimestamp();
 
         return interaction.editReply({ embeds: [statusEmbed] });
@@ -9172,7 +9172,7 @@ client.on('messageCreate', async (message) => {
         { name: '🥳 Leave a Birthday Message!', value: `Wish ${targetName} a Happy Birthday down below!` }
       )
       .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
-      .setFooter({ text: 'KryloSMP Birthday Event • Special Celebration' })
+      .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'Community'} Birthday Celebration` })
       .setTimestamp();
 
     await message.reply({ content: `🎉 @everyone **IT'S ${targetName.toUpperCase()}'S BIRTHDAY!** 🎂🎈`, embeds: [bdayEmbed] });
@@ -9564,7 +9564,7 @@ client.on('guildMemberAdd', async (member) => {
       )
       .setColor(0x00E5FF)
       .setThumbnail(member.guild.iconURL())
-      .setFooter({ text: 'KryloSMP • Season 1 Re-Release' })
+      .setFooter({ text: `${member?.guild?.name || 'Community'} Member Welcome` })
       .setTimestamp();
     await member.send({ embeds: [dmEmbed] }).catch(() => {});
     console.log(`[Welcome] Sent Welcome DM to ${member.user.username}`);
@@ -10376,7 +10376,7 @@ async function startLeaderboardUpdate(guild) {
           `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
           `*Rankings update automatically. Play and chat to reach the top!*`
         )
-        .setFooter({ text: 'KryloSMP Leaderboard • Updates every 10 minutes' })
+        .setFooter({ text: `${message?.guild?.name || 'Community'} Leaderboard • Updates every 10 minutes` })
         .setTimestamp();
 
       // Find existing message to edit
@@ -11036,7 +11036,7 @@ const server = http.createServer(async (req, res) => {
               .setTitle('🛒 Web Store Purchase Delivered!')
               .setDescription(`🎉 **${playerIgn}** just bought **${deliveryResult.item}** from the web store!\n⚡ In-game commands dispatched to server!`)
               .setThumbnail(`https://mc-heads.net/avatar/${encodeURIComponent(playerIgn)}/64`)
-              .setFooter({ text: 'KryloSMP Web Store Fulfillment Engine' })
+              .setFooter({ text: 'Instant Automated Fulfillment Engine' })
               .setTimestamp();
             await storeCh.send({ embeds: [purchaseEmbed] }).catch(() => {});
           }

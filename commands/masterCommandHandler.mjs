@@ -179,7 +179,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
             { name: '🎬 Film Auditions', value: `\`${isCrewAppOpen() ? '🟢 OPEN' : '🔴 CLOSED'}\``, inline: true },
             { name: '💾 Memory Usage', value: `\`${memMb} MB\``, inline: true }
           )
-          .setFooter({ text: "Krylo's Skybase • Official Production Bot Telemetry" })
+          .setFooter({ text: `${interaction.guild?.name || "Community"} • Official Production Bot Telemetry` })
           .setTimestamp();
 
         return await interaction.reply({ embeds: [embed] });
@@ -687,7 +687,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
             value: '`/locator`, `/coinflip`, `/roll`, `/eightball`, `/joke`, `/meme`, `/bday`, `/gameboost`, `/voice`' 
           }
         )
-        .setFooter({ text: "Krylo's Skybase • Verified Operational" })
+        .setFooter({ text: `${interaction.guild?.name || "Community"} • Verified Operational` })
         .setTimestamp();
 
       return await interaction.reply({ embeds: [embed] });
@@ -732,7 +732,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           `• 💻 **Bot & System Developer:** Help develop custom tools, bots, and integrations.\n\n` +
           `Click below to review audition status or apply in <#1550902305568718948>!`
         )
-        .setFooter({ text: "Krylo's Skybase • Official Recruitment" })
+        .setFooter({ text: `${interaction.guild?.name || "Community"} • Official Recruitment` })
         .setTimestamp();
 
       const row = new ActionRowBuilder().addComponents(
@@ -775,7 +775,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           `• 🎧 **Spotify Connected:** Link Spotify in Discord Settings ➔ Connections\n\n` +
           `*Enable "Display on profile" in your Discord Connection settings, then visit <#1549882278245564546> to claim your badges!*`
         )
-        .setFooter({ text: "Krylo's Skybase • Connected Account Roles" })
+        .setFooter({ text: `${interaction.guild?.name || "Community"} • Connected Account Roles` })
         .setTimestamp();
 
       return await interaction.reply({ embeds: [embed] });
@@ -823,7 +823,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           `**👑 Featured Dual Supporters:**\n${dualList}\n\n` +
           `👉 *Verify YouTube in <#1549918052513095682> and Twitch in <#1555933857037951127>!*`
         )
-        .setFooter({ text: "Krylo's Skybase • Community Analytics" })
+        .setFooter({ text: `${interaction.guild?.name || "Community"} • Community Analytics` })
         .setTimestamp();
 
       return await interaction.editReply({ embeds: [embed] });
@@ -1352,7 +1352,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           `💰 **Current Balance:** \`${balDisplay} KC\`\n\n` +
           `Earn more Skybase Coins by chatting, daily streaks (\`/daily\`), working (\`/work\`), or visiting the shop (\`/shop\`)!`
         )
-        .setFooter({ text: "Krylo's Skybase • Community Economy" })
+        .setFooter({ text: `${interaction.guild?.name || "Community"} • Community Economy` })
         .setTimestamp();
 
       return await interaction.reply({ embeds: [embed] });
@@ -1572,7 +1572,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           `• 🎬 **Film Shoot Priority Audition:** 50,000 Coins\n\n` +
           `*Use \`/bal\` to check your coin balance!*`
         )
-        .setFooter({ text: "Krylo's Skybase • Community Economy" })
+        .setFooter({ text: `${interaction.guild?.name || "Community"} • Community Economy` })
         .setTimestamp();
 
       return await interaction.reply({ embeds: [embed] });
@@ -1588,7 +1588,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           `Thank you for supporting **${isSkybase ? "Krylo's Skybase" : "our community"}**!\n\n` +
           `Claim your **+500 Coins** reward for voting and helping our community grow! 🚀`
         )
-        .setFooter({ text: isSkybase ? "Krylo's Skybase Community" : "Community Vote" })
+        .setFooter({ text: `${interaction.guild?.name || "Community"} • Vote` })
         .setTimestamp();
 
       return await interaction.reply({ embeds: [embed] });
@@ -1797,7 +1797,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setTitle(title)
         .setDescription(message)
         .setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png')
-        .setFooter({ text: `Announced by ${interaction.user.tag} • Krylo's Skybase` })
+        .setFooter({ text: `Announced by ${interaction.user.tag} • ${interaction.guild?.name || "Community"}` })
         .setTimestamp();
 
       return await interaction.reply({ embeds: [embed] });
@@ -1942,7 +1942,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
             { name: 'Hunger', value: `${pet.hunger}%`, inline: true },
             { name: 'Happiness', value: `${pet.happiness}%`, inline: true }
           )
-          .setFooter({ text: "Krylo's Skybase Companion Pets" });
+          .setFooter({ text: `${interaction.guild?.name || "Community"} Companion Pets` });
         return await interaction.reply({ embeds: [embed] });
       }
 
@@ -2106,7 +2106,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           { name: '🐾 Companion Pet', value: pet ? `${pet.name} (${pet.type})` : 'None (Use `/pet`)', inline: true },
           { name: '🏅 Badges Unlocked', value: '🛡️ Verified Member\n⭐ Explorer\n⚔️ Arena Contender', inline: false }
         )
-        .setFooter({ text: "Krylo's Skybase Profile" })
+        .setFooter({ text: `${interaction.guild?.name || "Community"} Profile` })
         .setTimestamp();
       return await interaction.reply({ embeds: [embed] });
     }
