@@ -8627,10 +8627,10 @@ client.on('messageCreate', async (message) => {
           return;
         }
 
-        // 2. Invite Link Filter
-        const inviteRegex = /(discord\.(gg|io|me|li)\/.+|discord(app)?\.com\/invite\/.+)/i;
-        if (inviteRegex.test(msgContent)) {
-          await handleViolation(message, 'invite links to other Discord servers are not allowed', `Link: \`${message.content}\``);
+        // 2. Anti-Server Advertisement & Invite Link Filter
+        const serverAdRegex = /(discord\.(gg|io|me|li)\/.+|discord(app)?\.com\/invite\/.+|join\s+(?:my|this|another|our|new)\s+server|\.aternos\.me|\.minehut\.gg|\.falix\.gg|insanityz|elitesmp\.gg)/i;
+        if (serverAdRegex.test(msgContent)) {
+          await handleViolation(message, 'mentioning or advertising other servers is strictly prohibited', `Content: \`${message.content}\``);
           return;
         }
 
