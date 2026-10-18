@@ -1810,12 +1810,16 @@ client.on('interactionCreate', async (interaction) => {
           name: `ticket-${cleanUsername}`,
           type: ChannelType.GuildText,
           parent: ticketCat ? ticketCat.id : null,
-          permissionOverwrites: [
-            { id: interaction.guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
-            { id: interaction.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.AttachFiles] },
-            { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.Administrator] }
-          ]
+          topic: `KryloSMP Support Ticket: ${sel.label} | Member: @${interaction.user.tag}`
         });
+
+        await ticketCh.permissionOverwrites.set([
+          { id: interaction.guild.roles.everyone.id, type: OverwriteType.Role, deny: [PermissionFlagsBits.ViewChannel] },
+          { id: interaction.user.id, type: OverwriteType.Member, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.AttachFiles, PermissionFlagsBits.ReadMessageHistory] },
+          { id: client.user.id, type: OverwriteType.Member, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.Administrator] }
+        ]).catch(e => console.warn('[Select Ticket] Non-fatal overwrite warning:', e.message));
+
+        const readyTicketCh = typeof ticketCh.send === 'function' ? ticketCh : await client.channels.fetch(ticketCh.id);
 
         const ticketWelcomeEmbed = new EmbedBuilder()
           .setColor(sel.color)
@@ -1838,10 +1842,10 @@ client.on('interactionCreate', async (interaction) => {
             .setStyle(ButtonStyle.Danger)
         );
 
-        await ticketCh.send({ content: `<@${interaction.user.id}>`, embeds: [ticketWelcomeEmbed], components: [closeBtn] });
+        await readyTicketCh.send({ content: `<@${interaction.user.id}>`, embeds: [ticketWelcomeEmbed], components: [closeBtn] });
 
         return interaction.reply({
-          content: `✅ **Ticket Opened!** Your private support channel is ready: <#${ticketCh.id}>`,
+          content: `✅ **Ticket Opened!** Your private support channel is ready: <#${readyTicketCh.id}>`,
           flags: 64
         });
       } catch (err) {
@@ -3699,25 +3703,33 @@ client.on('interactionCreate', async (interaction) => {
       
       try {
         const supportCategory = interaction.guild.channels.cache.find(c => c.name.toLowerCase().includes('support') && c.type === ChannelType.GuildCategory) || interaction.guild.channels.cache.find(c => c.name.toLowerCase().includes('support-tickets') && c.type === ChannelType.GuildText)?.parent;
+        const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '');
         const channel = await interaction.guild.channels.create({
-          name: `ticket-${interaction.user.username.toLowerCase()}`,
+          name: `ticket-${cleanUsername}`,
           type: ChannelType.GuildText,
           parent: supportCategory ? supportCategory.id : null,
-          permissionOverwrites: [
-            {
-              id: interaction.guild.id,
-              deny: [PermissionFlagsBits.ViewChannel]
-            },
-            {
-              id: interaction.user.id,
-              allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-            },
-            {
-              id: client.user.id,
-              allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-            }
-          ]
+          topic: `Reason: ${userTicketReasonText.slice(0, 100)} | User: @${interaction.user.tag}`
         });
+
+        await channel.permissionOverwrites.set([
+          {
+            id: interaction.guild.roles.everyone.id,
+            type: OverwriteType.Role,
+            deny: [PermissionFlagsBits.ViewChannel]
+          },
+          {
+            id: interaction.user.id,
+            type: OverwriteType.Member,
+            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles]
+          },
+          {
+            id: client.user.id,
+            type: OverwriteType.Member,
+            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels]
+          }
+        ]).catch(e => console.warn('[Modal Ticket] Non-fatal overwrite warning:', e.message));
+
+        const readyChannel = typeof channel.send === 'function' ? channel : await client.channels.fetch(channel.id);
 
         const calculatedPriority = await calculatePriority(userTicketReasonText);
         let dbPlayer = null;
@@ -3751,8 +3763,8 @@ client.on('interactionCreate', async (interaction) => {
             .setStyle(ButtonStyle.Danger)
             .setEmoji('🔒')
         );
-        await channel.send({ content: `<@${interaction.user.id}>`, embeds: [profileEmbed], components: [closeRow] });
-        await interaction.editReply(`🎟️ **Ticket Opened!** Check it out here: <#${channel.id}>`);
+        await readyChannel.send({ content: `<@${interaction.user.id}>`, embeds: [profileEmbed], components: [closeRow] });
+        await interaction.editReply(`🎟️ **Ticket Opened!** Check it out here: <#${readyChannel.id}>`);
 
         // Log to Google Sheet via SheetDB API
         await logTicketToGoogleSheet(
@@ -5978,26 +5990,25 @@ client.on('interactionCreate', async (interaction) => {
         name: `ticket-${cleanUsername}`,
         type: ChannelType.GuildText,
         parent: supportCategory ? supportCategory.id : null,
-        permissionOverwrites: [
-          { id: interaction.guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
-          { id: interaction.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.AttachFiles, PermissionFlagsBits.ReadMessageHistory] },
-          { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.Administrator] }
-        ]
+        topic: `Reason: ${userTicketReasonText.slice(0, 100)} | User: @${interaction.user.tag}`
       });
+
+      await channel.permissionOverwrites.set([
+        { id: interaction.guild.roles.everyone.id, type: OverwriteType.Role, deny: [PermissionFlagsBits.ViewChannel] },
+        { id: interaction.user.id, type: OverwriteType.Member, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.AttachFiles, PermissionFlagsBits.ReadMessageHistory] },
+        { id: client.user.id, type: OverwriteType.Member, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.Administrator] }
+      ]).catch(e => console.warn('[/ticket] Non-fatal overwrite warning:', e.message));
+
+      const readyChannel = typeof channel.send === 'function' ? channel : await client.channels.fetch(channel.id);
 
       const welcomeEmbed = new EmbedBuilder()
         .setColor(0x00D8F6)
         .setAuthor({ name: `KryloSMP Help Desk • ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() })
         .setTitle('🎫 Support Ticket Opened')
         .setDescription(
-          `Hello <@${interaction.user.id}>! Welcome to your private support channel.
-
-` +
-          `📋 **Reason:** ${userTicketReasonText}
-` +
-          `🤖 **AI Support Brain:** Active & listening to help you immediately!
-
-` +
+          `Hello <@${interaction.user.id}>! Welcome to your private support channel.\n\n` +
+          `📋 **Reason:** ${userTicketReasonText}\n` +
+          `🤖 **AI Support Brain:** Active & listening to help you immediately!\n\n` +
           `Please describe your question or issue in detail below. If reporting an order, include your order ID (\`KRYLO-ORD-XXXX\`).`
         )
         .setFooter({ text: 'Click "Close Ticket" below when resolved.' })
@@ -6007,8 +6018,8 @@ client.on('interactionCreate', async (interaction) => {
         new ButtonBuilder().setCustomId('close_ticket').setLabel('🔒 Close Ticket').setStyle(ButtonStyle.Danger)
       );
 
-      await channel.send({ content: `<@${interaction.user.id}>`, embeds: [welcomeEmbed], components: [closeRow] });
-      return interaction.editReply({ content: `✅ **Ticket Created!** Please view your support channel here: <#${channel.id}>` });
+      await readyChannel.send({ content: `<@${interaction.user.id}>`, embeds: [welcomeEmbed], components: [closeRow] });
+      return interaction.editReply({ content: `✅ **Ticket Created!** Please view your support channel here: <#${readyChannel.id}>` });
     } catch (ticketErr) {
       console.error('[Ticket Error]', ticketErr);
       return interaction.editReply({ content: `❌ Failed to create ticket channel: ${ticketErr.message}` });
@@ -6020,25 +6031,33 @@ client.on('interactionCreate', async (interaction) => {
 
     try {
       const supportCategory = interaction.guild.channels.cache.find(c => c.name.toLowerCase().includes('support') && c.type === ChannelType.GuildCategory) || interaction.guild.channels.cache.find(c => c.name.toLowerCase().includes('support-tickets') && c.type === ChannelType.GuildText)?.parent;
+      const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '');
       const channel = await interaction.guild.channels.create({
-        name: `ticket-${interaction.user.username.toLowerCase()}`,
+        name: `ticket-${cleanUsername}`,
         type: ChannelType.GuildText,
         parent: supportCategory ? supportCategory.id : null,
-        permissionOverwrites: [
-          {
-            id: interaction.guild.id,
-            deny: [PermissionFlagsBits.ViewChannel]
-          },
-          {
-            id: interaction.user.id,
-            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-          },
-          {
-            id: client.user.id,
-            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-          }
-        ]
+        topic: `Support Ticket | User: @${interaction.user.tag}`
       });
+
+      await channel.permissionOverwrites.set([
+        {
+          id: interaction.guild.roles.everyone.id,
+          type: OverwriteType.Role,
+          deny: [PermissionFlagsBits.ViewChannel]
+        },
+        {
+          id: interaction.user.id,
+          type: OverwriteType.Member,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+        },
+        {
+          id: client.user.id,
+          type: OverwriteType.Member,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+        }
+      ]).catch(e => console.warn('[/ticket_old] Non-fatal overwrite warning:', e.message));
+
+      const readyChannel = typeof channel.send === 'function' ? channel : await client.channels.fetch(channel.id);
 
       const calculatedPriority = await calculatePriority(userTicketReasonText);
 
@@ -6080,8 +6099,8 @@ client.on('interactionCreate', async (interaction) => {
         .setFooter({ text: 'Type /close to resolve and delete this channel' })
         .setTimestamp();
 
-      await channel.send({ content: `<@${interaction.user.id}>`, embeds: [profileEmbed] });
-      await interaction.editReply(`🎟️ **Ticket Opened!** Private support channel created here: <#${channel.id}>`);
+      await readyChannel.send({ content: `<@${interaction.user.id}>`, embeds: [profileEmbed] });
+      await interaction.editReply(`🎟️ **Ticket Opened!** Private support channel created here: <#${readyChannel.id}>`);
 
       // Log to Google Sheet via SheetDB API
       await logTicketToGoogleSheet(
@@ -9530,25 +9549,33 @@ client.on('messageCreate', async (message) => {
 
     try {
       const supportCategory = message.guild.channels.cache.find(c => c.name.toLowerCase().includes('support') && c.type === ChannelType.GuildCategory) || message.guild.channels.cache.find(c => c.name.toLowerCase().includes('support-tickets') && c.type === ChannelType.GuildText)?.parent;
+      const cleanUsername = message.author.username.toLowerCase().replace(/[^a-z0-9]/g, '');
       const channel = await message.guild.channels.create({
-        name: `ticket-${message.author.username.toLowerCase()}`,
+        name: `ticket-${cleanUsername}`,
         type: ChannelType.GuildText,
         parent: supportCategory ? supportCategory.id : null,
-        permissionOverwrites: [
-          {
-            id: message.guild.id,
-            deny: [PermissionFlagsBits.ViewChannel]
-          },
-          {
-            id: message.author.id,
-            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-          },
-          {
-            id: client.user.id,
-            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-          }
-        ]
+        topic: `Reason: ${userTicketReasonText.slice(0, 100)} | User: @${message.author.tag}`
       });
+
+      await channel.permissionOverwrites.set([
+        {
+          id: message.guild.roles.everyone.id,
+          type: OverwriteType.Role,
+          deny: [PermissionFlagsBits.ViewChannel]
+        },
+        {
+          id: message.author.id,
+          type: OverwriteType.Member,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+        },
+        {
+          id: client.user.id,
+          type: OverwriteType.Member,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+        }
+      ]).catch(e => console.warn('[!ticket] Non-fatal overwrite warning:', e.message));
+
+      const readyChannel = typeof channel.send === 'function' ? channel : await client.channels.fetch(channel.id);
 
       const calculatedPriority = await calculatePriority(userTicketReasonText);
 
@@ -9590,8 +9617,8 @@ client.on('messageCreate', async (message) => {
         .setFooter({ text: `Type ${botPrefix}close to resolve and delete this channel` })
         .setTimestamp();
 
-      await channel.send({ content: `<@${message.author.id}>`, embeds: [profileEmbed] });
-      await message.reply(`🎟️ **Ticket Opened!** Check your private support channel here: ${channel}`);
+      await readyChannel.send({ content: `<@${message.author.id}>`, embeds: [profileEmbed] });
+      await message.reply(`🎟️ **Ticket Opened!** Check your private support channel here: ${readyChannel}`);
 
       // Log to Google Sheet via SheetDB API
       await logTicketToGoogleSheet(
