@@ -46,5 +46,15 @@
       "discriminator": "0",
       "announced_level": 2
     }
+  },
+  "1561174283294609479": {
+    "1414143825538191373": {
+      "xp": 999999,
+      "level": 100,
+      "username": "krylo_plays",
+      "discriminator": "0",
+      "announced_level": 100,
+      "messages": 50000
+    }
   }
 }

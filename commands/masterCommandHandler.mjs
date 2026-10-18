@@ -67,7 +67,7 @@ import {
 import { getApplicationEmojis } from '../utils/applicationEmojis.mjs';
 
 import { getLocatorColor } from '../features/locatorBarEngine.mjs';
-import { handleRankCommand } from '../features/mee6Levels.mjs';
+import { handleRankCommand, handleLeaderboardCommand } from '../features/mee6Levels.mjs';
 import { handleVoteCommand, getVoteBoosterInfo } from '../features/voteBoosterManager.mjs';
 import { 
   getBalance, 
@@ -1919,19 +1919,8 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     }
 
     if (commandName === 'leaderboard' || commandName === 'xpleaderboard') {
-      const isXp = commandName === 'xpleaderboard';
-      const embed = new EmbedBuilder()
-        .setColor(0xF59E0B)
-        .setTitle(isXp ? '🏆 Top 10 Chat Level & XP Leaderboard' : '💰 Top 10 KryloCoins Leaderboard')
-        .setDescription(
-          `1. <@${KRYLO_USER_ID}> — **999,999,999 KC** 👑 (Server Owner)\n` +
-          `2. <@1523794466740371586> — **50,000 KC** (Bot Operator)\n` +
-          `3. <@${interaction.user.id}> — **${getSafeUserBalance(interaction.user.id, xpData).toLocaleString()} KC**\n\n` +
-          `*Earn more by chatting and running \`/daily\` & \`/work\`!*`
-        )
-        .setTimestamp();
-
-      return await interaction.reply({ embeds: [embed] });
+      const type = commandName === 'xpleaderboard' ? 'xp' : (interaction.options.getString('type') || 'messages');
+      return await handleLeaderboardCommand(interaction, type);
     }
 
     if (commandName === 'clan') {

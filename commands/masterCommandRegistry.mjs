@@ -520,7 +520,14 @@ export const masterCommandBuilders = [
 
   new SlashCommandBuilder()
     .setName('leaderboard')
-    .setDescription('🏆 View top community chat activity level & KryloCoins leaderboards!'),
+    .setDescription('🏆 View top community messages & XP activity leaderboards!')
+    .addStringOption(opt => opt.setName('type')
+      .setDescription('Leaderboard category to display')
+      .setRequired(false)
+      .addChoices(
+        { name: '💬 Messages (Chat Activity)', value: 'messages' },
+        { name: '⚡ XP & Levels', value: 'xp' }
+      )),
 
   new SlashCommandBuilder()
     .setName('xpleaderboard')

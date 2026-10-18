@@ -9,6 +9,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const XP_DB_PATH = path.resolve(__dirname, '../mee6_xp.json');
 
+export const KRIMS_CODE_GUILD_ID = '1561174283294609479';
+
 // In-memory XP cache and cooldown map
 let xpData = {};
 const xpCooldowns = new Set();
@@ -55,7 +57,7 @@ export function calculateLevelFromXp(totalXp) {
 /**
  * General helper to award XP to a user and handle level-ups / role rewards
  */
-export async function awardUserXp({ guild, user, xpGain = 20, source = 'chat', client }) {
+export async function awardUserXp({ guild, user, xpGain = 20, source = 'chat', client, channel }) {
   if (!guild || !user || user.bot) return;
 
   const userId = user.id;
@@ -68,8 +70,16 @@ export async function awardUserXp({ guild, user, xpGain = 20, source = 'chat', c
       level: 0,
       username: user.username,
       discriminator: user.discriminator || '0',
-      announced_level: 0
+      announced_level: 0,
+      messages: 0
     };
+  }
+
+  // Track total chat messages count
+  if (source === 'chat') {
+    xpData[guildId][userId].messages = (xpData[guildId][userId].messages || 0) + 1;
+  } else if (!xpData[guildId][userId].messages && xpData[guildId][userId].xp) {
+    xpData[guildId][userId].messages = Math.max(1, Math.floor(xpData[guildId][userId].xp / 20));
   }
 
   const multiplier = getVoteMultiplier(userId);
@@ -91,28 +101,36 @@ export async function awardUserXp({ guild, user, xpGain = 20, source = 'chat', c
     xpData[guildId][userId].announced_level = lvl;
     saveXpData();
 
-    // Do NOT spam announcements for voice lounge XP (voice XP accumulates silently)
-    // and only announce meaningful milestone levels (Level 5, 10, 15, 20, 25, etc.)
-    if (source !== 'voice' && lvl >= 5) {
-      let targetChannel = guild.channels.cache.find(c => 
+    // 📢 ANNOUNCEMENT POLICY: Announce ONLY in Krims Code official server!
+    // Silent leveling in all other servers to preserve tranquility and prevent unwanted cross-server spam.
+    const isKrimsCodeGuild = guild.id === KRIMS_CODE_GUILD_ID || guild.name?.toLowerCase().includes('krims code');
+
+    if (isKrimsCodeGuild && source !== 'voice') {
+      let targetChannel = channel || guild.channels.cache.find(c => 
         c.name.includes('levels-and-rewards') || 
         c.name.includes('level-up') ||
-        c.name.includes('levels')
+        c.name.includes('general-chat') ||
+        c.name.includes('chat')
       );
 
-      if (targetChannel) {
+      if (targetChannel && targetChannel.send) {
         const boosterTag = multiplier > 1.0 ? ' • ⚡ 2x Vote Booster' : '';
-        const sourceBadge = `💬 [Chat Activity${boosterTag}]`;
+        const msgCount = (xpData[guildId][userId].messages || 1).toLocaleString();
         const embed = new EmbedBuilder()
           .setColor(0x00E5FF)
           .setTitle(`🎉 LEVEL UP! — LEVEL ${lvl} REACHED!`)
-          .setDescription(`GG **${user.username}**! You just leveled up to **Level ${lvl}** in **${guild.name}**! 🚀\n*Earned via ${sourceBadge}*\nKeep chatting to climb the leaderboard!`)
-          .setThumbnail(user.displayAvatarURL ? user.displayAvatarURL({ dynamic: true }) : null)
-          .setFooter({ text: 'KryloSMP Progression Engine' })
+          .setDescription(
+            `GG <@${userId}>! You just leveled up to **Level ${lvl}** in **${guild.name}**! 🚀\n\n` +
+            `💬 **Total Messages:** \`${msgCount}\`\n` +
+            `⚡ **Total XP:** \`${newTotal.toLocaleString()} XP\`${boosterTag}\n\n` +
+            `*Keep chatting to climb the Message & XP Leaderboard!*`
+          )
+          .setThumbnail(user.displayAvatarURL ? user.displayAvatarURL({ extension: 'png', size: 256 }) : null)
+          .setFooter({ text: 'Krims Code AI • Progression Engine' })
           .setTimestamp();
 
-        // Send WITHOUT user mention ping to keep channel clean and peaceful
-        targetChannel.send({ embeds: [embed], allowedMentions: { users: [] } }).catch(() => {});
+        // Send WITHOUT user mention ping to keep chat clean and polite
+        Promise.resolve(targetChannel.send({ embeds: [embed], allowedMentions: { users: [] } })).catch(() => {});
       }
     }
 
@@ -163,7 +181,8 @@ export async function handleMessageXp(message, client) {
     user: message.author,
     xpGain,
     source: 'chat',
-    client
+    client,
+    channel: message.channel
   });
 }
 
@@ -341,34 +360,178 @@ export async function handleRankCommand(interaction) {
 }
 
 /**
- * Handle /leaderboard command
+ * Builds the rich leaderboard embed & action row buttons for either messages or XP
  */
-export async function handleLeaderboardCommand(interaction) {
-  const guildId = interaction.guild.id;
-  const isSkybase = guildId === '1549875778575929446';
+export function buildLeaderboardPayload({ guild, type = 'messages', currentUserId }) {
+  const guildId = guild?.id;
+  const isKrimsCode = guildId === KRIMS_CODE_GUILD_ID || guild?.name?.toLowerCase().includes('krims code');
   const guildData = xpData[guildId] || {};
-  const sorted = Object.entries(guildData).sort((a, b) => b[1].xp - a[1].xp).slice(0, 10);
+
+  // Sort based on type: 'messages' or 'xp'
+  const isMessageMode = type === 'messages';
+  const sorted = Object.entries(guildData).sort((a, b) => {
+    if (isMessageMode) {
+      const msgsA = a[1].messages ?? Math.max(1, Math.floor((a[1].xp || 0) / 20));
+      const msgsB = b[1].messages ?? Math.max(1, Math.floor((b[1].xp || 0) / 20));
+      return msgsB - msgsA;
+    } else {
+      return (b[1].xp || 0) - (a[1].xp || 0);
+    }
+  }).slice(0, 10);
 
   if (sorted.length === 0) {
-    return interaction.reply({ content: '📊 No player has earned XP yet! Start chatting to claim the #1 spot!', ephemeral: true });
+    return {
+      content: '📊 No player has recorded activity yet! Start chatting in the server to claim the #1 spot on the leaderboard!',
+      embeds: [],
+      components: []
+    };
   }
 
   const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
   const desc = sorted.map(([userId, data], i) => {
-    const isOwner = userId === '1414143825538191373' || userId === interaction.guild?.ownerId;
+    const isOwner = userId === '1414143825538191373' || userId === guild?.ownerId;
     const badge = isOwner ? '👑 [OWNER]' : (medals[i] || `${i + 1}.`);
-    return `${badge} **<@${userId}>** • **Level ${data.level}** (${data.xp.toLocaleString()} XP)`;
+    const lvl = data.level || 0;
+    const xp = (data.xp || 0).toLocaleString();
+    const msgs = (data.messages ?? Math.max(1, Math.floor((data.xp || 0) / 20))).toLocaleString();
+
+    if (isMessageMode) {
+      return `${badge} **<@${userId}>** • **${msgs} Messages** • Level ${lvl} (${xp} XP)`;
+    } else {
+      return `${badge} **<@${userId}>** • **Level ${lvl}** (${xp} XP) • ${msgs} Messages`;
+    }
   }).join('\n');
 
   const embed = new EmbedBuilder()
-    .setColor(0xFFD700)
-    .setTitle(`🏆 ${interaction.guild.name} — XP LEADERBOARD`)
-    .setDescription(`Top 10 most active community members:\n\n${desc}`)
-    .setThumbnail(interaction.guild.iconURL({ dynamic: true }))
-    .setFooter({ text: isSkybase ? "Krylo's Skybase Leaderboard Engine" : 'Krims Code AI Leaderboard Engine' })
+    .setColor(isMessageMode ? 0x00E5FF : 0xFFD700)
+    .setTitle(isMessageMode ? `💬 ${guild?.name || 'Community'} — TOP MESSAGES LEADERBOARD` : `⚡ ${guild?.name || 'Community'} — XP & LEVELS LEADERBOARD`)
+    .setDescription(
+      (isMessageMode 
+        ? `🔥 **Top 10 Most Active Chatters** ranked by total messages sent:\n\n`
+        : `⚡ **Top 10 Community Legends** ranked by earned XP and Level:\n\n`) +
+      desc +
+      `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `💡 *Tip: Chat in public channels to gain XP & messages. Upvote on Top.gg for 2x XP!*`
+    )
+    .setThumbnail(guild?.iconURL ? guild.iconURL({ dynamic: true }) : null)
+    .setFooter({ text: isKrimsCode ? 'Krims Code AI • Official Community Leaderboard' : `${guild?.name || 'Server'} • Krims Progression Engine` })
     .setTimestamp();
 
-  await interaction.reply({ embeds: [embed] });
+  // Interactive navigation buttons
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('btn_lb_messages')
+      .setLabel('💬 Messages')
+      .setStyle(isMessageMode ? ButtonStyle.Primary : ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId('btn_lb_xp')
+      .setLabel('⚡ XP & Levels')
+      .setStyle(!isMessageMode ? ButtonStyle.Primary : ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setLabel('🗳️ Vote for 2x XP')
+      .setStyle(ButtonStyle.Link)
+      .setURL('https://top.gg/bot/1523794466740371586/vote')
+  );
+
+  // Announce to chat button — ONLY in Krims Code official server!
+  if (isKrimsCode) {
+    row.addComponents(
+      new ButtonBuilder()
+        .setCustomId('btn_lb_announce_krims')
+        .setLabel('📢 Announce to Chat')
+        .setStyle(ButtonStyle.Success)
+    );
+  }
+
+  return { embeds: [embed], components: [row] };
+}
+
+/**
+ * Handle /leaderboard command (slash)
+ */
+export async function handleLeaderboardCommand(interaction, initialType = 'messages') {
+  const chosenType = interaction.options?.getString?.('type') || initialType || 'messages';
+  const payload = buildLeaderboardPayload({
+    guild: interaction.guild,
+    type: chosenType,
+    currentUserId: interaction.user.id
+  });
+
+  if (interaction.deferred) {
+    return await interaction.editReply(payload);
+  }
+  return await interaction.reply(payload);
+}
+
+/**
+ * Handle prefix !leaderboard, !messages, !topmessages
+ */
+export async function handlePrefixLeaderboard(message, initialType = 'messages') {
+  if (!message.guild) return;
+  const payload = buildLeaderboardPayload({
+    guild: message.guild,
+    type: initialType,
+    currentUserId: message.author.id
+  });
+  return await message.reply(payload);
+}
+
+/**
+ * Handle interactive leaderboard button clicks
+ */
+export async function handleLeaderboardButton(interaction) {
+  const customId = interaction.customId;
+  const guild = interaction.guild;
+  if (!guild) return false;
+
+  if (customId === 'btn_lb_messages') {
+    const payload = buildLeaderboardPayload({ guild, type: 'messages', currentUserId: interaction.user.id });
+    await interaction.update(payload).catch(() => {});
+    return true;
+  }
+
+  if (customId === 'btn_lb_xp') {
+    const payload = buildLeaderboardPayload({ guild, type: 'xp', currentUserId: interaction.user.id });
+    await interaction.update(payload).catch(() => {});
+    return true;
+  }
+
+  if (customId === 'btn_lb_announce_krims') {
+    const isKrimsCode = guild.id === KRIMS_CODE_GUILD_ID || guild.name?.toLowerCase().includes('krims code');
+    if (!isKrimsCode) {
+      await interaction.reply({
+        content: '❌ Leaderboard chat announcements are configured exclusively for the official Krims Code server.',
+        ephemeral: true
+      }).catch(() => {});
+      return true;
+    }
+
+    const payload = buildLeaderboardPayload({ guild, type: 'messages', currentUserId: interaction.user.id });
+    const targetChannel = guild.channels.cache.find(c => 
+      c.name.includes('announcements') || 
+      c.name.includes('general-chat')
+    ) || interaction.channel;
+
+    if (targetChannel && targetChannel.send) {
+      await targetChannel.send({
+        content: '📢 **KRIMS CODE COMMUNITY LEADERBOARD UPDATE!** Here are the top chatters and XP leaders:',
+        embeds: payload.embeds
+      }).catch(() => {});
+      await interaction.reply({
+        content: `✅ Leaderboard successfully announced in <#${targetChannel.id}>!`,
+        ephemeral: true
+      }).catch(() => {});
+      return true;
+    } else {
+      await interaction.reply({
+        content: '❌ Could not find a suitable announcement channel.',
+        ephemeral: true
+      }).catch(() => {});
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export function getUserLevel(guildId, userId) {

@@ -20,7 +20,7 @@ import Jimp from 'jimp';
 import { joinVoice, leaveVoice, getVoiceStatus, speakInVoiceChannel } from './voiceEngine.mjs';
 import { saveUserVerification, getUserVerification, syncLocalJsonToFirebase } from './firebaseEngine.mjs';
 import { getLocatorColor } from './features/locatorBarEngine.mjs';
-import { handleMessageXp, sendRankCard, handleRankCommand, startVoiceLevelTicker, handleVoiceStateUpdate, getUserLevel } from './features/mee6Levels.mjs';
+import { handleMessageXp, sendRankCard, handleRankCommand, startVoiceLevelTicker, handleVoiceStateUpdate, getUserLevel, handleLeaderboardButton, handlePrefixLeaderboard } from './features/mee6Levels.mjs';
 import { afkUsers, handleMute, handleUnmute, handleKick, handleBan, handleLockdown, handleSlowmode, handleAfk, handleRemindMe, handleEmbedBuilder } from './features/dynoModSystem.mjs';
 import { handleDevLogsCommand } from './features/devAuditLogger.mjs';
 import { getFalixStatus, sendFalixPowerSignal, sendFalixCommand } from './falixServerEngine.mjs';
@@ -1990,6 +1990,11 @@ client.on('interactionCreate', async (interaction) => {
         }],
         ephemeral: true
       });
+    }
+
+    if (customId === 'btn_lb_messages' || customId === 'btn_lb_xp' || customId === 'btn_lb_announce_krims') {
+      const handled = await handleLeaderboardButton(interaction);
+      if (handled) return;
     }
 
     if (customId === 'btn_daily_claim') {
@@ -8619,6 +8624,19 @@ client.on('messageCreate', async (message) => {
     const targetUser = message.mentions.users.first() || message.author;
     await message.channel.sendTyping().catch(() => {});
     await sendRankCard(message, targetUser);
+    return;
+  }
+
+  // Command: !leaderboard, !lb, !top, !messages, !messageleaderboard, !topmessages, !mtop
+  if (lowerMsg === '!leaderboard' || lowerMsg === '!lb' || lowerMsg === '!top' ||
+      lowerMsg === '!messages' || lowerMsg === '!messageleaderboard' || lowerMsg === '!topmessages' || lowerMsg === '!mtop') {
+    if (!message.guild) {
+      await message.reply("❌ This command can only be used inside servers!");
+      return;
+    }
+    const isMsgLb = lowerMsg.includes('message') || lowerMsg === '!mtop';
+    await message.channel.sendTyping().catch(() => {});
+    await handlePrefixLeaderboard(message, isMsgLb ? 'messages' : 'xp');
     return;
   }
 
