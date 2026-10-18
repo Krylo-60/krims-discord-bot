@@ -31,7 +31,7 @@ async function sendAnnouncement() {
       '### 🎮 HOW TO TEST IT RIGHT NOW:\n' +
       '1. **Direct Message the Bot:** Open a DM with <@1523794466740371586> and start chatting naturally!\n' +
       '2. **Server Slash Command:** Use `/ask prompt:<your question>` in any server channel.\n' +
-      '3. **Mention the Bot:** Tag `@Krylo SMP Bot <message>` anywhere to see the new brain in action!\n\n' +
+      '3. **Mention the Bot:** Tag `@Krims Code AI <message>` anywhere to see the new brain in action!\n\n' +
       'Enjoy the upgrade, and thank you for being part of the Krims Code community! 🌟',
     color: 0x5865F2,
     footer: {
