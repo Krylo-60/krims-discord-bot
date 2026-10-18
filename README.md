@@ -19,6 +19,7 @@
   * **Phase 2 (Roster Verified):** When an operative posts their in-game name in `#📋・𝖱oster`, the bot **live-edits their original welcome message in real time**, attaching their official 3D Minecraft skin head badge, IGN, and updating their status to `✅ VERIFIED SMP ROSTER`.
 * **Automatic Minecraft IGN Nickname Synchronization:** Automatically detects Minecraft IGNs posted in `#📋・𝖱oster` and syncs the member's server nickname while updating persistent AI memory.
 * **Cosmetic Chat Color & Single-Region Engine:** Self-service emoji reaction panels allowing members to choose from 9 custom cosmetic colors with smart swapping, and single-region role enforcement (NA, EU, Asia).
+* **Dedicated Clan Emoji & Sticker Arsenal:** 43 custom server emojis and animated GIFs (`:team_halfheart:`, `:team_lambda:`, `:team_crest:`, `:team_mace:`, `:anim_team_radar:`, `:anim_team_heart:`) built exclusively for tactical squad communications.
 
 ### 🧠 2. Autonomous AI Self-Healing & Crash Isolation
 * **Zero-Crash Fault Tolerance:** Global runtime exception handlers catch unhandled rejections and runtime exceptions, isolating the failure to keep the bot 100% online.
