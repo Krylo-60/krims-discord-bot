@@ -3,11 +3,10 @@ import 'dotenv/config';
 async function sendAnnouncement() {
   const token = process.env.DISCORD_TOKEN;
   
-  // Channels: Support Server #📢・𝖺𝗇𝗇𝗈𝗎𝗇𝖼𝖾𝗆𝖾𝗇𝗍𝗌, #🚀・𝖻𝗈𝗍-𝗎𝗉𝖽𝖺𝗍𝖾𝗌, and Skybase #announcements
+  // Channels: Krims Code Support Server ONLY
   const targetChannels = [
     '1561175626692562964', // Support Server: #📢・𝖺𝗇𝗇𝗈𝗎𝗇𝖼𝖾𝗆𝖾𝗇𝗍𝗌
-    '1561175627799994402', // Support Server: #🚀・𝖻𝗈𝗍-𝗎𝗉𝖽𝖺𝗍𝖾𝗌
-    '1549882277209571329'  // Krylo's Skybase: #announcements
+    '1561175627799994402'  // Support Server: #🚀・𝖻𝗈𝗍-𝗎𝗉𝖽𝖺𝗍𝖾𝗌
   ];
 
   const embed = {
