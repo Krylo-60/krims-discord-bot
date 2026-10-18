@@ -572,7 +572,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
 
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('btn_open_byot_modal').setLabel('Deploy Free Bot').setStyle(ButtonStyle.Success).setEmoji('🤖'),
-        new ButtonBuilder().setLabel('Official Website').setStyle(ButtonStyle.Link).setURL('https://krims-code-chatbot.vercel.app/')
+        new ButtonBuilder().setLabel('Bot Dashboard').setStyle(ButtonStyle.Link).setURL('https://krims-bot-dashboard.vercel.app')
       );
 
       return await interaction.reply({ embeds: [embed], components: [row] });
