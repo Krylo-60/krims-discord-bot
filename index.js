@@ -4141,14 +4141,14 @@ client.on('interactionCreate', async (interaction) => {
   const { commandName } = interaction;
   // === MASTER KRYLOSMP SLASH COMMANDS ===
 
-  // 🎬 /startcrewapp & /startcrew & /crewapp start (DISABLED FOR SAFETY)
+  // 🎬 /startcrewapp & /startcrew & /crewapp start (DISABLED & HIDDEN)
   if (
     commandName === 'startcrewapp' || 
     commandName === 'startcrew' || 
     ((commandName === 'crewapp' || commandName === 'crew') && interaction.options.getSubcommand(false) === 'start')
   ) {
     return interaction.reply({ 
-      content: '🔒 Slash command `/crew start` has been disabled for safety.\nTo open Film Crew applications, please use the prefix command: `!crew start` or `!startcrew`.', 
+      content: '❌ Unknown command.', 
       ephemeral: true 
     });
   }
@@ -8077,13 +8077,9 @@ client.on('messageCreate', async (message) => {
     normalizedCrewCmd === '!crew start' ||
     normalizedCrewCmd === '!crewapp start'
   ) {
-    if (message.guild?.id !== '1549875778575929446') {
-      return message.reply('❌ Film Crew commands are exclusive to Krylo\'s Skybase.');
-    }
+    if (message.guild?.id !== '1549875778575929446') return;
     const isAdmin = message.author.id === '1414143825538191373' || message.member?.permissions?.has(PermissionFlagsBits.Administrator);
-    if (!isAdmin) {
-      return message.reply('❌ Only Krylo and Administrators can open crew applications.');
-    }
+    if (!isAdmin) return;
     try {
       await setCrewAppStatus(true, message.guild, message.author);
       const openEmbed = new EmbedBuilder()
@@ -8113,13 +8109,9 @@ client.on('messageCreate', async (message) => {
     normalizedCrewCmd === '!crew stop' ||
     normalizedCrewCmd === '!crewapp stop'
   ) {
-    if (message.guild?.id !== '1549875778575929446') {
-      return message.reply('❌ Film Crew commands are exclusive to Krylo\'s Skybase.');
-    }
+    if (message.guild?.id !== '1549875778575929446') return;
     const isAdmin = message.author.id === '1414143825538191373' || message.member?.permissions?.has(PermissionFlagsBits.Administrator);
-    if (!isAdmin) {
-      return message.reply('❌ Only Krylo and Administrators can stop crew applications.');
-    }
+    if (!isAdmin) return;
     try {
       await setCrewAppStatus(false, message.guild, message.author);
       const stopEmbed = new EmbedBuilder()
@@ -8144,9 +8136,9 @@ client.on('messageCreate', async (message) => {
     normalizedCrewCmd === '!crew status' ||
     normalizedCrewCmd === '!crewapp status'
   ) {
-    if (message.guild?.id !== '1549875778575929446') {
-      return message.reply('❌ Film Crew commands are exclusive to Krylo\'s Skybase.');
-    }
+    if (message.guild?.id !== '1549875778575929446') return;
+    const isAdmin = message.author.id === '1414143825538191373' || message.member?.permissions?.has(PermissionFlagsBits.Administrator);
+    if (!isAdmin) return;
     const status = getCrewAppStatus();
     const statusEmbed = new EmbedBuilder()
       .setColor(status.isOpen ? 0x10B981 : 0xEF4444)

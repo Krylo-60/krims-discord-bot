@@ -410,7 +410,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       ((commandName === 'crewapp' || commandName === 'crew') && interaction.options.getSubcommand(false) === 'start')
     ) {
       return await interaction.reply({ 
-        content: '🔒 Slash command `/crew start` has been disabled for safety.\nTo open Film Crew applications, please use the prefix command: `!crew start` or `!startcrew`.', 
+        content: '❌ Unknown command.', 
         ephemeral: true 
       });
     }
@@ -839,7 +839,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       if (isSkybase) {
         fields.push({ 
           name: '🎬 Skybase Production & Crew', 
-          value: '`/crew stop`, `/crew status`, `/supporters`, `/verifytwitch`, `/startstream`, `/stopstream`, `/adminabuse`, `/genkey`\n*(Open applications via `!crew start` or `!startcrew`)*' 
+          value: '`/crew stop`, `/crew status`, `/supporters`, `/verifytwitch`, `/startstream`, `/stopstream`, `/adminabuse`, `/genkey`' 
         });
       }
 
