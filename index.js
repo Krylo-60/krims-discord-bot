@@ -33,6 +33,7 @@ import { handleCustomCommandExecution, getGuildCustomCommands, addGuildCustomCom
 import { handleVideoCrewInteraction, setCrewAppStatus, getCrewAppStatus, isCrewAppOpen } from './features/videoCrewApplicationManager.mjs';
 import { handleTeamClanApplicationInteraction, setupTeamApplicationChannel, checkAndAssignApprovedRecruit, buildTeamApplicationPanel } from './features/teamClanApplicationManager.mjs';
 import { handleBotDevApplicationInteraction, setupBotDevApplicationChannel } from './features/botDevApplicationManager.mjs';
+import { handleTopggWebhook, getVoteBoosterInfo } from './features/voteBoosterManager.mjs';
 import { handlePlatformRoleInteraction, setPlatformPublicStatus, getPlatformRoleStatus } from './features/platformRolePublisher.mjs';
 import { handleEmojiSubmissionMessage, handleEmojiSubmissionInteraction } from './features/emojiSubmissionSystem.mjs';
 import { handleMasterSlashCommand } from './commands/masterCommandHandler.mjs';
@@ -2119,6 +2120,14 @@ client.on('interactionCreate', async (interaction) => {
         content: `🎟️ **Giveaway Entry Confirmed!** You are registered for the **⚡ VIP Sovereign Rank + 50,000 KC** giveaway! 👑`,
         flags: 64
       });
+    }
+
+    if (customId === 'btn_refresh_vote_status') {
+      const voteInfo = getVoteBoosterInfo(interaction.user.id);
+      const statusMsg = voteInfo.isActive
+        ? `⚡ **Vote Booster ACTIVE:** 2.0x XP active for the next **${voteInfo.remainingFormatted}**! (Streak: 🔥 ${voteInfo.streak})`
+        : `💤 **Vote Booster Inactive:** Vote now on Top.gg to activate **2.0x XP** for 12 hours!\n👉 https://top.gg/bot/1523794466740371586/vote`;
+      return interaction.reply({ content: statusMsg, flags: 64 });
     }
 
     if (customId === 'btn_refresh_clan_stats') {
@@ -11909,6 +11918,10 @@ const server = http.createServer(async (req, res) => {
       }
     });
     return;
+  }
+
+  if ((url.pathname === '/api/topgg/webhook' || url.pathname === '/api/vote/webhook') && req.method === 'POST') {
+    return handleTopggWebhook(req, res, client);
   }
 
   res.writeHead(404, { 'Content-Type': 'application/json' });

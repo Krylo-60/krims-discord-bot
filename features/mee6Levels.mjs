@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { EmbedBuilder, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { generateRankCardBuffer } from './rankCardGenerator.mjs';
+import { getVoteMultiplier, getVoteBoosterInfo } from './voteBoosterManager.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -71,8 +72,11 @@ export async function awardUserXp({ guild, user, xpGain = 20, source = 'chat', c
     };
   }
 
+  const multiplier = getVoteMultiplier(userId);
+  const actualXpGain = Math.round(xpGain * multiplier);
+
   const oldTotal = xpData[guildId][userId].xp;
-  const newTotal = oldTotal + xpGain;
+  const newTotal = oldTotal + actualXpGain;
   xpData[guildId][userId].xp = newTotal;
   xpData[guildId][userId].username = user.username;
 
@@ -97,7 +101,8 @@ export async function awardUserXp({ guild, user, xpGain = 20, source = 'chat', c
       );
 
       if (targetChannel) {
-        const sourceBadge = '💬 [Chat Activity]';
+        const boosterTag = multiplier > 1.0 ? ' • ⚡ 2x Vote Booster' : '';
+        const sourceBadge = `💬 [Chat Activity${boosterTag}]`;
         const embed = new EmbedBuilder()
           .setColor(0x00E5FF)
           .setTitle(`🎉 LEVEL UP! — LEVEL ${lvl} REACHED!`)
@@ -260,15 +265,14 @@ export async function sendRankCard(context, targetUser = null) {
     const isSkybase = guild.id === '1549875778575929446';
     const isKSMP = guild.id === '1538225337048236082';
 
+    const voteInfo = getVoteBoosterInfo(user.id);
     let boosterContent = '';
-    if (isSkybase) {
-      boosterContent = isOwner
-        ? `👑 **SERVER OWNER** • 🔥 **Supreme Aura & Founder Active** 🔥`
-        : `✨ **Skybase Community Rank**`;
+    if (isOwner) {
+      boosterContent = `👑 **SERVER OWNER** • 🔥 **Supreme Founder Tier Active (3.0x Multiplier)** 🔥`;
+    } else if (voteInfo.isActive) {
+      boosterContent = `⚡ **TOP.GG VOTE BOOSTER:** \`2.0x XP ACTIVE\` *(Ends in ${voteInfo.remainingFormatted})* 🔥`;
     } else {
-      boosterContent = isOwner
-        ? `👑 **SERVER OWNER** • ⚡ **Vote Booster:** \`100%\` *(Supreme Aura & Founder Tier Active)* 🔥`
-        : `⚡ **Vote Booster:** \`10%\` *(Daily community perk active)*`;
+      boosterContent = `💤 **Vote Booster:** \`Inactive (1.0x)\` • Vote via \`/vote\` to activate **2.0x XP**!`;
     }
 
     const payload = {
@@ -276,6 +280,18 @@ export async function sendRankCard(context, targetUser = null) {
       files: [attachment],
       components: []
     };
+
+    const voteRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setLabel('🗳️ Vote for 2x XP')
+        .setStyle(ButtonStyle.Link)
+        .setURL('https://top.gg/bot/1523794466740371586/vote'),
+      new ButtonBuilder()
+        .setCustomId('btn_refresh_vote_status')
+        .setLabel('⚡ Vote Status')
+        .setStyle(ButtonStyle.Secondary)
+    );
+    payload.components = [voteRow];
 
     // Only attach interactive game server buttons on KryloSMP (Minecraft server)
     if (isKSMP) {

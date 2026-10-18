@@ -68,6 +68,7 @@ import { getApplicationEmojis } from '../utils/applicationEmojis.mjs';
 
 import { getLocatorColor } from '../features/locatorBarEngine.mjs';
 import { handleRankCommand } from '../features/mee6Levels.mjs';
+import { handleVoteCommand, getVoteBoosterInfo } from '../features/voteBoosterManager.mjs';
 import { 
   getBalance, 
   addCoins, 
@@ -1880,19 +1881,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     }
 
     if (commandName === 'vote') {
-      updateSafeUserBalance(interaction.user.id, 500, xpData);
-      const isSkybase = interaction.guildId === '1549875778575929446';
-      const embed = new EmbedBuilder()
-        .setColor(0x10B981)
-        .setTitle(isSkybase ? "🗳️ Support Krylo's Skybase" : "🗳️ Support the Server")
-        .setDescription(
-          `Thank you for supporting **${isSkybase ? "Krylo's Skybase" : "our community"}**!\n\n` +
-          `Claim your **+500 Coins** reward for voting and helping our community grow! 🚀`
-        )
-        .setFooter({ text: `${interaction.guild?.name || "Community"} • Vote` })
-        .setTimestamp();
-
-      return await interaction.reply({ embeds: [embed] });
+      return await handleVoteCommand(interaction);
     }
 
     if (commandName === 'refer') {

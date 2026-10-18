@@ -1,5 +1,6 @@
 import Jimp from 'jimp';
 import { calculateLevelFromXp, getRequiredXpForLevel } from './mee6Levels.mjs';
+import { hasActiveVoteBooster } from './voteBoosterManager.mjs';
 
 /**
  * 🎨 Generates a custom Krims graphical Rank Card PNG Buffer
@@ -145,7 +146,9 @@ export async function generateRankCardBuffer({ user, userStats, rankPos, accentC
   }
 
   // Stats line: Level: X   XP: Y / Z   Rank: N
-  const statsLine = `Level: ${currentLvl}   XP: ${curXp.toLocaleString()} / ${reqXp.toLocaleString()}   Rank: ${rankDisplay}`;
+  const hasBooster = user?.id && hasActiveVoteBooster(user.id);
+  const boosterBadge = hasBooster ? '  [2X VOTE BOOSTER]' : '';
+  const statsLine = `Level: ${currentLvl}   XP: ${curXp.toLocaleString()} / ${reqXp.toLocaleString()}   Rank: ${rankDisplay}${boosterBadge}`;
   card.print(font16, textX, 102, statsLine);
 
   // 4. Smooth Pill-Shaped Progress Bar
