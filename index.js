@@ -31,6 +31,7 @@ import { setupAIConsoleChannel, handleAIConsoleMessage } from './aiConsoleChatHa
 import { handleCountingMessage, handleStickyMessage, linkCountingChannel, unlinkCountingChannel, resetCountingState, setCountingState, getCountingState, getCrossServerCountingLeaderboardEmbed, startAiCountingSession, stopAiCountingSession } from './countingAndStickyEngine.mjs';
 import { handleCustomCommandExecution, getGuildCustomCommands, addGuildCustomCommand, deleteGuildCustomCommand } from './features/customCommandsManager.mjs';
 import { handleVideoCrewInteraction, setCrewAppStatus, getCrewAppStatus, isCrewAppOpen } from './features/videoCrewApplicationManager.mjs';
+import { handleTeamClanApplicationInteraction, setupTeamApplicationChannel } from './features/teamClanApplicationManager.mjs';
 import { handlePlatformRoleInteraction, setPlatformPublicStatus, getPlatformRoleStatus } from './features/platformRolePublisher.mjs';
 import { handleEmojiSubmissionMessage, handleEmojiSubmissionInteraction } from './features/emojiSubmissionSystem.mjs';
 import { handleMasterSlashCommand } from './commands/masterCommandHandler.mjs';
@@ -1538,6 +1539,18 @@ client.on('interactionCreate', async (interaction) => {
     ))
   ) {
     return await handleVideoCrewInteraction(interaction);
+  }
+
+  // ⚔️ Handle The Half Life's Clan Team Application Interactions
+  if (
+    (interaction.isButton() && (
+      interaction.customId === 'btn_open_clan_app_modal' ||
+      interaction.customId.startsWith('btn_clan_accept_') ||
+      interaction.customId.startsWith('btn_clan_deny_')
+    )) ||
+    (interaction.isModalSubmit() && interaction.customId === 'modal_submit_clan_app')
+  ) {
+    return await handleTeamClanApplicationInteraction(interaction);
   }
 
   // 🌐 Handle Platform Role Publisher Interactions

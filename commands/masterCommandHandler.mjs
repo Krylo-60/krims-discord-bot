@@ -35,6 +35,11 @@ import {
 } from '../features/videoCrewApplicationManager.mjs';
 
 import {
+  buildTeamApplicationPanel,
+  CLAN_GUILD_ID
+} from '../features/teamClanApplicationManager.mjs';
+
+import {
   linkCountingChannel,
   unlinkCountingChannel,
   resetCountingState,
@@ -959,6 +964,11 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     }
 
     if (commandName === 'apply') {
+      if (interaction.guildId === CLAN_GUILD_ID) {
+        const panel = buildTeamApplicationPanel();
+        return await interaction.reply(panel);
+      }
+
       const isSkybase = interaction.guildId === '1549875778575929446';
       if (isSkybase) {
         const embed = new EmbedBuilder()
