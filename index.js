@@ -34,6 +34,7 @@ import { handleVideoCrewInteraction, setCrewAppStatus, getCrewAppStatus, isCrewA
 import { handleTeamClanApplicationInteraction, setupTeamApplicationChannel, checkAndAssignApprovedRecruit, buildTeamApplicationPanel } from './features/teamClanApplicationManager.mjs';
 import { handleBotDevApplicationInteraction, setupBotDevApplicationChannel } from './features/botDevApplicationManager.mjs';
 import { handleTopggWebhook, getVoteBoosterInfo } from './features/voteBoosterManager.mjs';
+import { getLiveStatusData, renderLiveStatusHtml } from './features/liveStatusDashboard.mjs';
 import { handlePlatformRoleInteraction, setPlatformPublicStatus, getPlatformRoleStatus } from './features/platformRolePublisher.mjs';
 import { handleEmojiSubmissionMessage, handleEmojiSubmissionInteraction } from './features/emojiSubmissionSystem.mjs';
 import { handleMasterSlashCommand } from './commands/masterCommandHandler.mjs';
@@ -104,6 +105,8 @@ async function getCachedGuildConfig(guildId) {
 
 
 dotenv.config();
+
+let globalMultiBotManager = null;
 
 // ═══════════════════════════════════════════════════════════
 // 🧠 GEMINI 3.5 FLASH-LITE DIRECT API (FREE TIER UPGRADE)
@@ -926,6 +929,7 @@ client.once('ready', async () => {
   // Start Multi-Bot Spawner Engine (BYOT & Made by Us)
   try {
     const { multiBotManager } = await import('./customBotSpawner.mjs');
+    globalMultiBotManager = multiBotManager;
     await multiBotManager.startAllBots();
     console.log(`[MultiBot] 🚀 MultiBotManager active! ${multiBotManager.getLiveCount()} custom bots online.`);
   } catch (err) {
@@ -11539,10 +11543,43 @@ const server = http.createServer(async (req, res) => {
 
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
 
-  // Health Check
+  // Live Status API Endpoint (for real-time dashboard poller & uptime monitors)
+  if (url.pathname === '/api/status') {
+    const statusData = getLiveStatusData(client, globalMultiBotManager);
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': 'no-cache'
+    });
+    res.end(JSON.stringify(statusData, null, 2));
+    return;
+  }
+
+  // Health Check & Root Dashboard
   if (url.pathname === '/health' || url.pathname === '/') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, message: 'Krylo SMP Store & Discord Bot Engine is Active!' }));
+    const format = url.searchParams.get('format');
+    const acceptHeader = req.headers['accept'] || '';
+    const wantsJson = format === 'json' || acceptHeader.includes('application/json') || url.pathname === '/health';
+
+    const statusData = getLiveStatusData(client, globalMultiBotManager);
+
+    if (wantsJson) {
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      });
+      res.end(JSON.stringify({ ok: true, ...statusData }, null, 2));
+      return;
+    }
+
+    // Render interactive live HTML dashboard
+    const html = renderLiveStatusHtml(statusData);
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'Access-Control-Allow-Origin': '*'
+    });
+    res.end(html);
     return;
   }
 
