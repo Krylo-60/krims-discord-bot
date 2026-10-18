@@ -38,7 +38,7 @@ import { masterCommandJson } from './commands/masterCommandRegistry.mjs';
 import { initTwitchBot, joinChannel, leaveChannel, getJoinedChannels } from './features/twitchBot.mjs';
 import { generateVerificationCode, toggleNicknameSync, getActiveCodeForUser, buildVerificationResponse, loadSupporters } from './features/twitchVerificationEngine.mjs';
 import { handleRosterMessage } from './features/rosterAutoNick.mjs';
-import { recordConversationTurn, getRecentServerMemory, learnServerFact, resetServerMemory, getMemoryStats, buildServerMemoryContext, buildMemoryStatusEmbed } from './features/aiMemoryEngine.mjs';
+import { recordConversationTurn, getRecentServerMemory, learnServerFact, resetServerMemory, getMemoryStats, buildServerMemoryContext, buildMemoryStatusEmbed, recordDMTurn, getRecentDMMemory, clearDMMemory, getDMMemoryStats, buildDMMemoryContext } from './features/aiMemoryEngine.mjs';
 import { 
   handleActivitySelectInteraction, 
   DISCORD_ACTIVITIES, 
@@ -233,30 +233,43 @@ export function sanitizeDiscordFormatting(text) {
   return cleaned.trim();
 }
 
-async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', guildId = null) {
+async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', guildId = null, userId = null, userName = '') {
   const formattingRule = "\nCRITICAL DISCORD FORMATTING RULE: Discord DOES NOT support LaTeX, KaTeX, or MathJax. NEVER output LaTeX syntax (such as \\boxed{}, \\times, \\frac{}, \\[, \\], or $$). Write all math, formulas, equations, numbers, and calculations in clean plain text and standard Discord markdown (e.g. 100^9 = 10^18 = 1,000,000,000,000,000,000). Never place formulas inside raw square brackets [ ]. Keep answers ultra-clean and easy to read on mobile and desktop.";
+
+  const isDM = !guildId && !!userId;
+
+  let memoryContext = '';
+  if (guildId) {
+    memoryContext = buildServerMemoryContext(guildId, guildName);
+  } else if (isDM) {
+    memoryContext = buildDMMemoryContext(userId, userName);
+  }
 
   let defaultSys = 'You are Krims Code AI, a fast, intelligent, and helpful Discord AI assistant developed by Krims Code Studio. Friendly, helpful, concise with clean conversational markdown formatting.';
   if (guildName) {
     defaultSys = `You are Krims Code AI, the friendly and intelligent Discord AI assistant for the "${guildName}" server community. Friendly, helpful, concise with clean markdown formatting.`;
+  } else if (isDM) {
+    defaultSys = `You are Krims Code AI, an intelligent, helpful, and friendly Discord AI assistant chatting 1-on-1 in direct messages with ${userName || 'the user'}. Friendly, helpful, concise with clean markdown formatting.`;
   }
 
-  if (guildId) {
-    const memoryContext = buildServerMemoryContext(guildId, guildName);
-    defaultSys += memoryContext;
-  }
+  defaultSys += memoryContext;
   defaultSys += formattingRule;
 
-  const sysInstr = systemInstruction ? (systemInstruction + (guildId ? buildServerMemoryContext(guildId, guildName) : '') + formattingRule) : defaultSys;
+  const sysInstr = systemInstruction 
+    ? (systemInstruction + memoryContext + formattingRule) 
+    : defaultSys;
   
-  // 1. Try Groq LPU (Ultra-fast ~50ms response) with Server Memory Dialogue
-  const recentHistory = guildId ? getRecentServerMemory(guildId, 6) : [];
+  // 1. Try Groq LPU (Ultra-fast ~50ms response) with Memory Dialogue
+  const recentHistory = guildId 
+    ? getRecentServerMemory(guildId, 6) 
+    : (userId ? getRecentDMMemory(userId, 10) : []);
+
   const groqMessages = [
     { role: 'system', content: sysInstr }
   ];
   for (const h of recentHistory) {
     if (h.role === 'user') {
-      groqMessages.push({ role: 'user', content: `${h.user_name || 'Member'}: ${h.content}` });
+      groqMessages.push({ role: 'user', content: isDM ? h.content : `${h.user_name || 'Member'}: ${h.content}` });
     } else {
       groqMessages.push({ role: 'assistant', content: h.content });
     }
@@ -293,20 +306,44 @@ async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', g
     }
   }
 
-  // 2. Gemini Fallback
+  // 2. Gemini Fallback with multi-turn history
   if (geminiClient) {
     try {
+      const geminiContents = [];
+      for (const h of recentHistory) {
+        geminiContents.push({
+          role: h.role === 'user' ? 'user' : 'model',
+          parts: [{ text: h.content }]
+        });
+      }
+      geminiContents.push({
+        role: 'user',
+        parts: [{ text: prompt }]
+      });
+
       const resp = await geminiClient.models.generateContent({
         model: 'gemini-2.5-flash',
-        contents: prompt,
+        contents: geminiContents,
         config: { systemInstruction: sysInstr }
       });
       const t = resp?.text || resp?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (t) return sanitizeDiscordFormatting(t.trim());
-    } catch (e) {}
+    } catch (e) {
+      try {
+        const resp2 = await geminiClient.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+          config: { systemInstruction: sysInstr }
+        });
+        const t2 = resp2?.text || resp2?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (t2) return sanitizeDiscordFormatting(t2.trim());
+      } catch (e2) {}
+    }
   }
 
-  return `👋 Hello! I am **Krims Code AI**, your friendly AI assistant for **${guildName || "Krylo's Skybase"}**! How can I help you today?`;
+  return isDM 
+    ? `👋 Hello ${userName || ''}! I am **Krims Code AI**, your friendly AI assistant! How can I help you today?`
+    : `👋 Hello! I am **Krims Code AI**, your friendly AI assistant for **${guildName || "Krylo's Skybase"}**! How can I help you today?`;
 }
 
 /**
@@ -8270,9 +8307,10 @@ client.on('messageCreate', async (message) => {
     }
   }
 
-  // DIRECT MESSAGE (DM) AI & LINKING HANDLER
+  // DIRECT MESSAGE (DM) AI & LINKING HANDLER WITH CONTINUOUS MEMORY
   if (!message.guild) {
     const dmText = message.content.trim();
+    const authorName = message.author.displayName || message.author.username;
     console.log(`[DM Received] from ${message.author.tag}: "${dmText}"`);
 
     // Check if it's a 4-digit DiscordSRV link code
@@ -8281,13 +8319,60 @@ client.on('messageCreate', async (message) => {
       return;
     }
 
-    // AI Chat in DMs
+    const lowerDM = dmText.toLowerCase();
+
+    // Check for clear/reset DM memory commands
+    if (['!clearmemory', '!reset', '!forget', 'forget me', 'clear memory', 'reset memory'].includes(lowerDM)) {
+      const { deletedMessages } = clearDMMemory(message.author.id);
+      await message.channel.send(`🧹 **DM Memory Cleared!** I've forgotten our previous ${deletedMessages || 0} messages. You have a fresh slate now! ✨`).catch(() => {});
+      return;
+    }
+
+    // Check for memory stats in DMs
+    if (lowerDM === '!memory' || lowerDM === '!memorystats') {
+      const stats = getDMMemoryStats(message.author.id);
+      await message.channel.send(
+        `🧠 **Krims Code AI — Your DM Memory Status:**\n` +
+        `• **Remembered Messages:** \`${stats.totalMessages}\`\n` +
+        `• **Oldest Interaction:** \`${stats.oldestDate || 'None'}\`\n` +
+        `• **Latest Interaction:** \`${stats.newestDate || 'None'}\`\n\n` +
+        `💡 *Type \`!clearmemory\` anytime if you want me to wipe our chat history!*`
+      ).catch(() => {});
+      return;
+    }
+
+    // AI Chat in DMs with Memory
     try {
       await message.channel.sendTyping().catch(() => {});
-      const dmPrompt = 'You are Krims Code AI, an intelligent, helpful, and friendly Discord AI assistant. Answer the user helpfully, politely, and concisely. Only mention KryloSMP or server links if the user specifically asks about Minecraft or KryloSMP.';
-      const aiReply = await geminiDirectAsk(dmText, dmPrompt);
-      await sendSafeMessage(message.channel, aiReply);
+
+      // Check for attached image
+      let imageUrl = null;
+      if (message.attachments.size > 0) {
+        const firstAttach = message.attachments.first();
+        if (firstAttach && firstAttach.contentType && firstAttach.contentType.startsWith('image/')) {
+          imageUrl = firstAttach.url;
+        }
+      }
+
+      const dmPrompt = 'You are Krims Code AI, an intelligent, helpful, and friendly Discord AI assistant chatting 1-on-1 in direct messages (DMs). Answer the user helpfully, politely, and concisely with clean Discord markdown. Seamlessly recall what the user told you earlier (their name, questions, preferences, previous messages) and continue the conversation naturally.';
+      
+      let aiReply = null;
+      if (imageUrl) {
+        aiReply = (typeof groqVisionAsk === 'function' ? await groqVisionAsk(imageUrl, dmText || 'Describe this image and answer any questions about it.') : null) ||
+                  await geminiDirectAsk(`[User shared an image: ${imageUrl}]\n${dmText}`, dmPrompt, '', null, message.author.id, authorName);
+      } else {
+        aiReply = await geminiDirectAsk(dmText, dmPrompt, '', null, message.author.id, authorName);
+      }
+
+      if (aiReply) {
+        // 💾 Persist conversation turn into user's DM memory
+        recordDMTurn(message.author.id, authorName, dmText || '[Image Shared]', aiReply);
+        await sendSafeMessage(message.channel, aiReply);
+      } else {
+        await message.channel.send("👋 Hello! I am **Krims Code AI**, your friendly Discord assistant! How can I help you today?").catch(() => {});
+      }
     } catch (dmErr) {
+      console.error('[DM Handler Error]', dmErr.message);
       await message.channel.send("👋 Hello! I am **Krims Code AI**, your friendly Discord assistant! How can I help you today?").catch(() => {});
     }
     return;
@@ -8344,9 +8429,9 @@ client.on('messageCreate', async (message) => {
 
       if (imageUrl) {
         aiReply = await groqVisionAsk(imageUrl, cleanPrompt || 'Describe this image and answer any questions about it.') ||
-                  await geminiDirectAsk(`[User shared an image: ${imageUrl}]\n${cleanPrompt}`, '', message.guild.name, message.guild.id);
+                  await geminiDirectAsk(`[User shared an image: ${imageUrl}]\n${cleanPrompt}`, '', message.guild.name, message.guild.id, message.author.id, message.member?.displayName || message.author.username);
       } else {
-        aiReply = await geminiDirectAsk(cleanPrompt, '', message.guild.name, message.guild.id);
+        aiReply = await geminiDirectAsk(cleanPrompt, '', message.guild.name, message.guild.id, message.author.id, message.member?.displayName || message.author.username);
       }
 
       if (!aiReply) {
@@ -9952,7 +10037,7 @@ client.on('messageCreate', async (message) => {
       // Retrieve conversation history
       // 🧠 Try Gemini 3.5 Flash-Lite / Groq direct key rotation first (with server memory)
       if (geminiClient || GROQ_KEYS_POOL.length > 0) {
-        responseText = await geminiDirectAsk(prompt, systemInstruction, message.guild?.name, message.guild?.id);
+        responseText = await geminiDirectAsk(prompt, systemInstruction, message.guild?.name, message.guild?.id, message.author.id, message.member?.displayName || message.author.username);
       }
 
       // Fallback to Krims SDK if direct Gemini unavailable or failed
@@ -9979,9 +10064,11 @@ client.on('messageCreate', async (message) => {
         }
         conversationHistory.set(message.channel.id, history);
 
-        // 💾 Record persistent server AI memory
+        // 💾 Record persistent server or DM memory
         if (message.guild?.id) {
           recordConversationTurn(message.guild.id, message.channel.id, message.author.id, message.member?.displayName || message.author.username, prompt, responseText);
+        } else {
+          recordDMTurn(message.author.id, message.author.displayName || message.author.username, prompt, responseText);
         }
 
         let replyText = `🤖 **Krims AI Response:**\n${responseText}`;

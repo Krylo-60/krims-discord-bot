@@ -48,7 +48,10 @@ import {
   getMemoryStats,
   resetServerMemory,
   learnServerFact,
-  buildMemoryStatusEmbed
+  buildMemoryStatusEmbed,
+  getDMMemoryStats,
+  clearDMMemory,
+  recordDMTurn
 } from '../features/aiMemoryEngine.mjs';
 
 import { getLocatorColor } from '../features/locatorBarEngine.mjs';
@@ -347,6 +350,49 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     // ──────────────────────────────────────────────────────────
     if (commandName === 'memory') {
       const action = interaction.options.getString('action') || 'view';
+
+      // 1-on-1 Direct Message (DM) Memory Mode
+      if (!interaction.guild) {
+        if (action === 'reset') {
+          const { deletedMessages } = clearDMMemory(interaction.user.id);
+          const resetEmbed = new EmbedBuilder()
+            .setTitle('🧹 Krims Code AI — DM Memory Reset')
+            .setDescription(`Your direct message conversation history with Krims Code AI has been permanently cleared.`)
+            .setColor(0xFF4500)
+            .addFields(
+              { name: '💬 Cleared Messages', value: `\`${deletedMessages || 0}\` messages forgotten`, inline: true },
+              { name: '✨ Status', value: 'Fresh slate activated! You can now start a new topic.', inline: false }
+            )
+            .setFooter({ text: 'Krims Code AI • 1-on-1 DM Memory Engine' })
+            .setTimestamp();
+          return await interaction.reply({ embeds: [resetEmbed] });
+        }
+
+        if (action === 'learn') {
+          const fact = interaction.options.getString('fact');
+          if (!fact || fact.trim().length === 0) {
+            return await interaction.reply({ content: '⚠️ Please provide a note or detail for Krims Code AI to remember in DMs!' });
+          }
+          recordDMTurn(interaction.user.id, interaction.user.displayName || interaction.user.username, `[Remember Note]: ${fact.trim()}`, `Got it! I will remember that: "${fact.trim()}".`);
+          return await interaction.reply({ content: `🧠 **Remembered in DM Memory!**\n> *"**${fact.trim()}**"*\n\nI'll remember this in our future conversations!` });
+        }
+
+        // Default 'view' for DMs
+        const dmStats = getDMMemoryStats(interaction.user.id);
+        const dmEmbed = new EmbedBuilder()
+          .setTitle('🧠 Krims Code AI — Your DM Memory Matrix')
+          .setDescription(`Krims Code AI maintains **continuous 1-on-1 neural conversation memory** in your direct messages.`)
+          .setColor(0x5865F2)
+          .addFields(
+            { name: '💬 Logged Messages', value: `**${dmStats.totalMessages}** messages`, inline: true },
+            { name: '📅 Conversation Started', value: dmStats.oldestDate ? `\`${dmStats.oldestDate.slice(0, 10)}\`` : 'Recently started', inline: true }
+          )
+          .setFooter({ text: 'Type /memory action:reset or !clearmemory to wipe memory' })
+          .setTimestamp();
+        return await interaction.reply({ embeds: [dmEmbed] });
+      }
+
+      // Server Mode
       const isAdmin = interaction.user.id === KRYLO_USER_ID ||
                       interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ||
                       interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild);
@@ -592,13 +638,22 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       }
 
       const isSkybase = interaction.guildId === '1549875778575929446';
+      const userName = interaction.user.displayName || interaction.user.username;
       let answer = null;
       if (context.geminiDirectAsk) {
         const mathInstruction = "\nCRITICAL DISCORD FORMATTING: Discord chat DOES NOT support LaTeX, KaTeX, or MathJax. NEVER output LaTeX syntax (such as \\boxed{}, \\times, \\frac{}, \\[, \\], or $$). Write all math, formulas, equations, numbers, and calculations in clean plain text and standard Discord markdown (e.g. 100^9 = 10^18 = 1,000,000,000,000,000,000). Never place formulas inside raw square brackets [ ]. Keep answers clean, conversational, and direct.";
         const sys = (isSkybase
           ? "You are Krims Code AI, official Discord assistant for Krylo's Skybase community and video production studio. Focus on community chat, YouTube video content, film crew auditions, and creator discussions. NEVER mention any Minecraft server, KSMP, or game IPs. Refer to the creator as Krylo."
-          : `You are Krims Code AI, official Discord assistant and versatile bot companion for ${interaction.guild?.name || "this community"}. Assist users with questions, commands, server utilities, and friendly conversation.`) + mathInstruction;
-        answer = await context.geminiDirectAsk(prompt, sys, interaction.guild?.name || "Community").catch(() => null);
+          : `You are Krims Code AI, official Discord assistant and versatile bot companion for ${interaction.guild?.name || "this user"}. Assist users with questions, commands, server utilities, and friendly conversation.`) + mathInstruction;
+        
+        answer = await context.geminiDirectAsk(
+          prompt, 
+          sys, 
+          interaction.guild?.name || "", 
+          interaction.guildId || null, 
+          interaction.user.id, 
+          userName
+        ).catch(() => null);
       }
 
       if (answer && context.sanitizeDiscordFormatting) {
@@ -609,6 +664,9 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         answer = isSkybase
           ? `🤖 **Krims Code AI:**\nI received your query: "*${prompt}*"\n\nWelcome to Krylo's Skybase! You can use \`/help\` for available commands or check <#1550902305568718948> for film crew auditions!`
           : `🤖 **Krims Code AI:**\nI received your query: "*${prompt}*"\n\nYou can use \`/help\` for a list of available commands in ${interaction.guild?.name || "this server"}!`;
+      } else if (!interaction.guildId) {
+        // Record 1-on-1 DM memory for slash commands run in DMs
+        recordDMTurn(interaction.user.id, userName, prompt, answer);
       }
 
       return await interaction.editReply({ content: answer });

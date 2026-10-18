@@ -31,6 +31,18 @@ try {
     );
 
     CREATE INDEX IF NOT EXISTS idx_ai_facts_guild ON server_ai_facts (guild_id);
+
+    CREATE TABLE IF NOT EXISTS user_dm_memory (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      user_name TEXT,
+      role TEXT NOT NULL, -- 'user' or 'model'
+      content TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_dm_mem_user ON user_dm_memory (user_id);
+    CREATE INDEX IF NOT EXISTS idx_dm_mem_created ON user_dm_memory (created_at);
   `);
 } catch (e) {
   console.warn('[AI Memory DB Init]', e.message);
@@ -300,3 +312,129 @@ export function buildMemoryStatusEmbed(guild, stats) {
 
   return { embeds: [embed], components: [row] };
 }
+
+// ──────────────────────────────────────────────────────────
+// 💬 DIRECT MESSAGE (DM) AI MEMORY ENGINE
+// ──────────────────────────────────────────────────────────
+
+/**
+ * Record a 1-on-1 Direct Message (DM) turn (User prompt + AI reply)
+ */
+export function recordDMTurn(userId, userName, prompt, reply) {
+  if (!userId || !prompt || !reply) return;
+  try {
+    const insert = db.prepare(`
+      INSERT INTO user_dm_memory (user_id, user_name, role, content)
+      VALUES (?, ?, ?, ?)
+    `);
+
+    // Insert user prompt
+    insert.run(userId, userName || 'User', 'user', prompt.trim());
+    // Insert AI reply
+    insert.run(userId, 'Krims Code AI', 'model', reply.trim());
+
+    // Prune old history: retain latest 40 messages (20 conversation turns) per user
+    db.prepare(`
+      DELETE FROM user_dm_memory 
+      WHERE id NOT IN (
+        SELECT id FROM user_dm_memory 
+        WHERE user_id = ? 
+        ORDER BY id DESC 
+        LIMIT 40
+      ) AND user_id = ?
+    `).run(userId, userId);
+
+  } catch (err) {
+    console.warn('[DM Memory Record Error]', err.message);
+  }
+}
+
+/**
+ * Get recent DM conversation memory formatted chronologically for LLMs
+ */
+export function getRecentDMMemory(userId, limit = 10) {
+  if (!userId) return [];
+  try {
+    const rows = db.prepare(`
+      SELECT role, user_name, content, created_at 
+      FROM user_dm_memory 
+      WHERE user_id = ? 
+      ORDER BY id DESC 
+      LIMIT ?
+    `).all(userId, limit);
+
+    // Return in chronological order
+    return rows.reverse();
+  } catch (err) {
+    console.warn('[DM Memory Fetch Error]', err.message);
+    return [];
+  }
+}
+
+/**
+ * Clear DM memory for a user
+ */
+export function clearDMMemory(userId) {
+  if (!userId) return { deletedMessages: 0 };
+  try {
+    const countRow = db.prepare('SELECT COUNT(*) as count FROM user_dm_memory WHERE user_id = ?').get(userId);
+    const count = countRow?.count || 0;
+    db.prepare('DELETE FROM user_dm_memory WHERE user_id = ?').run(userId);
+    console.log(`[DM Memory] 🧹 Cleared ${count} DM messages for user ${userId}`);
+    return { deletedMessages: count };
+  } catch (err) {
+    console.error('[DM Memory Clear Error]', err.message);
+    return { deletedMessages: 0, error: err.message };
+  }
+}
+
+/**
+ * Get statistics for a user's DM memory
+ */
+export function getDMMemoryStats(userId) {
+  if (!userId) return { totalMessages: 0, oldestDate: null, newestDate: null };
+  try {
+    const row = db.prepare('SELECT COUNT(*) as count, MIN(created_at) as oldest, MAX(created_at) as newest FROM user_dm_memory WHERE user_id = ?').get(userId);
+    return {
+      totalMessages: row?.count || 0,
+      oldestDate: row?.oldest || null,
+      newestDate: row?.newest || null
+    };
+  } catch (err) {
+    console.warn('[DM Memory Stats Error]', err.message);
+    return { totalMessages: 0, oldestDate: null, newestDate: null };
+  }
+}
+
+/**
+ * Build rich 1-on-1 DM memory context for LLMs
+ */
+export function buildDMMemoryContext(userId, userName = '') {
+  if (!userId) return '';
+  const recentLogs = getRecentDMMemory(userId, 10);
+  if (recentLogs.length === 0) return '';
+
+  let memoryContext = `\n\n══════════════════════════════════════════════════════════════\n`;
+  memoryContext += `🧠 [1-ON-1 DIRECT MESSAGE MEMORY WITH @${userName || 'User'}]\n`;
+  memoryContext += `You are conversing in direct messages (DMs) with ${userName || 'this user'}.\n`;
+  memoryContext += `You have continuous, persistent memory of previous turns from this conversation.\n`;
+  memoryContext += `\n💬 Recent DM Dialogue History (Chronological):\n`;
+
+  for (const msg of recentLogs) {
+    if (msg.role === 'user') {
+      memoryContext += `• [User ${userName || msg.user_name}]: "${msg.content}"\n`;
+    } else {
+      memoryContext += `• [Krims Code AI]: "${msg.content}"\n`;
+    }
+  }
+
+  memoryContext += `\nRules for DM Memory Usage:\n`;
+  memoryContext += `1. Actively remember what the user told you (e.g., their name, details, previous questions, calculations, preferences).\n`;
+  memoryContext += `2. If the user refers to previous messages (e.g. "what did I say earlier?", "what was the calculation?", "do you remember my name?"), answer directly using the history above.\n`;
+  memoryContext += `3. Maintain a friendly, supportive, concise, and natural conversational flow.\n`;
+  memoryContext += `4. NEVER say you have no memory or cannot remember past DM messages; you have full access to this conversation's past history.\n`;
+  memoryContext += `══════════════════════════════════════════════════════════════\n`;
+
+  return memoryContext;
+}
+
