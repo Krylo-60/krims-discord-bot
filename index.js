@@ -11805,6 +11805,87 @@ setTimeout(checkKryloYouTubeUploads, 15000);
 client.on('guildCreate', async (guild) => {
   console.log(`[+] Krims Code AI joined server: "${guild.name}" (${guild.id}) - Members: ${guild.memberCount}`);
   updateBotPresence();
+
+  const SUPPORT_INVITE = 'https://discord.gg/sYaVJtXgQb';
+  const avatarUrl = client.user.displayAvatarURL({ extension: 'png', size: 512 });
+
+  // 1. Direct DM Invitation to the Server Owner who invited the bot
+  try {
+    const owner = await client.users.fetch(guild.ownerId).catch(() => null);
+    if (owner && !owner.bot) {
+      const ownerInviteEmbed = new EmbedBuilder()
+        .setTitle('🎉 Welcome to the Krims Bot Ecosystem!')
+        .setDescription(
+          `Hey **${owner.username}**! Thank you for adding **Krims Code AI** to **${guild.name}**! 🚀\n\n` +
+          `We invite you to join our official **Krims Code • Support & Updates** headquarters:\n\n` +
+          `• **🌟 Claim Certified Server Owner Role:** Get recognized with an exclusive badge.\n` +
+          `• **⚡ 24/7 Priority Support:** Instant 1-on-1 private tickets with developers.\n` +
+          `• **🚀 Early Beta Drops:** First access to our next major engine releases.\n` +
+          `• **💻 Showcase Your Server:** Promote **${guild.name}** in our server showcase directory!\n\n` +
+          `Click below to join:`
+        )
+        .setColor(0x00F2FF)
+        .setThumbnail(avatarUrl)
+        .setFooter({ text: 'Krims Code Ecosystem • Dedicated Support Network' })
+        .setTimestamp();
+
+      const btnRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setLabel('Join Krims Support Server')
+          .setURL(SUPPORT_INVITE)
+          .setStyle(ButtonStyle.Link)
+          .setEmoji('👑')
+      );
+
+      await owner.send({ embeds: [ownerInviteEmbed], components: [btnRow] }).catch(() => {});
+      console.log(`[GuildCreate] ✅ Sent VIP invitation DM to Server Owner: ${owner.tag} for "${guild.name}"`);
+    }
+  } catch (ownerErr) {
+    console.warn(`[GuildCreate] Notice on owner DM:`, ownerErr.message);
+  }
+
+  // 2. Post Welcome & Introduction Embed in the New Server
+  try {
+    const targetChannel = guild.systemChannel ||
+      guild.channels.cache.find(c => c.isTextBased() && (c.name.includes('general') || c.name.includes('bot') || c.name.includes('chat'))) ||
+      guild.channels.cache.find(c => c.isTextBased() && c.permissionsFor(guild.members.me)?.has(PermissionFlagsBits.SendMessages));
+
+    if (targetChannel) {
+      const introEmbed = new EmbedBuilder()
+        .setTitle('⚡ Krims Code AI — Fully Operational!')
+        .setDescription(
+          `Hello **${guild.name}**! Thank you for inviting **Krims Code AI**! 🤖✨\n\n` +
+          `I am your all-in-one assistant powered by persistent AI memory, RPG economy, moderation, cross-server counting, and custom gaming tools.\n\n` +
+          `**🚀 Getting Started:**\n` +
+          `• Type \`/help\` to browse over **100+ commands**\n` +
+          `• Type \`/ask\` to converse with our intelligent AI core\n` +
+          `• Type \`/daily\` to claim your free daily rewards\n\n` +
+          `Need help, custom Minecraft SMP integration, or want to report a bug? Join our official support headquarters below!`
+        )
+        .setColor(0x00F2FF)
+        .setThumbnail(avatarUrl)
+        .setFooter({ text: 'Krims Bot v5.3 Enterprise' })
+        .setTimestamp();
+
+      const introRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setLabel('Official Support Server')
+          .setURL(SUPPORT_INVITE)
+          .setStyle(ButtonStyle.Link)
+          .setEmoji('🎫'),
+        new ButtonBuilder()
+          .setLabel('Web Dashboard')
+          .setURL('https://krims-bot-dashboard.vercel.app')
+          .setStyle(ButtonStyle.Link)
+          .setEmoji('🌐')
+      );
+
+      await targetChannel.send({ embeds: [introEmbed], components: [introRow] }).catch(() => {});
+      console.log(`[GuildCreate] ✅ Posted Welcome Dispatch in #${targetChannel.name} of "${guild.name}"`);
+    }
+  } catch (chErr) {
+    console.warn(`[GuildCreate] Notice on channel intro:`, chErr.message);
+  }
 });
 
 // ═══════════════════════════════════════════════════════════
