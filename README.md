@@ -58,10 +58,19 @@
 
 ---
 
+### 🌐 6. Real-Time Web Status Dashboard & Telemetry
+* **Live Web Dashboard:** Real-time online/offline indicators, gateway WebSocket latency, uptime clock, and connected guild counts available 24/7 at [https://krims-discord-bot-d57m.onrender.com/](https://krims-discord-bot-d57m.onrender.com/).
+* **JSON Telemetry API:** Live JSON feed at `/api/status` for external uptime monitoring services.
+* **Top.gg Vote Booster Engine:** Automated webhook processor at `/api/topgg/webhook` awarding 2.0x XP multipliers, streak bonuses, and economy rewards for voter upvotes.
+* **Message & XP Leaderboard Hub:** Dual-mode interactive community leaderboards (`/leaderboard`) tracking total message activity and earned XP with one-click toggles.
+
+---
+
 ## 🚀 Deployment & Operations
 
 ### Cloud Runtime
 Optimized for 24/7 continuous operation on [Render](https://render.com) Web Services and Linux containers.
+* **Live Status Dashboard:** [https://krims-discord-bot-d57m.onrender.com/](https://krims-discord-bot-d57m.onrender.com/)
 * **Runtime:** Node.js v20+ with Python 3 + Pillow asset rendering
 * **Databases:** SQLite (WAL mode) + Neon Serverless Postgres + FalixNodes MySQL
 * **Keep-Alive:** Internal 5-minute health check pinger preventing container hibernation
