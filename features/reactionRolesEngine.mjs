@@ -36,6 +36,25 @@ export const COLOR_ROLES_MAP = {
   '🤍': { id: '1559251881577152635', name: '🤍 Ghost White' }
 };
 
+export const SUPPORT_REACTION_ROLE_MAP = {
+  '📢': { id: '1561181297899081758', name: 'Bot Updates & Drops' },
+  '🚀': { id: '1561181299010568194', name: 'Beta Announcements' },
+  '🌐': { id: '1561181300109484052', name: 'Uptime & Maintenance Alerts' },
+  '🎮': { id: '1561181301292277791', name: 'SMP / Minecraft Owner' },
+  '🤖': { id: '1561181303078916166', name: 'Community Admin' },
+  '💻': { id: '1561181304115044424', name: 'Bot Developer' }
+};
+
+export const SUPPORT_COLOR_ROLES_MAP = {
+  '⚡': { id: '1561181305264410716', name: '⚡ Electric Cyan' },
+  '🟣': { id: '1561181305931178210', name: '🟣 Mystic Purple' },
+  '🟡': { id: '1561181307243991073', name: '🟡 Neon Gold' },
+  '🔴': { id: '1561181308292563097', name: '🔴 Crimson Red' },
+  '🟢': { id: '1561181309890732163', name: '🟢 Emerald Green' },
+  '🌸': { id: '1561181311044026458', name: '🌸 Hot Pink' },
+  '🤍': { id: '1561181312176365701', name: '🤍 Ghost White' }
+};
+
 /**
  * Deploys the notification and timezone reaction roles panel
  */
@@ -135,16 +154,21 @@ export async function handleReactionRoleAdd(reaction, user) {
   const emojiName = reaction.emoji.name;
   const msgId = reaction.message.id;
   const embedTitle = reaction.message.embeds?.[0]?.title || '';
+  const guildId = reaction.message.guild.id;
+
+  const isSupportGuild = guildId === '1561174283294609479';
+  const activeColorMap = isSupportGuild ? SUPPORT_COLOR_ROLES_MAP : COLOR_ROLES_MAP;
+  const activeRoleMap = isSupportGuild ? SUPPORT_REACTION_ROLE_MAP : CLAN_REACTION_ROLE_MAP;
 
   // 1. Color Role Check
-  const colorConfig = COLOR_ROLES_MAP[emojiName];
+  const colorConfig = activeColorMap[emojiName];
   if (colorConfig) {
     let isColorPanel = false;
     try {
       const row = db.prepare('SELECT * FROM reaction_role_panels WHERE message_id = ?').get(msgId);
       if (row && row.panel_type === 'color_roles') isColorPanel = true;
     } catch (_) {}
-    if (!isColorPanel && (embedTitle.includes('COLOR') || embedTitle.includes('COLOR ROLES'))) {
+    if (!isColorPanel && (embedTitle.includes('COLOR') || embedTitle.includes('COLOR ROLES') || embedTitle.includes('ACCENT COLOR'))) {
       isColorPanel = true;
     }
 
@@ -153,13 +177,13 @@ export async function handleReactionRoleAdd(reaction, user) {
         const member = await reaction.message.guild.members.fetch(user.id);
         if (member) {
           // Remove any previously equipped color roles so member has exactly one
-          const allColorIds = Object.values(COLOR_ROLES_MAP).map(c => c.id);
+          const allColorIds = Object.values(activeColorMap).map(c => c.id);
           const toRemove = member.roles.cache.filter(r => allColorIds.includes(r.id) && r.id !== colorConfig.id);
           for (const [rId] of toRemove) {
             await member.roles.remove(rId).catch(() => {});
           }
           await member.roles.add(colorConfig.id);
-          console.log(`[ColorRoles] Equipped ${colorConfig.name} on ${member.displayName}`);
+          console.log(`[ColorRoles] Equipped ${colorConfig.name} on ${member.displayName} in ${reaction.message.guild.name}`);
           await user.send(`🎨 You equipped **${colorConfig.name}** in **${reaction.message.guild.name}**!`).catch(() => {});
           return true;
         }
@@ -169,35 +193,37 @@ export async function handleReactionRoleAdd(reaction, user) {
     }
   }
 
-  // 2. Notification & Region Role Check
-  const roleConfig = CLAN_REACTION_ROLE_MAP[emojiName];
+  // 2. Notification & Community / Region Role Check
+  const roleConfig = activeRoleMap[emojiName];
   if (roleConfig) {
-    let isClanPanel = false;
+    let isRolePanel = false;
     try {
       const row = db.prepare('SELECT * FROM reaction_role_panels WHERE message_id = ?').get(msgId);
-      if (row && row.panel_type === 'clan_roles') isClanPanel = true;
+      if (row && (row.panel_type === 'clan_roles' || row.panel_type === 'support_roles')) isRolePanel = true;
     } catch (_) {}
-    if (!isClanPanel && (embedTitle.includes('NOTIFICATION') || embedTitle.includes('REACTION ROLES'))) {
-      isClanPanel = true;
+    if (!isRolePanel && (embedTitle.includes('NOTIFICATION') || embedTitle.includes('REACTION ROLES') || embedTitle.includes('COMMUNITY ROLES'))) {
+      isRolePanel = true;
     }
 
-    if (isClanPanel) {
+    if (isRolePanel) {
       try {
         const member = await reaction.message.guild.members.fetch(user.id);
         if (member) {
-          // Region Roles: enforce maximum 1 region per member
-          const regionRoleIds = ['1557877149975707648', '1557877151309500558', '1557877152454545499'];
-          if (regionRoleIds.includes(roleConfig.id)) {
-            for (const rId of regionRoleIds) {
-              if (rId !== roleConfig.id && member.roles.cache.has(rId)) {
-                await member.roles.remove(rId).catch(() => {});
+          // Region Roles in Clan server: enforce maximum 1 region per member
+          if (!isSupportGuild) {
+            const regionRoleIds = ['1557877149975707648', '1557877151309500558', '1557877152454545499'];
+            if (regionRoleIds.includes(roleConfig.id)) {
+              for (const rId of regionRoleIds) {
+                if (rId !== roleConfig.id && member.roles.cache.has(rId)) {
+                  await member.roles.remove(rId).catch(() => {});
+                }
               }
             }
           }
 
           if (!member.roles.cache.has(roleConfig.id)) {
             await member.roles.add(roleConfig.id);
-            console.log(`[ReactionRoles] Added ${roleConfig.name} to ${member.displayName}`);
+            console.log(`[ReactionRoles] Added ${roleConfig.name} to ${member.displayName} in ${reaction.message.guild.name}`);
             await user.send(`✅ You received the **${roleConfig.name}** role in **${reaction.message.guild.name}**!`).catch(() => {});
             return true;
           }
@@ -211,25 +237,27 @@ export async function handleReactionRoleAdd(reaction, user) {
   return false;
 }
 
-/**
- * Handles emoji reaction removals for roles
- */
 export async function handleReactionRoleRemove(reaction, user) {
   if (user.bot || !reaction.message.guild) return false;
 
   const emojiName = reaction.emoji.name;
   const msgId = reaction.message.id;
   const embedTitle = reaction.message.embeds?.[0]?.title || '';
+  const guildId = reaction.message.guild.id;
+
+  const isSupportGuild = guildId === '1561174283294609479';
+  const activeColorMap = isSupportGuild ? SUPPORT_COLOR_ROLES_MAP : COLOR_ROLES_MAP;
+  const activeRoleMap = isSupportGuild ? SUPPORT_REACTION_ROLE_MAP : CLAN_REACTION_ROLE_MAP;
 
   // 1. Color Role Removal
-  const colorConfig = COLOR_ROLES_MAP[emojiName];
+  const colorConfig = activeColorMap[emojiName];
   if (colorConfig) {
     let isColorPanel = false;
     try {
       const row = db.prepare('SELECT * FROM reaction_role_panels WHERE message_id = ?').get(msgId);
       if (row && row.panel_type === 'color_roles') isColorPanel = true;
     } catch (_) {}
-    if (!isColorPanel && (embedTitle.includes('COLOR') || embedTitle.includes('COLOR ROLES'))) {
+    if (!isColorPanel && (embedTitle.includes('COLOR') || embedTitle.includes('COLOR ROLES') || embedTitle.includes('ACCENT COLOR'))) {
       isColorPanel = true;
     }
 
@@ -238,7 +266,7 @@ export async function handleReactionRoleRemove(reaction, user) {
         const member = await reaction.message.guild.members.fetch(user.id);
         if (member && member.roles.cache.has(colorConfig.id)) {
           await member.roles.remove(colorConfig.id);
-          console.log(`[ColorRoles] Removed ${colorConfig.name} from ${member.displayName}`);
+          console.log(`[ColorRoles] Removed ${colorConfig.name} from ${member.displayName} in ${reaction.message.guild.name}`);
           await user.send(`⚪ Removed **${colorConfig.name}** in **${reaction.message.guild.name}**.`).catch(() => {});
           return true;
         }
@@ -248,24 +276,24 @@ export async function handleReactionRoleRemove(reaction, user) {
     }
   }
 
-  // 2. Notification & Region Role Removal
-  const roleConfig = CLAN_REACTION_ROLE_MAP[emojiName];
+  // 2. Notification & Community / Region Role Removal
+  const roleConfig = activeRoleMap[emojiName];
   if (roleConfig) {
-    let isClanPanel = false;
+    let isRolePanel = false;
     try {
       const row = db.prepare('SELECT * FROM reaction_role_panels WHERE message_id = ?').get(msgId);
-      if (row && row.panel_type === 'clan_roles') isClanPanel = true;
+      if (row && (row.panel_type === 'clan_roles' || row.panel_type === 'support_roles')) isRolePanel = true;
     } catch (_) {}
-    if (!isClanPanel && (embedTitle.includes('NOTIFICATION') || embedTitle.includes('REACTION ROLES'))) {
-      isClanPanel = true;
+    if (!isRolePanel && (embedTitle.includes('NOTIFICATION') || embedTitle.includes('REACTION ROLES') || embedTitle.includes('COMMUNITY ROLES'))) {
+      isRolePanel = true;
     }
 
-    if (isClanPanel) {
+    if (isRolePanel) {
       try {
         const member = await reaction.message.guild.members.fetch(user.id);
         if (member && member.roles.cache.has(roleConfig.id)) {
           await member.roles.remove(roleConfig.id);
-          console.log(`[ReactionRoles] Removed ${roleConfig.name} from ${member.displayName}`);
+          console.log(`[ReactionRoles] Removed ${roleConfig.name} from ${member.displayName} in ${reaction.message.guild.name}`);
           await user.send(`❌ Removed the **${roleConfig.name}** role in **${reaction.message.guild.name}**.`).catch(() => {});
           return true;
         }

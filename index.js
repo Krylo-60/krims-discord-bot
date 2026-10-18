@@ -10057,6 +10057,37 @@ client.on('guildMemberAdd', async (member) => {
     return;
   }
 
+  // 🌐 Krims Code Support & Updates Hub
+  if (member.guild.id === '1561174283294609479') {
+    try {
+      const commRole = member.guild.roles.cache.find(r => r.name.includes('Community Member'));
+      if (commRole && !member.roles.cache.has(commRole.id)) {
+        await member.roles.add(commRole);
+        console.log(`[Support Welcome] Auto-assigned 👥 Community Member to ${member.user.username}`);
+      }
+      const welcomeCh = member.guild.channels.cache.find(c => c.name.includes('welcome'));
+      if (welcomeCh) {
+        const joinEmbed = new EmbedBuilder()
+          .setColor(0x00F2FF)
+          .setTitle('👋 Welcome to Krims Code Support & Updates!')
+          .setDescription(
+            `Welcome <@${member.id}> to our official headquarters!\n\n` +
+            `• 📜 Review community guidelines in <#1561175617830129734>\n` +
+            `• 🏷️ Choose your notification pings & chat color in <#1561181313367412766>\n` +
+            `• 🎫 Open a support ticket or request features in <#1561175618589167738>\n` +
+            `• 💬 Say hello in <#1561175619943792680>!`
+          )
+          .setThumbnail(member.user.displayAvatarURL({ extension: 'png', size: 256 }))
+          .setFooter({ text: `Member #${member.guild.memberCount}` })
+          .setTimestamp();
+        await welcomeCh.send({ content: `👋 Welcome <@${member.id}>!`, embeds: [joinEmbed] });
+      }
+    } catch (err) {
+      console.warn('[Support Welcome Error]:', err.message);
+    }
+    return;
+  }
+
   // Works across ALL Krylo guilds
   if (!member.guild.name.toLowerCase().includes('krylo')) return;
 
