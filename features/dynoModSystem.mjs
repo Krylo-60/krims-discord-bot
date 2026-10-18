@@ -43,7 +43,7 @@ export async function handleWarn(interaction) {
 
   const embed = new EmbedBuilder()
     .setColor(0xFFB020)
-    .setTitle('⚠️ MEMBER WARNED (Dyno Protocol)')
+    .setTitle('⚠️ MEMBER WARNED (Krims Protocol)')
     .addFields(
       { name: 'Target User', value: `<@${targetUser.id}> (\`${targetUser.id}\`)`, inline: true },
       { name: 'Moderator', value: `<@${interaction.user.id}>`, inline: true },
@@ -168,7 +168,7 @@ export async function handleBan(interaction) {
 
   const embed = new EmbedBuilder()
     .setColor(0xFF0000)
-    .setTitle('🔨 MEMBER BANNED (Dyno Engine)')
+    .setTitle('🔨 MEMBER BANNED (Krims Engine)')
     .addFields(
       { name: 'Banned User', value: `${targetUser.tag} (\`${targetUser.id}\`)`, inline: true },
       { name: 'Moderator', value: `<@${interaction.user.id}>`, inline: true },
@@ -427,7 +427,7 @@ export function handleRemindMe(interaction) {
         .setColor(0xFFD700)
         .setTitle('⏰ REMINDER NOTIFICATION')
         .setDescription(`Hey <@${user.id}>! You asked me to remind you:\n\n**${text}**`)
-        .setFooter({ text: 'Dyno-Style Reminder System' })
+        .setFooter({ text: 'Krims Autonomous Reminder Engine' })
         .setTimestamp();
       await user.send({ embeds: [embed] });
     } catch (e) {}

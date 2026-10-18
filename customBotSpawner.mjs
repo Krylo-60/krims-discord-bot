@@ -168,7 +168,7 @@ export class MultiBotManager {
       // Only respond to messages in the registered guild (or all if multi-server)
       if (guildId && message.guild.id !== guildId) return;
 
-      // A. MEE6-Style Leveling XP
+      // A. Krims-Style Leveling XP
       try {
         const xpEarned = Math.floor(Math.random() * 10) + 15;
         const xpResult = addXp(message.author.id, xpEarned);
@@ -237,8 +237,8 @@ export class MultiBotManager {
           .setDescription(
             `This bot is a custom-branded instance running on the **Krims Code AI Multi-Bot Engine**!\n\n` +
             `**Features Included:**\n` +
-            `• 🧠 **Google Gemini AI Chat:** Intelligent conversations in any channel.\n` +
-            `• ⭐ **MEE6 Leveling & XP:** Automated chat progression and rank cards.\n` +
+            `• 🧠 **Krims Neural AI Chat:** Intelligent conversations in any channel.\n` +
+            `• ⭐ **Krims Leveling & XP:** Automated chat progression and rank cards.\n` +
             `• 🛡️ **Auto-Moderation:** Anti-spam, safety filters, and warning logs.\n` +
             `• ⚡ **Custom Commands & Sticky Messages**\n\n` +
             `**Want your own custom bot for your server?**\n` +

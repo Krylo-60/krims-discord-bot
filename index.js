@@ -3837,7 +3837,7 @@ client.on('interactionCreate', async (interaction) => {
           .setDescription(
             `Your custom bot **${spawnResult.botUser.username}** is now active and powered by the **Krims Code AI Brain**!\n\n` +
             `• 🤖 **Bot User:** \`${spawnResult.botUser.username}#${spawnResult.botUser.discriminator || '0'}\`\n` +
-            `• 🧠 **AI Brain:** Google Gemini 3.5 Flash-Lite Active\n` +
+            `• 🧠 **AI Brain:** Krims Neural 3.5 Active\n` +
             `• 🛡️ **AutoMod & Leveling:** Enabled\n` +
             `• 🏷️ **Tier:** **Founder 100 Free**\n\n` +
             `👉 **Next Step:** Click the button below to invite your custom bot to your server!`
@@ -4358,7 +4358,7 @@ client.on('interactionCreate', async (interaction) => {
       .setColor('#5865F2')
       .setTitle('🤖 Krims Code AI — Custom Bot Personalizer')
       .setDescription(
-        `Deploy a custom bot with your own **name, avatar, and server identity**, powered by the **Krims Code AI & Gemini Brain**!\n\n` +
+        `Deploy a custom bot with your own **name, avatar, and server identity**, powered by the **Krims Code AI Neural Brain**!\n\n` +
         `🚀 **Founder Launch:** First 100 server owners get **100% FREE Custom Bots Forever**!\n\n` +
         `**Choose an option below:**\n` +
         `• **Option 1: Deploy Custom Bot (BYOT):** Paste your bot token and we'll power it.\n` +
@@ -4393,8 +4393,8 @@ client.on('interactionCreate', async (interaction) => {
         `This bot is powered by the **Krims Code AI Multi-Bot Engine**, developed by **Krylo**.\n\n` +
         `**Core Features:**\n` +
         `• 🧠 **Krims Neural AI Engine:** High-speed real-time conversational chat.\n` +
-        `• ⭐ **MEE6-Grade Leveling:** Custom rank cards, XP tracking, leaderboards.\n` +
-        `• 🛡️ **Dyno-Style AutoMod:** Anti-spam, mute, ban, warn logs.\n` +
+        `• ⭐ **Krims Leveling & XP Engine:** Custom rank cards, XP tracking, leaderboards.\n` +
+        `• 🛡️ **Autonomous AutoMod & Security:** Anti-spam, mute, ban, warn logs.\n` +
         `• ⚡ **Custom Commands, Tickets & Sticky Messages**\n\n` +
         `**Want your own custom bot for your Discord server?**\n` +
         `The first 100 server owners get a **FREE Custom Bot** forever!`
@@ -4415,7 +4415,7 @@ client.on('interactionCreate', async (interaction) => {
       .setTitle('💎 Krims Code AI — Tier Ladder & Pricing')
       .setDescription('Scale your Discord community with custom bots and AI brains:')
       .addFields(
-        { name: '🎁 Founder 100 ($0 / forever)', value: '• 1 Custom Bot\n• Full Neural AI Brain\n• MEE6 Levels & Dyno Mod\n• *Limited to first 100 owners!*', inline: true },
+        { name: '🎁 Founder 100 ($0 / forever)', value: '• 1 Custom Bot\n• Full Neural AI Brain\n• Krims Levels & Moderation Suite\n• *Limited to first 100 owners!*', inline: true },
         { name: '⭐ Pro ($4.99 / mo)', value: '• 1 Custom Automated Bot\n• Custom AI Persona\n• Unlimited Neural AI Chats\n• Custom Brand Colors', inline: true },
         { name: '🚀 Premium ($14.99 / mo)', value: '• Up to 5 Custom Bots\n• Cross-Platform Database Sync\n• VIP 24/7 Priority Uptime\n• Custom Tickets', inline: true },
         { name: '🏢 Enterprise (Custom Quote)', value: '• 10 to 1,000+ Custom Bots\n• Dedicated Node.js Cluster\n• Optional White-Labeling\n• Contact Support to Quote', inline: false }
@@ -8531,7 +8531,7 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // A. Dyno AFK Removal on user return
+  // A. Krims AFK Removal on user return
   if (!message.author.bot && afkUsers.has(message.author.id)) {
     const afkData = afkUsers.get(message.author.id);
     afkUsers.delete(message.author.id);
@@ -8539,7 +8539,7 @@ client.on('messageCreate', async (message) => {
     message.reply(`👋 Welcome back **${message.author.username}**! I removed your AFK status (You were away for ${durationMin}m).`).catch(() => {});
   }
 
-  // B. Dyno AFK Mention Alert
+  // B. Krims AFK Mention Alert
   if (!message.author.bot && message.mentions.users.size > 0) {
     message.mentions.users.forEach((user) => {
       if (afkUsers.has(user.id)) {
@@ -8550,7 +8550,7 @@ client.on('messageCreate', async (message) => {
     });
   }
 
-  // C. MEE6 Leveling & XP Gain
+  // C. Krims Leveling & XP Gain
   if (!message.author.bot) {
     await handleMessageXp(message, client);
   }
@@ -9228,7 +9228,7 @@ client.on('messageCreate', async (message) => {
   // Clean up old message IDs after 30 seconds to prevent memory leak
   setTimeout(() => processedMessages.delete(message.id), 30000);
 
-  // Legacy message XP disabled to prevent duplicate level up messages (handled by official MEE6 engine at line 7116)
+  // Legacy message XP disabled to prevent duplicate level up messages (handled by official Krims engine)
   // await handleMessageXP(message);
 
   // Auto-Format Suggestions Channel (Anonymous Public + Staff Audit Log)

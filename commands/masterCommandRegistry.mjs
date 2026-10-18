@@ -218,7 +218,7 @@ export const masterCommandBuilders = [
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   // ──────────────────────────────────────────────────────────
-  // 4. 🛡️ DYNO MODERATION & SECURITY SUITE
+  // 4. 🛡️ ADVANCED AUTONOMOUS MODERATION & SECURITY SUITE
   // ──────────────────────────────────────────────────────────
   new SlashCommandBuilder()
     .setName('warn')
@@ -430,7 +430,7 @@ export const masterCommandBuilders = [
     .addIntegerOption(opt => opt.setName('wager').setDescription('KC wager amount (min 50)').setRequired(false)),
 
   // ──────────────────────────────────────────────────────────
-  // 7. 💰 ECONOMY & MEE6 PROGRESSION
+  // 7. 💰 ECONOMY & KRIMS LEVELING PROGRESSION
   // ──────────────────────────────────────────────────────────
   new SlashCommandBuilder()
     .setName('rank')

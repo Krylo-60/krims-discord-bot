@@ -557,10 +557,10 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           `**Krims Code AI** is the complete all-in-one AI, gaming, moderation, and community assistant created by the Krylo Development Team.\n\n` +
           `🌟 **Core Highlights & Capabilities:**\n` +
           `• **🧠 Persistent Neural Memory:** Remembers conversations, facts, and server lore across bot restarts (\`/memory\`, \`/ask\`).\n` +
-          `• **🛡️ Dyno-Grade Moderation Suite:** Automated filters, timeouts, kicks, bans, and lightning bulk-purges (\`/warn\`, \`/mute\`, \`/clear\`).\n` +
+          `• **🛡️ Advanced Autonomous Moderation Suite:** Automated filters, timeouts, kicks, bans, and lightning bulk-purges (\`/warn\`, \`/mute\`, \`/clear\`).\n` +
           `• **🔢 Cross-Server Counting Arena:** Compete with servers across our network for the longest unbroken count (\`/counting\`).\n` +
           `• **💰 Full RPG Economy & Clans:** Mining, fishing, duels, casino, clans, and stores (\`/daily\`, \`/clan\`, \`/shop\`, \`/mine\`).\n` +
-          `• **⭐ MEE6 XP & Voice Leveling:** Chat and voice activity tracking with custom canvas rank cards (\`/rank\`, \`/leaderboard\`).\n` +
+          `• **⭐ Krims XP & Voice Leveling:** Chat and voice activity tracking with custom canvas rank cards (\`/rank\`, \`/leaderboard\`).\n` +
           `• **🛠️ All-In-One Utilities:** Instant translation, formula calculation, worldwide weather & reminders (\`/translate\`, \`/calc\`, \`/weather\`, \`/remind\`).\n` +
           `• **📡 Minecraft SMP Integration:** Real-time server telemetry, player locator radars, and webstore integration (\`/ip\`, \`/status\`, \`/store\`).\n\n` +
           `❤️ **Love Krims Code? Support Us:**\n` +
@@ -587,7 +587,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           `🆓 **Founder Tier — 100% FREE FOREVER**\n` +
           `• 1 Custom Bot per server\n` +
           `• Full Neural AI Chat & Moderation\n` +
-          `• Complete Economy, MEE6 Levels & Dyno Suite\n\n` +
+          `• Complete Economy, Krims XP Levels & Moderation Suite\n\n` +
           `⭐ **Pro Tier — $4.99 / month**\n` +
           `• Up to 3 Custom Bots\n` +
           `• Custom AI System Personality & Voice AI\n` +
@@ -1318,7 +1318,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     }
 
     // ──────────────────────────────────────────────────────────
-    // 6. 🛡️ DYNO MODERATION & SECURITY SUITE
+    // 6. 🛡️ ADVANCED AUTONOMOUS MODERATION & SECURITY SUITE
     // ──────────────────────────────────────────────────────────
     if (commandName === 'warn') {
       const isStaff = interaction.user.id === KRYLO_USER_ID || interaction.member?.permissions?.has(PermissionFlagsBits.ModerateMembers);
@@ -1633,7 +1633,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     }
 
     // ──────────────────────────────────────────────────────────
-    // 9. 💰 ECONOMY & MEE6 PROGRESSION
+    // 9. 💰 ECONOMY & KRIMS LEVELING PROGRESSION
     // ──────────────────────────────────────────────────────────
     if (commandName === 'rank' || commandName === 'level') {
       return await handleRankCommand(interaction);

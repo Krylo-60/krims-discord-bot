@@ -3,11 +3,11 @@
 [![Version](https://img.shields.io/badge/Release-v5.3%20Enterprise-00FFFF?logo=rocket&logoColor=white)](#)
 [![Discord.js](https://img.shields.io/badge/Discord.js-v14.14-5865F2?logo=discord&logoColor=white)](https://discord.js.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-v20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![AI Engine](https://img.shields.io/badge/AI-Gemini%203.5%20%7C%20Groq%20LPU-00F2FF?logo=google&logoColor=white)](#)
+[![AI Engine](https://img.shields.io/badge/AI-Krims%20Neural%20Brain-00F2FF?logo=probot&logoColor=white)](#)
 [![Hosting](https://img.shields.io/badge/Deploy-Render%20Cloud-46E3B7?logo=render&logoColor=white)](https://render.com/)
 [![License](https://img.shields.io/badge/License-Proprietary%20%7C%20All%20Rights%20Reserved-FF0055.svg)](#-license)
 
-**Krims Code AI** is an advanced, autonomous Discord intelligence and server operations platform designed and developed by **KryloMCYT** and **Krims Code Studio**. It powers competitive SMP team headquarters (**The Half Life's**) and content creation studios (**Krylo's Skybase**) with dual-phase dynamic visual cards, autonomous AI self-healing, real-time message contextual awareness, automated Minecraft roster synchronization, and Dyno-grade moderation.
+**Krims Code AI** is an advanced, autonomous Discord intelligence and server operations platform designed and developed by **KryloMCYT** and **Krims Code Studio**. It powers competitive SMP team headquarters (**The Half Life's**) and content creation studios (**Krylo's Skybase**) with dual-phase dynamic visual cards, autonomous AI self-healing, real-time message contextual awareness, automated Minecraft roster synchronization, and advanced autonomous moderation.
 
 ---
 
@@ -22,7 +22,7 @@
 
 ### 🧠 2. Autonomous AI Self-Healing & Crash Isolation
 * **Zero-Crash Fault Tolerance:** Global runtime exception handlers catch unhandled rejections and runtime exceptions, isolating the failure to keep the bot 100% online.
-* **Automated AI Root-Cause Analysis:** Connects runtime stack traces to the Gemini / Groq multi-brain router to automatically diagnose bugs, determine root causes, and propose recommended patches.
+* **Automated AI Root-Cause Analysis:** Connects runtime stack traces to the Krims neural multi-brain router to automatically diagnose bugs, determine root causes, and propose recommended patches.
 * **Audit & Staff Logs:** Automatically dispatches bug diagnostics to `#📋・𝖲taff-logs` and records telemetry in SQLite `dev_audit_logs`.
 * **Continuous Auto-Updater:** Checks GitHub origin every 5 minutes (`git fetch`), automatically pulling new code updates, installing dependencies, and hot-restarting without manual intervention.
 
@@ -40,11 +40,11 @@
 ### 🎬 5. Skybase Video Production & Film Crew Management
 * **Recruitment Controls:** Staff commands (`/startcrewapp`, `/stopcrewapp`) to open and close video production auditions.
 * **Interactive Modal Applications:** Direct modal submission pipeline sending candidate auditions to private staff review channels.
-* **Dynamic MEE6 Leveling & Jimp Graphical Rank Cards:** Custom `/rank` cards rendered on the fly, voice XP timers, and server leaderboards.
+* **Dynamic Krims XP Leveling & Jimp Graphical Rank Cards:** Custom `/rank` cards rendered on the fly, voice XP timers, and server leaderboards.
 
 ---
 
-## 📋 Slash Command Suite (97 Commands)
+## 📋 Slash Command Suite (100 Commands)
 
 | Category | Highlights |
 | :--- | :--- |

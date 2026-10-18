@@ -20,10 +20,10 @@ const newCommands = [
     .setDescription('🧭 Calculate Minecraft in-game 90% locator bar color & find neighbors')
     .addStringOption(opt => opt.setName('player_or_color').setDescription('Minecraft Username, UUID, or Hex Color (e.g. Krylo_MC, #00E5FF)').setRequired(true)),
 
-  // 2. MEE6 Leveling Suite
+  // 2. Krims Leveling Suite
   new SlashCommandBuilder()
     .setName('rank')
-    .setDescription('⭐ View your or another member’s MEE6 level, total XP, and rank card')
+    .setDescription('⭐ View your or another member’s level, total XP, and rank card')
     .addUserOption(opt => opt.setName('user').setDescription('Target member to view').setRequired(false)),
 
   new SlashCommandBuilder()

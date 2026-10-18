@@ -135,7 +135,7 @@ export async function awardUserXp({ guild, user, xpGain = 20, source = 'chat', c
 }
 
 /**
- * Handles incoming chat messages to award XP (MEE6 System)
+ * Handles incoming chat messages to award XP (Krims Leveling System)
  */
 export async function handleMessageXp(message, client) {
   if (!message.guild || message.author.bot) return;
@@ -349,7 +349,7 @@ export async function handleLeaderboardCommand(interaction) {
     .setTitle(`🏆 ${interaction.guild.name} — XP LEADERBOARD`)
     .setDescription(`Top 10 most active community members:\n\n${desc}`)
     .setThumbnail(interaction.guild.iconURL({ dynamic: true }))
-    .setFooter({ text: isSkybase ? "Krylo's Skybase Leaderboard Engine" : 'MEE6 Leaderboard Engine' })
+    .setFooter({ text: isSkybase ? "Krylo's Skybase Leaderboard Engine" : 'Krims Code AI Leaderboard Engine' })
     .setTimestamp();
 
   await interaction.reply({ embeds: [embed] });

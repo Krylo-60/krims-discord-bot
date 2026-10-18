@@ -2,8 +2,8 @@ import Jimp from 'jimp';
 import { calculateLevelFromXp, getRequiredXpForLevel } from './mee6Levels.mjs';
 
 /**
- * 🎨 Generates an Arcane-style graphical Rank Card PNG Buffer
- * Matching the exact visual aesthetic of Discord Arcane / MEE6 rank cards:
+ * 🎨 Generates a custom Krims graphical Rank Card PNG Buffer
+ * Matching the exact visual aesthetic of Krims Code AI rank cards:
  * - 880x240 sleek dark card (#1e1f22)
  * - 16px rounded corners
  * - Diagonal polygon split with dark shadow separator (#111214)
