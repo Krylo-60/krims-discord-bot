@@ -327,8 +327,8 @@ export async function deployKrimsSupportServer(guildId, customClient = null, cal
     .setTitle('❓ Frequently Asked Questions (FAQ)')
     .setDescription(
       `**Q: How do I invite the Krims Bot to my Discord server?**\n` +
-      `A: Use our official authorized link with Admin permissions:\n` +
-      `https://discord.com/api/oauth2/authorize?client_id=1523794466740371586&permissions=8&scope=bot%20applications.commands\n\n` +
+      `> **A:** Add Krims Code AI to your server using our official authorized link:\n` +
+      `> 🔗 **[Invite Krims Code AI with Admin Permissions](https://discord.com/api/oauth2/authorize?client_id=1523794466740371586&permissions=8&scope=bot%20applications.commands)**\n\n` +
       `**Q: How do I claim the 'Certified Server Owner' role?**\n` +
       `A: Open a ticket in <#${chOpenTicket.id}> and mention your server name and invite link. Our staff will verify and grant your VIP perks!\n\n` +
       `**Q: What should I do if a bot command is not responding?**\n` +
