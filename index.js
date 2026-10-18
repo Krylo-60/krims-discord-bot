@@ -20,7 +20,7 @@ import Jimp from 'jimp';
 import { joinVoice, leaveVoice, getVoiceStatus, speakInVoiceChannel } from './voiceEngine.mjs';
 import { saveUserVerification, getUserVerification, syncLocalJsonToFirebase } from './firebaseEngine.mjs';
 import { getLocatorColor } from './features/locatorBarEngine.mjs';
-import { handleMessageXp, sendRankCard, handleRankCommand, startVoiceLevelTicker, handleVoiceStateUpdate, getUserLevel, handleLeaderboardButton, handlePrefixLeaderboard } from './features/mee6Levels.mjs';
+import { handleMessageXp, sendRankCard, handleRankCommand, startVoiceLevelTicker, handleVoiceStateUpdate, getUserLevel, handleLeaderboardButton, handlePrefixLeaderboard, buildLeaderboardPayload } from './features/mee6Levels.mjs';
 import { afkUsers, handleMute, handleUnmute, handleKick, handleBan, handleLockdown, handleSlowmode, handleAfk, handleRemindMe, handleEmbedBuilder } from './features/dynoModSystem.mjs';
 import { handleDevLogsCommand } from './features/devAuditLogger.mjs';
 import { getFalixStatus, sendFalixPowerSignal, sendFalixCommand } from './falixServerEngine.mjs';
@@ -1967,29 +1967,12 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     if (customId === 'btn_leaderboard_view') {
-      const guildData = xpData[interaction.guildId] || {};
-      const sorted = Object.entries(guildData).sort((a, b) => (b[1]?.xp || 0) - (a[1]?.xp || 0)).slice(0, 10);
-      if (sorted.length === 0) {
-        return interaction.reply({ content: '📊 No player has earned XP yet! Start chatting to claim the #1 spot!', ephemeral: true });
-      }
-      const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
-      const desc = sorted.map(([uId, data], i) => {
-        const medal = medals[i] || `${i + 1}.`;
-        const lvl = data.level || 0;
-        const xp = (data.xp || 0).toLocaleString();
-        return `${medal} **<@${uId}>** • **Level ${lvl}** (${xp} XP)`;
-      }).join('\n');
-
-      return interaction.reply({
-        embeds: [{
-          color: 0x22D3EE,
-          title: `🏆 ${interaction.guild ? interaction.guild.name : 'Server'} — XP LEADERBOARD`,
-          description: `Top active community members:\n\n${desc}`,
-          footer: { text: 'KryloSMP Progression Engine ⚡' },
-          timestamp: new Date().toISOString()
-        }],
-        ephemeral: true
+      const payload = buildLeaderboardPayload({
+        guild: interaction.guild,
+        type: 'messages',
+        currentUserId: interaction.user.id
       });
+      return await interaction.reply({ ...payload, ephemeral: true });
     }
 
     if (customId === 'btn_lb_messages' || customId === 'btn_lb_xp' || customId === 'btn_lb_announce_krims') {
@@ -5947,7 +5930,7 @@ client.on('interactionCreate', async (interaction) => {
 
       const embed = new EmbedBuilder()
         .setColor(0x00F2FF)
-        .setTitle('🏆 KryloSMP Chat Activity Leaderboard')
+        .setTitle('🏆 Krims Code Chat Activity Leaderboard')
         .setDescription(leaderboardText)
         .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'Community'} Chat Leveling ⚡` })
         .setTimestamp();
@@ -11172,7 +11155,7 @@ async function startLeaderboardUpdate(guild) {
 
       const embed = new EmbedBuilder()
         .setColor(0x00F2FF)
-        .setTitle('👑 KryloSMP Server Leaderboards')
+        .setTitle('👑 Community Server Leaderboards')
         .setDescription(
           `🏆 **Season 1 Leaderboard**\n\n` +
           `💬 **Top Discord Chatters (XP Levels)**\n` +

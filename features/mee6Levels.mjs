@@ -281,9 +281,6 @@ export async function sendRankCard(context, targetUser = null) {
 
     const attachment = new AttachmentBuilder(cardBuffer, { name: `rank-${user.username}.png` });
 
-    const isSkybase = guild.id === '1549875778575929446';
-    const isKSMP = guild.id === '1538225337048236082';
-
     const voteInfo = getVoteBoosterInfo(user.id);
     let boosterContent = '';
     if (isOwner) {
@@ -308,29 +305,13 @@ export async function sendRankCard(context, targetUser = null) {
       new ButtonBuilder()
         .setCustomId('btn_refresh_vote_status')
         .setLabel('⚡ Vote Status')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('btn_leaderboard_view')
+        .setLabel('🏆 Leaderboard')
         .setStyle(ButtonStyle.Secondary)
     );
     payload.components = [voteRow];
-
-    // Only attach interactive game server buttons on KryloSMP (Minecraft server)
-    if (isKSMP) {
-      const storeUrl = 'https://krylosmp-store.web.app/';
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId('btn_leaderboard_view')
-          .setLabel('🏆 Leaderboard')
-          .setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder()
-          .setCustomId('btn_daily_claim')
-          .setLabel('🎁 Daily Bonus')
-          .setStyle(ButtonStyle.Success),
-        new ButtonBuilder()
-          .setLabel('🛒 Store')
-          .setStyle(ButtonStyle.Link)
-          .setURL(storeUrl)
-      );
-      payload.components = [row];
-    }
 
     if (context.isChatInputCommand && context.isChatInputCommand()) {
       if (context.deferred) {
