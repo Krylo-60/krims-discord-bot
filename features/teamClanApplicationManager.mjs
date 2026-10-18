@@ -236,7 +236,7 @@ export async function handleTeamClanApplicationInteraction(interaction) {
       content: 
         `⚔️ **Application Successfully Submitted!**\n\n` +
         `Thank you **${interaction.user.username}**! Your entry application for **The Half Life's** has been delivered directly to the Clan Leadership team.\n` +
-        `Our leaders (<@${CLAN_LEADER_ROLE_ID}> & <@${CLAN_COLEADER_ROLE_ID}>) will review your responses shortly. You will receive an automated notification once decided! 🛡️`,
+        `Our leaders (<@&${CLAN_LEADER_ROLE_ID}> & <@&${CLAN_COLEADER_ROLE_ID}>) will review your responses shortly. You will receive an automated notification once decided! 🛡️`,
       ephemeral: true
     });
 
