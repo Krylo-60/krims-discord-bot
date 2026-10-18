@@ -26,6 +26,7 @@ npm-debug.log*
 data/
 
 # Scratch, Testing & Admin Scripts
+!features/**
 !README.md
 !deployMasterUnifiedCommands.mjs
 test*
@@ -119,6 +120,7 @@ tools/
 type*
 wait*
 wake*
+!features/**
 *.cjs
 AGENT_CONTINUATION_GUIDE.md
 EVIDENCE_LOG_WEBHOOK_INCIDENT.md

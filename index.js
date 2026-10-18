@@ -70,6 +70,10 @@ import {
   initAISelfHealing, 
   diagnoseAndIsolateBug 
 } from './features/aiSelfHealingEngine.mjs';
+import { 
+  startAutoModScheduler, 
+  syncGuildAutoMod 
+} from './features/autoModSyncEngine.mjs';
 
 const guildConfigCache = new Map();
 const kryloPingStrikes = new Map();
@@ -781,6 +785,11 @@ client.once('ready', async () => {
     initAISelfHealing(client, geminiDirectAsk);
   } catch (shErr) {
     console.warn('[SelfHealing] Start notice:', shErr.message);
+  }
+  try {
+    startAutoModScheduler(client, 6);
+  } catch (amErr) {
+    console.warn('[AutoMod Engine] Start notice:', amErr.message);
   }
 
   // Setup #🤖┃ai-console-chat channel
@@ -11886,6 +11895,11 @@ client.on('guildCreate', async (guild) => {
   } catch (chErr) {
     console.warn(`[GuildCreate] Notice on channel intro:`, chErr.message);
   }
+
+  // 3. Immediately deploy AutoMod rules to new server for badge and security
+  try {
+    await syncGuildAutoMod(guild);
+  } catch (_) {}
 });
 
 // ═══════════════════════════════════════════════════════════
