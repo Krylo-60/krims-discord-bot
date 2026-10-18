@@ -655,52 +655,206 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     // ──────────────────────────────────────────────────────────
     if (commandName === 'help') {
       const isSkybase = interaction.guildId === '1549875778575929446';
+      const category = interaction.options?.getString ? interaction.options.getString('category') : null;
+
+      const supportBtn = new ButtonBuilder()
+        .setLabel('🌐 Support Server')
+        .setStyle(ButtonStyle.Link)
+        .setURL('https://discord.gg/sYaVJtXgQb');
+
+      const inviteBtn = new ButtonBuilder()
+        .setLabel('➕ Invite Bot')
+        .setStyle(ButtonStyle.Link)
+        .setURL('https://discord.com/oauth2/authorize?client_id=1523794466740371586&permissions=8&integration_type=0&scope=bot+applications.commands');
+
+      const dashBtn = new ButtonBuilder()
+        .setLabel('⚡ Dashboard')
+        .setStyle(ButtonStyle.Link)
+        .setURL('https://krims-code-chatbot.vercel.app/');
+
+      const row = new ActionRowBuilder().addComponents(supportBtn, inviteBtn, dashBtn);
+
+      if (category === 'ai') {
+        const embed = new EmbedBuilder()
+          .setColor(0x00E5FF)
+          .setTitle('🤖 AI & Multi-Bot Platform')
+          .setDescription(
+            `Krims Code AI includes generative conversational abilities, server memory, and multi-bot provisioning:\n\n` +
+            `• \`/ask [prompt]\` — Ask Krims Code AI questions or play interactive counting partner\n` +
+            `• \`/memory [view|learn|reset]\` — View, teach, or reset persistent AI server memory\n` +
+            `• \`/setupbot\` — Deploy a custom bot running the Krims Code AI brain\n` +
+            `• \`/about\` — Learn about the multi-bot architecture & system capabilities\n` +
+            `• \`/pricing\` — View free and premium bot tiers\n` +
+            `• \`/diagnose\` — System diagnostics and network latency\n` +
+            `• \`/github\` — Open-source repositories and development portal`
+          )
+          .setFooter({ text: `${interaction.guild?.name || "Community"} • AI Engine v3.0` })
+          .setTimestamp();
+        return await interaction.reply({ embeds: [embed], components: [row] });
+      }
+
+      if (category === 'mod') {
+        const embed = new EmbedBuilder()
+          .setColor(0xEF4444)
+          .setTitle('🛡️ Moderation & AutoMod Protection Suite')
+          .setDescription(
+            `Comprehensive moderation suite with audit logging and raid protection:\n\n` +
+            `• \`/warn [user] [reason]\` — Issue an official logged strike\n` +
+            `• \`/mute [user] [duration]\` / \`/unmute\` — Timeout or restore member speaking permissions\n` +
+            `• \`/kick [user]\` / \`/ban [user]\` — Remove rule-breakers from the server\n` +
+            `• \`/purge [amount]\` — Fast-clear up to 100 messages\n` +
+            `• \`/lockdown\` / \`/unlock\` — Lock down channels during raids or emergencies\n` +
+            `• \`/slowmode [seconds]\` — Set channel message cooldown\n` +
+            `• \`/afk [status]\` — Set AFK status with automated ping responses\n` +
+            `• \`/embed [channel] [json]\` — Send custom formatted announcements\n` +
+            `• \`/devlogs\` — View operational and security event logs`
+          )
+          .setFooter({ text: `${interaction.guild?.name || "Community"} • Moderation Shield` })
+          .setTimestamp();
+        return await interaction.reply({ embeds: [embed], components: [row] });
+      }
+
+      if (category === 'server') {
+        const embed = new EmbedBuilder()
+          .setColor(0x3B82F6)
+          .setTitle('📡 Server & Community Tools')
+          .setDescription(
+            `Community management tools, support tickets, and identity verification:\n\n` +
+            `• \`/status\` — Real-time bot and server operational telemetry\n` +
+            `• \`/rules\` — View official server rules and guidelines\n` +
+            `• \`/apply\` — Submit applications for server staff and helper roles\n` +
+            `• \`/ticket [reason]\` / \`/close\` — Interactive private ticket system\n` +
+            `• \`/suggest [idea]\` — Post community suggestions with reaction voting\n` +
+            `• \`/announce [message]\` — Broadcast server announcements\n` +
+            `• \`/poll [question] [options]\` — Create interactive voting polls\n` +
+            `• \`/giveaway [prize] [duration]\` — Automated giveaway manager\n` +
+            `• \`/serverinfo\` / \`/userinfo\` / \`/avatar\` — Server and member metadata\n` +
+            `• \`/link\` / \`/verify\` — Connect YouTube, Twitch, and claim verified member status`
+          )
+          .setFooter({ text: `${interaction.guild?.name || "Community"} • Server Tools` })
+          .setTimestamp();
+        return await interaction.reply({ embeds: [embed], components: [row] });
+      }
+
+      if (category === 'economy') {
+        const embed = new EmbedBuilder()
+          .setColor(0xF59E0B)
+          .setTitle('💰 Economy, Quests & Progression Suite')
+          .setDescription(
+            `Global currency, reward shops, leveling, and clan vaults:\n\n` +
+            `• \`/daily\` — Claim daily login coins and streak bonuses\n` +
+            `• \`/work\` — Work hourly jobs to earn coins\n` +
+            `• \`/bal\` / \`/balance\` — View wallet and bank vault balance\n` +
+            `• \`/pay [user] [amount]\` — Transfer coins to other players\n` +
+            `• \`/shop\` / \`/store\` — Purchase custom roles, nickname colors, and perks\n` +
+            `• \`/quests\` — Complete daily missions for massive coin payouts\n` +
+            `• \`/slots [bet]\` / \`/spin\` — Casino slot machines and prize wheel\n` +
+            `• \`/chest\` / \`/jackpot\` / \`/lottery\` — Mystery chest loot and global jackpot\n` +
+            `• \`/lootbox\` — Open rare equipment, pets, and consumable lootboxes\n` +
+            `• \`/vote\` / \`/refer [user]\` / \`/bump\` — Earn rewards for supporting the server\n` +
+            `• \`/leaderboard\` / \`/xpleaderboard\` — Top coin balances and chat levels\n` +
+            `• \`/clan\` — Create clans, recruit members, and climb clan leaderboards\n` +
+            `• \`/rank\` — Check your level, rank tier, and XP progress`
+          )
+          .setFooter({ text: `${interaction.guild?.name || "Community"} • Economy & Quests` })
+          .setTimestamp();
+        return await interaction.reply({ embeds: [embed], components: [row] });
+      }
+
+      if (category === 'rpg') {
+        const embed = new EmbedBuilder()
+          .setColor(0x8B5CF6)
+          .setTitle('⚔️ Duels, RPG & Universe Suite')
+          .setDescription(
+            `Engage in PvP battles, resource expeditions, crafting, and boss raids:\n\n` +
+            `• \`/duel [opponent]\` / \`/challenge\` / \`/endduel\` — Real-time turn-based PvP duels\n` +
+            `• \`/pvp\` / \`/tournament\` — Battle arena and monthly tournaments\n` +
+            `• \`/bounty [user] [amount]\` — Place hit bounties on rivals\n` +
+            `• \`/trade [user]\` — Trade items and coins securely with members\n` +
+            `• \`/pet [adopt|view|feed]\` — Adopt and train combat companion pets\n` +
+            `• \`/fish\` / \`/mine\` / \`/craft\` / \`/enchant\` — Gather materials and craft legendary gear\n` +
+            `• \`/raid\` — Team up with the whole server to defeat the World Boss\n` +
+            `• \`/profile\` / \`/inventory\` — View weapons, armor, and combat statistics\n` +
+            `• \`/achievements\` — View unlocked milestones and badges\n` +
+            `• \`/heist\` / \`/rob [user]\` — High-risk bank heists and pickpocketing`
+          )
+          .setFooter({ text: `${interaction.guild?.name || "Community"} • RPG Universe` })
+          .setTimestamp();
+        return await interaction.reply({ embeds: [embed], components: [row] });
+      }
+
+      if (category === 'utility') {
+        const embed = new EmbedBuilder()
+          .setColor(0x10B981)
+          .setTitle('🧭 Utility, Entertainment & Media Suite')
+          .setDescription(
+            `Essential utilities, games, voice features, and fun tools:\n\n` +
+            `• \`/ping\` / \`/uptime\` — Heartbeat latency, WS ping, and bot uptime\n` +
+            `• \`/remind [time] [message]\` — Timed notifications with ping/DM alerts\n` +
+            `• \`/translate [text] [language]\` — Translate into 50+ languages\n` +
+            `• \`/calc [expression]\` — Mathematical evaluation calculator\n` +
+            `• \`/weather [city]\` — Live weather forecasts\n` +
+            `• \`/gif [search]\` — Search animated GIFs and clips powered by KLIPY\n` +
+            `• \`/activity\` — Start Discord Voice Activities (Poker, Chess, YouTube)\n` +
+            `• \`/voice [join|leave|status]\` — Voice lounge audio controls\n` +
+            `• \`/counting\` — Server counting streak analytics\n` +
+            `• \`/coinflip\` / \`/roll\` / \`/eightball\` — Quick random chance decision makers\n` +
+            `• \`/joke\` / \`/meme\` — Community comedy & memes\n` +
+            `• \`/bday [user]\` — Birthday celebrations with coin gifts & XP boosters\n` +
+            `• \`/gameboost\` — Gaming, recording & FPS optimization tips`
+          )
+          .setFooter({ text: `${interaction.guild?.name || "Community"} • Utility & Entertainment` })
+          .setTimestamp();
+        return await interaction.reply({ embeds: [embed], components: [row] });
+      }
+
+      // Default: Full Master Directory
       const fields = [
         { 
-          name: '🤖 AI & Custom Bots', 
-          value: '`/about`, `/ask`, `/diagnose`, `/github`' 
+          name: '🤖 AI & Custom Bots (8)', 
+          value: '`/ask`, `/memory`, `/about`, `/setupbot`, `/getbot`, `/pricing`, `/diagnose`, `/github`' 
+        },
+        { 
+          name: '🛡️ Moderation & AutoMod Suite (13)', 
+          value: '`/warn`, `/mute`, `/unmute`, `/kick`, `/ban`, `/purge`, `/lockdown`, `/unlock`, `/slowmode`, `/afk`, `/embed`, `/mcban`, `/devlogs`' 
+        },
+        { 
+          name: '📡 Server & Community Tools (14)', 
+          value: '`/status`, `/rules`, `/apply`, `/ticket`, `/close`, `/suggest`, `/announce`, `/poll`, `/giveaway`, `/serverinfo`, `/userinfo`, `/avatar`, `/link`, `/verify`' 
+        },
+        { 
+          name: '💰 Economy & Quests (20)', 
+          value: '`/daily`, `/work`, `/bal`, `/pay`, `/shop`, `/store`, `/quests`, `/slots`, `/spin`, `/chest`, `/jackpot`, `/lottery`, `/lootbox`, `/vote`, `/refer`, `/bump`, `/leaderboard`, `/xpleaderboard`, `/clan`, `/rank`' 
+        },
+        { 
+          name: '⚔️ Duels, RPG & Universe (18)', 
+          value: '`/challenge`, `/duel`, `/endduel`, `/pvp`, `/tournament`, `/bounty`, `/trade`, `/pet`, `/fish`, `/mine`, `/craft`, `/enchant`, `/raid`, `/profile`, `/inventory`, `/achievements`, `/heist`, `/rob`' 
+        },
+        { 
+          name: '🧭 Utility, Voice & Fun (17)', 
+          value: '`/ping`, `/uptime`, `/remind`, `/translate`, `/calc`, `/weather`, `/gif`, `/activity`, `/voice`, `/counting`, `/coinflip`, `/roll`, `/eightball`, `/joke`, `/meme`, `/bday`, `/gameboost`' 
         }
       ];
 
       if (isSkybase) {
         fields.push({ 
-          name: '🎬 Skybase Film Crew', 
-          value: '`/crew stop`, `/crew status` *(Open via `!crew start` or `!startcrew`)*' 
+          name: '🎬 Skybase Production & Crew', 
+          value: '`/crew stop`, `/crew status`, `/supporters`, `/verifytwitch`, `/startstream`, `/stopstream`, `/adminabuse`, `/genkey`\n*(Open applications via `!crew start` or `!startcrew`)*' 
         });
       }
 
-      fields.push(
-        { 
-          name: '📡 Server & Information', 
-          value: '`/status`, `/rules`, `/apply`, `/ticket`, `/close`, `/suggest`, `/announce`, `/serverinfo`, `/userinfo`, `/avatar`, `/link`, `/verify`' 
-        },
-        { 
-          name: '🛡️ Moderation Suite', 
-          value: '`/warn`, `/mute`, `/unmute`, `/kick`, `/ban`, `/purge`, `/lockdown`, `/unlock`, `/slowmode`, `/afk`, `/remindme`, `/embed`' 
-        },
-        { 
-          name: '💰 Economy & Progression', 
-          value: '`/daily`, `/work`, `/bal`, `/pay`, `/slots`, `/spin`, `/chest`, `/jackpot`, `/quests`, `/shop`, `/vote`, `/refer`, `/rank`, `/level`, `/leaderboard`, `/xpleaderboard`, `/clan`' 
-        },
-        { 
-          name: '⚔️ Duels, RPG & Universe', 
-          value: '`/challenge`, `/duel`, `/endduel`, `/bounty`, `/trade`, `/pet`, `/fish`, `/mine`, `/craft`, `/enchant`, `/raid`, `/profile`, `/inventory`, `/achievements`, `/heist`, `/rob`, `/lottery`, `/lootbox`' 
-        },
-        { 
-          name: '🧭 Utility & Fun', 
-          value: '`/locator`, `/coinflip`, `/roll`, `/eightball`, `/joke`, `/meme`, `/bday`, `/gameboost`, `/voice`' 
-        }
-      );
-
       const embed = new EmbedBuilder()
         .setColor(0x00E5FF)
-        .setTitle(isSkybase ? "📚 Krims Code AI & Skybase — Command Directory" : "📚 Krims Code AI — Command Directory")
-        .setDescription('Below are official slash commands available in this server:')
+        .setTitle(isSkybase ? "📚 Krims Code AI & Skybase — Command Directory" : "📚 Krims Code AI — Command Directory & Hub")
+        .setDescription(
+          `**Krims Code AI** powers **100+ production commands**, moderation tools, AI features, RPG games, and server automation!\n\n` +
+          `💡 *Tip: Use \`/help category:[module]\` to view detailed instructions for any module!*`
+        )
         .addFields(fields)
-        .setFooter({ text: `${interaction.guild?.name || "Community"} • Verified Operational` })
+        .setFooter({ text: `${interaction.guild?.name || "Community"} • 100 Verified Commands Operational` })
         .setTimestamp();
 
-      return await interaction.reply({ embeds: [embed] });
+      return await interaction.reply({ embeds: [embed], components: [row] });
     }
 
     if (commandName === 'rules') {

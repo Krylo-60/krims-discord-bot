@@ -112,7 +112,18 @@ export const masterCommandBuilders = [
 
   new SlashCommandBuilder()
     .setName('help')
-    .setDescription('View the full directory of all available Krims Code AI bot commands & features!'),
+    .setDescription('📚 View the official directory of all Krims Code AI bot commands & features!')
+    .addStringOption(opt => opt.setName('category')
+      .setDescription('Filter commands by module')
+      .setRequired(false)
+      .addChoices(
+        { name: '🤖 AI & Custom Bots', value: 'ai' },
+        { name: '🛡️ Moderation & Safety', value: 'mod' },
+        { name: '📡 Server & Community Tools', value: 'server' },
+        { name: '💰 Economy & Quests', value: 'economy' },
+        { name: '⚔️ Duels, RPG & Games', value: 'rpg' },
+        { name: '🧭 Utility & Fun', value: 'utility' }
+      )),
 
   new SlashCommandBuilder()
     .setName('rules')
