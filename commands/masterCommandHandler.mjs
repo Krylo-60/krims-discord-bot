@@ -167,18 +167,26 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         const uptimeMins = Math.floor(process.uptime() / 60);
         const uptimeHours = (uptimeMins / 60).toFixed(1);
 
+        const fields = [
+          { name: '🤖 Bot Core', value: '`🟢 Operational`', inline: true },
+          { name: '⚡ Gateway Ping', value: `\`${client.ws.ping} ms\``, inline: true },
+          { name: '⏱️ Uptime', value: `\`${uptimeMins} mins (${uptimeHours}h)\``, inline: true },
+          { name: '🛡️ AutoMod & Shield', value: '`🟢 Active (Raids & Spam Protected)`', inline: true }
+        ];
+
+        if (isSkybase) {
+          fields.push({ name: '🎬 Film Auditions', value: `\`${isCrewAppOpen() ? '🟢 OPEN' : '🔴 CLOSED'}\``, inline: true });
+        }
+
+        fields.push({ name: '💾 Memory Usage', value: `\`${memMb} MB\``, inline: true });
+
         const embed = new EmbedBuilder()
           .setColor(0x00E5FF)
-          .setTitle('📊 Skybase Systems & Bot Telemetry')
-          .setDescription('Real-time operational status for **Krylo\'s Skybase** Discord & production bot services:')
-          .addFields(
-            { name: '🤖 Bot Core', value: '`🟢 Operational`', inline: true },
-            { name: '⚡ Gateway Ping', value: `\`${client.ws.ping} ms\``, inline: true },
-            { name: '⏱️ Uptime', value: `\`${uptimeMins} mins (${uptimeHours}h)\``, inline: true },
-            { name: '🛡️ AutoMod & Shield', value: '`🟢 Active (Raids & Spam Protected)`', inline: true },
-            { name: '🎬 Film Auditions', value: `\`${isCrewAppOpen() ? '🟢 OPEN' : '🔴 CLOSED'}\``, inline: true },
-            { name: '💾 Memory Usage', value: `\`${memMb} MB\``, inline: true }
-          )
+          .setTitle(isSkybase ? '📊 Skybase Systems & Bot Telemetry' : `📊 ${interaction.guild?.name || "Community"} Systems & Bot Telemetry`)
+          .setDescription(isSkybase 
+            ? 'Real-time operational status for **Krylo\'s Skybase** Discord & production bot services:'
+            : `Real-time operational status for **${interaction.guild?.name || "Server"}** Discord & bot services:`)
+          .addFields(fields)
           .setFooter({ text: `${interaction.guild?.name || "Community"} • Official Production Bot Telemetry` })
           .setTimestamp();
 
@@ -401,6 +409,9 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       commandName === 'startcrew' || 
       ((commandName === 'crewapp' || commandName === 'crew') && interaction.options.getSubcommand(false) === 'start')
     ) {
+      if (interaction.guildId !== '1549875778575929446') {
+        return await interaction.reply({ content: '❌ Film Crew commands are exclusive to Krylo\'s Skybase.', ephemeral: true });
+      }
       const isAdmin = interaction.user.id === KRYLO_USER_ID || interaction.member?.permissions?.has(PermissionFlagsBits.Administrator);
       if (!isAdmin) {
         return await interaction.reply({ content: '❌ Only Krylo and Administrators can open crew applications.', ephemeral: true });
@@ -429,6 +440,9 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       commandName === 'stopcrew' || 
       ((commandName === 'crewapp' || commandName === 'crew') && interaction.options.getSubcommand(false) === 'stop')
     ) {
+      if (interaction.guildId !== '1549875778575929446') {
+        return await interaction.reply({ content: '❌ Film Crew commands are exclusive to Krylo\'s Skybase.', ephemeral: true });
+      }
       const isAdmin = interaction.user.id === KRYLO_USER_ID || interaction.member?.permissions?.has(PermissionFlagsBits.Administrator);
       if (!isAdmin) {
         return await interaction.reply({ content: '❌ Only Krylo and Administrators can stop crew applications.', ephemeral: true });
@@ -452,6 +466,9 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     }
 
     if ((commandName === 'crewapp' || commandName === 'crew') && interaction.options.getSubcommand(false) === 'status') {
+      if (interaction.guildId !== '1549875778575929446') {
+        return await interaction.reply({ content: '❌ Film Crew commands are exclusive to Krylo\'s Skybase.', ephemeral: true });
+      }
       const status = getCrewAppStatus();
       const statusEmbed = new EmbedBuilder()
         .setColor(status.isOpen ? 0x10B981 : 0xEF4444)
@@ -594,14 +611,19 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         return await interaction.editReply({ content: '❓ Please provide a question or select an action (e.g. `/ask action:counting`).' });
       }
 
+      const isSkybase = interaction.guildId === '1549875778575929446';
       let answer = null;
       if (context.geminiDirectAsk) {
-        const sys = "You are Krims Code AI, official Discord assistant for Krylo's Skybase community and video production studio. Focus on community chat, YouTube video content, film crew auditions, and creator discussions. NEVER mention any Minecraft server, KSMP, or game IPs. Refer to the creator as Krylo.";
-        answer = await context.geminiDirectAsk(prompt, sys, interaction.guild?.name || "Krylo's Skybase").catch(() => null);
+        const sys = isSkybase
+          ? "You are Krims Code AI, official Discord assistant for Krylo's Skybase community and video production studio. Focus on community chat, YouTube video content, film crew auditions, and creator discussions. NEVER mention any Minecraft server, KSMP, or game IPs. Refer to the creator as Krylo."
+          : `You are Krims Code AI, official Discord assistant and versatile bot companion for ${interaction.guild?.name || "this community"}. Assist users with questions, commands, server utilities, and friendly conversation.`;
+        answer = await context.geminiDirectAsk(prompt, sys, interaction.guild?.name || "Community").catch(() => null);
       }
 
       if (!answer) {
-        answer = `🤖 **Krims Code AI:**\nI received your query: "*${prompt}*"\n\nWelcome to Krylo's Skybase! You can use \`/help\` for available commands or check <#1550902305568718948> for film crew auditions!`;
+        answer = isSkybase
+          ? `🤖 **Krims Code AI:**\nI received your query: "*${prompt}*"\n\nWelcome to Krylo's Skybase! You can use \`/help\` for available commands or check <#1550902305568718948> for film crew auditions!`
+          : `🤖 **Krims Code AI:**\nI received your query: "*${prompt}*"\n\nYou can use \`/help\` for a list of available commands in ${interaction.guild?.name || "this server"}!`;
       }
 
       return await interaction.editReply({ content: answer });
@@ -653,40 +675,48 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     // ──────────────────────────────────────────────────────────
     if (commandName === 'help') {
       const isSkybase = interaction.guildId === '1549875778575929446';
+      const fields = [
+        { 
+          name: '🤖 AI & Custom Bots', 
+          value: '`/about`, `/ask`, `/diagnose`, `/github`' 
+        }
+      ];
+
+      if (isSkybase) {
+        fields.push({ 
+          name: '🎬 Skybase Film Crew', 
+          value: '`/startcrewapp`, `/stopcrewapp`, `/crewapp start|stop|status`' 
+        });
+      }
+
+      fields.push(
+        { 
+          name: '📡 Server & Information', 
+          value: '`/status`, `/rules`, `/apply`, `/ticket`, `/close`, `/suggest`, `/announce`, `/serverinfo`, `/userinfo`, `/avatar`, `/link`, `/verify`' 
+        },
+        { 
+          name: '🛡️ Moderation Suite', 
+          value: '`/warn`, `/mute`, `/unmute`, `/kick`, `/ban`, `/purge`, `/lockdown`, `/unlock`, `/slowmode`, `/afk`, `/remindme`, `/embed`' 
+        },
+        { 
+          name: '💰 Economy & Progression', 
+          value: '`/daily`, `/work`, `/bal`, `/pay`, `/slots`, `/spin`, `/chest`, `/jackpot`, `/quests`, `/shop`, `/vote`, `/refer`, `/rank`, `/level`, `/leaderboard`, `/xpleaderboard`, `/clan`' 
+        },
+        { 
+          name: '⚔️ Duels, RPG & Universe', 
+          value: '`/challenge`, `/duel`, `/endduel`, `/bounty`, `/trade`, `/pet`, `/fish`, `/mine`, `/craft`, `/enchant`, `/raid`, `/profile`, `/inventory`, `/achievements`, `/heist`, `/rob`, `/lottery`, `/lootbox`' 
+        },
+        { 
+          name: '🧭 Utility & Fun', 
+          value: '`/locator`, `/coinflip`, `/roll`, `/eightball`, `/joke`, `/meme`, `/bday`, `/gameboost`, `/voice`' 
+        }
+      );
+
       const embed = new EmbedBuilder()
         .setColor(0x00E5FF)
         .setTitle(isSkybase ? "📚 Krims Code AI & Skybase — Command Directory" : "📚 Krims Code AI — Command Directory")
         .setDescription('Below are official slash commands available in this server:')
-        .addFields(
-          { 
-            name: '🤖 AI & Custom Bots', 
-            value: '`/about`, `/ask`, `/diagnose`, `/github`' 
-          },
-          { 
-            name: '🎬 Skybase Film Crew', 
-            value: '`/startcrewapp`, `/stopcrewapp`, `/crewapp start|stop|status`' 
-          },
-          { 
-            name: '📡 Server & Information', 
-            value: '`/status`, `/rules`, `/apply`, `/ticket`, `/close`, `/suggest`, `/announce`, `/serverinfo`, `/userinfo`, `/avatar`, `/link`, `/verify`' 
-          },
-          { 
-            name: '🛡️ Moderation Suite', 
-            value: '`/warn`, `/mute`, `/unmute`, `/kick`, `/ban`, `/purge`, `/lockdown`, `/unlock`, `/slowmode`, `/afk`, `/remindme`, `/embed`' 
-          },
-          { 
-            name: '💰 Economy & Progression', 
-            value: '`/daily`, `/work`, `/bal`, `/pay`, `/slots`, `/spin`, `/chest`, `/jackpot`, `/quests`, `/shop`, `/vote`, `/refer`, `/rank`, `/level`, `/leaderboard`, `/xpleaderboard`, `/clan`' 
-          },
-          { 
-            name: '⚔️ Duels, RPG & Universe', 
-            value: '`/challenge`, `/duel`, `/endduel`, `/bounty`, `/trade`, `/pet`, `/fish`, `/mine`, `/craft`, `/enchant`, `/raid`, `/profile`, `/inventory`, `/achievements`, `/heist`, `/rob`, `/lottery`, `/lootbox`' 
-          },
-          { 
-            name: '🧭 Utility & Fun', 
-            value: '`/locator`, `/coinflip`, `/roll`, `/eightball`, `/joke`, `/meme`, `/bday`, `/gameboost`, `/voice`' 
-          }
-        )
+        .addFields(fields)
         .setFooter({ text: `${interaction.guild?.name || "Community"} • Verified Operational` })
         .setTimestamp();
 
@@ -695,49 +725,82 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
 
     if (commandName === 'rules') {
       const isSkybase = interaction.guildId === '1549875778575929446';
+      const rulesChannel = interaction.guild?.rulesChannel || interaction.guild?.channels.cache.find(c => c.name.toLowerCase().includes('rule'));
       const embed = new EmbedBuilder()
         .setColor(0x00E5FF)
-        .setTitle(isSkybase ? "📜 Krylo's Skybase — Official Rules" : "📜 Official Community Rules")
+        .setTitle(isSkybase ? "📜 Krylo's Skybase — Official Rules" : `📜 ${interaction.guild?.name || "Community"} — Official Rules`)
         .setDescription(
           `Welcome! To keep our community fair, safe, and family-friendly, all members must adhere to these standards:\n\n` +
           `1️⃣ **Profile & Conduct:** Clean usernames, avatars, and bios. No unpingable characters, slurs, or harassment.\n` +
-          `2️⃣ **Anti-Spam & Mentions:** No chat flooding or self-promo. Zero-tolerance for burst spamming Krylo or staff.\n` +
+          `2️⃣ **Anti-Spam & Mentions:** No chat flooding or self-promo. Zero-tolerance for burst spamming staff or members.\n` +
           `3️⃣ **Family-Friendly (SFW):** No NSFW, gore, vulgar profanity, or political/religious debates.\n` +
           `4️⃣ **Voice Chat (VC):** No channel hopping, no voice-changers, and no loud soundboards.\n` +
           `5️⃣ **Fair Play & Integrity:** Strictly no hacked clients, cheats, dupes, exploits, or gambling.\n` +
-          `6️⃣ **Respect Creators & Content:** Credit original builds/art, and do not spoil upcoming videos/lore!\n` +
+          `6️⃣ **Respect Creators & Content:** Credit original builds/art, and respect all community members!\n` +
           `7️⃣ **Staff Discretion:** Moderators reserve the right to enforce rules at their discretion.\n\n` +
-          `*For full details, read our complete guidelines in <#1549882276278435841>!*`
+          (isSkybase ? `*For full details, read our complete guidelines in <#1549882276278435841>!*` : (rulesChannel ? `*For full details, read our complete guidelines in <#${rulesChannel.id}>!*` : `*Please review all server channels and guidelines.*`))
         )
         .setFooter({ text: 'Violations will receive official strikes via /warn' })
         .setTimestamp();
 
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setLabel('📜 Read Full Rules').setStyle(ButtonStyle.Link).setURL(`https://discord.com/channels/${interaction.guildId || '1549875778575929446'}/1549882276278435841`)
-      );
+      const components = [];
+      if (isSkybase) {
+        components.push(
+          new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setLabel('📜 Read Full Rules').setStyle(ButtonStyle.Link).setURL(`https://discord.com/channels/${interaction.guildId || '1549875778575929446'}/1549882276278435841`)
+          )
+        );
+      } else if (rulesChannel) {
+        components.push(
+          new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setLabel('📜 Read Rules Channel').setStyle(ButtonStyle.Link).setURL(`https://discord.com/channels/${interaction.guildId}/${rulesChannel.id}`)
+          )
+        );
+      }
 
-      return await interaction.reply({ embeds: [embed], components: [row] });
+      return await interaction.reply({ embeds: [embed], components });
     }
 
     if (commandName === 'apply') {
       const isSkybase = interaction.guildId === '1549875778575929446';
+      if (isSkybase) {
+        const embed = new EmbedBuilder()
+          .setColor(0x10B981)
+          .setTitle("📋 Skybase Production & Staff Applications")
+          .setDescription(
+            `We are actively recruiting passionate members to join our team!\n\n` +
+            `• 🎬 **Film Crew & Acting:** Act, build sets, and record in official YouTube video shoots!\n` +
+            `• 🛡️ **Community Moderator:** Keep chat safe, welcome new members, and support the community.\n` +
+            `• 🎨 **Media & Thumbnail Design:** Create art, graphics, and video teasers.\n` +
+            `• 💻 **Bot & System Developer:** Help develop custom tools, bots, and integrations.\n\n` +
+            `Click below to review audition status or apply in <#1550902305568718948>!`
+          )
+          .setFooter({ text: `${interaction.guild?.name || "Community"} • Official Recruitment` })
+          .setTimestamp();
+
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('btn_open_staff_app').setLabel('Apply for Staff').setStyle(ButtonStyle.Primary).setEmoji('🛡️'),
+          new ButtonBuilder().setLabel('🎬 Film Crew Channel').setStyle(ButtonStyle.Link).setURL(`https://discord.com/channels/${interaction.guildId}/${CREW_APPLY_CHANNEL_ID}`)
+        );
+
+        return await interaction.reply({ embeds: [embed], components: [row] });
+      }
+
       const embed = new EmbedBuilder()
         .setColor(0x10B981)
-        .setTitle(isSkybase ? "📋 Skybase Production & Staff Applications" : "📋 Community Staff Applications")
+        .setTitle(`📋 ${interaction.guild?.name || "Community"} — Staff Applications`)
         .setDescription(
-          `We are actively recruiting passionate members to join our team!\n\n` +
-          `• 🎬 **Film Crew & Acting:** Act, build sets, and record in official YouTube video shoots!\n` +
+          `We are looking for dedicated members to help manage and grow our server!\n\n` +
           `• 🛡️ **Community Moderator:** Keep chat safe, welcome new members, and support the community.\n` +
-          `• 🎨 **Media & Thumbnail Design:** Create art, graphics, and video teasers.\n` +
-          `• 💻 **Bot & System Developer:** Help develop custom tools, bots, and integrations.\n\n` +
-          `Click below to review audition status or apply in <#1550902305568718948>!`
+          `• 🤝 **Support Assistant:** Help answer member questions and assist with tickets.\n` +
+          `• 🎨 **Content & Event Helper:** Help host community game nights and events.\n\n` +
+          `Click below to submit your staff application to server leadership.`
         )
-        .setFooter({ text: `${interaction.guild?.name || "Community"} • Official Recruitment` })
+        .setFooter({ text: `${interaction.guild?.name || "Community"} • Staff Applications` })
         .setTimestamp();
 
       const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('btn_open_staff_app').setLabel('Apply for Staff').setStyle(ButtonStyle.Primary).setEmoji('🛡️'),
-        new ButtonBuilder().setLabel('🎬 Film Crew Channel').setStyle(ButtonStyle.Link).setURL(`https://discord.com/channels/${interaction.guildId}/${CREW_APPLY_CHANNEL_ID}`)
+        new ButtonBuilder().setCustomId('btn_open_staff_app').setLabel('Apply for Staff').setStyle(ButtonStyle.Primary).setEmoji('🛡️')
       );
 
       return await interaction.reply({ embeds: [embed], components: [row] });
@@ -764,16 +827,19 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
 
     if (commandName === 'link') {
       const isSkybase = interaction.guildId === '1549875778575929446';
+      const rolesChannel = interaction.guild?.channels?.cache?.find ? interaction.guild.channels.cache.find(c => c.name.toLowerCase().includes('role')) : null;
       const embed = new EmbedBuilder()
         .setColor(0x00E5FF)
         .setTitle('🔗 Connect Your Accounts — Showcase Badges')
         .setDescription(
-          `Connect your external accounts to Discord to automatically showcase your verified creator badges in **<#1549882278245564546>**!\n\n` +
+          `Connect your external accounts to Discord to automatically showcase your verified badges${isSkybase ? ' in **<#1549882278245564546>**' : (rolesChannel ? ` in <#${rolesChannel.id}>` : '')}!\n\n` +
           `**Supported Connections:**\n` +
           `• 🔗 **YouTube Connected:** Link YouTube in Discord Settings ➔ Connections\n` +
           `• 🔗 **Twitch Connected:** Link Twitch in Discord Settings ➔ Connections\n` +
           `• 🎧 **Spotify Connected:** Link Spotify in Discord Settings ➔ Connections\n\n` +
-          `*Enable "Display on profile" in your Discord Connection settings, then visit <#1549882278245564546> to claim your badges!*`
+          (isSkybase 
+            ? `*Enable "Display on profile" in your Discord Connection settings, then visit <#1549882278245564546> to claim your badges!*`
+            : `*Enable "Display on profile" in your Discord Connection settings to show off your accounts across servers!*`)
         )
         .setFooter({ text: `${interaction.guild?.name || "Community"} • Connected Account Roles` })
         .setTimestamp();
@@ -782,6 +848,10 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     }
 
     if (commandName === 'supporters') {
+      const isSkybase = interaction.guildId === '1549875778575929446';
+      if (!isSkybase) {
+        return await interaction.reply({ content: '❌ Creator supporter tracking is currently configured for Krylo\'s Skybase.', ephemeral: true });
+      }
       await interaction.deferReply();
       const guild = interaction.guild;
       if (!guild) return interaction.editReply('❌ This command must be used inside the server.');
@@ -846,7 +916,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       await interaction.deferReply({ ephemeral: true });
 
       const verifiedRole = interaction.guild?.roles?.cache?.find ? 
-        interaction.guild.roles.cache.find(r => r.name.toLowerCase() === 'verified' || r.name.toLowerCase() === 'member') : null;
+        interaction.guild.roles.cache.find(r => r.name.toLowerCase() === 'verified' || r.name.toLowerCase() === 'member' || r.name.toLowerCase().includes('community member')) : null;
       
       if (verifiedRole && interaction.member?.roles?.cache?.has(verifiedRole.id)) {
         return await interaction.editReply(`✅ You are already verified on this server!`);
@@ -859,15 +929,20 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       updateSafeUserBalance(interaction.user.id, 500, xpData);
 
       const isSkybase = interaction.guildId === '1549875778575929446';
+      const generalChat = interaction.guild?.channels?.cache?.find ? 
+        interaction.guild.channels.cache.find(c => c.name.toLowerCase().includes('general') || c.name.toLowerCase().includes('chat') || c.name.toLowerCase().includes('lounge')) : null;
+
       const embed = new EmbedBuilder()
         .setColor(0x10B981)
         .setTitle('🛡️ Account Verification Successful!')
         .setDescription(
-          `Welcome to **${isSkybase ? "Krylo's Skybase" : "the community"}**, <@${interaction.user.id}>!\n\n` +
+          `Welcome to **${isSkybase ? "Krylo's Skybase" : (interaction.guild?.name || "the community")}**, <@${interaction.user.id}>!\n\n` +
           `• **Status:** Verified Community Member ✅\n` +
-          `• **Server Role:** Assigned **Verified** role!\n` +
-          `• **Welcome Bonus:** **+500 Skybase Coins** added to your wallet!\n\n` +
-          `Head over to <#1549882279273308190> to get started and say hello in <#1549882277209571331>! 🚀`
+          `• **Server Role:** Assigned **${verifiedRole ? verifiedRole.name : "Verified"}** role!\n` +
+          `• **Welcome Bonus:** **+500 Coins** added to your wallet!\n\n` +
+          (isSkybase 
+            ? `Head over to <#1549882279273308190> to get started and say hello in <#1549882277209571331>! 🚀`
+            : (generalChat ? `Jump into <#${generalChat.id}> and introduce yourself to the community! 🚀` : `Enjoy your stay in the server! 🚀`))
         )
         .setTimestamp();
 
@@ -1103,7 +1178,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           (result.rgb ? `• 📏 **90% Interpolated RGB:** \`rgb(${result.rgb.r}, ${result.rgb.g}, ${result.rgb.b})\`\n\n` : '\n\n') +
           `\`[  ████████████████████  ] 90% Calibrated\``
         )
-        .setFooter({ text: 'Skybase Studio Color Calibration' })
+        .setFooter({ text: `${interaction.guild?.name || "Community"} • Precision Color Calibration` })
         .setTimestamp();
 
       return await interaction.reply({ embeds: [embed] });
@@ -1195,6 +1270,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     }
 
     if (commandName === 'bday') {
+      const isSkybase = interaction.guildId === '1549875778575929446';
       const targetUser = interaction.options.getUser('user') || interaction.user;
       updateSafeUserBalance(targetUser.id, 1000, xpData);
 
@@ -1204,12 +1280,17 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setDescription(
           `Everyone wish a massive Happy Birthday to <@${targetUser.id}>! 🥳🎈\n\n` +
           `🎁 **Birthday Gifts:**\n` +
-          `• **+1,000 Skybase Coins** deposited to your vault!\n` +
+          `• **+1,000 Coins** deposited to your vault!\n` +
           `• 🌟 Double XP booster activated for the day!\n` +
           `• 👑 Special Birthday VIP badge!`
         )
-        .setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png')
         .setTimestamp();
+
+      if (isSkybase) {
+        embed.setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png');
+      } else if (interaction.guild?.bannerURL()) {
+        embed.setImage(interaction.guild.bannerURL({ size: 1024 }));
+      }
 
       return await interaction.reply({ embeds: [embed] });
     }
@@ -1242,10 +1323,10 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     // 8. ⚔️ PVP & DUELS SUITE
     // ──────────────────────────────────────────────────────────
     if (commandName === 'pvp') {
-      const pvpChannel = interaction.guild.channels.cache.find(c => c.name.includes('pvp') || c.name.includes('duels') || c.name.includes('bot-commands'));
+      const pvpChannel = interaction.guild?.channels?.cache?.find ? interaction.guild.channels.cache.find(c => c.name.includes('pvp') || c.name.includes('duels') || c.name.includes('bot-commands')) : null;
       const embed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('⚔️ Skybase PvP & Duel Arena')
+        .setTitle(`⚔️ ${interaction.guild?.name || "Community"} PvP & Duel Arena`)
         .setDescription(
           `The official battle arena is active in ${pvpChannel ? `<#${pvpChannel.id}>` : 'the community channels'}!\n\n` +
           `• Challenge players to a 1v1 duel with \`/duel\` or \`/challenge\`\n` +
@@ -1260,12 +1341,12 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     if (commandName === 'tournament') {
       const embed = new EmbedBuilder()
         .setColor(0xFFAA00)
-        .setTitle('🏆 Monthly Skybase Tournament')
+        .setTitle(`🏆 ${interaction.guild?.name || "Community"} Monthly Tournament`)
         .setDescription(
           `The next official community tournament is scheduled for the end of the month!\n\n` +
-          `• 🥇 **1st Place:** 50,000 Skybase Coins + Custom Discord Role + Champion Trophy\n` +
-          `• 🥈 **2nd Place:** 25,000 Skybase Coins + Rare Lootbox\n` +
-          `• 🥉 **3rd Place:** 10,000 Skybase Coins\n\n` +
+          `• 🥇 **1st Place:** 50,000 Coins + Custom Discord Role + Champion Trophy\n` +
+          `• 🥈 **2nd Place:** 25,000 Coins + Rare Lootbox\n` +
+          `• 🥉 **3rd Place:** 10,000 Coins\n\n` +
           `Stay tuned in announcements for bracket registration!`
         )
         .setTimestamp();
@@ -1350,7 +1431,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setTitle('🪙 KryloCoins Balance')
         .setDescription(
           `💰 **Current Balance:** \`${balDisplay} KC\`\n\n` +
-          `Earn more Skybase Coins by chatting, daily streaks (\`/daily\`), working (\`/work\`), or visiting the shop (\`/shop\`)!`
+          `Earn more Coins by chatting, daily streaks (\`/daily\`), working (\`/work\`), or visiting the shop (\`/shop\`)!`
         )
         .setFooter({ text: `${interaction.guild?.name || "Community"} • Community Economy` })
         .setTimestamp();
@@ -1560,16 +1641,17 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     }
 
     if (commandName === 'shop' || commandName === 'store') {
+      const isSkybase = interaction.guildId === '1549875778575929446';
       const embed = new EmbedBuilder()
         .setColor(0x00E5FF)
-        .setTitle('🛒 Skybase Community Rewards & Coin Shop')
+        .setTitle(isSkybase ? '🛒 Skybase Community Rewards & Coin Shop' : `🛒 ${interaction.guild?.name || "Community"} Rewards & Coin Shop`)
         .setDescription(
-          `Welcome to the **Skybase Coin Shop**!\n\n` +
-          `Earn Skybase Coins by chatting, completing daily tasks (\`/daily\`), working (\`/work\`), and participating in film crew auditions!\n\n` +
+          `Welcome to the **${isSkybase ? "Skybase" : (interaction.guild?.name || "Community")} Coin Shop**!\n\n` +
+          `Earn Coins by chatting, completing daily tasks (\`/daily\`), working (\`/work\`), and participating in community events!\n\n` +
           `💎 **Available Rewards:**\n` +
           `• 👑 **Custom Nickname Color:** 10,000 Coins\n` +
           `• 🏷️ **Custom Personal Role:** 25,000 Coins\n` +
-          `• 🎬 **Film Shoot Priority Audition:** 50,000 Coins\n\n` +
+          (isSkybase ? `• 🎬 **Film Shoot Priority Audition:** 50,000 Coins\n\n` : `• 🌟 **VIP Community Perk:** 50,000 Coins\n\n`) +
           `*Use \`/bal\` to check your coin balance!*`
         )
         .setFooter({ text: `${interaction.guild?.name || "Community"} • Community Economy` })
@@ -1789,6 +1871,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         return await interaction.reply({ content: '❌ You must have administrator or mention permissions to broadcast announcements.', ephemeral: true });
       }
 
+      const isSkybase = interaction.guildId === '1549875778575929446';
       const message = interaction.options.getString('message');
       const title = interaction.options.getString('title') || '📢 Official Server Announcement';
 
@@ -1796,9 +1879,14 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setColor(0x00E5FF)
         .setTitle(title)
         .setDescription(message)
-        .setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png')
         .setFooter({ text: `Announced by ${interaction.user.tag} • ${interaction.guild?.name || "Community"}` })
         .setTimestamp();
+
+      if (isSkybase) {
+        embed.setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png');
+      } else if (interaction.guild?.bannerURL()) {
+        embed.setImage(interaction.guild.bannerURL({ size: 1024 }));
+      }
 
       return await interaction.reply({ embeds: [embed] });
     }
@@ -2129,9 +2217,9 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setTitle('🏆 UNLOCKED ACHIEVEMENTS')
         .setColor(0xFFAA00)
         .setDescription(
-          `✅ **First Steps:** Joined Krylo Discord Server\n` +
+          `✅ **First Steps:** Joined Discord Server\n` +
           `✅ **Verified Member:** Verified account access in Discord\n` +
-          `✅ **Coin Hoarder:** Earned over 1,000 Skybase Coins\n` +
+          `✅ **Coin Hoarder:** Earned over 1,000 Coins\n` +
           `✅ **Deep Diver:** Cast a fishing line into open waters\n` +
           `🔒 **Dragon Slayer:** Defeat the World Raid Boss\n` +
           `🔒 **Clan Warlord:** Lead a clan to the Top 3 leaderboard`
