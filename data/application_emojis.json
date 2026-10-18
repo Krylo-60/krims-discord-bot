@@ -1,0 +1,92 @@
+{
+  "krims_core": {
+    "id": "1561391369358942288",
+    "name": "krims_core",
+    "tag": "<:krims_core:1561391369358942288>",
+    "animated": false
+  },
+  "krims_support": {
+    "id": "1561391524225220628",
+    "name": "krims_support",
+    "tag": "<:krims_support:1561391524225220628>",
+    "animated": false
+  },
+  "krims_server": {
+    "id": "1561391531208867924",
+    "name": "krims_server",
+    "tag": "<:krims_server:1561391531208867924>",
+    "animated": false
+  },
+  "krims_shield": {
+    "id": "1561391538355961997",
+    "name": "krims_shield",
+    "tag": "<:krims_shield:1561391538355961997>",
+    "animated": false
+  },
+  "krims_coin": {
+    "id": "1561391544798285859",
+    "name": "krims_coin",
+    "tag": "<:krims_coin:1561391544798285859>",
+    "animated": false
+  },
+  "krims_diamond": {
+    "id": "1561391551635132569",
+    "name": "krims_diamond",
+    "tag": "<:krims_diamond:1561391551635132569>",
+    "animated": false
+  },
+  "krims_fire": {
+    "id": "1561391559059054667",
+    "name": "krims_fire",
+    "tag": "<:krims_fire:1561391559059054667>",
+    "animated": false
+  },
+  "krims_crown": {
+    "id": "1561391566046625843",
+    "name": "krims_crown",
+    "tag": "<:krims_crown:1561391566046625843>",
+    "animated": false
+  },
+  "krims_sword": {
+    "id": "1561391572522635344",
+    "name": "krims_sword",
+    "tag": "<:krims_sword:1561391572522635344>",
+    "animated": false
+  },
+  "krims_heart": {
+    "id": "1561391578797449309",
+    "name": "krims_heart",
+    "tag": "<:krims_heart:1561391578797449309>",
+    "animated": false
+  },
+  "krims_gg": {
+    "id": "1561391585567055882",
+    "name": "krims_gg",
+    "tag": "<:krims_gg:1561391585567055882>",
+    "animated": false
+  },
+  "krims_sub": {
+    "id": "1561391591699128503",
+    "name": "krims_sub",
+    "tag": "<:krims_sub:1561391591699128503>",
+    "animated": false
+  },
+  "krims_verified": {
+    "id": "1561391597948633138",
+    "name": "krims_verified",
+    "tag": "<:krims_verified:1561391597948633138>",
+    "animated": false
+  },
+  "krims_dev": {
+    "id": "1561391603724062803",
+    "name": "krims_dev",
+    "tag": "<:krims_dev:1561391603724062803>",
+    "animated": false
+  },
+  "krims_ai": {
+    "id": "1561391609411805208",
+    "name": "krims_ai",
+    "tag": "<:krims_ai:1561391609411805208>",
+    "animated": false
+  }
+}

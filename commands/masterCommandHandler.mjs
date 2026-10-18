@@ -64,6 +64,8 @@ import {
   recordDMTurn
 } from '../features/aiMemoryEngine.mjs';
 
+import { getApplicationEmojis } from '../utils/applicationEmojis.mjs';
+
 import { getLocatorColor } from '../features/locatorBarEngine.mjs';
 import { handleRankCommand } from '../features/mee6Levels.mjs';
 import { 
@@ -2802,6 +2804,48 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setTitle('⏰ Reminder Scheduled!')
         .setDescription(`I will remind you <t:${dueTimestamp}:R> (<t:${dueTimestamp}:F>).\n\n📝 **Note:** ${reminderMsg}`)
         .setFooter({ text: 'Krims Code AI Reminder Engine' });
+
+      return await interaction.reply({ embeds: [embed] });
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // ✨ /emojis — Custom Application Emojis Showcase
+    // ──────────────────────────────────────────────────────────
+    if (commandName === 'emojis') {
+      const emojiMap = getApplicationEmojis();
+      const count = Object.keys(emojiMap).length;
+
+      const embed = new EmbedBuilder()
+        .setColor(0x00E5FF)
+        .setTitle('✨ KRIMS CODE AI — APPLICATION EMOJIS')
+        .setDescription(
+          `Krims Code AI now features **${count} custom Application Emojis** permanently uploaded to the bot!\n\n` +
+          `These emojis can be used anywhere in bot responses, embeds, and buttons across all servers with **zero Nitro required**.\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `### 🤖 CORE & SQUAD EMOJIS\n` +
+          `• ${emojiMap.krims_core?.tag || '🧠'} \`:krims_core:\` — Neural Core Emblem\n` +
+          `• ${emojiMap.krims_support?.tag || '🛡️'} \`:krims_support:\` — Support & Community\n` +
+          `• ${emojiMap.krims_server?.tag || '🌐'} \`:krims_server:\` — Official Support Server Badge\n` +
+          `• ${emojiMap.krims_shield?.tag || '🛡️'} \`:krims_shield:\` — The Half Life's Clan Shield\n\n` +
+          `### 💎 ECONOMY & GAMING\n` +
+          `• ${emojiMap.krims_coin?.tag || '🪙'} \`:krims_coin:\` — KryloCoin (KC) Currency\n` +
+          `• ${emojiMap.krims_diamond?.tag || '💎'} \`:krims_diamond:\` — Cyber Diamond Gem\n` +
+          `• ${emojiMap.krims_sword?.tag || '⚔️'} \`:krims_sword:\` — Netherite Combat Sword\n` +
+          `• ${emojiMap.krims_heart?.tag || '❤️'} \`:krims_heart:\` — Half-Life Vitality Heart\n` +
+          `• ${emojiMap.krims_fire?.tag || '🔥'} \`:krims_fire:\` — Neural Flame / Hot Streak\n\n` +
+          `### ⚡ BADGES & ENGINEERING\n` +
+          `• ${emojiMap.krims_crown?.tag || '👑'} \`:krims_crown:\` — Executive Crown\n` +
+          `• ${emojiMap.krims_gg?.tag || '🏆'} \`:krims_gg:\` — Victory GG Badge\n` +
+          `• ${emojiMap.krims_sub?.tag || '⭐'} \`:krims_sub:\` — Supporter Star\n` +
+          `• ${emojiMap.krims_verified?.tag || '✅'} \`:krims_verified:\` — Official Verified Check\n` +
+          `• ${emojiMap.krims_dev?.tag || '💻'} \`:krims_dev:\` — Bot Developer Code\n` +
+          `• ${emojiMap.krims_ai?.tag || '✨'} \`:krims_ai:\` — AI Neural Sparkles\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `💡 *These emojis are live on the Discord Developer Portal under App Emojis!*`
+        )
+        .setThumbnail('https://cdn.discordapp.com/emojis/1561391369358942288.png')
+        .setFooter({ text: `Krims Code AI • Application Emoji Matrix (${count} Total)` })
+        .setTimestamp();
 
       return await interaction.reply({ embeds: [embed] });
     }

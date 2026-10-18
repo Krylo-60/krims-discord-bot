@@ -502,10 +502,6 @@ export const masterCommandBuilders = [
     .setDescription('📜 View active Season Quests and claim KryloCoins rewards!'),
 
   new SlashCommandBuilder()
-    .setName('shop')
-    .setDescription('🛍️ Open the official in-game KryloCoins item shop & perks!'),
-
-  new SlashCommandBuilder()
     .setName('store')
     .setDescription('🛒 Get official KryloSMP Webstore link and store catalog!'),
 
@@ -636,7 +632,11 @@ export const masterCommandBuilders = [
   new SlashCommandBuilder()
     .setName('verifytwitch')
     .setDescription('🟣 Get your secure code to link your Twitch in stream chat & claim roles!')
-    .addStringOption(opt => opt.setName('username').setDescription('Your Twitch username (optional)').setRequired(false))
+    .addStringOption(opt => opt.setName('username').setDescription('Your Twitch username (optional)').setRequired(false)),
+
+  new SlashCommandBuilder()
+    .setName('emojis')
+    .setDescription('✨ View all official custom Application Emojis available across Krims Code AI!')
 ];
 
 /**
