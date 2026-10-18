@@ -153,11 +153,42 @@ const GROQ_KEYS_POOL = [
 ].filter(Boolean);
 let groqPoolIdx = 0;
 
-// Helper for Groq Vision models (Qwen 3.8 / 3.6 27B)
+// High-speed Multimodal Vision Assistant (Gemini 2.5 Flash / Groq Qwen Vision)
 async function groqVisionAsk(imageUrl, promptText = 'Analyze this image', sysText = '') {
+  // 1. Try Gemini Multimodal Vision first
+  if (geminiClient) {
+    try {
+      const imgRes = await fetch(imageUrl);
+      if (imgRes.ok) {
+        const imgBuffer = await imgRes.arrayBuffer();
+        const mimeType = imgRes.headers.get('content-type') || 'image/jpeg';
+        const base64Data = Buffer.from(imgBuffer).toString('base64');
+        for (const m of ['gemini-2.5-flash', 'gemini-3.5-flash-lite']) {
+          try {
+            const resp = await geminiClient.models.generateContent({
+              model: m,
+              contents: [
+                {
+                  inlineData: {
+                    mimeType: mimeType.split(';')[0],
+                    data: base64Data
+                  }
+                },
+                promptText || 'Describe what you see in this image.'
+              ]
+            });
+            const text = resp?.text || resp?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text && text.trim().length > 0) return text.trim();
+          } catch (e) {}
+        }
+      }
+    } catch (e) {}
+  }
+
+  // 2. Fallback to Groq Vision
   for (let i = 0; i < GROQ_KEYS_POOL.length; i++) {
     const key = GROQ_KEYS_POOL[(groqPoolIdx + i) % GROQ_KEYS_POOL.length];
-    for (const m of ['qwen/qwen3.8-27b', 'qwen/qwen3.6-27b']) {
+    for (const m of ['qwen/qwen3.8-27b']) {
       try {
         const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
@@ -276,7 +307,8 @@ async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', g
   }
   groqMessages.push({ role: 'user', content: prompt });
 
-  const GROQ_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'qwen/qwen3.6-27b'];
+  // Strictly 100% FREE Tier Groq Models (Zero Cost, No Billing Required)
+  const GROQ_MODELS = ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b', 'allam-2-7b'];
   for (let i = 0; i < GROQ_KEYS_POOL.length; i++) {
     const key = GROQ_KEYS_POOL[(groqPoolIdx + i) % GROQ_KEYS_POOL.length];
     for (const m of GROQ_MODELS) {
@@ -294,7 +326,8 @@ async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', g
 
         if (res.ok) {
           const d = await res.json();
-          const ans = d.choices?.[0]?.message?.content;
+          const choice = d.choices?.[0]?.message;
+          const ans = choice?.content || choice?.reasoning;
           if (ans && ans.trim().length > 0) {
             groqPoolIdx++;
             return sanitizeDiscordFormatting(ans.trim());
@@ -306,38 +339,41 @@ async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', g
     }
   }
 
-  // 2. Gemini Fallback with multi-turn history
+  // 2. Gemini Fallback — Strictly 100% FREE-TIER Flash Models (Zero Cost)
   if (geminiClient) {
-    try {
-      const geminiContents = [];
-      for (const h of recentHistory) {
-        geminiContents.push({
-          role: h.role === 'user' ? 'user' : 'model',
-          parts: [{ text: h.content }]
-        });
-      }
+    const geminiContents = [];
+    for (const h of recentHistory) {
       geminiContents.push({
-        role: 'user',
-        parts: [{ text: prompt }]
+        role: h.role === 'user' ? 'user' : 'model',
+        parts: [{ text: h.content }]
       });
+    }
+    geminiContents.push({
+      role: 'user',
+      parts: [{ text: prompt }]
+    });
 
-      const resp = await geminiClient.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: geminiContents,
-        config: { systemInstruction: sysInstr }
-      });
-      const t = resp?.text || resp?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (t) return sanitizeDiscordFormatting(t.trim());
-    } catch (e) {
+    const FREE_GEMINI_MODELS = ['gemini-3.5-flash-lite', 'gemini-2.5-flash'];
+    for (const modelName of FREE_GEMINI_MODELS) {
       try {
-        const resp2 = await geminiClient.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: prompt,
+        const resp = await geminiClient.models.generateContent({
+          model: modelName,
+          contents: geminiContents,
           config: { systemInstruction: sysInstr }
         });
-        const t2 = resp2?.text || resp2?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (t2) return sanitizeDiscordFormatting(t2.trim());
-      } catch (e2) {}
+        const t = resp?.text || resp?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (t && t.trim().length > 0) return sanitizeDiscordFormatting(t.trim());
+      } catch (e) {
+        try {
+          const resp2 = await geminiClient.models.generateContent({
+            model: modelName,
+            contents: prompt,
+            config: { systemInstruction: sysInstr }
+          });
+          const t2 = resp2?.text || resp2?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (t2 && t2.trim().length > 0) return sanitizeDiscordFormatting(t2.trim());
+        } catch (e2) {}
+      }
     }
   }
 

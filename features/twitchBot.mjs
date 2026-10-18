@@ -309,11 +309,17 @@ export async function initTwitchBot(discordClient = null) {
         const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
         if (apiKey) {
           const ai = new GoogleGenAI({ apiKey });
-          const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: `You are Krims Code, a witty, chill, and hype stream AI companion for Krylo and friends. Keep responses under 200 characters, no hashtags, no markdown formatting, directly address @${displayName}: ${prompt}`
-          });
-          const reply = response.text ? response.text.replace(/\n/g, ' ').trim() : "I'm drawing a blank right now, stream's too hype!";
+          let response = null;
+          for (const m of ['gemini-3.5-flash-lite', 'gemini-2.5-flash']) {
+            try {
+              response = await ai.models.generateContent({
+                model: m,
+                contents: `You are Krims Code, a witty, chill, and hype stream AI companion for Krylo and friends. Keep responses under 200 characters, no hashtags, no markdown formatting, directly address @${displayName}: ${prompt}`
+              });
+              if (response?.text) break;
+            } catch (e) {}
+          }
+          const reply = response?.text ? response.text.replace(/\n/g, ' ').trim() : "I'm drawing a blank right now, stream's too hype!";
           client.say(targetChannel, reply.substring(0, 300));
         } else {
           client.say(targetChannel, `@${displayName} Krims Code AI is hyped and watching the stream!`);
