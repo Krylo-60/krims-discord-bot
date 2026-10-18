@@ -7992,7 +7992,7 @@ client.on('messageCreate', async (message) => {
     const statusMsg = await message.reply('🚀 **Initializing Krims Code Support & Updates deployment engine...** Please wait 5-10 seconds while all categories, channels, roles, and embeds are built.');
     try {
       const { deployKrimsSupportServer } = await import('./scripts/setupKrimsSupportServer.mjs');
-      const result = await deployKrimsSupportServer(message.guild.id, client);
+      const result = await deployKrimsSupportServer(message.guild.id, client, message.channel.id);
       return statusMsg.edit(`✅ **Krims Code Support Hub deployed successfully!**\nAll channels, roles, embeds, and permissions are live.\n${result.inviteUrl ? `🔗 **Permanent Server Invite:** ${result.inviteUrl}` : ''}`);
     } catch (err) {
       console.error('Error in !deploy-support-hub:', err);

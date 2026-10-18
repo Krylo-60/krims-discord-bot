@@ -12,7 +12,7 @@ import {
   ButtonStyle
 } from 'discord.js';
 
-export async function deployKrimsSupportServer(guildId, customClient = null) {
+export async function deployKrimsSupportServer(guildId, customClient = null, callerChannelId = null) {
   let activeClient = customClient;
   let shouldDestroy = false;
 
@@ -30,7 +30,7 @@ export async function deployKrimsSupportServer(guildId, customClient = null) {
   }
 
   const guild = await activeClient.guilds.fetch(guildId);
-  console.log(`\n🚀 DEPLOYING KRIMS CODE SUPPORT & UPDATES SERVER FOR: ${guild.name} (${guild.id})`);
+  console.log(`\n🚀 DEPLOYING KRIMS CODE SUPPORT & UPDATES SERVER FOR: ${guild?.name || guildId} (${guild.id})`);
 
   // 1. UPDATE SERVER ICON (Using current bot logo reference design)
   const iconPath = path.resolve('assets/krims_support_server_icon.jpg');
@@ -56,9 +56,10 @@ export async function deployKrimsSupportServer(guildId, customClient = null) {
     { name: '👥 Community Member', color: 0x95A5A6, hoist: false, mentionable: false }
   ];
 
+  await guild.roles.fetch().catch(() => {});
   const roles = {};
   for (const rc of roleConfigs) {
-    let r = guild.roles.cache.find(x => x.name === rc.name);
+    let r = guild.roles.cache.find(x => x && x.name === rc.name);
     if (!r) {
       r = await guild.roles.create({
         name: rc.name,
@@ -74,18 +75,18 @@ export async function deployKrimsSupportServer(guildId, customClient = null) {
     roles[rc.name] = r;
   }
 
-  // 3. CLEAN UP DEFAULT PLACEHOLDER CHANNELS
+  // 3. CLEAN UP DEFAULT PLACEHOLDER CHANNELS (do not delete caller channel)
   console.log('[*] Cleaning up default discord channels...');
   const existingChannels = await guild.channels.fetch();
   for (const [id, ch] of existingChannels) {
-    if (ch && ['general', 'General', 'Text Channels', 'Voice Channels'].includes(ch.name)) {
+    if (ch && ch.id !== callerChannelId && ['general', 'General', 'Text Channels', 'Voice Channels'].includes(ch.name)) {
       await ch.delete().catch(() => {});
     }
   }
 
   // Helpers to ensure channels and categories
   async function getOrCreateCategory(name) {
-    let cat = guild.channels.cache.find(c => c.type === ChannelType.GuildCategory && c.name === name);
+    let cat = guild.channels.cache.find(c => c && c.type === ChannelType.GuildCategory && c.name === name);
     if (!cat) {
       cat = await guild.channels.create({
         name,
@@ -97,7 +98,7 @@ export async function deployKrimsSupportServer(guildId, customClient = null) {
   }
 
   async function getOrCreateChannel(name, type, parentId, permissionOverwrites = []) {
-    let ch = guild.channels.cache.find(c => c.name === name && c.parentId === parentId);
+    let ch = guild.channels.cache.find(c => c && c.name === name && c.parentId === parentId);
     if (!ch) {
       ch = await guild.channels.create({
         name,
