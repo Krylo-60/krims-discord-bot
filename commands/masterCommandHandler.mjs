@@ -40,6 +40,11 @@ import {
 } from '../features/teamClanApplicationManager.mjs';
 
 import {
+  buildBotDevApplicationPanel,
+  KRIMS_SUPPORT_GUILD_ID
+} from '../features/botDevApplicationManager.mjs';
+
+import {
   linkCountingChannel,
   unlinkCountingChannel,
   resetCountingState,
@@ -966,6 +971,11 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     if (commandName === 'apply') {
       if (interaction.guildId === CLAN_GUILD_ID) {
         const panel = buildTeamApplicationPanel();
+        return await interaction.reply(panel);
+      }
+
+      if (interaction.guildId === KRIMS_SUPPORT_GUILD_ID) {
+        const panel = buildBotDevApplicationPanel();
         return await interaction.reply(panel);
       }
 

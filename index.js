@@ -32,6 +32,7 @@ import { handleCountingMessage, handleStickyMessage, linkCountingChannel, unlink
 import { handleCustomCommandExecution, getGuildCustomCommands, addGuildCustomCommand, deleteGuildCustomCommand } from './features/customCommandsManager.mjs';
 import { handleVideoCrewInteraction, setCrewAppStatus, getCrewAppStatus, isCrewAppOpen } from './features/videoCrewApplicationManager.mjs';
 import { handleTeamClanApplicationInteraction, setupTeamApplicationChannel } from './features/teamClanApplicationManager.mjs';
+import { handleBotDevApplicationInteraction, setupBotDevApplicationChannel } from './features/botDevApplicationManager.mjs';
 import { handlePlatformRoleInteraction, setPlatformPublicStatus, getPlatformRoleStatus } from './features/platformRolePublisher.mjs';
 import { handleEmojiSubmissionMessage, handleEmojiSubmissionInteraction } from './features/emojiSubmissionSystem.mjs';
 import { handleMasterSlashCommand } from './commands/masterCommandHandler.mjs';
@@ -1551,6 +1552,18 @@ client.on('interactionCreate', async (interaction) => {
     (interaction.isModalSubmit() && interaction.customId === 'modal_submit_clan_app')
   ) {
     return await handleTeamClanApplicationInteraction(interaction);
+  }
+
+  // 💻 Handle Krims Code AI Bot Developer Application Interactions
+  if (
+    (interaction.isButton() && (
+      interaction.customId === 'btn_open_dev_app_modal' ||
+      interaction.customId.startsWith('btn_dev_accept_') ||
+      interaction.customId.startsWith('btn_dev_deny_')
+    )) ||
+    (interaction.isModalSubmit() && interaction.customId === 'modal_submit_dev_app')
+  ) {
+    return await handleBotDevApplicationInteraction(interaction);
   }
 
   // 🌐 Handle Platform Role Publisher Interactions
