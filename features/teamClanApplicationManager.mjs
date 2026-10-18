@@ -17,6 +17,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const STATUS_FILE = path.join(__dirname, '..', 'data', 'clan_app_status.json');
+const APPROVED_RECRUITS_FILE = path.join(__dirname, '..', 'data', 'approved_clan_recruits.json');
 
 // The_Half_Lifes Constants
 export const CLAN_GUILD_ID = '1557852594242719775';
@@ -24,9 +25,11 @@ export const CLAN_RECRUIT_ROLE_ID = '1557855852369813514'; // 🗡️ Clan Recru
 export const CLAN_LEADER_ROLE_ID = '1557855846094999572';  // 👑 Team Leader
 export const CLAN_COLEADER_ROLE_ID = '1557855847500091443';// ⚔️ Co-Leader
 export const CLAN_ADMIN_ROLE_ID = '1557865642659414132';   // ⚡ Clan Administrator
+export const CLAN_STAFF_UPDATES_ID = '1557863149389095064'; // #📌・𝗌𝗍𝖺𝖿𝖿-𝗎𝗉𝖽𝖺𝗍𝖾𝗌
 export const CLAN_STAFF_LOGS_ID = '1557865652281278604';   // #📋・𝖲taff-logs
 export const CLAN_TEAM_CHAT_ID = '1557855867897127054';    // #💬・𝖳eam-chat
 export const CLAN_CATEGORY_ID = '1557855860838109306';     // 📌 ─── TEAM DIRECTORY ───
+export const CLAN_INVITE_URL = 'https://discord.gg/wDn4mSrcGj'; // Official Team Headquarters Invite
 
 const KRYLO_USER_ID = '1414143825538191373';
 
@@ -66,6 +69,45 @@ export function getClanAppStatus() {
   return currentClanAppStatus;
 }
 
+export function readApprovedRecruits() {
+  try {
+    if (fs.existsSync(APPROVED_RECRUITS_FILE)) {
+      return JSON.parse(fs.readFileSync(APPROVED_RECRUITS_FILE, 'utf-8'));
+    }
+  } catch (e) {}
+  return [];
+}
+
+export function addApprovedRecruit(userId) {
+  const recruits = readApprovedRecruits();
+  if (!recruits.includes(userId)) {
+    recruits.push(userId);
+    try {
+      const dir = path.dirname(APPROVED_RECRUITS_FILE);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(APPROVED_RECRUITS_FILE, JSON.stringify(recruits, null, 2), 'utf-8');
+    } catch (e) {
+      console.error('[ApprovedRecruits] Failed to write file:', e);
+    }
+  }
+}
+
+/**
+ * Checks if a newly joined guild member was an approved recruit and automatically assigns the Clan Recruit role.
+ */
+export async function checkAndAssignApprovedRecruit(member) {
+  if (!member || member.guild.id !== CLAN_GUILD_ID) return false;
+  const recruits = readApprovedRecruits();
+  if (recruits.includes(member.id)) {
+    if (!member.roles.cache.has(CLAN_RECRUIT_ROLE_ID)) {
+      await member.roles.add(CLAN_RECRUIT_ROLE_ID).catch(() => {});
+      console.log(`[ClanApp] Auto-granted 🗡️ Clan Recruit role to newly joined approved member: ${member.user.tag}`);
+    }
+    return true;
+  }
+  return false;
+}
+
 /**
  * Builds the official Team Application Dispatch panel embed with interactive button
  */
@@ -91,10 +133,10 @@ export function buildTeamApplicationPanel() {
       `• ⚡ **Redstone Engineer** — Traps, blast doors & automated farms.\n` +
       `• ⛏️ **Miner & Resource Grinder** — Underground resource harvesting & gear supply.\n\n` +
       (isOpen 
-        ? `👉 *Click the button below to fill out your in-app application directly inside Discord!*` 
+        ? `👉 *Click the button below to fill out your entry questionnaire! Once approved by Clan Leadership, you will receive a private DM with the invite link to join the team!*` 
         : `🔒 *Recruitment is currently closed by Clan Leadership. Check back soon!*`)
     )
-    .setThumbnail('https://cdn.discordapp.com/emojis/1218520268875694110.png')
+    .setThumbnail('https://cdn.discordapp.com/emojis/1561391538355961997.png')
     .setFooter({ text: 'The Half Life\'s • Autonomous Recruitment Matrix' })
     .setTimestamp();
 
@@ -235,57 +277,62 @@ export async function handleTeamClanApplicationInteraction(interaction) {
     await interaction.reply({
       content: 
         `⚔️ **Application Successfully Submitted!**\n\n` +
-        `Thank you **${interaction.user.username}**! Your entry application for **The Half Life's** has been delivered directly to the Clan Leadership team.\n` +
-        `Our leaders (<@&${CLAN_LEADER_ROLE_ID}> & <@&${CLAN_COLEADER_ROLE_ID}>) will review your responses shortly. You will receive an automated notification once decided! 🛡️`,
+        `Thank you **${interaction.user.username}**! Your entry application for **The Half Life's** has been delivered directly to Clan Leadership in the updates terminal.\n` +
+        `Our leaders (<@&${CLAN_LEADER_ROLE_ID}> & <@&${CLAN_COLEADER_ROLE_ID}>) will review your responses. Once approved, you will receive an automated private DM with the official team invite link! 🛡️`,
       ephemeral: true
     });
 
-    // Send application embed to Staff Logs Channel
+    // Send application embed directly to #📌・𝗌𝗍𝖺𝖿𝖿-𝗎𝗉𝖽𝖺𝗍𝖾𝗌 (and #📋・𝖲taff-logs)
     try {
-      const staffChannel = interaction.guild.channels.cache.get(CLAN_STAFF_LOGS_ID) ||
-                           interaction.guild.channels.cache.find(c => c.name.includes('staff-logs') || c.name.includes('admin-chat'));
+      const clanGuild = interaction.client.guilds.cache.get(CLAN_GUILD_ID);
+      if (clanGuild) {
+        const updatesChannel = clanGuild.channels.cache.get(CLAN_STAFF_UPDATES_ID) ||
+                              clanGuild.channels.cache.find(c => c.name.includes('staff-updates') || c.name.includes('updates-and-progress')) ||
+                              clanGuild.channels.cache.get(CLAN_STAFF_LOGS_ID);
 
-      if (staffChannel) {
-        const reviewEmbed = new EmbedBuilder()
-          .setColor(0xF59E0B)
-          .setTitle('📥 NEW TEAM MEMBER APPLICATION RECEIVED')
-          .setDescription(
-            `A new recruit has officially submitted their application for **The Half Life's**!\n\n` +
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-            `👤 **Applicant:** <@${interaction.user.id}> (\`${interaction.user.tag}\`)\n` +
-            `🆔 **User ID:** \`${interaction.user.id}\`\n` +
-            `🎮 **Minecraft IGN:** **\`${ign}\`**\n` +
-            `⚔️ **Specialty / Role:** \`${specialty}\`\n` +
-            `🕒 **Activity & Timezone:** \`${activity}\`\n\n` +
-            `📜 **Previous Experience:**\n> ${experience.replace(/\n/g, '\n> ')}\n\n` +
-            `🤝 **Why Join The Half Life's:**\n> ${why.replace(/\n/g, '\n> ')}\n` +
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
-          )
-          .setThumbnail(interaction.user.displayAvatarURL({ dynamic: true }))
-          .setFooter({ text: 'Review below using Accept or Decline' })
-          .setTimestamp();
+        if (updatesChannel) {
+          const reviewEmbed = new EmbedBuilder()
+            .setColor(0xFF4500)
+            .setTitle('📥 NEW CANDIDATE ENTRY APPLICATION RECEIVED')
+            .setDescription(
+              `A new candidate has submitted their entry application to join **The Half Life's**!\n\n` +
+              `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+              `👤 **Applicant:** <@${interaction.user.id}> (\`${interaction.user.tag}\`)\n` +
+              `🆔 **User ID:** \`${interaction.user.id}\`\n` +
+              `🎮 **Minecraft IGN:** **\`${ign}\`**\n` +
+              `⚔️ **Specialty / Role:** \`${specialty}\`\n` +
+              `🕒 **Activity & Timezone:** \`${activity}\`\n\n` +
+              `📜 **Previous Experience:**\n> ${experience.replace(/\n/g, '\n> ')}\n\n` +
+              `🤝 **Why Join The Half Life's:**\n> ${why.replace(/\n/g, '\n> ')}\n` +
+              `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+              `*Click "Accept & Send Invite" to automatically dispatch the private server invite link to the user's DMs!*`
+            )
+            .setThumbnail(interaction.user.displayAvatarURL({ dynamic: true }))
+            .setFooter({ text: 'The Half Life\'s • Leadership Review Matrix' })
+            .setTimestamp();
 
-        const actionRow = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId(`btn_clan_accept_${interaction.user.id}`)
-            .setLabel('Accept Member')
-            .setStyle(ButtonStyle.Success)
-            .setEmoji('✅'),
-          new ButtonBuilder()
-            .setCustomId(`btn_clan_deny_${interaction.user.id}`)
-            .setLabel('Decline')
-            .setStyle(ButtonStyle.Danger)
-            .setEmoji('❌')
-        );
+          const actionRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId(`btn_clan_accept_${interaction.user.id}`)
+              .setLabel('Accept & Send Server Invite')
+              .setStyle(ButtonStyle.Success)
+              .setEmoji('✅'),
+            new ButtonBuilder()
+              .setCustomId(`btn_clan_deny_${interaction.user.id}`)
+              .setLabel('Decline')
+              .setStyle(ButtonStyle.Danger)
+              .setEmoji('❌')
+          );
 
-        await staffChannel.send({
-          content: `🔔 <@&${CLAN_LEADER_ROLE_ID}> <@&${CLAN_COLEADER_ROLE_ID}> **New Candidate Application:** <@${interaction.user.id}>!`,
-          embeds: [reviewEmbed],
-          components: [actionRow]
-        });
+          await updatesChannel.send({
+            content: `🔔 <@&${CLAN_LEADER_ROLE_ID}> <@&${CLAN_COLEADER_ROLE_ID}> **New Candidate Application:** <@${interaction.user.id}> (\`${ign}\`)!`,
+            embeds: [reviewEmbed],
+            components: [actionRow]
+          });
+        }
       }
     } catch (err) {
-      console.error('[ClanApp] Failed to route application to staff log:', err);
+      console.error('[ClanApp] Failed to route application to updates channel:', err);
     }
     return;
   }
@@ -311,95 +358,143 @@ export async function handleTeamClanApplicationInteraction(interaction) {
       });
     }
 
-    const targetMember = await interaction.guild.members.fetch(targetUserId).catch(() => null);
+    const clanGuild = interaction.client.guilds.cache.get(CLAN_GUILD_ID);
+    const targetUser = await interaction.client.users.fetch(targetUserId).catch(() => null);
+    const targetMember = clanGuild ? await clanGuild.members.fetch(targetUserId).catch(() => null) : null;
 
     if (isAccept) {
-      // 1. Assign Recruit Role
+      // 1. Add to Approved Recruits store so auto-role triggers on join
+      addApprovedRecruit(targetUserId);
+
+      // 2. If already in guild, assign role immediately
       if (targetMember) {
         await targetMember.roles.add(CLAN_RECRUIT_ROLE_ID).catch(() => {});
-        
-        // 2. DM the accepted candidate
+      }
+
+      // 3. Send DM to the candidate with the Team Server Invite Link!
+      let dmSent = false;
+      if (targetUser) {
         const dmEmbed = new EmbedBuilder()
           .setColor(0x10B981)
           .setTitle('🎉 CONGRATULATIONS! WELCOME TO THE HALF LIFE\'S! ⚔️')
           .setDescription(
-            `Hey **${targetMember.user.username}**, your application has been **ACCEPTED** by <@${interaction.user.id}>!\n\n` +
-            `You have been awarded the **<@&${CLAN_RECRUIT_ROLE_ID}>** role.\n\n` +
+            `Hey **${targetUser.username}**, your application to join **The Half Life's** has been **ACCEPTED** by <@${interaction.user.id}>!\n\n` +
+            `You have been granted access to our private clan headquarters.\n\n` +
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+            `🔗 **YOUR OFFICIAL SQUAD INVITE LINK:**\n` +
+            `👉 **${CLAN_INVITE_URL}**\n` +
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
             `### 🚀 NEXT STEPS:\n` +
-            `1. Introduce yourself to the squad in <#${CLAN_TEAM_CHAT_ID}>!\n` +
-            `2. Read our core creed and server rules in <#1557855862146465922>.\n` +
-            `3. Coordinate with team leadership for base tour and gear supply.\n\n` +
+            `1. Click the link above to join our private server.\n` +
+            `2. You will be automatically awarded the **<@&${CLAN_RECRUIT_ROLE_ID}>** rank.\n` +
+            `3. Introduce yourself to the squad in <#${CLAN_TEAM_CHAT_ID}>!\n` +
+            `4. Read our core creed and server rules in <#1557855862146465922>.\n\n` +
             `*Remember: Loyalty to the squad above all. Never leak base coordinates.* 🛡️`
           )
+          .setThumbnail('https://cdn.discordapp.com/emojis/1561391538355961997.png')
           .setTimestamp();
 
-        await targetMember.send({ embeds: [dmEmbed] }).catch(() => {});
+        try {
+          await targetUser.send({ embeds: [dmEmbed] });
+          dmSent = true;
+        } catch (e) {
+          console.warn('[ClanApp] Could not DM candidate:', e.message);
+        }
       }
 
-      // 3. Post Announcement in Team Chat
-      try {
-        const teamChat = interaction.guild.channels.cache.get(CLAN_TEAM_CHAT_ID);
-        if (teamChat) {
-          const welcomeSquadEmbed = new EmbedBuilder()
-            .setColor(0x10B981)
-            .setTitle('⚔️ NEW SQUAD RECRUIT ENLISTED!')
-            .setDescription(
-              `Give a warm squad welcome to our newest member, <@${targetUserId}>!\n\n` +
-              `• **Rank:** **🗡️ Clan Recruit**\n` +
-              `• **Recruited By:** <@${interaction.user.id}>\n\n` +
-              `Welcome to **The Half Life's**! May our streak never fall. 🚀`
-            )
-            .setThumbnail(targetMember ? targetMember.user.displayAvatarURL({ dynamic: true }) : null)
-            .setTimestamp();
+      // 4. Post announcement in Team Chat if member is already inside
+      if (targetMember && clanGuild) {
+        try {
+          const teamChat = clanGuild.channels.cache.get(CLAN_TEAM_CHAT_ID);
+          if (teamChat) {
+            const welcomeSquadEmbed = new EmbedBuilder()
+              .setColor(0x10B981)
+              .setTitle('⚔️ NEW SQUAD RECRUIT ENLISTED!')
+              .setDescription(
+                `Give a warm squad welcome to our newest member, <@${targetUserId}>!\n\n` +
+                `• **Rank:** **🗡️ Clan Recruit**\n` +
+                `• **Recruited By:** <@${interaction.user.id}>\n\n` +
+                `Welcome to **The Half Life's**! May our streak never fall. 🚀`
+              )
+              .setThumbnail(targetMember.user.displayAvatarURL({ dynamic: true }))
+              .setTimestamp();
 
-          await teamChat.send({ content: `🎉 Welcome <@${targetUserId}> to the team!`, embeds: [welcomeSquadEmbed] });
-        }
-      } catch (e) {}
+            await teamChat.send({ content: `🎉 Welcome <@${targetUserId}> to the team!`, embeds: [welcomeSquadEmbed] });
+          }
+        } catch (e) {}
+      }
 
-      // 4. Update the staff embed to mark accepted
+      // 5. Update the review card in updates channel to Green
       const origEmbed = interaction.message.embeds[0];
       const updatedEmbed = EmbedBuilder.from(origEmbed)
         .setColor(0x10B981)
-        .setTitle('✅ APPLICATION ACCEPTED')
+        .setTitle('✅ APPLICATION APPROVED — INVITE LINK SENT VIA DM')
         .addFields({
-          name: '🛡️ Status',
-          value: `**Accepted** by <@${interaction.user.id}> on <t:${Math.floor(Date.now() / 1000)}:f>`,
+          name: '🎯 Decision & DM Status',
+          value: `**ACCEPTED** by <@${interaction.user.id}> on <t:${Math.floor(Date.now() / 1000)}:R>\n` +
+                 `📨 **DM Status:** ${dmSent ? '✅ Server invite link successfully sent to applicant\'s DM!' : '⚠️ Applicant DMs were closed; invite generated: ' + CLAN_INVITE_URL}`,
           inline: false
         });
 
+      const disabledRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('btn_clan_accepted_disabled')
+          .setLabel('Accepted & Invite Sent')
+          .setStyle(ButtonStyle.Success)
+          .setEmoji('✅')
+          .setDisabled(true)
+      );
+
       return await interaction.update({
+        content: `✅ **Application Approved by <@${interaction.user.id}> • Invite Dispatched!**`,
         embeds: [updatedEmbed],
-        components: [] // disable buttons
+        components: [disabledRow]
       });
+
     } else {
-      // Decline handling
-      if (targetMember) {
+      // 1. Decline handling - send polite DM
+      if (targetUser) {
         const dmDecline = new EmbedBuilder()
           .setColor(0xEF4444)
           .setTitle('🛡️ The Half Life\'s — Application Update')
           .setDescription(
-            `Hello **${targetMember.user.username}**,\n\n` +
-            `Thank you for your interest in joining **The Half Life's**. After careful review by leadership, our roster is currently full or not taking additional recruits for this role at this time.\n\n` +
+            `Hello **${targetUser.username}**,\n\n` +
+            `Thank you for taking the time to apply for **The Half Life's**.\n\n` +
+            `After review by Clan Leadership, our roster is currently full or not onboarding additional recruits for this role at this time.\n\n` +
             `We encourage you to stay active in our community and apply again in upcoming recruitment rounds! ⚔️`
           )
           .setTimestamp();
 
-        await targetMember.send({ embeds: [dmDecline] }).catch(() => {});
+        try {
+          await targetUser.send({ embeds: [dmDecline] });
+        } catch (e) {}
       }
 
+      // 2. Update review card in updates channel to Red
       const origEmbed = interaction.message.embeds[0];
       const updatedEmbed = EmbedBuilder.from(origEmbed)
         .setColor(0xEF4444)
         .setTitle('❌ APPLICATION DECLINED')
         .addFields({
-          name: '🛡️ Status',
-          value: `**Declined** by <@${interaction.user.id}> on <t:${Math.floor(Date.now() / 1000)}:f>`,
+          name: '🎯 Decision',
+          value: `**DECLINED** by <@${interaction.user.id}> on <t:${Math.floor(Date.now() / 1000)}:R>\n` +
+                 `📨 Candidate notified via DM.`,
           inline: false
         });
 
+      const disabledRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('btn_clan_declined_disabled')
+          .setLabel('Declined')
+          .setStyle(ButtonStyle.Danger)
+          .setEmoji('❌')
+          .setDisabled(true)
+      );
+
       return await interaction.update({
+        content: `❌ **Application Declined by <@${interaction.user.id}>**`,
         embeds: [updatedEmbed],
-        components: [] // disable buttons
+        components: [disabledRow]
       });
     }
   }

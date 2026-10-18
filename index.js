@@ -31,7 +31,7 @@ import { setupAIConsoleChannel, handleAIConsoleMessage } from './aiConsoleChatHa
 import { handleCountingMessage, handleStickyMessage, linkCountingChannel, unlinkCountingChannel, resetCountingState, setCountingState, getCountingState, getCrossServerCountingLeaderboardEmbed, startAiCountingSession, stopAiCountingSession } from './countingAndStickyEngine.mjs';
 import { handleCustomCommandExecution, getGuildCustomCommands, addGuildCustomCommand, deleteGuildCustomCommand } from './features/customCommandsManager.mjs';
 import { handleVideoCrewInteraction, setCrewAppStatus, getCrewAppStatus, isCrewAppOpen } from './features/videoCrewApplicationManager.mjs';
-import { handleTeamClanApplicationInteraction, setupTeamApplicationChannel } from './features/teamClanApplicationManager.mjs';
+import { handleTeamClanApplicationInteraction, setupTeamApplicationChannel, checkAndAssignApprovedRecruit, buildTeamApplicationPanel } from './features/teamClanApplicationManager.mjs';
 import { handleBotDevApplicationInteraction, setupBotDevApplicationChannel } from './features/botDevApplicationManager.mjs';
 import { handlePlatformRoleInteraction, setPlatformPublicStatus, getPlatformRoleStatus } from './features/platformRolePublisher.mjs';
 import { handleEmojiSubmissionMessage, handleEmojiSubmissionInteraction } from './features/emojiSubmissionSystem.mjs';
@@ -8403,6 +8403,13 @@ client.on('messageCreate', async (message) => {
       return;
     }
 
+    // Team & Clan Application via DM
+    if (['!apply', 'apply', 'clan', 'team', 'join clan', 'join team', 'apply clan', 'apply team'].includes(lowerDM)) {
+      const panel = buildTeamApplicationPanel();
+      await message.channel.send(panel).catch(() => {});
+      return;
+    }
+
     // AI Chat in DMs with Memory
     try {
       await message.channel.sendTyping().catch(() => {});
@@ -10254,6 +10261,7 @@ client.on('guildMemberAdd', async (member) => {
   // 🛡️ The Half Life's Clan Operative Arrival Terminal System
   if (member.guild.id === HALF_LIFES_GUILD_ID || member.guild.name.toLowerCase().includes('half')) {
     try {
+      await checkAndAssignApprovedRecruit(member);
       await handleGuildMemberAddWelcome(member);
     } catch (err) {
       console.warn('[HalfLifes Welcome] Error handling member join:', err.message);
