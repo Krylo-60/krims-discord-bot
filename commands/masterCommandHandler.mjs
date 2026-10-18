@@ -594,10 +594,15 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       const isSkybase = interaction.guildId === '1549875778575929446';
       let answer = null;
       if (context.geminiDirectAsk) {
-        const sys = isSkybase
+        const mathInstruction = "\nCRITICAL DISCORD FORMATTING: Discord chat DOES NOT support LaTeX, KaTeX, or MathJax. NEVER output LaTeX syntax (such as \\boxed{}, \\times, \\frac{}, \\[, \\], or $$). Write all math, formulas, equations, numbers, and calculations in clean plain text and standard Discord markdown (e.g. 100^9 = 10^18 = 1,000,000,000,000,000,000). Never place formulas inside raw square brackets [ ]. Keep answers clean, conversational, and direct.";
+        const sys = (isSkybase
           ? "You are Krims Code AI, official Discord assistant for Krylo's Skybase community and video production studio. Focus on community chat, YouTube video content, film crew auditions, and creator discussions. NEVER mention any Minecraft server, KSMP, or game IPs. Refer to the creator as Krylo."
-          : `You are Krims Code AI, official Discord assistant and versatile bot companion for ${interaction.guild?.name || "this community"}. Assist users with questions, commands, server utilities, and friendly conversation.`;
+          : `You are Krims Code AI, official Discord assistant and versatile bot companion for ${interaction.guild?.name || "this community"}. Assist users with questions, commands, server utilities, and friendly conversation.`) + mathInstruction;
         answer = await context.geminiDirectAsk(prompt, sys, interaction.guild?.name || "Community").catch(() => null);
+      }
+
+      if (answer && context.sanitizeDiscordFormatting) {
+        answer = context.sanitizeDiscordFormatting(answer);
       }
 
       if (!answer) {

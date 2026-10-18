@@ -188,7 +188,54 @@ async function groqVisionAsk(imageUrl, promptText = 'Analyze this image', sysTex
   return null;
 }
 
+/**
+ * Cleans ugly raw LaTeX, KaTeX, and MathJax artifacts (like \boxed{}, \times, \[ \])
+ * so calculations and AI messages render cleanly in Discord markdown.
+ */
+export function sanitizeDiscordFormatting(text) {
+  if (!text || typeof text !== 'string') return text;
+  let cleaned = text;
+
+  // Replace \boxed{...} with **...**
+  cleaned = cleaned.replace(/\\boxed\{([^{}]+)\}/g, '**$1**');
+  cleaned = cleaned.replace(/\\boxed\{([^{}]+)\}/g, '**$1**');
+
+  // Replace \times or \cdot with × and ·
+  cleaned = cleaned.replace(/\\times/g, '×');
+  cleaned = cleaned.replace(/\\cdot/g, '·');
+
+  // Replace comma spacing e.g. 1{,}000{,}000 -> 1,000,000
+  cleaned = cleaned.replace(/\{,\}/g, ',');
+
+  // Clean fractions \frac{a}{b} -> (a / b)
+  cleaned = cleaned.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '($1 / $2)');
+
+  // Clean display math brackets \[ and \]
+  cleaned = cleaned.replace(/\\\[/g, '');
+  cleaned = cleaned.replace(/\\\]/g, '');
+
+  // Clean raw LaTeX standalone brackets on their own line wrapping formulas:
+  // e.g. \n[\nformula\n]\n -> \nformula\n
+  cleaned = cleaned.replace(/\n\s*\[\s*\n([\s\S]*?)\n\s*\]\s*(?=\n|$)/g, '\n$1\n');
+
+  // Clean remaining braces around simple powers like 10^{18} -> 10^18
+  cleaned = cleaned.replace(/\^\{([^{}]+)\}/g, '^$1');
+
+  // Clean \text{...}
+  cleaned = cleaned.replace(/\\text\{([^{}]+)\}/g, '$1');
+
+  // Clean $$ ... $$ into single line or block
+  cleaned = cleaned.replace(/\$\$([\s\S]*?)\$\$/g, (_, math) => `\`${math.trim()}\``);
+
+  // Collapse 3+ newlines into 2
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+
+  return cleaned.trim();
+}
+
 async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', guildId = null) {
+  const formattingRule = "\nCRITICAL DISCORD FORMATTING RULE: Discord DOES NOT support LaTeX, KaTeX, or MathJax. NEVER output LaTeX syntax (such as \\boxed{}, \\times, \\frac{}, \\[, \\], or $$). Write all math, formulas, equations, numbers, and calculations in clean plain text and standard Discord markdown (e.g. 100^9 = 10^18 = 1,000,000,000,000,000,000). Never place formulas inside raw square brackets [ ]. Keep answers ultra-clean and easy to read on mobile and desktop.";
+
   let defaultSys = 'You are Krims Code AI, a fast, intelligent, and helpful Discord AI assistant developed by Krims Code Studio. Friendly, helpful, concise with clean conversational markdown formatting.';
   if (guildName) {
     defaultSys = `You are Krims Code AI, the friendly and intelligent Discord AI assistant for the "${guildName}" server community. Friendly, helpful, concise with clean markdown formatting.`;
@@ -198,7 +245,9 @@ async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', g
     const memoryContext = buildServerMemoryContext(guildId, guildName);
     defaultSys += memoryContext;
   }
-  const sysInstr = systemInstruction ? (systemInstruction + (guildId ? buildServerMemoryContext(guildId, guildName) : '')) : defaultSys;
+  defaultSys += formattingRule;
+
+  const sysInstr = systemInstruction ? (systemInstruction + (guildId ? buildServerMemoryContext(guildId, guildName) : '') + formattingRule) : defaultSys;
   
   // 1. Try Groq LPU (Ultra-fast ~50ms response) with Server Memory Dialogue
   const recentHistory = guildId ? getRecentServerMemory(guildId, 6) : [];
@@ -235,7 +284,7 @@ async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', g
           const ans = d.choices?.[0]?.message?.content;
           if (ans && ans.trim().length > 0) {
             groqPoolIdx++;
-            return ans.trim();
+            return sanitizeDiscordFormatting(ans.trim());
           }
         }
       } catch (err) {
@@ -253,7 +302,7 @@ async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', g
         config: { systemInstruction: sysInstr }
       });
       const t = resp?.text || resp?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (t) return t.trim();
+      if (t) return sanitizeDiscordFormatting(t.trim());
     } catch (e) {}
   }
 
@@ -4135,7 +4184,8 @@ client.on('interactionCreate', async (interaction) => {
     xpData,
     clanData,
     getCachedGuildConfig,
-    geminiDirectAsk
+    geminiDirectAsk,
+    sanitizeDiscordFormatting
   });
 
   const { commandName } = interaction;
