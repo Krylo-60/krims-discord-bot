@@ -4141,38 +4141,16 @@ client.on('interactionCreate', async (interaction) => {
   const { commandName } = interaction;
   // === MASTER KRYLOSMP SLASH COMMANDS ===
 
-  // 🎬 /startcrewapp & /startcrew & /crewapp start
+  // 🎬 /startcrewapp & /startcrew & /crewapp start (DISABLED FOR SAFETY)
   if (
     commandName === 'startcrewapp' || 
     commandName === 'startcrew' || 
     ((commandName === 'crewapp' || commandName === 'crew') && interaction.options.getSubcommand(false) === 'start')
   ) {
-    const isAdmin = interaction.user.id === '1414143825538191373' || interaction.member?.permissions?.has(PermissionFlagsBits.Administrator);
-    if (!isAdmin) {
-      return interaction.reply({ content: '❌ Only Krylo and Administrators can open crew applications.', ephemeral: true });
-    }
-
-    await interaction.deferReply({ ephemeral: false });
-    try {
-      const res = await setCrewAppStatus(true, interaction.guild, interaction.user);
-      const openEmbed = new EmbedBuilder()
-        .setColor(0x10B981) // Emerald Green
-        .setTitle('🎬 Skybase Film Crew Applications — OPENED!')
-        .setDescription(
-          `✅ **Production Crew & Early Access applications are now OPEN!**\n\n` +
-          `• 📋 Panel updated in <#1550902305568718948>\n` +
-          `• 🟢 Buttons **Apply for Video Crew** and **Apply for Early Access VIP** are active!\n` +
-          `• 🛡️ Applications will be forwarded to <#1549883558208868373> for staff review.\n\n` +
-          `*Opened by <@${interaction.user.id}>*`
-        )
-        .setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png')
-        .setFooter({ text: 'Krylo\'s Skybase • Production Applications' })
-        .setTimestamp();
-      return interaction.editReply({ embeds: [openEmbed] });
-    } catch (err) {
-      console.error('[Start Crew App Error]', err);
-      return interaction.editReply({ content: `❌ Error opening crew applications: ${err.message}` });
-    }
+    return interaction.reply({ 
+      content: '🔒 Slash command `/crew start` has been disabled for safety.\nTo open Film Crew applications, please use the prefix command: `!crew start` or `!startcrew`.', 
+      ephemeral: true 
+    });
   }
 
   // 🔒 /stopcrewapp & /stopcrew & /crewapp stop
@@ -8089,17 +8067,19 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // 🎬 Natural Text Command Triggers for Skybase Crew Applications
+  // 🎬 Natural Text Command Triggers for Skybase Crew Applications (Safety Prefix: !crew start)
   const normalizedCrewCmd = lowerMsg.replace(/\s+/g, ' ').trim();
   if (
-    normalizedCrewCmd === '/start crew app' ||
-    normalizedCrewCmd === '/startcrewapp' ||
-    normalizedCrewCmd === '/start crew' ||
-    normalizedCrewCmd === '/startcrew' ||
     normalizedCrewCmd === '!startcrewapp' ||
     normalizedCrewCmd === '!startcrew' ||
-    normalizedCrewCmd === '!start crew app'
+    normalizedCrewCmd === '!start crew app' ||
+    normalizedCrewCmd === '!start crew' ||
+    normalizedCrewCmd === '!crew start' ||
+    normalizedCrewCmd === '!crewapp start'
   ) {
+    if (message.guild?.id !== '1549875778575929446') {
+      return message.reply('❌ Film Crew commands are exclusive to Krylo\'s Skybase.');
+    }
     const isAdmin = message.author.id === '1414143825538191373' || message.member?.permissions?.has(PermissionFlagsBits.Administrator);
     if (!isAdmin) {
       return message.reply('❌ Only Krylo and Administrators can open crew applications.');
@@ -8126,14 +8106,16 @@ client.on('messageCreate', async (message) => {
   }
 
   if (
-    normalizedCrewCmd === '/stop crew app' ||
-    normalizedCrewCmd === '/stopcrewapp' ||
-    normalizedCrewCmd === '/stop crew' ||
-    normalizedCrewCmd === '/stopcrew' ||
     normalizedCrewCmd === '!stopcrewapp' ||
     normalizedCrewCmd === '!stopcrew' ||
-    normalizedCrewCmd === '!stop crew app'
+    normalizedCrewCmd === '!stop crew app' ||
+    normalizedCrewCmd === '!stop crew' ||
+    normalizedCrewCmd === '!crew stop' ||
+    normalizedCrewCmd === '!crewapp stop'
   ) {
+    if (message.guild?.id !== '1549875778575929446') {
+      return message.reply('❌ Film Crew commands are exclusive to Krylo\'s Skybase.');
+    }
     const isAdmin = message.author.id === '1414143825538191373' || message.member?.permissions?.has(PermissionFlagsBits.Administrator);
     if (!isAdmin) {
       return message.reply('❌ Only Krylo and Administrators can stop crew applications.');
@@ -8156,6 +8138,28 @@ client.on('messageCreate', async (message) => {
     } catch (e) {
       return message.reply(`❌ Error stopping crew applications: ${e.message}`);
     }
+  }
+
+  if (
+    normalizedCrewCmd === '!crew status' ||
+    normalizedCrewCmd === '!crewapp status'
+  ) {
+    if (message.guild?.id !== '1549875778575929446') {
+      return message.reply('❌ Film Crew commands are exclusive to Krylo\'s Skybase.');
+    }
+    const status = getCrewAppStatus();
+    const statusEmbed = new EmbedBuilder()
+      .setColor(status.isOpen ? 0x10B981 : 0xEF4444)
+      .setTitle('🎬 Skybase Film Crew Application Status')
+      .setDescription(
+        `**Current Status:** ${status.isOpen ? '🟢 **OPEN & ACCEPTING APPLICANTS**' : '🔴 **CURRENTLY CLOSED**'}\n\n` +
+        `• **Channel:** <#1550902305568718948>\n` +
+        `• **Review Channel:** <#1549883558208868373>\n` +
+        `• **Last Updated:** ${status.lastUpdated ? `<t:${Math.floor(new Date(status.lastUpdated).getTime() / 1000)}:R>` : 'Unknown'}`
+      )
+      .setFooter({ text: 'Krylo\'s Skybase • Production Applications' })
+      .setTimestamp();
+    return message.reply({ embeds: [statusEmbed] });
   }
 
   // 🌐 Platform Role Visibility Commands (!publish / !hide)

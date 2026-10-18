@@ -79,7 +79,6 @@ export const masterCommandBuilders = [
   new SlashCommandBuilder()
     .setName('crew')
     .setDescription('🎬 Manage Skybase Film Crew applications status and panel (Admin only)')
-    .addSubcommand(sub => sub.setName('start').setDescription('Open Skybase Film Crew applications'))
     .addSubcommand(sub => sub.setName('stop').setDescription('Close Skybase Film Crew applications'))
     .addSubcommand(sub => sub.setName('status').setDescription('View current application status')),
 

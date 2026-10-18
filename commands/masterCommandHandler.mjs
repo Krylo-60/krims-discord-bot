@@ -409,30 +409,10 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       commandName === 'startcrew' || 
       ((commandName === 'crewapp' || commandName === 'crew') && interaction.options.getSubcommand(false) === 'start')
     ) {
-      if (interaction.guildId !== '1549875778575929446') {
-        return await interaction.reply({ content: '❌ Film Crew commands are exclusive to Krylo\'s Skybase.', ephemeral: true });
-      }
-      const isAdmin = interaction.user.id === KRYLO_USER_ID || interaction.member?.permissions?.has(PermissionFlagsBits.Administrator);
-      if (!isAdmin) {
-        return await interaction.reply({ content: '❌ Only Krylo and Administrators can open crew applications.', ephemeral: true });
-      }
-
-      await interaction.deferReply({ ephemeral: false });
-      const res = await setCrewAppStatus(true, interaction.guild, interaction.user);
-      const openEmbed = new EmbedBuilder()
-        .setColor(0x10B981)
-        .setTitle('🎬 Skybase Film Crew Applications — OPENED!')
-        .setDescription(
-          `✅ **Production Crew & Early Access applications are now OPEN!**\n\n` +
-          `• 📋 Panel updated in <#${CREW_APPLY_CHANNEL_ID}>\n` +
-          `• 🟢 Buttons **Apply for Video Crew** and **Apply for Early Access VIP** are active!\n` +
-          `• 🛡️ Applications will be forwarded to <#1549883558208868373> for staff review.\n\n` +
-          `*Opened by <@${interaction.user.id}>*`
-        )
-        .setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png')
-        .setFooter({ text: 'Krylo\'s Skybase • Production Applications' })
-        .setTimestamp();
-      return await interaction.editReply({ embeds: [openEmbed] });
+      return await interaction.reply({ 
+        content: '🔒 Slash command `/crew start` has been disabled for safety.\nTo open Film Crew applications, please use the prefix command: `!crew start` or `!startcrew`.', 
+        ephemeral: true 
+      });
     }
 
     if (
@@ -685,7 +665,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       if (isSkybase) {
         fields.push({ 
           name: '🎬 Skybase Film Crew', 
-          value: '`/startcrewapp`, `/stopcrewapp`, `/crewapp start|stop|status`' 
+          value: '`/crew stop`, `/crew status` *(Open via `!crew start` or `!startcrew`)*' 
         });
       }
 
