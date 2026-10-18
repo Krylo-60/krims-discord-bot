@@ -11921,7 +11921,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if ((url.pathname === '/api/topgg/webhook' || url.pathname === '/api/vote/webhook') && req.method === 'POST') {
+  if ((url.pathname === '/api/topgg/webhook' || url.pathname === '/api/vote/webhook') && (req.method === 'POST' || req.method === 'GET')) {
     return handleTopggWebhook(req, res, client);
   }
 

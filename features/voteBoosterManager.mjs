@@ -236,6 +236,19 @@ export async function handleVoteCommand(interaction) {
  * Receives incoming POST webhook requests when users vote
  */
 export async function handleTopggWebhook(req, res, client) {
+  // 1. Support GET requests (when opened in a browser or pinged by healthcheck)
+  if (req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      status: 'online',
+      service: 'Krims Code AI Vote Booster Engine',
+      endpoint: '/api/topgg/webhook',
+      supportedMethods: ['GET', 'POST'],
+      message: 'Top.gg Webhook Endpoint is operational and ready to receive vote notifications!'
+    }, null, 2));
+    return;
+  }
+
   const authHeader = req.headers['authorization'];
   const expectedAuth = process.env.TOPGG_WEBHOOK_AUTH || process.env.TOPGG_AUTH;
 
@@ -254,9 +267,13 @@ export async function handleTopggWebhook(req, res, client) {
       const payload = JSON.parse(body || '{}');
       const voterId = payload.user;
 
-      if (!voterId) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Missing user ID in vote payload' }));
+      // Top.gg test ping or validation check
+      if (!voterId || payload.type === 'test') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          message: 'Top.gg webhook test ping received successfully! Endpoint is active.'
+        }));
         return;
       }
 
