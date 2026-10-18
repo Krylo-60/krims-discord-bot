@@ -156,7 +156,13 @@ export function buildTeamApplicationPanel() {
 export async function setupTeamApplicationChannel(guild) {
   if (!guild || guild.id !== CLAN_GUILD_ID) return null;
 
-  let ch = guild.channels.cache.find(c => c.name.includes('team-apply') || c.name.includes('clan-apply'));
+  let ch = guild.channels.cache.find(c => 
+    c.id === '1561393934653980795' ||
+    c.name.includes('𝗍𝖾𝖺𝗆-𝖺𝗉𝗉𝗅𝗒') || 
+    c.name.toLowerCase().includes('team-apply') || 
+    c.name.toLowerCase().includes('clan-apply') ||
+    c.name.toLowerCase().includes('apply')
+  );
   
   if (!ch) {
     ch = await guild.channels.create({

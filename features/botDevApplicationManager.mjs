@@ -115,7 +115,12 @@ export function buildBotDevApplicationPanel() {
 export async function setupBotDevApplicationChannel(guild) {
   if (!guild || guild.id !== KRIMS_SUPPORT_GUILD_ID) return null;
 
-  let ch = guild.channels.cache.find(c => c.name.includes('dev-apply') || c.name.includes('developer-apply'));
+  let ch = guild.channels.cache.find(c => 
+    c.id === '1561390592997593129' ||
+    c.name.includes('𝖽𝖾𝗏-𝖺𝗉𝗉𝗅𝗒') || 
+    c.name.toLowerCase().includes('dev-apply') || 
+    c.name.toLowerCase().includes('developer-apply')
+  );
   
   if (!ch) {
     ch = await guild.channels.create({
