@@ -43,7 +43,6 @@ const ownerIds = new Set();
 
 // Add known server owners & partners
 ownerIds.add('1421289200011186176'); // Kevin (KevinMC / TorchWick Games)
-ownerIds.add('1533703991882416373'); // st1LLkill3r (Jonesy - The_Half_Lifes Clan Leader)
 ownerIds.add('1414143825538191373'); // Krylo (Executive Owner)
 
 // Fetch all owners of guilds the bot is currently in
