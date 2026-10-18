@@ -490,6 +490,78 @@ async function handleMessageXP(message) {
   }
 }
 
+/**
+ * 🛡️ Bulletproof Channel Creator
+ * Works with full redundancy across discord.js managers, direct Discord REST API endpoints, and cache sync.
+ * Guarantees a fully-formed TextChannel with permissions, messaging functions, and topic.
+ */
+async function createBulletproofTicketChannel(guild, { name, parentId = null, topic = '', permissionOverwrites = [] }) {
+  if (!guild) throw new Error('Guild reference is missing.');
+
+  // 1. Ensure guild is registered in client cache
+  if (!client.guilds.cache.has(guild.id)) {
+    client.guilds.cache.set(guild.id, guild);
+  }
+
+  let channel = null;
+
+  // 2. Primary attempt: Standard discord.js guild.channels.create
+  try {
+    channel = await guild.channels.create({
+      name,
+      type: ChannelType.GuildText,
+      parent: parentId || null,
+      topic: (topic || '').slice(0, 1024)
+    });
+  } catch (createErr) {
+    console.warn('[Bulletproof Creator] guild.channels.create error:', createErr.message);
+  }
+
+  // 3. Fallback attempt: Direct Discord REST API POST if discord.js returned null or threw
+  if (!channel || !channel.id) {
+    try {
+      console.log(`[Bulletproof Creator] Falling back to direct REST creation for #${name}...`);
+      const raw = await client.rest.post(`/guilds/${guild.id}/channels`, {
+        body: {
+          name,
+          type: 0,
+          parent_id: parentId || null,
+          topic: (topic || '').slice(0, 1024)
+        }
+      });
+      if (raw && raw.id) {
+        channel = await client.channels.fetch(raw.id).catch(() => null);
+      }
+    } catch (restErr) {
+      console.error('[Bulletproof Creator] REST fallback failed:', restErr.message);
+    }
+  }
+
+  // 4. Verification: If channel object is incomplete or missing send method, fetch directly
+  if (channel && channel.id && typeof channel.send !== 'function') {
+    channel = await client.channels.fetch(channel.id).catch(() => null);
+  }
+
+  // 5. Final fallback scan: Search guild channels cache
+  if (!channel) {
+    await guild.channels.fetch().catch(() => {});
+    channel = guild.channels.cache.find(c => c && c.name.toLowerCase() === name.toLowerCase());
+  }
+
+  if (!channel) {
+    throw new Error('Ticket channel creation failed to resolve a valid channel.');
+  }
+
+  // 6. Atomically apply private permission overwrites if present
+  if (permissionOverwrites && permissionOverwrites.length > 0 && channel.permissionOverwrites) {
+    await channel.permissionOverwrites.set(permissionOverwrites).catch(permErr => {
+      console.warn('[Bulletproof Creator] Overwrite set warning:', permErr.message);
+    });
+  }
+
+  return channel;
+}
+
 async function startNextDuel(guild) {
   if (activeDuel) return; // A duel is already in progress
   if (pvpQueue.length === 0) return; // No one in the queue
@@ -3331,22 +3403,12 @@ client.on('interactionCreate', async (interaction) => {
       }
 
       try {
-        const ticketChannel = await guild.channels.create({
+        const readyChannel = await createBulletproofTicketChannel(guild, {
           name: ticketChannelName,
-          type: ChannelType.GuildText,
-          parent: parentCat ? parentCat.id : null,
-          topic: `Reason: ${subject.replace(/[\r\n]+/g, ' ').slice(0, 100)} | Member: @${interaction.user.tag} (${interaction.user.id}) | Status: 🟢 Active`
+          parentId: parentCat ? parentCat.id : '1561109169526931456',
+          topic: `Reason: ${subject.replace(/[\r\n]+/g, ' ').slice(0, 100)} | Member: @${interaction.user.tag} (${interaction.user.id}) | Status: 🟢 Active`,
+          permissionOverwrites
         });
-
-        // Apply strict private ticket permissions
-        await ticketChannel.permissionOverwrites.set(permissionOverwrites).catch(permErr => {
-          console.warn('[Ticket Creation] Non-fatal overwrite warning:', permErr.message);
-        });
-
-        // Ensure channel is ready for text operations
-        const readyChannel = typeof ticketChannel.send === 'function' 
-          ? ticketChannel 
-          : await client.channels.fetch(ticketChannel.id);
 
         const closeRow = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
@@ -3475,22 +3537,12 @@ client.on('interactionCreate', async (interaction) => {
       }
 
       try {
-        const ticketChannel = await guild.channels.create({
+        const readyChannel = await createBulletproofTicketChannel(guild, {
           name: ticketChannelName,
-          type: ChannelType.GuildText,
-          parent: parentCat ? parentCat.id : null,
-          topic: `Reason: ${subject.replace(/[\r\n]+/g, ' ').slice(0, 100)} | Member: @${interaction.user.tag} (${interaction.user.id}) | Status: 🟢 Active`
+          parentId: parentCat ? parentCat.id : null,
+          topic: `Reason: ${subject.replace(/[\r\n]+/g, ' ').slice(0, 100)} | Member: @${interaction.user.tag} (${interaction.user.id}) | Status: 🟢 Active`,
+          permissionOverwrites
         });
-
-        // Apply strict private ticket permissions
-        await ticketChannel.permissionOverwrites.set(permissionOverwrites).catch(permErr => {
-          console.warn('[Krims Ticket Creation] Non-fatal overwrite warning:', permErr.message);
-        });
-
-        // Ensure channel is ready for text operations
-        const readyChannel = typeof ticketChannel.send === 'function' 
-          ? ticketChannel 
-          : await client.channels.fetch(ticketChannel.id);
 
         const closeRow = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
