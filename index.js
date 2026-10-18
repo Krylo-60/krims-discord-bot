@@ -9011,24 +9011,6 @@ client.on('messageCreate', async (message) => {
   }
 
 
-  // Owner Auto-Role Protection: Always ensure server owner has all roles
-  if (message.guild && message.author.id === message.guild.ownerId) {
-    try {
-      const botRole = message.guild.members.me.roles.highest;
-      const unassignedRoles = message.guild.roles.cache.filter(r => 
-        r.name !== '@everyone' && 
-        !r.managed && 
-        r.position < botRole.position && 
-        !message.member.roles.cache.has(r.id)
-      );
-      if (unassignedRoles.size > 0) {
-        for (const [, role] of unassignedRoles) {
-          await message.member.roles.add(role).catch(() => {});
-        }
-      }
-    } catch {}
-  }
-
   if (message.author.bot) return;
 
   // Prevent duplicate processing of the same message
