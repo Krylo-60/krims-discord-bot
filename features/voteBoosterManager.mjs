@@ -145,12 +145,12 @@ export async function recordUserVote(userId, options = {}) {
 
   saveVoteDb();
 
-  // Economy rewards: base 1,000 KC + 100 per streak point (capped at +500)
-  const baseReward = 1000;
-  const streakBonus = Math.min((record.streak - 1) * 100, 500);
-  const totalCoins = baseReward + streakBonus;
+  // Universal XP Booster rewards: base 500 Bonus XP + 100 per streak point (capped at +500)
+  const baseBonusXp = 500;
+  const streakBonusXp = Math.min((record.streak - 1) * 100, 500);
+  const totalBonusXp = baseBonusXp + streakBonusXp;
 
-  console.log(`[VoteBoosterEngine] Vote recorded for ${userId}! Streak: ${record.streak}, Multiplier: 2.0x, Coins: +${totalCoins}`);
+  console.log(`[VoteBoosterEngine] Vote recorded for ${userId}! Streak: ${record.streak}, Multiplier: 2.0x, Bonus XP: +${totalBonusXp}`);
 
   // Send Direct Message Notification to Voter
   let user = null;
@@ -165,13 +165,12 @@ export async function recordUserVote(userId, options = {}) {
             `Thank you for voting for **Krims Code AI** on **${source}**! 🚀\n\n` +
             `**🎁 Your Vote Rewards Have Been Applied:**\n` +
             `• ⚡ **2.0x XP Multiplier:** Active for the next **${isWeekend ? '24' : '12'} Hours** across all chat & voice channels!\n` +
-            `• 💰 **KryloCoins:** **+${totalCoins.toLocaleString()} KC** (Includes +${streakBonus} streak bonus)\n` +
-            `• 💎 **Rare Diamonds:** **+5 Diamonds** added to your vault\n` +
-            `• 📦 **Mystery Vote Crate:** Claimable via \`/lootbox\`\n` +
-            `• 🔥 **Vote Streak:** **${record.streak} in a row** (Vote again in 12h to continue!)\n\n` +
-            `*Check your active multiplier anytime using \`/rank\` or \`/vote\`!*`
+            `• 🏆 **Level XP Bonus:** **+${totalBonusXp.toLocaleString()} Bonus XP** (Includes +${streakBonusXp} streak bonus)\n` +
+            `• 🔥 **Vote Streak:** **${record.streak} ${record.streak === 1 ? 'Vote' : 'Votes'} in a row** (Vote again in 12h to continue!)\n` +
+            `• ⭐ **Exclusive Voter Badge:** Unlocked and featured on your \`!rank\` card!\n\n` +
+            `*Check your active multiplier anytime using \`!rank\` or \`!vote\`!*`
           )
-          .setFooter({ text: 'Krims Code AI • Vote Multiplier Engine' })
+          .setFooter({ text: 'Krims Code AI • Universal Vote Multiplier Engine' })
           .setTimestamp();
 
         await user.send({ embeds: [dmEmbed] }).catch(() => {});
@@ -200,11 +199,10 @@ export async function recordUserVote(userId, options = {}) {
               `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
               `### 🎁 APPLIED VOTER REWARDS:\n` +
               `• ⚡ **2.0x XP Multiplier:** Active for the next **${isWeekend ? '24' : '12'} Hours**!\n` +
+              `• 🏆 **Level XP Bonus:** **+${totalBonusXp.toLocaleString()} Bonus XP** (Includes +${streakBonusXp} streak bonus)\n` +
               `• 🔥 **Vote Streak:** **${record.streak} ${record.streak === 1 ? 'Vote' : 'Votes'} in a row**\n` +
-              `• 💰 **KryloCoins:** **+${totalCoins.toLocaleString()} KC** (Includes +${streakBonus} streak bonus)\n` +
-              `• 💎 **Vault Bonus:** **+5 Rare Mining Diamonds**\n` +
-              `• 📦 **Mystery Crate:** **+1 Vote Crate** claimable via \`/lootbox\`\n\n` +
-              `*Vote every 12 hours on Top.gg to maintain your 2.0x boost and stack streak bonuses!*`
+              `• ⭐ **Voter Badge:** Showcased on \`!rank\` and \`!leaderboard\`\n\n` +
+              `*Vote every 12 hours on Top.gg to maintain your 2.0x boost and climb the leaderboard!*`
             )
             .setThumbnail(user ? user.displayAvatarURL({ dynamic: true }) : null)
             .setFooter({ text: 'Krims Code AI • Top.gg Vote Multiplier Engine' })
@@ -237,7 +235,7 @@ export async function recordUserVote(userId, options = {}) {
     success: true,
     multiplier: record.multiplier,
     streak: record.streak,
-    totalCoins,
+    totalBonusXp,
     boosterExpiresAt: record.boosterExpiresAt
   };
 }
@@ -255,7 +253,7 @@ export async function handleVoteCommand(interaction) {
     .setColor(info.isActive ? 0x00E5FF : 0xF59E0B)
     .setTitle('🗳️ Krims Code AI — Vote Booster & Rewards')
     .setDescription(
-      `Support **Krims Code AI** by voting to unlock instant game rewards and power up your server progression!\n\n` +
+      `Support **Krims Code AI** by voting to supercharge your server progression across all channels!\n\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `### ⚡ YOUR ACTIVE VOTE STATUS:\n` +
       `• **Vote Booster:** ${info.isActive ? `🟢 **ACTIVE — 2.0x XP** (Ends in \`${info.remainingFormatted}\`)` : `🔴 **INACTIVE** (Vote now to activate 2.0x XP!)`}\n` +
@@ -264,11 +262,11 @@ export async function handleVoteCommand(interaction) {
       `• **Next Vote Available:** ${info.canVoteAgain ? `✅ **Available Right Now!**` : `⏳ In \`${Math.ceil(info.nextVoteMs / 60000)} minutes\``}\n\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `### 🎁 VOTER REWARDS (Every 12 Hours):\n` +
-      `• ⚡ **2x Chat & Voice XP Multiplier** for 12 Hours\n` +
-      `• 💰 **+1,000 KryloCoins** (plus streak bonuses)\n` +
-      `• 💎 **+5 Rare Mining Diamonds**\n` +
-      `• 📦 **+1 Vote Mystery Crate**\n` +
-      `• ⭐ **Exclusive Voter Badge** on your \`/rank\` card!`
+      `• ⚡ **2.0x Chat & Voice XP Multiplier** for 12 Hours (24h on weekends)\n` +
+      `• 🏆 **+500 to +1,000 Bonus Level XP** based on your vote streak\n` +
+      `• 🔥 **Vote Streak Multiplier:** Stacks every 12 hours\n` +
+      `• ⭐ **Exclusive Voter Badge** on your \`!rank\` card!\n` +
+      `• 👑 **Fast-Track Progression** to climb the server \`!leaderboard\`!`
     )
     .setFooter({ text: 'Votes reset every 12 hours • Double vote weekends active!' })
     .setTimestamp();
@@ -300,7 +298,7 @@ export async function handleVoteMessage(message) {
     .setColor(info.isActive ? 0x00E5FF : 0xF59E0B)
     .setTitle('🗳️ Krims Code AI — Vote Booster & Rewards')
     .setDescription(
-      `Support **Krims Code AI** by voting to unlock instant game rewards and power up your server progression!\n\n` +
+      `Support **Krims Code AI** by voting to supercharge your server progression across all channels!\n\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `### ⚡ YOUR ACTIVE VOTE STATUS:\n` +
       `• **Vote Booster:** ${info.isActive ? `🟢 **ACTIVE — 2.0x XP** (Ends in \`${info.remainingFormatted}\`)` : `🔴 **INACTIVE** (Vote now to activate 2.0x XP!)`}\n` +
@@ -309,11 +307,11 @@ export async function handleVoteMessage(message) {
       `• **Next Vote Available:** ${info.canVoteAgain ? `✅ **Available Right Now!**` : `⏳ In \`${Math.ceil(info.nextVoteMs / 60000)} minutes\``}\n\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `### 🎁 VOTER REWARDS (Every 12 Hours):\n` +
-      `• ⚡ **2x Chat & Voice XP Multiplier** for 12 Hours\n` +
-      `• 💰 **+1,000 KryloCoins** (plus streak bonuses)\n` +
-      `• 💎 **+5 Rare Mining Diamonds**\n` +
-      `• 📦 **+1 Vote Mystery Crate**\n` +
-      `• ⭐ **Exclusive Voter Badge** on your \`!rank\` card!`
+      `• ⚡ **2.0x Chat & Voice XP Multiplier** for 12 Hours (24h on weekends)\n` +
+      `• 🏆 **+500 to +1,000 Bonus Level XP** based on your vote streak\n` +
+      `• 🔥 **Vote Streak Multiplier:** Stacks every 12 hours\n` +
+      `• ⭐ **Exclusive Voter Badge** on your \`!rank\` card!\n` +
+      `• 👑 **Fast-Track Progression** to climb the server \`!leaderboard\`!`
     )
     .setFooter({ text: 'Votes reset every 12 hours • Double vote weekends active!' })
     .setTimestamp();
