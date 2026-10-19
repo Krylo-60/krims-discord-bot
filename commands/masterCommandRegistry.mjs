@@ -507,7 +507,7 @@ export const masterCommandBuilders = [
 
   new SlashCommandBuilder()
     .setName('vote')
-    .setDescription('🗳️ Vote for the server to earn free +500 KC and voting keys!'),
+    .setDescription('🗳️ Vote on Top.gg to activate 2.0x XP booster, vote streak bonuses, and rewards!'),
 
   new SlashCommandBuilder()
     .setName('refer')

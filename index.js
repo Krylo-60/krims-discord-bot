@@ -33,7 +33,7 @@ import { handleCustomCommandExecution, getGuildCustomCommands, addGuildCustomCom
 import { handleVideoCrewInteraction, setCrewAppStatus, getCrewAppStatus, isCrewAppOpen } from './features/videoCrewApplicationManager.mjs';
 import { handleTeamClanApplicationInteraction, setupTeamApplicationChannel, checkAndAssignApprovedRecruit, buildTeamApplicationPanel } from './features/teamClanApplicationManager.mjs';
 import { handleBotDevApplicationInteraction, setupBotDevApplicationChannel } from './features/botDevApplicationManager.mjs';
-import { handleTopggWebhook, getVoteBoosterInfo } from './features/voteBoosterManager.mjs';
+import { handleTopggWebhook, getVoteBoosterInfo, handleVoteCommand, handleVoteMessage } from './features/voteBoosterManager.mjs';
 import { getLiveStatusData, renderLiveStatusHtml } from './features/liveStatusDashboard.mjs';
 import { handlePlatformRoleInteraction, setPlatformPublicStatus, getPlatformRoleStatus } from './features/platformRolePublisher.mjs';
 import { handleEmojiSubmissionMessage, handleEmojiSubmissionInteraction } from './features/emojiSubmissionSystem.mjs';
@@ -4893,20 +4893,7 @@ client.on('interactionCreate', async (interaction) => {
 
   // Command: /vote
   if (commandName === 'vote') {
-    const embed = new EmbedBuilder()
-      .setColor(0x00FF66)
-      .setTitle('🗳️ Vote for KryloSMP & Claim Free Rewards!')
-      .setDescription(
-        'Vote for `krylosmp.falix.gg:29273` on top Minecraft server lists to boost our network ranking and earn **+500 KryloCoins** + **1x Vote Crate Key** per site!\n\n' +
-        '• [Vote on PlanetMinecraft](https://planetminecraft.com)\n' +
-        '• [Vote on Minecraft-MP](https://minecraft-mp.com)\n' +
-        '• [Vote on NameMC](https://namemc.com)\n' +
-        '• [Vote on TopG](https://topg.org)\n' +
-        '• [Vote on Minecraft Server List](https://minecraft-server-list.com)\n\n' +
-        '*Rewards credit automatically to your wallet balance!*'
-      )
-      .setTimestamp();
-    await interaction.reply({ embeds: [embed] });
+    await handleVoteCommand(interaction);
     return;
   }
 
@@ -8624,6 +8611,13 @@ client.on('messageCreate', async (message) => {
     const isMsgLb = lowerMsg.includes('message') || lowerMsg === '!mtop';
     await message.channel.sendTyping().catch(() => {});
     await handlePrefixLeaderboard(message, isMsgLb ? 'messages' : 'xp');
+    return;
+  }
+
+  // Command: !vote, !votes, !voter, !votebooster
+  if (lowerMsg === '!vote' || lowerMsg === '!votes' || lowerMsg === '!voter' || lowerMsg === '!votebooster') {
+    await message.channel.sendTyping().catch(() => {});
+    await handleVoteMessage(message);
     return;
   }
 

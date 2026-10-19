@@ -12,6 +12,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const VOTE_DB_PATH = path.resolve(__dirname, '../data/vote_boosters.json');
 
+export const KRIMS_CODE_GUILD_ID = '1561174283294609479';
+export const KRIMS_CODE_VOTE_LOGS_CHANNEL_ID = '1561862133300465694';
+
 // Ensure data directory exists
 const dataDir = path.dirname(VOTE_DB_PATH);
 if (!fs.existsSync(dataDir)) {
@@ -150,9 +153,10 @@ export async function recordUserVote(userId, options = {}) {
   console.log(`[VoteBoosterEngine] Vote recorded for ${userId}! Streak: ${record.streak}, Multiplier: 2.0x, Coins: +${totalCoins}`);
 
   // Send Direct Message Notification to Voter
+  let user = null;
   if (client) {
     try {
-      const user = await client.users.fetch(userId);
+      user = await client.users.fetch(userId);
       if (user) {
         const dmEmbed = new EmbedBuilder()
           .setColor(0x00E5FF)
@@ -174,6 +178,58 @@ export async function recordUserVote(userId, options = {}) {
       }
     } catch (e) {
       console.warn(`[VoteBoosterEngine] Could not DM user ${userId}:`, e.message);
+    }
+
+    // Public Announcement in Krims Code dedicated Vote Logs channel
+    try {
+      const guild = client.guilds.cache.get(KRIMS_CODE_GUILD_ID) || await client.guilds.fetch(KRIMS_CODE_GUILD_ID).catch(() => null);
+      if (guild) {
+        const channels = await guild.channels.fetch().catch(() => guild.channels.cache);
+        const voteLogsCh = channels.get(KRIMS_CODE_VOTE_LOGS_CHANNEL_ID) || 
+                           channels.find(c => c && (c.name.includes('𝖵ote-𝖫ogs') || c.name.toLowerCase().includes('vote')));
+        if (voteLogsCh && voteLogsCh.isTextBased()) {
+          const publicEmbed = new EmbedBuilder()
+            .setColor(0x00E5FF)
+            .setAuthor({ 
+              name: '⚡ NEW TOP.GG VOTE RECEIVED!', 
+              iconURL: 'https://cdn.discordapp.com/avatars/1523794466740371586/a_906dd0ce7ccf09e15e48c6a5bda79fa6.gif?size=256' 
+            })
+            .setTitle(`🎉 Huge Thanks to ${user ? user.username : 'Our Voter'}!`)
+            .setDescription(
+              `**<@${userId}>** just cast their official vote for **Krims Code AI** on **${source}**! 🚀\n\n` +
+              `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+              `### 🎁 APPLIED VOTER REWARDS:\n` +
+              `• ⚡ **2.0x XP Multiplier:** Active for the next **${isWeekend ? '24' : '12'} Hours**!\n` +
+              `• 🔥 **Vote Streak:** **${record.streak} ${record.streak === 1 ? 'Vote' : 'Votes'} in a row**\n` +
+              `• 💰 **KryloCoins:** **+${totalCoins.toLocaleString()} KC** (Includes +${streakBonus} streak bonus)\n` +
+              `• 💎 **Vault Bonus:** **+5 Rare Mining Diamonds**\n` +
+              `• 📦 **Mystery Crate:** **+1 Vote Crate** claimable via \`/lootbox\`\n\n` +
+              `*Vote every 12 hours on Top.gg to maintain your 2.0x boost and stack streak bonuses!*`
+            )
+            .setThumbnail(user ? user.displayAvatarURL({ dynamic: true }) : null)
+            .setFooter({ text: 'Krims Code AI • Top.gg Vote Multiplier Engine' })
+            .setTimestamp();
+
+          const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setLabel('🗳️ Vote on Top.gg (Get 2x XP)')
+              .setStyle(ButtonStyle.Link)
+              .setURL('https://top.gg/bot/1523794466740371586/vote'),
+            new ButtonBuilder()
+              .setCustomId('btn_refresh_vote_status')
+              .setLabel('⚡ Check My Status')
+              .setStyle(ButtonStyle.Secondary)
+          );
+
+          await voteLogsCh.send({ 
+            content: `🎉 **New Vote Alert!** Huge shoutout to <@${userId}> for supporting **Krims Code AI**!`, 
+            embeds: [publicEmbed], 
+            components: [row] 
+          });
+        }
+      }
+    } catch (annErr) {
+      console.warn('[VoteBoosterEngine] Could not post to Krims Code vote channel:', annErr.message);
     }
   }
 
@@ -229,6 +285,51 @@ export async function handleVoteCommand(interaction) {
   );
 
   return await interaction.reply({ embeds: [embed], components: [row] });
+}
+
+/**
+ * Prefix !vote Message Handler
+ */
+export async function handleVoteMessage(message) {
+  const userId = message.author.id;
+  const info = getVoteBoosterInfo(userId);
+
+  const voteUrl = 'https://top.gg/bot/1523794466740371586/vote';
+
+  const embed = new EmbedBuilder()
+    .setColor(info.isActive ? 0x00E5FF : 0xF59E0B)
+    .setTitle('🗳️ Krims Code AI — Vote Booster & Rewards')
+    .setDescription(
+      `Support **Krims Code AI** by voting to unlock instant game rewards and power up your server progression!\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `### ⚡ YOUR ACTIVE VOTE STATUS:\n` +
+      `• **Vote Booster:** ${info.isActive ? `🟢 **ACTIVE — 2.0x XP** (Ends in \`${info.remainingFormatted}\`)` : `🔴 **INACTIVE** (Vote now to activate 2.0x XP!)`}\n` +
+      `• **Vote Streak:** 🔥 **${info.streak} ${info.streak === 1 ? 'Vote' : 'Votes'} in a row**\n` +
+      `• **Lifetime Votes:** 🏆 **${info.totalVotes} Total**\n` +
+      `• **Next Vote Available:** ${info.canVoteAgain ? `✅ **Available Right Now!**` : `⏳ In \`${Math.ceil(info.nextVoteMs / 60000)} minutes\``}\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `### 🎁 VOTER REWARDS (Every 12 Hours):\n` +
+      `• ⚡ **2x Chat & Voice XP Multiplier** for 12 Hours\n` +
+      `• 💰 **+1,000 KryloCoins** (plus streak bonuses)\n` +
+      `• 💎 **+5 Rare Mining Diamonds**\n` +
+      `• 📦 **+1 Vote Mystery Crate**\n` +
+      `• ⭐ **Exclusive Voter Badge** on your \`!rank\` card!`
+    )
+    .setFooter({ text: 'Votes reset every 12 hours • Double vote weekends active!' })
+    .setTimestamp();
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setLabel('🗳️ Vote on Top.gg (Get 2x XP)')
+      .setStyle(ButtonStyle.Link)
+      .setURL(voteUrl),
+    new ButtonBuilder()
+      .setCustomId('btn_refresh_vote_status')
+      .setLabel('🔄 Refresh Status')
+      .setStyle(ButtonStyle.Secondary)
+  );
+
+  return await message.reply({ embeds: [embed], components: [row] });
 }
 
 /**
