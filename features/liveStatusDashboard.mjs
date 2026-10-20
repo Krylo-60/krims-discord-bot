@@ -619,7 +619,7 @@ export function renderLiveStatusHtml(data) {
             <div class="service-name">🗳️ Top.gg Vote Webhook</div>
             <span class="badge-pill-green">200 OK</span>
           </div>
-          <p class="service-desc">Receives real-time voter upvotes from Top.gg, rewarding users with 2.0x XP multipliers, mystery crates, and coin bonuses.</p>
+          <p class="service-desc">Receives real-time voter upvotes from Top.gg, rewarding users with 2.0x XP multipliers, streak bonuses, and level progression rewards.</p>
           <div class="service-meta">
             <span class="text-sub">Endpoint: <code class="code-tag">/api/topgg/webhook</code></span>
             <span class="text-green">🟢 Listening</span>
@@ -647,6 +647,18 @@ export function renderLiveStatusHtml(data) {
           <div class="service-meta">
             <span class="text-sub">Deployed Fleet</span>
             <span class="metric-highlight">${customCount} Sub-Bots</span>
+          </div>
+        </div>
+
+        <div class="service-card" style="border-color: rgba(34, 211, 238, 0.4); background: linear-gradient(145deg, #111827 0%, rgba(34, 211, 238, 0.05) 100%);">
+          <div class="service-header">
+            <div class="service-name">📖 Official Krims Wiki</div>
+            <span class="badge-pill-green" style="background: rgba(34, 211, 238, 0.15); color: #22d3ee;">100 COMMANDS</span>
+          </div>
+          <p class="service-desc">Complete interactive knowledge base with guides for Gemini AI, quiet leveling formulas, 2.0x Top.gg vote boosters, and live searchable command index.</p>
+          <div class="service-meta">
+            <span class="text-sub">Portal: <code class="code-tag">/wiki</code></span>
+            <a href="/wiki" style="color: var(--cyan); text-decoration: none; font-weight: 700;">Explore Wiki →</a>
           </div>
         </div>
       </div>
