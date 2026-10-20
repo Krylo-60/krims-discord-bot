@@ -38,6 +38,15 @@ import { getLiveStatusData, renderLiveStatusHtml } from './features/liveStatusDa
 import { renderKrimsWikiHtml, handleWikiCommand, handleWikiMessage } from './features/krimsWiki.mjs';
 import { handlePlatformRoleInteraction, setPlatformPublicStatus, getPlatformRoleStatus } from './features/platformRolePublisher.mjs';
 import { handleEmojiSubmissionMessage, handleEmojiSubmissionInteraction } from './features/emojiSubmissionSystem.mjs';
+import { 
+  getAllUpdates, 
+  getLatestUpdate, 
+  buildUpdateEmbed, 
+  buildUpdateActionRow, 
+  syncPersistentUpdateToDiscord,
+  handleUpdatesCommand
+} from './features/persistentUpdatesManager.mjs';
+import { TopggManager } from './features/topggManager.mjs';
 import { handleMasterSlashCommand } from './commands/masterCommandHandler.mjs';
 import { masterCommandJson } from './commands/masterCommandRegistry.mjs';
 import { initTwitchBot, joinChannel, leaveChannel, getJoinedChannels } from './features/twitchBot.mjs';
@@ -4618,6 +4627,7 @@ client.on('interactionCreate', async (interaction) => {
   if (commandName === 'lockdown') return handleLockdown(interaction, true);
   if (commandName === 'unlock') return handleLockdown(interaction, false);
   if (commandName === 'devlogs') return handleDevLogsCommand(interaction);
+  if (commandName === 'updates' || commandName === 'changelog') return handleUpdatesCommand(interaction);
   if (commandName === 'slowmode') return handleSlowmode(interaction);
   if (commandName === 'afk') return handleAfk(interaction);
   if (commandName === 'remindme') return handleRemindMe(interaction);
@@ -8636,6 +8646,13 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
+  // Command: !updates, !changelog, !patchnotes
+  if (lowerMsg === '!updates' || lowerMsg === '!update' || lowerMsg === '!changelog' || lowerMsg === '!patchnotes') {
+    await message.channel.sendTyping().catch(() => {});
+    return handleUpdatesCommand(message);
+  }
+
+
   // Command: !role or !roles
   if (lowerMsg === '!role' || lowerMsg === '!roles' || lowerMsg.startsWith('!role ') || lowerMsg.startsWith('!roles ')) {
     if (!message.guild) {
@@ -11977,6 +11994,19 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ ok: false, error: e.message }));
       }
     });
+    return;
+  }
+
+    if (url.pathname === '/api/updates' && req.method === 'GET') {
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*'
+    });
+    res.end(JSON.stringify({
+      success: true,
+      lastUpdated: Date.now(),
+      updates: getAllUpdates()
+    }, null, 2));
     return;
   }
 
