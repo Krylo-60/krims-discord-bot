@@ -84,7 +84,7 @@ export const masterCommandBuilders = [
 
   new SlashCommandBuilder()
     .setName('gif')
-    .setDescription('🎬 Search and send GIFs, stickers, memes & clips powered by KLIPY!')
+    .setDescription('🎬 Search and send GIFs, stickers, memes & clips powered by Krims Media Engine!')
     .addStringOption(opt => opt.setName('search').setDescription('Search query (e.g. minecraft, hype, victory, gg)').setRequired(false))
     .addStringOption(opt => opt.setName('type').setDescription('Content type (gifs, stickers, memes, clips)').setRequired(false)
       .addChoices(

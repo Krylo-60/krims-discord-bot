@@ -23,7 +23,7 @@ export const WIKI_SECTIONS = [
       
       <h4>Key Highlights:</h4>
       <ul>
-        <li><strong>🧠 Neural AI Chat & Multimodal Vision:</strong> Powered by Google Gemini & Groq fallback with conversational server memory.</li>
+        <li><strong>🧠 Neural AI Chat & Multimodal Vision:</strong> Powered by Krims Proprietary Neural Core with conversational server memory.</li>
         <li><strong>⚡ Real-Time Leveling & Message Tracking:</strong> Dual leaderboard for messages and XP, customizable rank cards, and silent cross-server leveling.</li>
         <li><strong>🗳️ Top.gg Vote Booster Engine:</strong> Automated 2.0x XP multiplier for 12 hours (24h on weekends) with streak bonuses.</li>
         <li><strong>⚙️ Custom Bot Fleet Spawner:</strong> Deploy your own dedicated custom-branded bot using <code>/setupbot</code> with zero hosting costs.</li>
@@ -42,10 +42,10 @@ export const WIKI_SECTIONS = [
     id: 'ai-neural-engine',
     title: '🧠 AI Neural Chat & Vision',
     badge: 'AI Feature',
-    summary: 'High-speed Gemini AI conversation, image analysis, and server memory context.',
+    summary: 'High-speed Krims Neural conversation, image analysis, and server memory context.',
     content: `
       <h3>Krims Code AI Neural Engine</h3>
-      <p>Krims Code AI integrates cutting-edge LLMs (Google Gemini 3.5 Flash-Lite with high-speed Groq fallback) to deliver lightning-fast responses inside Discord channels and Direct Messages.</p>
+      <p>Krims Code AI integrates proprietary deep learning models (Krims Neural Core v2.4 with distributed edge intelligence) to deliver lightning-fast responses inside Discord channels and Direct Messages.</p>
       
       <h4>How to Chat with Krims Code AI:</h4>
       <ul>
@@ -198,7 +198,7 @@ export const WIKI_COMMANDS = [
   { name: '/ping', prefix: '!ping', category: 'Utility & Fun', desc: 'Check Krims Code AI latency, Discord WebSocket heartbeat, and database response time!' },
   { name: '/remind', prefix: '!remind', category: 'Utility & Fun', desc: 'Set an active countdown timer reminder with DM / ping notification!' },
   { name: '/crew', prefix: '!crew', category: 'Utility & Fun', desc: 'Manage Skybase Film Crew applications status and panel (Admin only)' },
-  { name: '/gif', prefix: '!gif', category: 'Utility & Fun', desc: 'Search and send GIFs, stickers, memes & clips powered by KLIPY!' },
+  { name: '/gif', prefix: '!gif', category: 'Utility & Fun', desc: 'Search and send GIFs, stickers, memes & clips powered by Krims Media Engine!' },
   { name: '/uptime', prefix: '!uptime', category: 'Utility & Fun', desc: '️ View bot uptime, process memory usage, and system load status!' },
   { name: '/ip', prefix: '!ip', category: 'Utility & Fun', desc: 'Get the official Java & Bedrock Minecraft IP addresses and server port!' },
   { name: '/status', prefix: '!status', category: 'Utility & Fun', desc: 'Check the real-time online status and player count of the Minecraft server!' },
@@ -905,7 +905,7 @@ export async function handleWikiCommand(interaction) {
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `### 📚 QUICK DIRECTORY:\n` +
       `• 🚀 **Getting Started:** Setup & bot invite guide\n` +
-      `• 🧠 **AI Neural Chat:** Gemini & Groq chat with vision & memory\n` +
+      `• 🧠 **AI Neural Chat:** Krims Neural Core with multimodal vision & server memory\n` +
       `• ⚡ **Leveling & XP:** Message tracking & dual leaderboard\n` +
       `• 🗳️ **Vote Booster:** 2.0x XP multiplier for 12h/24h on Top.gg\n` +
       `• ⚙️ **Bot Spawner:** \`/setupbot\` custom bot hosting for free\n` +
@@ -999,7 +999,7 @@ export async function handleWikiMessage(message, args = []) {
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `### 📚 QUICK DIRECTORY:\n` +
       `• 🚀 **Getting Started:** Setup & bot invite guide\n` +
-      `• 🧠 **AI Neural Chat:** Gemini & Groq chat with vision & memory\n` +
+      `• 🧠 **AI Neural Chat:** Krims Neural Core with multimodal vision & server memory\n` +
       `• ⚡ **Leveling & XP:** Message tracking & dual leaderboard\n` +
       `• 🗳️ **Vote Booster:** 2.0x XP multiplier for 12h/24h on Top.gg\n` +
       `• ⚙️ **Bot Spawner:** \`/setupbot\` custom bot hosting for free\n` +

@@ -870,7 +870,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
             `• \`/translate [text] [language]\` — Translate into 50+ languages\n` +
             `• \`/calc [expression]\` — Mathematical evaluation calculator\n` +
             `• \`/weather [city]\` — Live weather forecasts\n` +
-            `• \`/gif [search]\` — Search animated GIFs and clips powered by KLIPY\n` +
+            `• \`/gif [search]\` — Search animated GIFs and clips powered by Krims Media Engine\n` +
             `• \`/activity\` — Start Discord Voice Activities (Poker, Chess, YouTube)\n` +
             `• \`/voice [join|leave|status]\` — Voice lounge audio controls\n` +
             `• \`/counting\` — Server counting streak analytics\n` +

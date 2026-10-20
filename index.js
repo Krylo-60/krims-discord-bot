@@ -11839,7 +11839,7 @@ const server = http.createServer(async (req, res) => {
       phase: '2026 Open Beta Testing',
       syncEngines: {
         minecraftServer: { status: 'ONLINE', host: 'krylosmp.falix.gg:29273', deliveryPlugin: 'KryloUniversalDelivery.jar v2.0' },
-        discordBot: { status: 'ONLINE', botName: client.user?.tag, slashCommandsCount: 65, groqAI: 'Active (Dual Keys)' },
+        discordBot: { status: 'ONLINE', botName: client.user?.tag, slashCommandsCount: 65, krimsNeuralEngine: 'Active (Enterprise Multi-Core)' },
         webPortals: { mainHub: 'https://krylosmp.web.app/', store: 'https://krylosmp-store.web.app/' },
         databases: { sqlite: 'Connected (krylosmp.db)', neonPostgres: 'Connected (Lakebase AWS us-east-2)' }
       },

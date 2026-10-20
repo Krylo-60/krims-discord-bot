@@ -655,7 +655,7 @@ export function renderLiveStatusHtml(data) {
             <div class="service-name">📖 Official Krims Wiki</div>
             <span class="badge-pill-green" style="background: rgba(34, 211, 238, 0.15); color: #22d3ee;">100 COMMANDS</span>
           </div>
-          <p class="service-desc">Complete interactive knowledge base with guides for Gemini AI, quiet leveling formulas, 2.0x Top.gg vote boosters, and live searchable command index.</p>
+          <p class="service-desc">Complete interactive knowledge base with guides for Krims Neural AI, quiet leveling formulas, 2.0x Top.gg vote boosters, and live searchable command index.</p>
           <div class="service-meta">
             <span class="text-sub">Portal: <code class="code-tag">/wiki</code></span>
             <a href="/wiki" style="color: var(--cyan); text-decoration: none; font-weight: 700;">Explore Wiki →</a>
