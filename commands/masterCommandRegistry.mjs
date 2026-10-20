@@ -347,12 +347,9 @@ export const masterCommandBuilders = [
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   new SlashCommandBuilder()
-    .setName('mcban')
-    .setDescription('🔨 Double-ban user on Discord & Minecraft including IP ban (Admin only)')
-    .addUserOption(opt => opt.setName('user').setDescription('Discord user').setRequired(false))
-    .addStringOption(opt => opt.setName('mcusername').setDescription('Minecraft username').setRequired(false))
-    .addStringOption(opt => opt.setName('reason').setDescription('Reason for ban').setRequired(false))
-    .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
+    .setName('wiki')
+    .setDescription('📖 Search the official Krims Wiki guides, articles, and commands!')
+    .addStringOption(opt => opt.setName('query').setDescription('Search query (e.g. levels, vote, setupbot, memory)').setRequired(false)),
 
   // ──────────────────────────────────────────────────────────
   // 5. 🧭 UTILITY, RADAR & FUN

@@ -538,9 +538,12 @@ export function renderLiveStatusHtml(data) {
           <p>Live Fleet Status & Systems Telemetry</p>
         </div>
       </a>
-      <div class="badge-status">
-        <span class="dot"></span>
-        <span id="liveStatusText">${data.systemStatus === 'OPERATIONAL' ? 'ALL SYSTEMS OPERATIONAL' : 'SYSTEM DEGRADED'}</span>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <a href="/wiki" class="btn btn-secondary" style="padding: 7px 14px; font-size: 0.82rem; text-decoration: none;">📖 Krims Wiki</a>
+        <div class="badge-status">
+          <span class="dot"></span>
+          <span id="liveStatusText">${data.systemStatus === 'OPERATIONAL' ? 'ALL SYSTEMS OPERATIONAL' : 'SYSTEM DEGRADED'}</span>
+        </div>
       </div>
     </header>
 

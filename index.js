@@ -35,6 +35,7 @@ import { handleTeamClanApplicationInteraction, setupTeamApplicationChannel, chec
 import { handleBotDevApplicationInteraction, setupBotDevApplicationChannel } from './features/botDevApplicationManager.mjs';
 import { handleTopggWebhook, getVoteBoosterInfo, handleVoteCommand, handleVoteMessage } from './features/voteBoosterManager.mjs';
 import { getLiveStatusData, renderLiveStatusHtml } from './features/liveStatusDashboard.mjs';
+import { renderKrimsWikiHtml, handleWikiCommand, handleWikiMessage } from './features/krimsWiki.mjs';
 import { handlePlatformRoleInteraction, setPlatformPublicStatus, getPlatformRoleStatus } from './features/platformRolePublisher.mjs';
 import { handleEmojiSubmissionMessage, handleEmojiSubmissionInteraction } from './features/emojiSubmissionSystem.mjs';
 import { handleMasterSlashCommand } from './commands/masterCommandHandler.mjs';
@@ -4897,6 +4898,12 @@ client.on('interactionCreate', async (interaction) => {
     return;
   }
 
+  // Command: /wiki
+  if (commandName === 'wiki') {
+    await handleWikiCommand(interaction);
+    return;
+  }
+
   // Command: /refer
   if (commandName === 'refer') {
     const friend = interaction.options.getUser('friend');
@@ -8621,6 +8628,14 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
+  // Command: !wiki, !docs
+  if (lowerMsg === '!wiki' || lowerMsg.startsWith('!wiki ') || lowerMsg === '!docs' || lowerMsg.startsWith('!docs ')) {
+    const args = content.split(/\s+/).slice(1);
+    await message.channel.sendTyping().catch(() => {});
+    await handleWikiMessage(message, args);
+    return;
+  }
+
   // Command: !role or !roles
   if (lowerMsg === '!role' || lowerMsg === '!roles' || lowerMsg.startsWith('!role ') || lowerMsg.startsWith('!roles ')) {
     if (!message.guild) {
@@ -11546,6 +11561,19 @@ const server = http.createServer(async (req, res) => {
       'Cache-Control': 'no-cache'
     });
     res.end(JSON.stringify(statusData, null, 2));
+    return;
+  }
+
+  // Krims Wiki & Documentation Site
+  if (url.pathname === '/wiki' || url.pathname === '/docs' || url.pathname === '/wiki/' || url.pathname === '/docs/') {
+    const statusData = getLiveStatusData(client, globalMultiBotManager);
+    const wikiHtml = renderKrimsWikiHtml(statusData);
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'Access-Control-Allow-Origin': '*'
+    });
+    res.end(wikiHtml);
     return;
   }
 
