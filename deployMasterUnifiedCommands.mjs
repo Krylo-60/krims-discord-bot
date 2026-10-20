@@ -17,18 +17,17 @@ async function deploy() {
 
     const guildsRes = await rest.get(Routes.userGuilds());
     for (const g of guildsRes) {
-      console.log(`[+] Registering ${masterCommandJson.length} commands to guild: ${g.name} (${g.id})...`);
+      console.log(`[+] Cleaning any guild-scoped commands in ${g.name} (${g.id}) to prevent duplicates...`);
       try {
-        await rest.put(Routes.applicationGuildCommands(appId, g.id), { body: masterCommandJson });
-        console.log(`[✅ Successfully registered to ${g.name}!]`);
+        await rest.put(Routes.applicationGuildCommands(appId, g.id), { body: [] });
       } catch (err) {
-        console.warn(`[-] Failed on ${g.name}:`, err.message);
+        console.warn(`[-] Failed cleaning ${g.name}:`, err.message);
       }
     }
 
     console.log(`[+] Registering ${masterCommandJson.length} global slash commands...`);
     await rest.put(Routes.applicationCommands(appId), { body: masterCommandJson });
-    console.log(`[✅ GLOBAL SLASH COMMANDS DEPLOYED!]`);
+    console.log(`[✅ GLOBAL SLASH COMMANDS DEPLOYED WITHOUT DUPLICATES!]`);
   } catch (err) {
     console.error('[-] Fatal deployment error:', err);
   }
