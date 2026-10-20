@@ -61,8 +61,16 @@
 ### 🌐 6. Real-Time Web Status Dashboard & Telemetry
 * **Live Web Dashboard:** Real-time online/offline indicators, gateway WebSocket latency, uptime clock, and connected guild counts available 24/7 at [https://krims-discord-bot-d57m.onrender.com/](https://krims-discord-bot-d57m.onrender.com/).
 * **JSON Telemetry API:** Live JSON feed at `/api/status` for external uptime monitoring services.
-* **Top.gg Vote Booster Engine:** Automated webhook processor at `/api/topgg/webhook` awarding 2.0x XP multipliers, streak bonuses, and economy rewards for voter upvotes.
+* **Top.gg Vote Booster Engine:** Automated webhook processor at `/api/topgg/webhook` awarding 2.0x XP multipliers, streak bonuses, and level rewards for voter upvotes.
 * **Message & XP Leaderboard Hub:** Dual-mode interactive community leaderboards (`/leaderboard`) tracking total message activity and earned XP with one-click toggles.
+
+---
+
+### 📖 7. Official Krims Wiki & Documentation Portal
+* **Interactive Web Wiki:** Comprehensive documentation hub available at [https://krims-discord-bot-d57m.onrender.com/wiki](https://krims-discord-bot-d57m.onrender.com/wiki).
+* **Live Command Search:** Real-time search engine indexing all 100 slash & prefix commands with syntax and copy buttons.
+* **In-Discord Wiki Commands:** Run `/wiki [query]` or `!wiki [query]` anywhere to query guides and command references directly inside chat.
+* **Architecture Guides:** Complete documentation for the Gemini Neural AI Engine, Custom Bot Spawner (`/setupbot`), Top.gg Vote Multipliers, and Quiet Leveling System.
 
 ---
 
