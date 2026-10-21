@@ -288,11 +288,32 @@ export function initAlphaBetaBotInstances() {
   // If user provides KRIMS_BETA_TOKEN in .env, spawn dedicated Beta Bot
   if (process.env.KRIMS_BETA_TOKEN) {
     try {
-      const betaClient = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
-      betaClient.once('ready', () => {
+      const betaClient = new Client({ 
+        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] 
+      });
+      betaClient.once('ready', async () => {
         console.log(`[+] Dedicated Krims Code Beta bot connected as ${betaClient.user.tag}`);
         betaClient.user.setActivity('🧪 Staging & Pre-Release v5-beta', { type: 0 });
+
+        // Register beta slash commands under Beta bot identity in Support Guild
+        const g = betaClient.guilds.cache.get(SUPPORT_GUILD_ID);
+        if (g) {
+          await g.commands.set([ALPHA_BETA_COMMAND_DEFINITIONS[1]]).catch(() => {});
+        }
       });
+
+      betaClient.on('interactionCreate', async (interaction) => {
+        if (!interaction.isChatInputCommand()) return;
+        if (interaction.commandName === 'beta') return handleBetaCommand(interaction);
+      });
+
+      betaClient.on('messageCreate', async (message) => {
+        if (message.author.bot) return;
+        if (message.mentions.has(betaClient.user)) {
+          return message.reply('🧪 **Krims Code Beta online.** Pre-release candidate testing active in <#1561175639606693929>!');
+        }
+      });
+
       betaClient.login(process.env.KRIMS_BETA_TOKEN).catch(e => console.warn('[Beta Bot] Token login failed:', e.message));
     } catch (err) {
       console.warn('[Beta Bot] Startup error:', err.message);
@@ -302,11 +323,32 @@ export function initAlphaBetaBotInstances() {
   // If user provides KRIMS_ALPHA_TOKEN in .env, spawn dedicated Alpha Bot
   if (process.env.KRIMS_ALPHA_TOKEN) {
     try {
-      const alphaClient = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
-      alphaClient.once('ready', () => {
+      const alphaClient = new Client({ 
+        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] 
+      });
+      alphaClient.once('ready', async () => {
         console.log(`[+] Dedicated Krims Code Alpha bot connected as ${alphaClient.user.tag}`);
         alphaClient.user.setActivity('🔬 Internal R&D Engine v5-alpha', { type: 0 });
+
+        // Register alpha slash commands under Alpha bot identity in Support Guild
+        const g = alphaClient.guilds.cache.get(SUPPORT_GUILD_ID);
+        if (g) {
+          await g.commands.set([ALPHA_BETA_COMMAND_DEFINITIONS[0]]).catch(() => {});
+        }
       });
+
+      alphaClient.on('interactionCreate', async (interaction) => {
+        if (!interaction.isChatInputCommand()) return;
+        if (interaction.commandName === 'alpha') return handleAlphaCommand(interaction);
+      });
+
+      alphaClient.on('messageCreate', async (message) => {
+        if (message.author.bot) return;
+        if (message.mentions.has(alphaClient.user)) {
+          return message.reply('⚡ **Krims Code Alpha online.** Classified R&D subsystem active in stealth mode.');
+        }
+      });
+
       alphaClient.login(process.env.KRIMS_ALPHA_TOKEN).catch(e => console.warn('[Alpha Bot] Token login failed:', e.message));
     } catch (err) {
       console.warn('[Alpha Bot] Startup error:', err.message);
