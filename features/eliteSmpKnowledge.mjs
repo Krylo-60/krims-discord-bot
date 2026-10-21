@@ -92,9 +92,44 @@ export const ELITE_SMP_INTEL = {
 };
 
 /**
+ * Live Cloudflare Worker Leaderboard Cache
+ */
+let cachedLeaderboard = null;
+let lastLeaderboardFetch = 0;
+
+export async function fetchLiveEliteSmpLeaderboard() {
+  const now = Date.now();
+  if (cachedLeaderboard && now - lastLeaderboardFetch < 60 * 1000) {
+    return cachedLeaderboard;
+  }
+  try {
+    const res = await fetch('https://elite-smp-leaderboard.smpcurios.workers.dev/leaderboard', {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (res.ok) {
+      cachedLeaderboard = await res.json();
+      lastLeaderboardFetch = now;
+      return cachedLeaderboard;
+    }
+  } catch (err) {
+    console.warn('[EliteSMP] Failed to fetch live leaderboard:', err.message);
+  }
+  return cachedLeaderboard;
+}
+
+/**
  * Builds high-density context prompt for LLM neural injection
  */
-export function getEliteSmpSystemPrompt() {
+export async function getEliteSmpSystemPrompt() {
+  const lb = await fetchLiveEliteSmpLeaderboard();
+  let liveTeamsSummary = '';
+  if (lb?.boards?.teams?.entries) {
+    const topTeams = lb.boards.teams.entries.slice(0, 8);
+    liveTeamsSummary = '\n• LIVE OFFICIAL TEAMS LEADERBOARD (Source: Elite SMP Cloudflare API):\n' +
+      topTeams.map(t => `  - Rank #${t.rank}: "${t.name}" (${t.display}, Top Player: ${t.top_player}, Members: ${t.Members}, Treasury: $${t.Treasury}k, Stage: ${t.Stage})${t.name.toUpperCase() === 'BAT' ? ' [OFFICIAL ALLY OF THE HALF LIFES]' : ''}`).join('\n') +
+      '\n  * NOTE: Team "BAT" (Rank #6) is the official ally of The Half Lifes clan led by st1llkill3r.';
+  }
+
   return `
 [ELITE SMP OFFICIAL DATABASE (SOURCE: https://elitesmp.gg/)]
 • Server Overview: Cross-platform Minecraft survival (Java 1.21.x-26.2, Bedrock).
@@ -116,13 +151,19 @@ export function getEliteSmpSystemPrompt() {
   - 5 Craftable Spawners: Skeleton, Zombie, Spider, Cave Spider, Magma Cube Spawners.
 • Key Commands: /sethome, /home, /homes (3 default), /tpa, /tpaccept, /rtp (30s cooldown), /referral, /code, /afk.
 • Staff: Owners (MCCurios, Fiforious_), Admins (Wilczek015, vowless_), Mods (IkarAviator, OhYellow, swananito).
+${liveTeamsSummary}
 `;
 }
 
 export const ELITE_SMP_COMMAND_DEFINITION = {
   name: 'elitesmp',
-  description: '⚔️ Official Elite SMP server guide, rules, craftings & live wiki',
+  description: '⚔️ Official Elite SMP server guide, rules, live teams & wiki',
   options: [
+    {
+      name: 'teams',
+      description: '🏆 View live Elite SMP Top Teams, kills, treasury, and alliances',
+      type: ApplicationCommandOptionType.Subcommand
+    },
     {
       name: 'join',
       description: 'View Elite SMP connection addresses, ports, and version compatibility',
@@ -169,11 +210,39 @@ export const ELITE_SMP_COMMAND_DEFINITION = {
 };
 
 export async function handleEliteSmpCommand(interaction) {
-  const sub = interaction.options?.getSubcommand() || 'join';
+  const sub = interaction.options?.getSubcommand() || 'teams';
+
+  if (sub === 'teams') {
+    const lb = await fetchLiveEliteSmpLeaderboard();
+    const teamEntries = lb?.boards?.teams?.entries || [];
+
+    const topList = teamEntries.slice(0, 10).map(t => {
+      const isAlly = t.name.toUpperCase() === 'BAT';
+      const medal = t.rank === 1 ? '🥇' : t.rank === 2 ? '🥈' : t.rank === 3 ? '🥉' : `\`#${t.rank}\``;
+      const allyTag = isAlly ? ' 🤝 **[OUR ALLY]**' : '';
+      return `${medal} **${t.name}**${allyTag} — \`${t.display}\` • 💰 Treasury: \`$${t.Treasury}k\` • 👥 Members: \`${t.Members}\` (MVP: *${t.top_player}*)`;
+    }).join('\n\n');
+
+    const embed = new EmbedBuilder()
+      .setColor(0xEF4444) // Elite Crimson
+      .setTitle('🏆 Elite SMP // Live Top Teams & Rivals')
+      .setDescription(
+        `Real-time team leaderboard synced directly from the **Elite SMP Cloudflare API**:\n\n` +
+        (topList || 'No team entries currently recorded.') +
+        `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `🛡️ **Clan Intel:**\n` +
+        `• **Top Threats / Rivals:** \`VenomX\` (#1) & \`Team_Rocket\` (#2)\n` +
+        `• **Official Alliance:** \`BAT\` (#6) partnered with **The Half Life's**!`
+      )
+      .setFooter({ text: 'Live API • elitesmp.gg/leaderboard' })
+      .setTimestamp();
+
+    return interaction.reply({ embeds: [embed] });
+  }
 
   if (sub === 'join') {
     const embed = new EmbedBuilder()
-      .setColor(0xEF4444) // Elite Crimson
+      .setColor(0xEF4444)
       .setTitle('⚔️ Elite SMP // Connection & Join Intel')
       .setDescription(
         `**Official Website:** [elitesmp.gg](https://elitesmp.gg/)\n` +
