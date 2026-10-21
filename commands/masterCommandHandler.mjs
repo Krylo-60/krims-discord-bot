@@ -45,6 +45,7 @@ import {
 } from '../features/botDevApplicationManager.mjs';
 
 import { handlePremiumCommand } from '../features/premiumManager.mjs';
+import { handleEliteSmpCommand } from '../features/eliteSmpKnowledge.mjs';
 
 import {
   linkCountingChannel,
@@ -583,6 +584,10 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
 
     if (commandName === 'premium' || commandName === 'pricing') {
       return await handlePremiumCommand(interaction);
+    }
+
+    if (commandName === 'elitesmp') {
+      return await handleEliteSmpCommand(interaction);
     }
 
     if (commandName === 'ask') {

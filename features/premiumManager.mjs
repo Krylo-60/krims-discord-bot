@@ -1,5 +1,9 @@
 import { getEliteSmpSystemPrompt, ELITE_SMP_COMMAND_DEFINITION, handleEliteSmpCommand } from './eliteSmpKnowledge.mjs';
 import { recordConversationTurn, getRecentServerMemory, buildServerMemoryContext } from './aiMemoryEngine.mjs';
+import { masterCommandJson } from '../commands/masterCommandRegistry.mjs';
+import { handleMasterSlashCommand } from '../commands/masterCommandHandler.mjs';
+import { getBalance, claimDaily } from '../databaseEngine.mjs';
+import { handleRankCommand, handleLeaderboardCommand } from './mee6Levels.mjs';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -519,11 +523,11 @@ export async function registerPremiumCommands(token, clientId = '156258621582226
     for (const gId of targetGuilds) {
       await rest.put(Routes.applicationGuildCommands(clientId, gId), { body: [] }).catch(() => {});
     }
-    // Single global slash command registration
+    // Global slash command registration with all 100 master commands!
     await rest.put(Routes.applicationCommands(clientId), {
-      body: [PREMIUM_COMMAND_DEFINITION, ELITE_SMP_COMMAND_DEFINITION]
+      body: masterCommandJson
     }).catch(e => console.warn('[Premium Bot] Global register warning:', e.message));
-    console.log('[+] Krims Code Premium single global slash command synced without duplicates!');
+    console.log('[+] Krims Code Premium 100 enterprise master slash commands registered globally!');
   } catch (err) {
     console.warn('[Premium Bot] Slash command registration notice:', err.message);
   }
@@ -559,15 +563,106 @@ export function initPremiumBotInstance() {
         if (!interaction.isChatInputCommand()) return;
         if (interaction.commandName === 'premium') return handlePremiumCommand(interaction);
         if (interaction.commandName === 'elitesmp') return handleEliteSmpCommand(interaction);
+
+        // Full Master Slash Command Suite for Krims Code Premium
+        try {
+          return await handleMasterSlashCommand(interaction, premClient, {
+            xpData: {},
+            clanData: {},
+            getCachedGuildConfig: () => ({}),
+            geminiDirectAsk: askPremiumAi,
+            sanitizeDiscordFormatting: (t) => t
+          });
+        } catch (err) {
+          console.warn('[Premium Bot] Master slash router error:', err.message);
+        }
       });
 
       premClient.on('messageCreate', async (message) => {
         if (message.author.bot) return;
 
-        // Prefix !premium command handling
-        if (message.content.toLowerCase().startsWith('!premium')) {
+        const contentLower = message.content.toLowerCase().trim();
+
+        // 1. Prefix !premium command
+        if (contentLower.startsWith('!premium')) {
           const args = message.content.slice(8).trim().split(/\s+/).filter(Boolean);
           return handlePremiumMessage(message, args);
+        }
+
+        // 2. Prefix !elitesmp command
+        if (contentLower.startsWith('!elitesmp')) {
+          const args = contentLower.split(/\s+/);
+          const sub = args[1] || 'teams';
+          const fakeInteraction = {
+            options: { getSubcommand: () => sub, getString: () => null },
+            reply: (payload) => message.reply(payload)
+          };
+          return handleEliteSmpCommand(fakeInteraction);
+        }
+
+        // 3. Prefix !balance command
+        if (contentLower === '!balance' || contentLower === '!bal' || contentLower === '!coins') {
+          const bal = getBalance(message.author.id);
+          const embed = new EmbedBuilder()
+            .setColor(0xF59E0B)
+            .setAuthor({ name: `${message.author.displayName || message.author.username} • VIP Vault`, iconURL: message.author.displayAvatarURL() })
+            .setDescription(`💰 **Balance:** \`${(bal?.krylocoins ?? 0).toLocaleString()} KryloCoins\`\n💎 **VIP Tier:** \`Enterprise Active (2x XP Multiplier)\``)
+            .setFooter({ text: 'Krims Code Premium Enterprise Economy' });
+          return message.reply({ embeds: [embed] });
+        }
+
+        // 4. Prefix !daily command
+        if (contentLower === '!daily') {
+          const res = claimDaily(message.author.id);
+          const embed = new EmbedBuilder()
+            .setColor(res.success ? 0xF59E0B : 0xEF4444)
+            .setTitle(res.success ? '🎉 VIP Daily Streak Reward Claimed!' : '⏳ Daily Cooldown Active')
+            .setDescription(res.message || (res.success ? `You received **${res.amount || 500} KryloCoins**!` : 'You already claimed your daily today!'))
+            .setFooter({ text: 'Krims Code Premium • 2x VIP Rewards' });
+          return message.reply({ embeds: [embed] });
+        }
+
+        // 5. Prefix !help command
+        if (contentLower === '!help') {
+          const embed = new EmbedBuilder()
+            .setColor(0xF59E0B)
+            .setTitle('💎 Krims Code Premium • Full Master Suite')
+            .setDescription('Krims Code Premium features all 100 enterprise commands with dedicated zero-latency compute!\n\n' +
+              '👑 **VIP AI Intelligence:** `@Krims Code Premium <question>`, `/ask`, `/memory`\n' +
+              '⚔️ **Elite SMP & Minecraft:** `/elitesmp`, `/mcstatus`, `/skin`\n' +
+              '🛡️ **Moderation Powerhouse:** `/ban`, `/kick`, `/mute`, `/unmute`, `/warn`, `/purge`, `/lockdown`\n' +
+              '💰 **Economy & Store:** `/balance`, `/daily`, `/pay`, `/store`, `/givecoins`\n' +
+              '⚡ **VIP Progression & Leveling (2x XP):** `/rank`, `/leaderboard`, `/rewards`\n' +
+              '🏰 **Clans & Factions:** `/clan create`, `/clan info`, `/clan leaderboard`\n' +
+              '🎮 **Discord Activities & Games:** `/activity`, `/coinflip`, `/roll`, `/eightball`, `/duel`\n' +
+              '🎫 **Support & Utilities:** `/ticket`, `/poll`, `/embed`, `/serverinfo`, `/userinfo`, `/ping`\n' +
+              '💎 **VIP Configuration:** `/premium status`, `/premium perks`, `/premium upgrade`')
+            .setFooter({ text: 'Krims Code Premium • Everything Unlocked' });
+          return message.reply({ embeds: [embed] });
+        }
+
+        // 6. Prefix !rank command
+        if (contentLower === '!rank' || contentLower === '!level' || contentLower === '!xp') {
+          const fakeInteraction = {
+            guild: message.guild,
+            member: message.member,
+            user: message.author,
+            options: { getUser: () => message.mentions.users.first() || message.author },
+            reply: (payload) => message.reply(payload),
+            deferReply: async () => {},
+            editReply: (payload) => message.reply(payload)
+          };
+          return handleRankCommand(fakeInteraction);
+        }
+
+        // 7. Prefix !leaderboard command
+        if (contentLower === '!leaderboard' || contentLower === '!top' || contentLower === '!lb') {
+          const fakeInteraction = {
+            guild: message.guild,
+            options: { getString: () => 'xp' },
+            reply: (payload) => message.reply(payload)
+          };
+          return handleLeaderboardCommand(fakeInteraction);
         }
 
         // Direct mention or question for Premium Bot

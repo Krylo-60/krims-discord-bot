@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
+import { ELITE_SMP_COMMAND_DEFINITION } from '../features/eliteSmpKnowledge.mjs';
 
 /**
  * MASTER COMMAND REGISTRY
@@ -562,9 +563,7 @@ export const masterCommandBuilders = [
         { name: '⚡ XP & Levels', value: 'xp' }
       )),
 
-  new SlashCommandBuilder()
-    .setName('xpleaderboard')
-    .setDescription('🏆 View top 10 chat active users ranked by XP!'),
+  ELITE_SMP_COMMAND_DEFINITION,
 
   new SlashCommandBuilder()
     .setName('clan')
@@ -682,4 +681,4 @@ export const masterCommandBuilders = [
 /**
  * Array of raw JSON definitions ready for Discord REST API registration
  */
-export const masterCommandJson = masterCommandBuilders.map(cmd => cmd.toJSON());
+export const masterCommandJson = masterCommandBuilders.map(cmd => typeof cmd?.toJSON === 'function' ? cmd.toJSON() : cmd);
