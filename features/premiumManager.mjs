@@ -353,6 +353,18 @@ export function initPremiumBotInstance() {
         premClient.user.setActivity('💎 Krims Code Premium • Dedicated VIP Cluster', { type: 3 }); // 3 = Watching
       });
 
+      premClient.on('interactionCreate', async (interaction) => {
+        if (!interaction.isChatInputCommand()) return;
+        if (interaction.commandName === 'premium') return handlePremiumCommand(interaction);
+      });
+
+      premClient.on('messageCreate', async (message) => {
+        if (message.author.bot) return;
+        if (message.mentions.has(premClient.user)) {
+          return message.reply('💎 **Krims Code Premium online.** High-priority VIP cluster active.');
+        }
+      });
+
       premClient.login(process.env.KRIMS_PREMIUM_TOKEN).catch(e => console.warn('[Premium Bot] Login warning:', e.message));
     } catch (err) {
       console.warn('[Premium Bot] Startup error:', err.message);
