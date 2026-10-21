@@ -223,7 +223,7 @@ export async function syncPersistentUpdateToDiscord(client, channelId = DEFAULT_
     const embed = buildUpdateEmbed(latest);
     const row = buildUpdateActionRow();
 
-    // Check if we already have a persistent message to edit
+    // 1. First check if updatesStore has a pinnedMessageId
     if (updatesStore.pinnedMessageId) {
       try {
         const msg = await channel.messages.fetch(updatesStore.pinnedMessageId);
@@ -237,11 +237,32 @@ export async function syncPersistentUpdateToDiscord(client, channelId = DEFAULT_
           return msg;
         }
       } catch (_) {
-        // Message was deleted or unreachable, will create a new one
+        // Message was deleted or unreachable
       }
     }
 
-    // Send new persistent update message
+    // 2. Scan recent messages in channel to avoid posting duplicates across container restarts
+    const recentMessages = await channel.messages.fetch({ limit: 15 }).catch(() => null);
+    if (recentMessages) {
+      const existingBotMsg = recentMessages.find(m => 
+        m.author.id === client.user.id && 
+        m.content.includes('Live Platform Updates')
+      );
+
+      if (existingBotMsg) {
+        updatesStore.pinnedMessageId = existingBotMsg.id;
+        saveUpdates();
+        await existingBotMsg.edit({
+          content: '📢 **Krims Code v5 • Live Platform Updates (Powered by Krims AI v3.1)** 🚀',
+          embeds: [embed],
+          components: [row]
+        });
+        console.log(`[PersistentUpdates] Found & updated existing channel message: ${existingBotMsg.id} (prevented duplicate)`);
+        return existingBotMsg;
+      }
+    }
+
+    // 3. Only if absolutely no existing message exists, send a new one
     const newMsg = await channel.send({
       content: '📢 **Krims Code v5 • Live Platform Updates (Powered by Krims AI v3.1)** 🚀',
       embeds: [embed],
