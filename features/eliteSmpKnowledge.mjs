@@ -124,10 +124,12 @@ export async function getEliteSmpSystemPrompt() {
   const lb = await fetchLiveEliteSmpLeaderboard();
   let liveTeamsSummary = '';
   if (lb?.boards?.teams?.entries) {
-    const topTeams = lb.boards.teams.entries.slice(0, 8);
+    const topTeams = lb.boards.teams.entries.slice(0, 10);
     liveTeamsSummary = '\n• LIVE OFFICIAL TEAMS LEADERBOARD (Source: Elite SMP Cloudflare API):\n' +
       topTeams.map(t => `  - Rank #${t.rank}: "${t.name}" (${t.display}, Top Player: ${t.top_player}, Members: ${t.Members}, Treasury: $${t.Treasury}k, Stage: ${t.Stage})${t.name.toUpperCase() === 'BAT' ? ' [OFFICIAL ALLY OF THE HALF LIFES]' : ''}`).join('\n') +
-      '\n  * NOTE: Team "BAT" (Rank #6) is the official ally of The Half Lifes clan led by st1llkill3r.';
+      '\n  * NOTE: Team "BAT" (Rank #6) is the official ally of The Half Lifes clan led by st1llkill3r.' +
+      '\n  * NOTE: Team "VenomX" (Rank #1, 182 kills, Top Player: ODYSSEAS12345) and Team "Team_Rocket" (Rank #2, 181 kills, Top Player: Jamkeju, Treasury: $511k) are our top rival teams.' +
+      '\n  * ABSOLUTE PROHIBITION: NEVER make up or invent imaginary SMP teams, rival clans, or players (such as "The_Obsidian_Overlord", "Shadow_Silk", "Ender_Echoes", "Obsidian Order", etc.). ONLY use the real, verified teams from the leaderboard above!';
   }
 
   return `
