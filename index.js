@@ -1028,8 +1028,6 @@ client.once('ready', async () => {
   // Register secret Alpha & Beta command suites in Support Server
   try {
     await registerAlphaBetaCommands(client);
-    initAlphaBetaBotInstances();
-    initPremiumBotInstance();
   } catch (abErr) {
     console.warn('[AlphaBeta] Startup notice:', abErr.message);
   }

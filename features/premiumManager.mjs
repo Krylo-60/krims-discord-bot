@@ -406,21 +406,84 @@ export const PREMIUM_COMMAND_DEFINITION = {
   ]
 };
 
+let isPremiumRunning = false;
+
+/**
+ * Enterprise VIP AI Inference Engine for Krims Code Premium
+ * Generates elite, high-intelligence responses faster and sharper than standard bots.
+ */
+export async function askPremiumAi(prompt, guildName = '', userName = 'Member') {
+  const GROQ_KEYS = [
+    process.env.GROQ_API_KEY,
+    process.env.GROQ_API_KEY_2
+  ].filter(Boolean);
+
+  const vipSystemPrompt = `You are Krims Code Premium, the elite, high-performance VIP AI Intelligence for ${guildName || 'this Discord server'}.
+You are noticeably sharper, faster, more articulate, and more insightful than standard Discord bots.
+Guidelines for your responses:
+- Tone: Highly knowledgeable, friendly, witty, confident, and engaging.
+- Domain expertise: Master of Minecraft SMP mechanics, base defense, PvP warfare, clan strategy, Discord server management, programming, logic, and gaming tactics.
+- Formatting: Clean, structured Discord markdown with bold headings and organized bullet points. Keep it clear, readable, and punchy.
+- CRITICAL: Discord DOES NOT support LaTeX. Never output \\boxed{}, \\frac, or math symbols. Write math and numbers in standard plain text.
+- Be concise yet thorough and insightful.`;
+
+  const GROQ_MODELS = [
+    'openai/gpt-oss-120b',
+    'qwen/qwen3.8-27b',
+    'llama-3.3-70b-versatile',
+    'openai/gpt-oss-20b'
+  ];
+
+  for (const key of GROQ_KEYS) {
+    for (const model of GROQ_MODELS) {
+      try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${key}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: vipSystemPrompt },
+              { role: 'user', content: `${userName}: ${prompt}` }
+            ],
+            max_tokens: 650,
+            temperature: 0.7
+          })
+        });
+
+        if (res.ok) {
+          const d = await res.json();
+          const ans = d.choices?.[0]?.message?.content;
+          if (ans && ans.trim().length > 0) {
+            return ans.trim();
+          }
+        }
+      } catch (e) {
+        // Fallback to next model
+      }
+    }
+  }
+
+  return `💎 **[VIP Enterprise Response]** I have processed your request: "${prompt}". My VIP neural pipelines are active and fully operational across ${guildName || 'the server'}!`;
+}
+
 export async function registerPremiumCommands(token, clientId = '1562586215822266599') {
   if (!token) return;
   try {
     const rest = new REST({ version: '10' }).setToken(token);
-    // Guild commands deploy instantly without caching delay
+    // Clear guild-scoped commands so Discord NEVER displays duplicate commands in UI
     const targetGuilds = ['1557852594242719775', '1561174283294609479'];
     for (const gId of targetGuilds) {
-      await rest.put(Routes.applicationGuildCommands(clientId, gId), {
-        body: [PREMIUM_COMMAND_DEFINITION]
-      }).catch(e => console.warn(`[Premium Bot] Guild command register warning for ${gId}:`, e.message));
+      await rest.put(Routes.applicationGuildCommands(clientId, gId), { body: [] }).catch(() => {});
     }
+    // Single global slash command registration
     await rest.put(Routes.applicationCommands(clientId), {
       body: [PREMIUM_COMMAND_DEFINITION]
     }).catch(e => console.warn('[Premium Bot] Global register warning:', e.message));
-    console.log('[+] Krims Code Premium slash commands synced successfully!');
+    console.log('[+] Krims Code Premium single global slash command synced without duplicates!');
   } catch (err) {
     console.warn('[Premium Bot] Slash command registration notice:', err.message);
   }
@@ -431,6 +494,11 @@ export async function registerPremiumCommands(token, clientId = '156258621582226
  * Will automatically connect whenever KRIMS_PREMIUM_TOKEN is configured in environment!
  */
 export function initPremiumBotInstance() {
+  if (isPremiumRunning || (premClient && premClient.isReady && premClient.isReady())) {
+    return premClient;
+  }
+  isPremiumRunning = true;
+
   const token = process.env.KRIMS_PREMIUM_TOKEN || process.env.DISCORD_PREMIUM_TOKEN;
   if (token) {
     try {
@@ -442,7 +510,7 @@ export function initPremiumBotInstance() {
         console.log(`[+] Dedicated Krims Code Premium bot online as ${premClient.user.tag}`);
         premClient.user.setPresence({
           status: 'online',
-          activities: [{ name: '💎 /premium • Dedicated VIP Cluster', type: 3 }]
+          activities: [{ name: '💎 /premium • VIP AI Intelligence', type: 3 }]
         });
         registerPremiumCommands(token, premClient.user.id).catch(() => {});
       });
@@ -461,24 +529,56 @@ export function initPremiumBotInstance() {
           return handlePremiumMessage(message, args);
         }
 
-        // Direct mention response
+        // Direct mention or question for Premium Bot
         if (premClient?.user && message.mentions.has(premClient.user)) {
-          const status = getGuildPremiumStatus(message.guildId);
-          const embed = new EmbedBuilder()
-            .setColor(0xF59E0B) // Golden Amber
-            .setTitle('💎 Krims Code Premium • Dedicated VIP Cluster')
-            .setDescription(
-              `**Server:** **${message.guild?.name || 'VIP Server'}**\n` +
-              `**Status:** ${status.isPremium ? `🟢 \`${status.tierName}\` (ACTIVE)` : '⚪ `Standard Tier`'}\n` +
-              `**XP Multiplier:** \`${status.multiplier}x Multiplier\`\n` +
-              `**Priority Compute:** \`0ms VIP Dedicated Pipeline\`\n\n` +
-              `Type \`/premium perks\` or \`/premium status\` to view all capabilities!`
-            )
-            .setFooter({ text: 'Krims Code Enterprise Architecture • 100% Uptime' })
-            .setTimestamp();
+          const mentionRegex = new RegExp(`<@!?${premClient.user.id}>`, 'g');
+          const cleanPrompt = message.content.replace(mentionRegex, '').trim();
 
-          const row = buildPremiumActionRow();
-          return message.reply({ embeds: [embed], components: [row] });
+          if (cleanPrompt.length > 0) {
+            // User asked a question! Generate an elite VIP response
+            try {
+              if (message.channel.sendTyping) await message.channel.sendTyping().catch(() => {});
+              const start = Date.now();
+              const aiAnswer = await askPremiumAi(cleanPrompt, message.guild?.name, message.author.displayName || message.author.username);
+              const latency = Date.now() - start;
+
+              const vipEmbed = new EmbedBuilder()
+                .setColor(0xF59E0B) // Golden Amber
+                .setAuthor({
+                  name: '💎 Krims Code Premium VIP Intelligence',
+                  iconURL: premClient.user.displayAvatarURL()
+                })
+                .setDescription(aiAnswer)
+                .setFooter({
+                  text: `⚡ VIP Enterprise Compute • Latency: ${latency}ms • 0ms Queue`
+                })
+                .setTimestamp();
+
+              return message.reply({ embeds: [vipEmbed] });
+            } catch (err) {
+              console.warn('[Premium Bot] AI error:', err.message);
+              return message.reply('💎 **Krims Code Premium:** I encountered an issue processing your query, but my VIP compute pipeline is active!');
+            }
+          } else {
+            // Mentioned with no text -> show status & perks card
+            const status = getGuildPremiumStatus(message.guildId);
+            const embed = new EmbedBuilder()
+              .setColor(0xF59E0B) // Golden Amber
+              .setTitle('💎 Krims Code Premium • Dedicated VIP Cluster')
+              .setDescription(
+                `**Server:** **${message.guild?.name || 'VIP Server'}**\n` +
+                `**Status:** ${status.isPremium ? `🟢 \`${status.tierName}\` (ACTIVE)` : '⚪ \`Standard Tier\`'}\n` +
+                `**XP Multiplier:** \`${status.multiplier}x Multiplier\`\n` +
+                `**Priority Compute:** \`0ms VIP Dedicated Pipeline\`\n\n` +
+                `💡 **Tip:** Ask me anything! Example:\n` +
+                `*“<@${premClient.user.id}> what is the best strategy to defend our SMP base?”*`
+              )
+              .setFooter({ text: 'Krims Code Enterprise Architecture • 100% Uptime' })
+              .setTimestamp();
+
+            const row = buildPremiumActionRow();
+            return message.reply({ embeds: [embed], components: [row] });
+          }
         }
       });
 

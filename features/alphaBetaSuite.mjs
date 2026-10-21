@@ -1,3 +1,4 @@
+let isAlphaBetaInitialized = false;
 import { 
   EmbedBuilder, 
   ActionRowBuilder, 
@@ -288,6 +289,8 @@ export let betaClient = null;
  * Spawns dedicated Alpha/Beta bot client instances if tokens are provided in environment
  */
 export function initAlphaBetaBotInstances() {
+  if (isAlphaBetaInitialized) return;
+  isAlphaBetaInitialized = true;
   // If user provides KRIMS_BETA_TOKEN in .env, spawn dedicated Beta Bot
   if (process.env.KRIMS_BETA_TOKEN) {
     try {
