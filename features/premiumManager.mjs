@@ -1,4 +1,5 @@
 import { getEliteSmpSystemPrompt, ELITE_SMP_COMMAND_DEFINITION, handleEliteSmpCommand } from './eliteSmpKnowledge.mjs';
+import { recordConversationTurn, getRecentServerMemory, buildServerMemoryContext } from './aiMemoryEngine.mjs';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -413,7 +414,7 @@ let isPremiumRunning = false;
  * Enterprise VIP AI Inference Engine for Krims Code Premium
  * Generates elite, high-intelligence responses faster and sharper than standard bots.
  */
-export async function askPremiumAi(prompt, guildName = '', userName = 'Member', userId = '') {
+export async function askPremiumAi(prompt, guildName = '', userName = 'Member', userId = '', guildId = null, channelId = null) {
   const GROQ_KEYS = [
     process.env.GROQ_API_KEY,
     process.env.GROQ_API_KEY_2
@@ -424,8 +425,12 @@ export async function askPremiumAi(prompt, guildName = '', userName = 'Member', 
                   userName.toLowerCase().includes('st1llkill3r') ||
                   prompt.toLowerCase().includes('i am the owner');
 
+  const serverFactsContext = guildId ? buildServerMemoryContext(guildId, guildName) : '';
+  const recentHistory = guildId ? getRecentServerMemory(guildId, 6) : [];
+
   const eliteIntel = await getEliteSmpSystemPrompt();
   const vipSystemPrompt = `${eliteIntel}
+${serverFactsContext}
 
 You are Krims Code Premium, the elite, high-performance VIP AI Intelligence for ${guildName || 'this Discord server'}.
 You are noticeably sharper, faster, more articulate, and more insightful than standard Discord bots.
@@ -455,6 +460,18 @@ You are noticeably sharper, faster, more articulate, and more insightful than st
     'openai/gpt-oss-20b'
   ];
 
+  const groqMessages = [
+    { role: 'system', content: vipSystemPrompt }
+  ];
+  for (const h of recentHistory) {
+    if (h.role === 'user') {
+      groqMessages.push({ role: 'user', content: `${h.user_name || 'Member'}: ${h.content}` });
+    } else {
+      groqMessages.push({ role: 'assistant', content: h.content });
+    }
+  }
+  groqMessages.push({ role: 'user', content: `${userName}: ${prompt}` });
+
   for (const key of GROQ_KEYS) {
     for (const model of GROQ_MODELS) {
       try {
@@ -466,10 +483,7 @@ You are noticeably sharper, faster, more articulate, and more insightful than st
           },
           body: JSON.stringify({
             model,
-            messages: [
-              { role: 'system', content: vipSystemPrompt },
-              { role: 'user', content: `${userName}: ${prompt}` }
-            ],
+            messages: groqMessages,
             max_tokens: 650,
             temperature: 0.7
           })
@@ -479,7 +493,11 @@ You are noticeably sharper, faster, more articulate, and more insightful than st
           const d = await res.json();
           const ans = d.choices?.[0]?.message?.content;
           if (ans && ans.trim().length > 0) {
-            return ans.trim();
+            const finalAns = ans.trim();
+            if (guildId && channelId) {
+              recordConversationTurn(guildId, channelId, userId, userName, prompt, finalAns);
+            }
+            return finalAns;
           }
         }
       } catch (e) {
@@ -561,7 +579,14 @@ export function initPremiumBotInstance() {
             try {
               if (message.channel.sendTyping) await message.channel.sendTyping().catch(() => {});
               const start = Date.now();
-              const aiAnswer = await askPremiumAi(cleanPrompt, message.guild?.name, message.author.displayName || message.author.username, message.author.id);
+              const aiAnswer = await askPremiumAi(
+                cleanPrompt, 
+                message.guild?.name, 
+                message.author.displayName || message.author.username, 
+                message.author.id,
+                message.guild?.id,
+                message.channel?.id
+              );
               const latency = Date.now() - start;
 
               const vipEmbed = new EmbedBuilder()

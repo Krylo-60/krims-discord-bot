@@ -326,7 +326,8 @@ async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', g
   }
 
   defaultSys += memoryContext;
-  defaultSys += getEliteSmpSystemPrompt();
+  defaultSys += await getEliteSmpSystemPrompt();
+  defaultSys += '\n• SUPREME CREATOR & OWNER RECOGNITION:\n- Krylo (Discord: KryloMCYT / krylo_60, ID: 1414143825538191373, Minecraft: st1llkill3r) is your CREATOR, FOUNDER, AND SUPREME BOSS.\n- Krylo has the permanent Lifetime Founder License (100% Free Forever). When Krylo speaks, always salute him and recognize his supreme authority!\n';
   defaultSys += formattingRule;
 
   const sysInstr = systemInstruction 
