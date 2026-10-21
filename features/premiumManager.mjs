@@ -435,7 +435,7 @@ export function initPremiumBotInstance() {
   if (token) {
     try {
       premClient = new Client({
-        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
+        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
       });
 
       premClient.on('ready', async () => {
