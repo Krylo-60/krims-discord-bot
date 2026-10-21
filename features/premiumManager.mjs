@@ -9,7 +9,10 @@ import {
   ButtonStyle, 
   PermissionFlagsBits,
   Client,
-  GatewayIntentBits
+  GatewayIntentBits,
+  ApplicationCommandOptionType,
+  REST,
+  Routes
 } from 'discord.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -349,23 +352,99 @@ export async function handlePremiumMessage(message, args = []) {
 
 export let premClient = null;
 
+export const PREMIUM_COMMAND_DEFINITION = {
+  name: 'premium',
+  description: '💎 Krims Code Premium VIP commands & perks',
+  options: [
+    {
+      name: 'status',
+      description: 'Check this server\'s VIP tier, XP multiplier, and fleet allocations',
+      type: ApplicationCommandOptionType.Subcommand
+    },
+    {
+      name: 'perks',
+      description: 'View all Premium, Pro, and Enterprise VIP features',
+      type: ApplicationCommandOptionType.Subcommand
+    },
+    {
+      name: 'activate',
+      description: 'Activate a cryptographic VIP license key for this server',
+      type: ApplicationCommandOptionType.Subcommand,
+      options: [
+        {
+          name: 'key',
+          description: 'The cryptographic license key (KRIMS-...)',
+          type: ApplicationCommandOptionType.String,
+          required: true
+        }
+      ]
+    },
+    {
+      name: 'genkey',
+      description: '👑 [Executive] Mint a new cryptographic VIP license key',
+      type: ApplicationCommandOptionType.Subcommand,
+      options: [
+        {
+          name: 'tier',
+          description: 'License tier (pro, premium, enterprise)',
+          type: ApplicationCommandOptionType.String,
+          required: false,
+          choices: [
+            { name: 'Pro Tier ($4.99/mo)', value: 'pro' },
+            { name: 'Premium VIP ($14.99/mo)', value: 'premium' },
+            { name: 'Enterprise Lifetime VIP', value: 'enterprise' }
+          ]
+        },
+        {
+          name: 'days',
+          description: 'Duration in days (0 for permanent lifetime)',
+          type: ApplicationCommandOptionType.Integer,
+          required: false
+        }
+      ]
+    }
+  ]
+};
+
+export async function registerPremiumCommands(token, clientId = '1562586215822266599') {
+  if (!token) return;
+  try {
+    const rest = new REST({ version: '10' }).setToken(token);
+    // Guild commands deploy instantly without caching delay
+    const targetGuilds = ['1557852594242719775', '1561174283294609479'];
+    for (const gId of targetGuilds) {
+      await rest.put(Routes.applicationGuildCommands(clientId, gId), {
+        body: [PREMIUM_COMMAND_DEFINITION]
+      }).catch(e => console.warn(`[Premium Bot] Guild command register warning for ${gId}:`, e.message));
+    }
+    await rest.put(Routes.applicationCommands(clientId), {
+      body: [PREMIUM_COMMAND_DEFINITION]
+    }).catch(e => console.warn('[Premium Bot] Global register warning:', e.message));
+    console.log('[+] Krims Code Premium slash commands synced successfully!');
+  } catch (err) {
+    console.warn('[Premium Bot] Slash command registration notice:', err.message);
+  }
+}
+
 /**
  * Standalone Krims Code Premium Bot Client Runner
  * Will automatically connect whenever KRIMS_PREMIUM_TOKEN is configured in environment!
  */
 export function initPremiumBotInstance() {
-  if (process.env.KRIMS_PREMIUM_TOKEN) {
+  const token = process.env.KRIMS_PREMIUM_TOKEN || process.env.DISCORD_PREMIUM_TOKEN;
+  if (token) {
     try {
       premClient = new Client({
-        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
+        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
       });
 
       premClient.on('ready', async () => {
         console.log(`[+] Dedicated Krims Code Premium bot online as ${premClient.user.tag}`);
         premClient.user.setPresence({
           status: 'online',
-          activities: [{ name: '💎 Krims Code Premium • Dedicated VIP Cluster', type: 3 }]
+          activities: [{ name: '💎 /premium • Dedicated VIP Cluster', type: 3 }]
         });
+        registerPremiumCommands(token, premClient.user.id).catch(() => {});
       });
 
       premClient.on('interactionCreate', async (interaction) => {
@@ -375,12 +454,35 @@ export function initPremiumBotInstance() {
 
       premClient.on('messageCreate', async (message) => {
         if (message.author.bot) return;
-        if (message.mentions.has(premClient.user)) {
-          return message.reply('💎 **Krims Code Premium online.** High-priority VIP cluster active.');
+
+        // Prefix !premium command handling
+        if (message.content.toLowerCase().startsWith('!premium')) {
+          const args = message.content.slice(8).trim().split(/\s+/).filter(Boolean);
+          return handlePremiumMessage(message, args);
+        }
+
+        // Direct mention response
+        if (premClient?.user && message.mentions.has(premClient.user)) {
+          const status = getGuildPremiumStatus(message.guildId);
+          const embed = new EmbedBuilder()
+            .setColor(0xF59E0B) // Golden Amber
+            .setTitle('💎 Krims Code Premium • Dedicated VIP Cluster')
+            .setDescription(
+              `**Server:** **${message.guild?.name || 'VIP Server'}**\n` +
+              `**Status:** ${status.isPremium ? `🟢 \`${status.tierName}\` (ACTIVE)` : '⚪ `Standard Tier`'}\n` +
+              `**XP Multiplier:** \`${status.multiplier}x Multiplier\`\n` +
+              `**Priority Compute:** \`0ms VIP Dedicated Pipeline\`\n\n` +
+              `Type \`/premium perks\` or \`/premium status\` to view all capabilities!`
+            )
+            .setFooter({ text: 'Krims Code Enterprise Architecture • 100% Uptime' })
+            .setTimestamp();
+
+          const row = buildPremiumActionRow();
+          return message.reply({ embeds: [embed], components: [row] });
         }
       });
 
-      premClient.login(process.env.KRIMS_PREMIUM_TOKEN).catch(e => console.warn('[Premium Bot] Login warning:', e.message));
+      premClient.login(token).catch(e => console.warn('[Premium Bot] Login warning:', e.message));
     } catch (err) {
       console.warn('[Premium Bot] Startup error:', err.message);
     }
