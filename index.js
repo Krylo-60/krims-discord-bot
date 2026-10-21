@@ -65,6 +65,12 @@ import {
   handleAlphaBetaMessage,
   initAlphaBetaBotInstances
 } from './features/alphaBetaSuite.mjs';
+import {
+  handlePremiumCommand,
+  handlePremiumMessage,
+  initPremiumBotInstance,
+  getGuildPremiumStatus
+} from './features/premiumManager.mjs';
 import { TopggManager } from './features/topggManager.mjs';
 import { handleMasterSlashCommand } from './commands/masterCommandHandler.mjs';
 import { masterCommandJson } from './commands/masterCommandRegistry.mjs';
@@ -1014,6 +1020,7 @@ client.once('ready', async () => {
   try {
     await registerAlphaBetaCommands(client);
     initAlphaBetaBotInstances();
+    initPremiumBotInstance();
   } catch (abErr) {
     console.warn('[AlphaBeta] Startup notice:', abErr.message);
   }
@@ -4682,6 +4689,7 @@ client.on('interactionCreate', async (interaction) => {
   if (commandName === 'betadrop' || commandName === 'incubate') return await dispatchWeeklyBetaDrop(client);
   if (commandName === 'alpha') return await handleAlphaCommand(interaction);
   if (commandName === 'beta') return await handleBetaCommand(interaction);
+  if (commandName === 'premium') return await handlePremiumCommand(interaction);
   if (commandName === 'features' || commandName === 'modules' || commandName === 'keys') {
     const embed = buildFeatureExpanderEmbed();
     return interaction.reply({ embeds: [embed] });
@@ -8702,6 +8710,13 @@ client.on('messageCreate', async (message) => {
     await message.channel.sendTyping().catch(() => {});
     await handleWikiMessage(message, args);
     return;
+  }
+
+  // Command: !premium
+  if (lowerMsg === '!premium' || lowerMsg.startsWith('!premium ')) {
+    const args = content.split(/\s+/).slice(1);
+    await message.channel.sendTyping().catch(() => {});
+    return await handlePremiumMessage(message, args);
   }
 
   // Command: !alpha, !beta
