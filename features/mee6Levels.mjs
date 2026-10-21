@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { EmbedBuilder, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { generateRankCardBuffer } from './rankCardGenerator.mjs';
 import { getVoteMultiplier, getVoteBoosterInfo } from './voteBoosterManager.mjs';
+import { getGuildPremiumStatus } from './premiumManager.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -82,7 +83,10 @@ export async function awardUserXp({ guild, user, xpGain = 20, source = 'chat', c
     xpData[guildId][userId].messages = Math.max(1, Math.floor(xpData[guildId][userId].xp / 20));
   }
 
-  const multiplier = getVoteMultiplier(userId);
+  const voteMult = getVoteMultiplier(userId);
+  const premStatus = getGuildPremiumStatus(guildId);
+  const premMult = premStatus?.isPremium ? (premStatus.multiplier || 2.0) : 1.0;
+  const multiplier = voteMult * premMult;
   const actualXpGain = Math.round(xpGain * multiplier);
 
   const oldTotal = xpData[guildId][userId].xp;
@@ -282,9 +286,14 @@ export async function sendRankCard(context, targetUser = null) {
     const attachment = new AttachmentBuilder(cardBuffer, { name: `rank-${user.username}.png` });
 
     const voteInfo = getVoteBoosterInfo(user.id);
+    const premStatus = getGuildPremiumStatus(guildId);
     let boosterContent = '';
     if (isOwner) {
       boosterContent = `👑 **SERVER OWNER** • 🔥 **Supreme Founder Tier Active (3.0x Multiplier)** 🔥`;
+    } else if (premStatus?.isPremium && voteInfo.isActive) {
+      boosterContent = `💎 **VIP MEGA BOOST:** \`${premStatus.tierName} (${premStatus.multiplier}x) + Vote (2.0x) = ${(premStatus.multiplier * 2).toFixed(1)}x XP ACTIVE!\` 🔥`;
+    } else if (premStatus?.isPremium) {
+      boosterContent = `💎 **SERVER VIP BOOST:** \`${premStatus.tierName} (${premStatus.multiplier}x Active)\` • Vote via \`/vote\` for **${(premStatus.multiplier * 2).toFixed(1)}x XP**!`;
     } else if (voteInfo.isActive) {
       boosterContent = `⚡ **TOP.GG VOTE BOOSTER:** \`2.0x XP ACTIVE\` *(Ends in ${voteInfo.remainingFormatted})* 🔥`;
     } else {

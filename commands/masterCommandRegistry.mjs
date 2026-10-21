@@ -36,8 +36,44 @@ export const masterCommandBuilders = [
     .setDescription('Claim a FREE custom-branded bot for your server!'),
 
   new SlashCommandBuilder()
-    .setName('pricing')
-    .setDescription('View Krims Code AI tiers (Founder, Pro, Premium, Enterprise)!'),
+    .setName('premium')
+    .setDescription('💎 Krims Code Premium VIP Architecture & Perks')
+    .addSubcommand(sub =>
+      sub.setName('perks')
+        .setDescription('Explore all Premium, Pro, and Enterprise VIP perks & benefits')
+    )
+    .addSubcommand(sub =>
+      sub.setName('status')
+        .setDescription('Check current server premium subscription status & multipliers')
+    )
+    .addSubcommand(sub =>
+      sub.setName('activate')
+        .setDescription('Activate a cryptographic Krims Premium license key for this server')
+        .addStringOption(opt =>
+          opt.setName('key')
+            .setDescription('Your license key (e.g. KRIMS-PREM-XXXX-XXXX)')
+            .setRequired(true)
+        )
+    )
+    .addSubcommand(sub =>
+      sub.setName('genkey')
+        .setDescription('Generate a new cryptographic license key (Owner & Executives only)')
+        .addStringOption(opt =>
+          opt.setName('tier')
+            .setDescription('Subscription tier to generate')
+            .setRequired(false)
+            .addChoices(
+              { name: '⚡ Pro Tier (2.0x XP, 2 Bots)', value: 'pro' },
+              { name: '💎 Premium VIP (3.0x XP, 5 Bots)', value: 'premium' },
+              { name: '👑 Enterprise Cluster (3.0x XP, 25 Bots)', value: 'enterprise' }
+            )
+        )
+        .addIntegerOption(opt =>
+          opt.setName('days')
+            .setDescription('Duration in days (0 = Lifetime)')
+            .setRequired(false)
+        )
+    ),
 
   new SlashCommandBuilder()
     .setName('ask')

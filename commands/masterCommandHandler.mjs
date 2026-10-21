@@ -44,6 +44,8 @@ import {
   KRIMS_SUPPORT_GUILD_ID
 } from '../features/botDevApplicationManager.mjs';
 
+import { handlePremiumCommand } from '../features/premiumManager.mjs';
+
 import {
   linkCountingChannel,
   unlinkCountingChannel,
@@ -579,29 +581,8 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       return await interaction.reply({ embeds: [embed], components: [row] });
     }
 
-    if (commandName === 'pricing') {
-      const embed = new EmbedBuilder()
-        .setColor(0xF59E0B)
-        .setTitle('💎 Krims Code AI — Subscription Tiers')
-        .setDescription(
-          `Choose the plan that best powers your Discord server community:\n\n` +
-          `🆓 **Founder Tier — 100% FREE FOREVER**\n` +
-          `• 1 Custom Bot per server\n` +
-          `• Full Neural AI Chat & Moderation\n` +
-          `• Complete Economy, Krims XP Levels & Moderation Suite\n\n` +
-          `⭐ **Pro Tier — $4.99 / month**\n` +
-          `• Up to 3 Custom Bots\n` +
-          `• Custom AI System Personality & Voice AI\n` +
-          `• Priority Cloud Compute & Zero Rate Limits\n\n` +
-          `👑 **Enterprise Tier — Contact Support**\n` +
-          `• 10 to 1,000+ Bot Deployments\n` +
-          `• Dedicated Render Instance & Custom Domain Dashboard\n` +
-          `• 24/7 SLA & Direct Dev Support`
-        )
-        .setFooter({ text: 'Type /setupbot to get your free Founder bot today!' })
-        .setTimestamp();
-
-      return await interaction.reply({ embeds: [embed] });
+    if (commandName === 'premium' || commandName === 'pricing') {
+      return await handlePremiumCommand(interaction);
     }
 
     if (commandName === 'ask') {

@@ -345,7 +345,7 @@ export function initPremiumBotInstance() {
   if (process.env.KRIMS_PREMIUM_TOKEN) {
     try {
       const premClient = new Client({
-        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
+        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
       });
 
       premClient.once('ready', () => {
