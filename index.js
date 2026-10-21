@@ -58,6 +58,13 @@ import {
   handleBetaInteraction,
   buildBetaDropEmbed
 } from './features/weeklyFeatureIncubator.mjs';
+import {
+  registerAlphaBetaCommands,
+  handleAlphaCommand,
+  handleBetaCommand,
+  handleAlphaBetaMessage,
+  initAlphaBetaBotInstances
+} from './features/alphaBetaSuite.mjs';
 import { TopggManager } from './features/topggManager.mjs';
 import { handleMasterSlashCommand } from './commands/masterCommandHandler.mjs';
 import { masterCommandJson } from './commands/masterCommandRegistry.mjs';
@@ -1003,6 +1010,13 @@ client.once('ready', async () => {
   try {
     await syncPersistentUpdateToDiscord(client);
     console.log('[+] Persistent platform update message synced to Discord!');
+  // Register secret Alpha & Beta command suites in Support Server
+  try {
+    await registerAlphaBetaCommands(client);
+    initAlphaBetaBotInstances();
+  } catch (abErr) {
+    console.warn('[AlphaBeta] Startup notice:', abErr.message);
+  }
   } catch (syncErr) {
     console.warn('[PersistentUpdates] Startup sync warning:', syncErr.message);
   }
@@ -4666,6 +4680,8 @@ client.on('interactionCreate', async (interaction) => {
   if (commandName === 'devlogs') return handleDevLogsCommand(interaction);
   if (commandName === 'updates' || commandName === 'changelog') return handleUpdatesCommand(interaction);
   if (commandName === 'betadrop' || commandName === 'incubate') return await dispatchWeeklyBetaDrop(client);
+  if (commandName === 'alpha') return await handleAlphaCommand(interaction);
+  if (commandName === 'beta') return await handleBetaCommand(interaction);
   if (commandName === 'features' || commandName === 'modules' || commandName === 'keys') {
     const embed = buildFeatureExpanderEmbed();
     return interaction.reply({ embeds: [embed] });
@@ -8686,6 +8702,11 @@ client.on('messageCreate', async (message) => {
     await message.channel.sendTyping().catch(() => {});
     await handleWikiMessage(message, args);
     return;
+  }
+
+  // Command: !alpha, !beta
+  if (lowerMsg.startsWith('!alpha') || lowerMsg.startsWith('!beta')) {
+    return await handleAlphaBetaMessage(message);
   }
 
   // Command: !betadrop, !dropbeta, !incubate
