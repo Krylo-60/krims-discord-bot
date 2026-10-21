@@ -31,6 +31,16 @@ let premiumStore = {
       expiresAt: null, // Never expires
       customBotsAllowed: 10,
       licenseKey: 'KRIMS-ENTERPRISE-FOUNDER'
+    },
+    // Grandfather The_Half_Lifes as Lifetime Enterprise Premium
+    '1557852594242719775': {
+      tier: 'enterprise',
+      tierName: '💎 Enterprise Lifetime VIP',
+      multiplier: 3.0,
+      activatedAt: Date.now(),
+      expiresAt: null,
+      customBotsAllowed: 10,
+      licenseKey: 'KRIMS-HALF-LIFES-FOUNDER'
     }
   },
   issuedKeys: {}
