@@ -19,11 +19,30 @@ export const DEFAULT_UPDATES_CHANNEL_ID = '1561175627799994402'; // #🚀・𝖡
  */
 const INITIAL_UPDATES = [
   {
-    id: 'upd_v2_4_0',
-    version: 'v2.4.0',
+    id: 'upd_v5_3_0',
+    version: 'v5.3.0',
+    title: 'Krims Code v5 — Powered by Krims AI v3.1 Neural Engine',
+    date: '2026-10-21',
+    timestamp: Date.now(),
+    category: 'Major Platform Release',
+    summary: 'Official release of Krims Code v5 running the next-generation Krims AI v3.1 Neural Core, Single-Key Modular Feature Expander, 100-command enterprise Wiki, and full white-label security isolation.',
+    highlights: [
+      '🧠 Krims AI v3.1 Neural Engine: Distributed low-latency neural processing with persistent guild memory and multimodal vision',
+      '🔑 Single-Key Modular Expander: Automatically activates high-tier features (Voice TTS, Quantum Math, Live Weather) with just 1 API key in config',
+      '📖 Enterprise Wiki Live: Interactive 100-command documentation with live search at https://krims-bot-dashboard.vercel.app/wiki',
+      '🗳️ Universal Top.gg 2.0x Vote Booster: Live vote tracking with 12h/24h double XP multipliers across all 7 servers',
+      '🛡️ Autonomous White-Label Shield: Complete proprietary security perimeter with zero external leak vectors',
+      '⚡ Instant Guild Command Deduplication: Global 100-command fleet synchronized across Discord with 0 duplicate registrations'
+    ],
+    author: 'Krims Engineering Team',
+    pinned: true
+  },
+  {
+    id: 'upd_v5_2_0',
+    version: 'v5.2.0',
     title: 'Universal Fleet & Enterprise Wiki Release',
     date: '2026-10-20',
-    timestamp: Date.now(),
+    timestamp: Date.now() - 86400000,
     category: 'Major Release',
     summary: 'Launch of the Official Krims Wiki with 100-command directory, slash command deduplication, and universal 2.0x Top.gg vote booster.',
     highlights: [
@@ -34,14 +53,14 @@ const INITIAL_UPDATES = [
       '🛡️ Autonomous Raid Shield & Anti-Nuke architecture documentation released'
     ],
     author: 'Krims Engineering Team',
-    pinned: true
+    pinned: false
   },
   {
-    id: 'upd_v2_3_0',
-    version: 'v2.3.0',
+    id: 'upd_v5_1_0',
+    version: 'v5.1.0',
     title: 'Top.gg Vote Booster & Auto-Mod Hardening',
     date: '2026-10-18',
-    timestamp: Date.now() - 86400000 * 2,
+    timestamp: Date.now() - 86400000 * 3,
     category: 'Security & Rewards',
     summary: 'Integrated automated vote webhook ingestion and 2.0x XP multiplier engine.',
     highlights: [
@@ -136,7 +155,7 @@ export function buildUpdateEmbed(update) {
   const embed = new EmbedBuilder()
     .setColor(0x00F2FF)
     .setAuthor({ 
-      name: `Krims Code AI • Platform Changelog (${u.version})`, 
+      name: `Krims Code v5 • Powered by Krims AI v3.1 (${u.version})`, 
       iconURL: 'https://cdn.discordapp.com/avatars/1523794466740371586/a_906dd0ce7ccf09e15e48c6a5bda79fa6.gif?size=256' 
     })
     .setTitle(`🚀 ${u.title}`)
@@ -210,7 +229,7 @@ export async function syncPersistentUpdateToDiscord(client, channelId = DEFAULT_
         const msg = await channel.messages.fetch(updatesStore.pinnedMessageId);
         if (msg) {
           await msg.edit({
-            content: '📢 **Krims Code AI • Live Persistent Platform Updates** 🚀',
+            content: '📢 **Krims Code v5 • Live Platform Updates (Powered by Krims AI v3.1)** 🚀',
             embeds: [embed],
             components: [row]
           });
@@ -224,7 +243,7 @@ export async function syncPersistentUpdateToDiscord(client, channelId = DEFAULT_
 
     // Send new persistent update message
     const newMsg = await channel.send({
-      content: '📢 **Krims Code AI • Live Persistent Platform Updates** 🚀',
+      content: '📢 **Krims Code v5 • Live Platform Updates (Powered by Krims AI v3.1)** 🚀',
       embeds: [embed],
       components: [row]
     });

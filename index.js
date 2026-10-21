@@ -46,6 +46,12 @@ import {
   syncPersistentUpdateToDiscord,
   handleUpdatesCommand
 } from './features/persistentUpdatesManager.mjs';
+import {
+  getModularFeaturesStatus,
+  buildFeatureExpanderEmbed,
+  buildExecutiveReminderEmbed,
+  sendExecutiveFeatureReminder
+} from './features/featureExpander.mjs';
 import { TopggManager } from './features/topggManager.mjs';
 import { handleMasterSlashCommand } from './commands/masterCommandHandler.mjs';
 import { masterCommandJson } from './commands/masterCommandRegistry.mjs';
@@ -986,6 +992,26 @@ client.once('ready', async () => {
       console.log('[+] Instant Guild commands synced to Krylo\'s Skybase!');
     }
     console.log('[+] Slash commands registered globally & locally in Skybase!');
+
+  // Sync persistent platform updates to Discord
+  try {
+    await syncPersistentUpdateToDiscord(client);
+    console.log('[+] Persistent platform update message synced to Discord!');
+  } catch (syncErr) {
+    console.warn('[PersistentUpdates] Startup sync warning:', syncErr.message);
+  }
+
+  // Initialize Top.gg auto-poster if token is configured
+  if (process.env.TOPGG_TOKEN) {
+    try {
+      const topgg = new TopggManager(client, process.env.TOPGG_TOKEN);
+      topgg.startAutoPoster();
+      console.log('[+] Top.gg AutoPoster engine started!');
+    } catch (topggErr) {
+      console.warn('[TopggManager] Startup warning:', topggErr.message);
+    }
+  }
+
 
   // Sync local data to Firebase cloud
   try {
@@ -4628,6 +4654,10 @@ client.on('interactionCreate', async (interaction) => {
   if (commandName === 'unlock') return handleLockdown(interaction, false);
   if (commandName === 'devlogs') return handleDevLogsCommand(interaction);
   if (commandName === 'updates' || commandName === 'changelog') return handleUpdatesCommand(interaction);
+  if (commandName === 'features' || commandName === 'modules' || commandName === 'keys') {
+    const embed = buildFeatureExpanderEmbed();
+    return interaction.reply({ embeds: [embed] });
+  }
   if (commandName === 'slowmode') return handleSlowmode(interaction);
   if (commandName === 'afk') return handleAfk(interaction);
   if (commandName === 'remindme') return handleRemindMe(interaction);
@@ -8650,6 +8680,19 @@ client.on('messageCreate', async (message) => {
   if (lowerMsg === '!updates' || lowerMsg === '!update' || lowerMsg === '!changelog' || lowerMsg === '!patchnotes') {
     await message.channel.sendTyping().catch(() => {});
     return handleUpdatesCommand(message);
+  }
+
+  // Command: !features, !keys, !modules
+  if (lowerMsg === '!features' || lowerMsg === '!keys' || lowerMsg === '!modules') {
+    await message.channel.sendTyping().catch(() => {});
+    const embed = buildFeatureExpanderEmbed();
+    return message.reply({ embeds: [embed] });
+  }
+
+  // Command: !remindupdate, !executivecheck
+  if (lowerMsg === '!remindupdate' || lowerMsg === '!executivecheck') {
+    await message.channel.sendTyping().catch(() => {});
+    return sendExecutiveFeatureReminder(client, message.channel.id);
   }
 
 
