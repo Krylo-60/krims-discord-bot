@@ -594,11 +594,6 @@ export async function handleCountingMessage(message) {
     console.warn('[Counting Reaction Notice]:', err.message);
   });
 
-  // Dynamic Reaction 1: Server Owner Recognition (👑)
-  if (message.author.id === '1414143825538191373') {
-    await message.react('👑').catch(() => {});
-  }
-
   // Dynamic Reaction 2: Fire Streak for 10+ (🔥)
   if (num >= 10) {
     await message.react('🔥').catch(() => {});
