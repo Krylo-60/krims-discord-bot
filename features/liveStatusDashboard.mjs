@@ -1,3 +1,6 @@
+import { alphaClient, betaClient } from './alphaBetaSuite.mjs';
+import { premClient } from './premiumManager.mjs';
+
 function formatUptime(uptimeMs) {
   const totalSeconds = Math.floor(uptimeMs / 1000);
   const days = Math.floor(totalSeconds / 86400);
@@ -66,6 +69,11 @@ export function getLiveStatusData(client, customBotManager = null) {
       guildCount: totalGuilds,
       memberCount: totalMembers,
       commandsCount: 100
+    },
+    fleet: {
+      alpha: { name: 'Krims Code Alpha', isOnline: !!(alphaClient?.isReady && alphaClient.isReady()) },
+      beta: { name: 'Krims Code Beta', isOnline: !!(betaClient?.isReady && betaClient.isReady()) },
+      premium: { name: 'Krims Code Premium', isOnline: !!(premClient?.isReady && premClient.isReady()) }
     },
     customBots: {
       count: customBots.length,

@@ -337,6 +337,8 @@ export async function handlePremiumMessage(message, args = []) {
   return message.reply({ embeds: [embed], components: [row] });
 }
 
+export let premClient = null;
+
 /**
  * Standalone Krims Code Premium Bot Client Runner
  * Will automatically connect whenever KRIMS_PREMIUM_TOKEN is configured in environment!
@@ -344,13 +346,16 @@ export async function handlePremiumMessage(message, args = []) {
 export function initPremiumBotInstance() {
   if (process.env.KRIMS_PREMIUM_TOKEN) {
     try {
-      const premClient = new Client({
+      premClient = new Client({
         intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
       });
 
-      premClient.once('ready', () => {
+      premClient.on('ready', async () => {
         console.log(`[+] Dedicated Krims Code Premium bot online as ${premClient.user.tag}`);
-        premClient.user.setActivity('💎 Krims Code Premium • Dedicated VIP Cluster', { type: 3 }); // 3 = Watching
+        premClient.user.setPresence({
+          status: 'online',
+          activities: [{ name: '💎 Krims Code Premium • Dedicated VIP Cluster', type: 3 }]
+        });
       });
 
       premClient.on('interactionCreate', async (interaction) => {

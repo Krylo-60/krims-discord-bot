@@ -281,6 +281,9 @@ export async function handleAlphaBetaMessage(message) {
   }
 }
 
+export let alphaClient = null;
+export let betaClient = null;
+
 /**
  * Spawns dedicated Alpha/Beta bot client instances if tokens are provided in environment
  */
@@ -288,7 +291,7 @@ export function initAlphaBetaBotInstances() {
   // If user provides KRIMS_BETA_TOKEN in .env, spawn dedicated Beta Bot
   if (process.env.KRIMS_BETA_TOKEN) {
     try {
-      const betaClient = new Client({ 
+      betaClient = new Client({ 
         intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] 
       });
       betaClient.once('ready', async () => {
@@ -323,7 +326,7 @@ export function initAlphaBetaBotInstances() {
   // If user provides KRIMS_ALPHA_TOKEN in .env, spawn dedicated Alpha Bot
   if (process.env.KRIMS_ALPHA_TOKEN) {
     try {
-      const alphaClient = new Client({ 
+      alphaClient = new Client({ 
         intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] 
       });
       alphaClient.once('ready', async () => {
