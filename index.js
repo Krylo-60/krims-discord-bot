@@ -65,6 +65,7 @@ import {
   handleAlphaBetaMessage,
   initAlphaBetaBotInstances
 } from './features/alphaBetaSuite.mjs';
+import { getEliteSmpSystemPrompt, ELITE_SMP_COMMAND_DEFINITION, handleEliteSmpCommand } from './features/eliteSmpKnowledge.mjs';
 import {
   handlePremiumCommand,
   handlePremiumMessage,
@@ -325,6 +326,7 @@ async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', g
   }
 
   defaultSys += memoryContext;
+  defaultSys += getEliteSmpSystemPrompt();
   defaultSys += formattingRule;
 
   const sysInstr = systemInstruction 

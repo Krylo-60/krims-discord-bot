@@ -1,3 +1,4 @@
+import { getEliteSmpSystemPrompt, ELITE_SMP_COMMAND_DEFINITION, handleEliteSmpCommand } from './eliteSmpKnowledge.mjs';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -418,7 +419,8 @@ export async function askPremiumAi(prompt, guildName = '', userName = 'Member') 
     process.env.GROQ_API_KEY_2
   ].filter(Boolean);
 
-  const vipSystemPrompt = `You are Krims Code Premium, the elite, high-performance VIP AI Intelligence for ${guildName || 'this Discord server'}.
+  const eliteIntel = getEliteSmpSystemPrompt();
+  const vipSystemPrompt = `${eliteIntel}\n\nYou are Krims Code Premium, the elite, high-performance VIP AI Intelligence for ${guildName || 'this Discord server'}.
 You are noticeably sharper, faster, more articulate, and more insightful than standard Discord bots.
 Guidelines for your responses:
 - Tone: Highly knowledgeable, friendly, witty, confident, and engaging.
@@ -481,7 +483,7 @@ export async function registerPremiumCommands(token, clientId = '156258621582226
     }
     // Single global slash command registration
     await rest.put(Routes.applicationCommands(clientId), {
-      body: [PREMIUM_COMMAND_DEFINITION]
+      body: [PREMIUM_COMMAND_DEFINITION, ELITE_SMP_COMMAND_DEFINITION]
     }).catch(e => console.warn('[Premium Bot] Global register warning:', e.message));
     console.log('[+] Krims Code Premium single global slash command synced without duplicates!');
   } catch (err) {
@@ -518,6 +520,7 @@ export function initPremiumBotInstance() {
       premClient.on('interactionCreate', async (interaction) => {
         if (!interaction.isChatInputCommand()) return;
         if (interaction.commandName === 'premium') return handlePremiumCommand(interaction);
+        if (interaction.commandName === 'elitesmp') return handleEliteSmpCommand(interaction);
       });
 
       premClient.on('messageCreate', async (message) => {
