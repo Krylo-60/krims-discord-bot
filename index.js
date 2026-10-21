@@ -8166,10 +8166,6 @@ client.on('messageCreate', async (message) => {
       if (/\b(gg|ggs)\b/i.test(lowerText)) {
         message.react('🏆').catch(() => {});
       }
-      // 2. "krylo" -> 👑
-      if (/\bkrylo\b/i.test(lowerText)) {
-        message.react('👑').catch(() => {});
-      }
       // 3. "w" or "win" -> 🔥
       if (/\b(w|win|wins|winner)\b/i.test(lowerText)) {
         message.react('🔥').catch(() => {});
