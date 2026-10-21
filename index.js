@@ -932,6 +932,15 @@ function startDynamicStatsUpdater() {
 
 client.once('ready', async () => {
   console.log(`[+] Krims Code AI online as ${client.user.tag}`);
+  // Immediately spawn dedicated fleet instances (Alpha, Beta, Premium)
+  try {
+    initAlphaBetaBotInstances();
+    initPremiumBotInstance();
+    console.log('[+] Dedicated fleet runners (Alpha, Beta, Premium) initialized!');
+  } catch (fleetErr) {
+    console.warn('[Fleet] Runner initialization notice:', fleetErr.message);
+  }
+
   startAutoUpdater();
   startDynamicStatsUpdater();
   startVoiceLevelTicker(client);
