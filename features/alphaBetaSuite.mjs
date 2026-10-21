@@ -289,7 +289,7 @@ export function initAlphaBetaBotInstances() {
   if (process.env.KRIMS_BETA_TOKEN) {
     try {
       const betaClient = new Client({ 
-        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] 
+        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] 
       });
       betaClient.once('ready', async () => {
         console.log(`[+] Dedicated Krims Code Beta bot connected as ${betaClient.user.tag}`);
@@ -324,7 +324,7 @@ export function initAlphaBetaBotInstances() {
   if (process.env.KRIMS_ALPHA_TOKEN) {
     try {
       const alphaClient = new Client({ 
-        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] 
+        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] 
       });
       alphaClient.once('ready', async () => {
         console.log(`[+] Dedicated Krims Code Alpha bot connected as ${alphaClient.user.tag}`);
