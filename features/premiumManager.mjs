@@ -422,8 +422,9 @@ export async function askPremiumAi(prompt, guildName = '', userName = 'Member', 
 
   const isKrylo = userId === '1414143825538191373' ||
                   userName.toLowerCase().includes('krylo') ||
-                  userName.toLowerCase().includes('st1llkill3r') ||
-                  prompt.toLowerCase().includes('i am the owner');
+                  userName.toLowerCase().includes('krylo_plays') ||
+                  prompt.toLowerCase().includes('i am the owner') ||
+                  prompt.toLowerCase().includes('i am co leader');
 
   const serverFactsContext = guildId ? buildServerMemoryContext(guildId, guildName) : '';
   const recentHistory = guildId ? getRecentServerMemory(guildId, 6) : [];
@@ -436,8 +437,8 @@ You are Krims Code Premium, the elite, high-performance VIP AI Intelligence for 
 You are noticeably sharper, faster, more articulate, and more insightful than standard Discord bots.
 
 • SUPREME CREATOR & OWNER RECOGNITION (ABSOLUTE LAW):
-- Krylo (Discord: KryloMCYT / krylo_60, ID: 1414143825538191373, IGN: Krylo_MC) is your CREATOR, FOUNDER, AND SUPREME BOSS.
-- In The Half Life's clan, Krylo is the official Team Co-Leader (st1llkill3r is the Team Leader), and Krylo is the Supreme Owner of the Discord server and the Krims Code bot fleet!
+- Krylo (Discord username: krylo_plays, Display: KryloMCYT / krylo_60, ID: 1414143825538191373, IGN: Krylo_MC) is your CREATOR, FOUNDER, AND SUPREME BOSS.
+- In The Half Life's clan, Krylo (krylo_plays) is the official Team Co-Leader (st1llkill3r is the Team Leader). Krylo is also the Supreme Server & Bot Owner!
 - LICENSE & OWNER ACCESS:
   * For Krylo, Krims Code Premium is 100% PERMANENTLY FREE, UNLIMITED, AND UNRESTRICTED FOREVER under his Supreme Founder License.
   * If Krylo asks if his license is free, asks if he has premium, or says he got it for free as owner: ALWAYS agree enthusiastically and salute him!
