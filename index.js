@@ -52,6 +52,12 @@ import {
   buildExecutiveReminderEmbed,
   sendExecutiveFeatureReminder
 } from './features/featureExpander.mjs';
+import {
+  dispatchWeeklyBetaDrop,
+  promoteBetaFeatureToMain,
+  handleBetaInteraction,
+  buildBetaDropEmbed
+} from './features/weeklyFeatureIncubator.mjs';
 import { TopggManager } from './features/topggManager.mjs';
 import { handleMasterSlashCommand } from './commands/masterCommandHandler.mjs';
 import { masterCommandJson } from './commands/masterCommandRegistry.mjs';
@@ -1627,6 +1633,11 @@ client.on('interactionCreate', async (interaction) => {
   // 🎬 Handle KLIPY GIF 'Next' Button
   if (interaction.isButton() && interaction.customId.startsWith('btn_klipy_next_')) {
     return await handleKlipyButtonInteraction(interaction);
+  }
+
+  // 🔬 Handle Beta Feature Testing, Voting & Promotion Buttons
+  if (interaction.isButton() && interaction.customId.startsWith('beta_')) {
+    return await handleBetaInteraction(interaction, client);
   }
 
   // Handle DM / Global Button Interactions (e.g. KevinMC Setup Feedback)
@@ -4654,6 +4665,7 @@ client.on('interactionCreate', async (interaction) => {
   if (commandName === 'unlock') return handleLockdown(interaction, false);
   if (commandName === 'devlogs') return handleDevLogsCommand(interaction);
   if (commandName === 'updates' || commandName === 'changelog') return handleUpdatesCommand(interaction);
+  if (commandName === 'betadrop' || commandName === 'incubate') return await dispatchWeeklyBetaDrop(client);
   if (commandName === 'features' || commandName === 'modules' || commandName === 'keys') {
     const embed = buildFeatureExpanderEmbed();
     return interaction.reply({ embeds: [embed] });
@@ -8674,6 +8686,18 @@ client.on('messageCreate', async (message) => {
     await message.channel.sendTyping().catch(() => {});
     await handleWikiMessage(message, args);
     return;
+  }
+
+  // Command: !betadrop, !dropbeta, !incubate
+  if (lowerMsg === '!betadrop' || lowerMsg === '!dropbeta' || lowerMsg === '!incubate') {
+    await message.channel.sendTyping().catch(() => {});
+    return await dispatchWeeklyBetaDrop(client);
+  }
+
+  // Command: !promote
+  if (lowerMsg === '!promote' || lowerMsg.startsWith('!promote ')) {
+    await message.channel.sendTyping().catch(() => {});
+    return await promoteBetaFeatureToMain(client, null, message.author.tag);
   }
 
   // Command: !updates, !changelog, !patchnotes
