@@ -5,7 +5,7 @@
  */
 import os from 'os';
 import crypto from 'crypto';
-import { Client, GuildScheduledEventEntityType, GuildScheduledEventPrivacyLevel, GatewayIntentBits, Partials, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder, GuildChannelManager, RoleManager, OverwriteType } from 'discord.js';
+import { Client, GuildScheduledEventEntityType, GuildScheduledEventPrivacyLevel, GatewayIntentBits, Partials, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder, GuildChannelManager, RoleManager, OverwriteType, ActivityType } from 'discord.js';
 import { KrimsClient } from '@krishivpb60/krims-code-sdk';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
@@ -1149,17 +1149,74 @@ async function updateDynamicServerVoiceStats() {
   }
 }
 
+let botPresenceIndex = 0;
+
 function updateBotPresence() {
   if (!client?.user) return;
   const serverCount = client.guilds.cache.size || 1;
   const activities = [
-    { name: `/help • Serving ${serverCount} servers`, type: 3 }, // Watching
-    { name: `/ask • Krims Code AI v5.3`, type: 0 }, // Playing
-    { name: `krims-bot-dashboard.vercel.app`, type: 3 }, // Watching
-    { name: `Krims Code Studio ⚡`, type: 0 } // Playing
+    { 
+      name: 'kryloplaysmc on Twitch', 
+      type: ActivityType.Streaming, 
+      url: 'https://www.twitch.tv/kryloplaysmc' 
+    },
+    { 
+      name: `/help • Serving ${serverCount} servers`, 
+      type: ActivityType.Watching 
+    },
+    { 
+      name: '@krylomcyt on YouTube', 
+      type: ActivityType.Streaming, 
+      url: 'https://www.youtube.com/@krylomcyt' 
+    },
+    { 
+      name: '/ask • Krims Code AI v5.3', 
+      type: ActivityType.Playing 
+    },
+    { 
+      name: 'twitch.tv/kryloplaysmc', 
+      type: ActivityType.Streaming, 
+      url: 'https://www.twitch.tv/kryloplaysmc' 
+    },
+    { 
+      name: 'krims-bot-dashboard.vercel.app', 
+      type: ActivityType.Watching 
+    },
+    { 
+      name: 'YouTube • @krylomcyt', 
+      type: ActivityType.Watching 
+    },
+    { 
+      name: 'Krims Code Studio ⚡', 
+      type: ActivityType.Playing 
+    }
   ];
-  const act = activities[Math.floor(Math.random() * activities.length)];
-  client.user.setActivity(act.name, { type: act.type });
+
+  const act = activities[botPresenceIndex % activities.length];
+  botPresenceIndex++;
+
+  try {
+    if (act.type === ActivityType.Streaming && act.url) {
+      client.user.setPresence({
+        activities: [{
+          name: act.name,
+          type: ActivityType.Streaming,
+          url: act.url
+        }],
+        status: 'online'
+      });
+    } else {
+      client.user.setPresence({
+        activities: [{
+          name: act.name,
+          type: act.type
+        }],
+        status: 'online'
+      });
+    }
+  } catch (err) {
+    console.warn('[Bot Presence] Update notice:', err.message);
+  }
 }
 
 function startDynamicStatsUpdater() {
@@ -1182,7 +1239,7 @@ client.once('ready', async () => {
   startDynamicStatsUpdater();
   startVoiceLevelTicker(client);
   updateBotPresence();
-  setInterval(updateBotPresence, 60 * 1000);
+  setInterval(updateBotPresence, 30 * 1000);
   aiOperator.client = client;
   aiOperator.start();
   try {
