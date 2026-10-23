@@ -866,6 +866,106 @@ async function createBulletproofTicketChannel(guild, { name, parentId = null, to
   return channel;
 }
 
+/**
+ * ⚡ Instant AI Ticket Dispatcher & Assistant
+ * Responds the very second a ticket is created and tries its absolute best to help!
+ */
+async function triggerTicketAIInstantResponse(channel, { user, subject = '', details = '', guild }) {
+  if (!channel || typeof channel.send !== 'function') return;
+
+  try {
+    channel.sendTyping().catch(() => {});
+
+    const fullTicketText = `${subject} ${details}`.toLowerCase();
+    const isCustomServerRequest = fullTicketText.includes('server') || 
+      fullTicketText.includes('make a server') || 
+      fullTicketText.includes('build') || 
+      fullTicketText.includes('create server') || 
+      fullTicketText.includes('minecraft server') || 
+      fullTicketText.includes('discord server') || 
+      fullTicketText.includes('smp');
+
+    const isPasswordReset = fullTicketText.includes('password') || 
+      fullTicketText.includes('reset') || 
+      fullTicketText.includes('custom bot') || 
+      fullTicketText.includes('credentials') || 
+      fullTicketText.includes('login');
+
+    const prompt = `[NEW SUPPORT TICKET OPENED - INSTANT AI RESPONSE REQUIRED]
+User: @${user.tag} (ID: ${user.id})
+Ticket Subject / Department: "${subject}"
+User Submitted Details: "${details || 'No additional details provided'}"
+Server: "${guild?.name || 'Krims Support Central'}"
+
+Instructions:
+1. Greet the user warmly and confirm their ticket has been established.
+2. If this is a request to have a Custom Discord or Minecraft Server created by the Krims Code team:
+   - Enthusiastically confirm their custom server request has been logged!
+   - Highlight: "Our verified engineering staff typically responds within 5 minutes to 3 hours."
+   - Prompt them with 3 quick questions to help speed up the build:
+     a) Server Theme: Is this for a Minecraft Clan/SMP, an esports gaming team, or a content/creator studio?
+     b) Key Features Needed: Roles/permissions, AutoMod defense, Leveling with custom rank cards, or a Custom Bot token?
+     c) Aesthetic: Any preferred color palette or custom banner ideas?
+3. If this is a Custom Bot Dashboard Password Reset / Change request:
+   - Confirm that passwords cannot be changed on the web for security against hijacking.
+   - Prompt them to provide their Custom Bot Application ID so staff can verify their owner status and reset it.
+4. For any other technical issue, bug, or bot question:
+   - Try your absolute best to immediately troubleshoot the error, explain the feature/command, or provide the direct solution!
+   - Reassure them that human staff has been notified and will review everything shortly.
+5. Format with clean Discord markdown, emojis, and a reassuring tone.`;
+
+    const systemInstruction = "You are Krims Support AI, an intelligent, empathetic, and ultra-fast support assistant for the Krims Code bot fleet. Answer immediately, address the user's inquiry directly, and try your absolute best to help them on the spot.";
+
+    let aiAnswer = null;
+    if (typeof geminiDirectAsk === 'function') {
+      aiAnswer = await geminiDirectAsk(prompt, systemInstruction, guild?.name, guild?.id, user.id, user.username);
+    }
+
+    if (!aiAnswer) {
+      if (isCustomServerRequest) {
+        aiAnswer = `👋 Hello <@${user.id}>! I'm **Krims Support AI**.\n\n` +
+          `🚀 **Your Custom Server Request has been dispatched!**\n` +
+          `Our engineering staff has been notified and typically responds within **5 minutes to 3 hours**.\n\n` +
+          `To help us get your server built as fast as possible, please drop a few details:\n` +
+          `1. **Server Purpose:** Is this for a Minecraft Clan/SMP, Esports team, or Creator studio?\n` +
+          `2. **Key Modules:** Roles, AutoMod, Voice/Text Leveling, or a Custom Bot token?\n` +
+          `3. **Theme & Style:** Any specific color theme or inspiration?\n\n` +
+          `Staff will review your requirements the moment they step in! ⚡`;
+      } else if (isPasswordReset) {
+        aiAnswer = `👋 Hello <@${user.id}>! I'm **Krims Support AI**.\n\n` +
+          `🔒 **Custom Bot Dashboard Security Verification**\n` +
+          `To protect your bot token from unauthorized hijacking, passwords can only be reset via verified ticket.\n\n` +
+          `👉 Please reply with your **Bot Application ID** below. Staff will verify your Discord account against our owner registry and securely reset your credentials!`;
+      } else {
+        aiAnswer = `👋 Hello <@${user.id}>! I am **Krims Support AI**.\n\n` +
+          `I've logged your request: **"${subject}"**.\n` +
+          `Our verified staff has been alerted and typically responds within **5 minutes to 3 hours**.\n\n` +
+          `Please provide any screenshots, error codes, or additional details below, and I'll do my best to assist you while staff prepares your ticket! ⚡`;
+      }
+    }
+
+    const aiEmbed = new EmbedBuilder()
+      .setColor(isCustomServerRequest ? 0xF59E0B : 0x00F2FF)
+      .setAuthor({ 
+        name: 'Krims Support AI • Instant Dispatch', 
+        iconURL: client.user.displayAvatarURL({ extension: 'png' }) 
+      })
+      .setDescription(aiAnswer)
+      .setFooter({ text: 'Staff Response Window: 5 Mins – 3 Hours • Powered by Groq 0ms LPU' })
+      .setTimestamp();
+
+    await channel.send({ embeds: [aiEmbed] });
+
+    // Record turn in ticket channel conversation history so bot continues to assist on follow-ups
+    const hist = conversationHistory.get(channel.id) || [];
+    hist.push({ role: 'user', content: `[Ticket Subject: ${subject}] ${details}` });
+    hist.push({ role: 'model', content: aiAnswer });
+    conversationHistory.set(channel.id, hist.slice(-10));
+  } catch (err) {
+    console.error('[Ticket Instant AI Error]', err.message);
+  }
+}
+
 async function startNextDuel(guild) {
   if (activeDuel) return; // A duel is already in progress
   if (pvpQueue.length === 0) return; // No one in the queue
@@ -3820,6 +3920,7 @@ client.on('interactionCreate', async (interaction) => {
           : `📬 **New Clan Ticket Dispatch**\n${pingsToMention}`;
 
         await readyChannel.send({ content: pingHeader, embeds: [ticketGreeting], components: [closeRow] });
+        triggerTicketAIInstantResponse(readyChannel, { user: interaction.user, subject, details, guild }).catch(() => {});
 
         return await interaction.editReply({ content: `✅ **Clan ticket created!** Head over to <#${readyChannel.id}>.` });
       } catch (err) {
@@ -3939,6 +4040,7 @@ client.on('interactionCreate', async (interaction) => {
 
         const pingMessage = `${staffPings.join(' ')} <@${interaction.user.id}>`;
         await readyChannel.send({ content: pingMessage, embeds: [ticketGreeting], components: [closeRow] });
+        triggerTicketAIInstantResponse(readyChannel, { user: interaction.user, subject, details, guild }).catch(() => {});
 
         return await interaction.editReply({ content: `✅ **Ticket created!** Head over to <#${readyChannel.id}>.` });
       } catch (err) {
@@ -6422,6 +6524,7 @@ client.on('interactionCreate', async (interaction) => {
       );
 
       await readyChannel.send({ content: `<@${interaction.user.id}>`, embeds: [welcomeEmbed], components: [closeRow] });
+      triggerTicketAIInstantResponse(readyChannel, { user: interaction.user, subject: userTicketReasonText, details: "", guild: interaction.guild }).catch(() => {});
       return interaction.editReply({ content: `✅ **Ticket Created!** Please view your support channel here: <#${readyChannel.id}>` });
     } catch (ticketErr) {
       console.error('[Ticket Error]', ticketErr);
