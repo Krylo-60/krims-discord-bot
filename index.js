@@ -4723,19 +4723,35 @@ client.on('interactionCreate', async (interaction) => {
     return interaction.reply({ embeds: [aboutEmbed], ephemeral: true });
   }
 
-  // /pricing
+  // /pricin// /pricing
   if (commandName === 'pricing') {
     const pricingEmbed = new EmbedBuilder()
-      .setColor('#10B981')
-      .setTitle('💎 Krims Code AI — Tier Ladder & Pricing')
-      .setDescription('Scale your Discord community with custom bots and AI brains:')
+      .setColor('#F59E0B')
+      .setTitle('💎 Krims Code AI — Tier Ladder & Launch Status')
+      .setDescription('Scale your Discord community with custom bots, dedicated Groq LPUs, and AI brains:')
       .addFields(
-        { name: '🎁 Founder 100 ($0 / forever)', value: '• 1 Custom Bot\n• Full Neural AI Brain\n• Krims Levels & Moderation Suite\n• *Limited to first 100 owners!*', inline: true },
-        { name: '⭐ Pro ($4.99 / mo)', value: '• 1 Custom Automated Bot\n• Custom AI Persona\n• Unlimited Neural AI Chats\n• Custom Brand Colors', inline: true },
-        { name: '🚀 Premium ($14.99 / mo)', value: '• Up to 5 Custom Bots\n• Cross-Platform Database Sync\n• VIP 24/7 Priority Uptime\n• Custom Tickets', inline: true },
-        { name: '🏢 Enterprise (Custom Quote)', value: '• 10 to 1,000+ Custom Bots\n• Dedicated Node.js Cluster\n• Optional White-Labeling\n• Contact Support to Quote', inline: false }
+        { 
+          name: '👑 Premium ($0.00 / FREE RIGHT NOW!)', 
+          value: '• **STATUS: OUT NOW & 100% FREE!**\n• Dedicated Groq 0ms LPUs (120B / 27B)\n• Automatic 2.0x VIP XP Multiplier on Chat & Voice\n• Golden VIP Rank Cards, Badges & 100 Commands\n• [Add Krims Code Premium](https://discord.com/oauth2/authorize?client_id=1562586215822266599&permissions=8&scope=bot%20applications.commands)', 
+          inline: false 
+        },
+        { 
+          name: '🎁 Founder 100 ($0 / forever)', 
+          value: '• 1 Custom-Branded Bot (/setupbot)\n• Full Neural AI Brain\n• Web Dashboard Control Room\n• 100% Free Lifetime Slot', 
+          inline: true 
+        },
+        { 
+          name: '⏳ Pro Tier (COMING SOON)', 
+          value: '• **STATUS: IN ACTIVE DEVELOPMENT**\n• Dedicated White-Label Cloud Clusters\n• Custom Subdomains & Private Priority LPUs\n• Launching soon!', 
+          inline: true 
+        },
+        { 
+          name: '🛠️ Enterprise (Turnkey Custom Builds)', 
+          value: '• Turnkey Discord & Minecraft Server Builds\n• 5min – 3hr Staff SLA Response\n• [Open a Creation Ticket](https://discord.gg/sYaVJtXgQb)', 
+          inline: false 
+        }
       )
-      .setFooter({ text: '⚡ Powered by Krims Code AI' });
+      .setFooter({ text: '⚡ Powered by Krims Code AI • Premium is 100% Free' });
 
     return interaction.reply({ embeds: [pricingEmbed], ephemeral: true });
   }
