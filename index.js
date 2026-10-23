@@ -12134,7 +12134,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     try {
-      const bot = getCustomBotById(appid);
+      const bot = await getCustomBotById(appid);
       if (!bot) {
         return res.writeHead(404, { 'Content-Type': 'application/json' }).end(JSON.stringify({
           ok: false,
@@ -12176,7 +12176,7 @@ const server = http.createServer(async (req, res) => {
           return res.end(JSON.stringify({ error: 'Bot Application ID is required' }));
         }
 
-        const bot = getCustomBotById(appid.trim());
+        const bot = await getCustomBotById(appid.trim());
         if (!bot) {
           res.writeHead(404, { 'Content-Type': 'application/json' });
           return res.end(JSON.stringify({
@@ -12266,7 +12266,7 @@ const server = http.createServer(async (req, res) => {
       try {
         const payload = JSON.parse(body || '{}');
         const { appid, password, customPrefix, aiPersona, activityName } = payload;
-        const bot = getCustomBotById(appid?.trim());
+        const bot = await getCustomBotById(appid?.trim());
         if (!bot) return res.writeHead(404, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'Bot not found' }));
 
         if (!verifyDashboardPassword(password?.trim(), bot.dashboard_password_hash)) {

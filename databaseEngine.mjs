@@ -69,6 +69,61 @@ if (neonUrl && neonUrl.startsWith('postgres')) {
       ssl: { rejectUnauthorized: false }
     });
     console.log('[Neon Postgres Engine] 🐘 Connected to Neon Lakebase Postgres (Ohio us-east-2)!');
+
+    // Auto-sync custom bots from Neon Postgres into local SQLite memory pool
+    neonPool.query(`
+      CREATE TABLE IF NOT EXISTS custom_bots (
+        guild_id VARCHAR(64) PRIMARY KEY,
+        owner_id VARCHAR(64) NOT NULL,
+        bot_token_encrypted TEXT,
+        bot_id VARCHAR(64),
+        bot_name VARCHAR(128) DEFAULT 'Custom Bot',
+        bot_avatar TEXT,
+        custom_prefix VARCHAR(10) DEFAULT '!',
+        ai_persona TEXT,
+        activity_name VARCHAR(128),
+        dashboard_password_hash TEXT,
+        status VARCHAR(32) DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `).then(() => {
+      return neonPool.query('SELECT * FROM custom_bots');
+    }).then(res => {
+      const upsert = db.prepare(`
+        INSERT INTO custom_bots (
+          guild_id, owner_id, bot_token_encrypted, bot_id, bot_name, bot_avatar,
+          custom_prefix, ai_persona, activity_name, status, dashboard_password_hash
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(guild_id) DO UPDATE SET
+          owner_id = excluded.owner_id,
+          bot_id = excluded.bot_id,
+          bot_name = excluded.bot_name,
+          bot_avatar = excluded.bot_avatar,
+          custom_prefix = excluded.custom_prefix,
+          ai_persona = excluded.ai_persona,
+          activity_name = excluded.activity_name,
+          dashboard_password_hash = excluded.dashboard_password_hash,
+          status = excluded.status,
+          updated_at = CURRENT_TIMESTAMP
+      `);
+      for (const r of res.rows) {
+        upsert.run(
+          r.guild_id,
+          r.owner_id,
+          r.bot_token_encrypted || '',
+          r.bot_id,
+          r.bot_name || 'Custom Bot',
+          r.bot_avatar,
+          r.custom_prefix || '!',
+          r.ai_persona,
+          r.activity_name,
+          r.status || 'active',
+          r.dashboard_password_hash
+        );
+      }
+      console.log(`[Neon Postgres Engine] 🚀 Synced ${res.rows.length} custom bots to SQLite memory pool!`);
+    }).catch(e => console.warn('[Neon Postgres Sync Warning]:', e.message));
   } catch (err) {
     console.warn('[Neon Postgres Engine] Failed to initialize Neon pool:', err.message);
   }
@@ -467,18 +522,63 @@ export { db };
 export default db;
 
 
-export function getCustomBotById(botId) {
+export async function getCustomBotById(botId) {
   if (!botId) return null;
-  return db.prepare('SELECT * FROM custom_bots WHERE bot_id = ?').get(botId);
+  let bot = db.prepare('SELECT * FROM custom_bots WHERE bot_id = ?').get(botId);
+  if (!bot && neonPool) {
+    try {
+      const q = await neonPool.query('SELECT * FROM custom_bots WHERE bot_id = $1 LIMIT 1', [botId]);
+      if (q.rows.length > 0) {
+        const r = q.rows[0];
+        try {
+          db.prepare(`
+            INSERT INTO custom_bots (
+              guild_id, owner_id, bot_token_encrypted, bot_id, bot_name, bot_avatar,
+              custom_prefix, ai_persona, activity_name, status, dashboard_password_hash
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(guild_id) DO UPDATE SET
+              bot_id = excluded.bot_id,
+              bot_name = excluded.bot_name,
+              dashboard_password_hash = excluded.dashboard_password_hash,
+              status = excluded.status
+          `).run(
+            r.guild_id,
+            r.owner_id,
+            r.bot_token_encrypted || '',
+            r.bot_id,
+            r.bot_name,
+            r.bot_avatar,
+            r.custom_prefix || '!',
+            r.ai_persona,
+            r.activity_name,
+            r.status || 'active',
+            r.dashboard_password_hash
+          );
+        } catch (_) {}
+        bot = db.prepare('SELECT * FROM custom_bots WHERE bot_id = ?').get(botId);
+      }
+    } catch (e) {
+      console.warn('[getCustomBotById Neon fallback error]:', e.message);
+    }
+  }
+  return bot;
 }
 
 export function setCustomBotPassword(botId, passwordHash) {
   if (!botId) return null;
-  return db.prepare('UPDATE custom_bots SET dashboard_password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE bot_id = ?').run(passwordHash, botId);
+  const res = db.prepare('UPDATE custom_bots SET dashboard_password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE bot_id = ?').run(passwordHash, botId);
+  if (neonPool) {
+    neonPool.query('UPDATE custom_bots SET dashboard_password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE bot_id = $2', [passwordHash, botId]).catch(e => console.warn('[Neon setCustomBotPassword error]:', e.message));
+  }
+  return res;
 }
 
 export function updateCustomBotConfig(botId, { customPrefix, aiPersona, activityName }) {
   if (!botId) return null;
-  return db.prepare('UPDATE custom_bots SET custom_prefix = COALESCE(?, custom_prefix), ai_persona = COALESCE(?, ai_persona), activity_name = COALESCE(?, activity_name), updated_at = CURRENT_TIMESTAMP WHERE bot_id = ?')
+  const res = db.prepare('UPDATE custom_bots SET custom_prefix = COALESCE(?, custom_prefix), ai_persona = COALESCE(?, ai_persona), activity_name = COALESCE(?, activity_name), updated_at = CURRENT_TIMESTAMP WHERE bot_id = ?')
     .run(customPrefix || null, aiPersona || null, activityName || null, botId);
+  if (neonPool) {
+    neonPool.query('UPDATE custom_bots SET custom_prefix = COALESCE($1, custom_prefix), ai_persona = COALESCE($2, ai_persona), activity_name = COALESCE($3, activity_name), updated_at = CURRENT_TIMESTAMP WHERE bot_id = $4', [customPrefix || null, aiPersona || null, activityName || null, botId]).catch(e => console.warn('[Neon updateCustomBotConfig error]:', e.message));
+  }
+  return res;
 }
