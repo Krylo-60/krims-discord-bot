@@ -55,3 +55,24 @@ export function decryptToken(cipherText) {
     return '';
   }
 }
+
+/**
+ * Hash a custom bot dashboard password with SHA-256 + Master Secret salt
+ * @param {string} password 
+ * @returns {string} Hex hash
+ */
+export function hashDashboardPassword(password) {
+  if (!password) return '';
+  return crypto.createHash('sha256').update(password + MASTER_SECRET).digest('hex');
+}
+
+/**
+ * Verify a plain password against the stored hash
+ * @param {string} password 
+ * @param {string} hash 
+ * @returns {boolean}
+ */
+export function verifyDashboardPassword(password, hash) {
+  if (!password || !hash) return false;
+  return hashDashboardPassword(password) === hash;
+}

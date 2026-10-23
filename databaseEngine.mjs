@@ -184,9 +184,14 @@ db.exec(`
     activity_name TEXT,
     status TEXT DEFAULT 'active',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    dashboard_password_hash TEXT,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `);
+
+try {
+  db.exec("ALTER TABLE custom_bots ADD COLUMN dashboard_password_hash TEXT;");
+} catch (_) {}
 
 console.log(`[Database] ✅ Connected to SQLite database at: ${dbPath}`);
 
@@ -461,3 +466,19 @@ export function updateCustomBotStatus(guildId, status) {
 export { db };
 export default db;
 
+
+export function getCustomBotById(botId) {
+  if (!botId) return null;
+  return db.prepare('SELECT * FROM custom_bots WHERE bot_id = ?').get(botId);
+}
+
+export function setCustomBotPassword(botId, passwordHash) {
+  if (!botId) return null;
+  return db.prepare('UPDATE custom_bots SET dashboard_password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE bot_id = ?').run(passwordHash, botId);
+}
+
+export function updateCustomBotConfig(botId, { customPrefix, aiPersona, activityName }) {
+  if (!botId) return null;
+  return db.prepare('UPDATE custom_bots SET custom_prefix = COALESCE(?, custom_prefix), ai_persona = COALESCE(?, ai_persona), activity_name = COALESCE(?, activity_name), updated_at = CURRENT_TIMESTAMP WHERE bot_id = ?')
+    .run(customPrefix || null, aiPersona || null, activityName || null, botId);
+}

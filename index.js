@@ -25,7 +25,8 @@ import { afkUsers, handleMute, handleUnmute, handleKick, handleBan, handleLockdo
 import { handleDevLogsCommand } from './features/devAuditLogger.mjs';
 import { getFalixStatus, sendFalixPowerSignal, sendFalixCommand } from './falixServerEngine.mjs';
 import { deliverStoreItem, STORE_CATALOG } from './storeDeliveryEngine.mjs';
-import { setPlayerVerification, getPlayer, getPlayerByIgn, addCoins, removeCoins, getBalance, claimDaily, transferCoins } from './databaseEngine.mjs';
+import { setPlayerVerification, getPlayer, getPlayerByIgn, addCoins, removeCoins, getBalance, claimDaily, transferCoins, getCustomBotById, setCustomBotPassword, updateCustomBotConfig } from './databaseEngine.mjs';
+import { hashDashboardPassword, verifyDashboardPassword } from './tokenSecurity.mjs';
 import { aiOperator } from './aiConsoleOperator.mjs';
 import { setupAIConsoleChannel, handleAIConsoleMessage } from './aiConsoleChatHandler.mjs';
 import { handleCountingMessage, handleStickyMessage, linkCountingChannel, unlinkCountingChannel, resetCountingState, setCountingState, getCountingState, getCrossServerCountingLeaderboardEmbed, startAiCountingSession, stopAiCountingSession } from './countingAndStickyEngine.mjs';
@@ -11866,6 +11867,168 @@ const server = http.createServer(async (req, res) => {
       });
       return;
     }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // 🔐 CUSTOM BOT DASHBOARD AUTH & MANAGEMENT APIs
+  // ══════════════════════════════════════════════════════════
+
+  // 1. GET /api/custom-bot/info?appid=...
+  if (url.pathname === '/api/custom-bot/info' && req.method === 'GET') {
+    const appid = (url.searchParams.get('appid') || url.searchParams.get('id') || '').trim();
+    if (!appid) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: 'Application ID is required' }));
+    }
+
+    try {
+      const bot = getCustomBotById(appid);
+      if (!bot) {
+        return res.writeHead(404, { 'Content-Type': 'application/json' }).end(JSON.stringify({
+          ok: false,
+          error: 'Bot not found in Krims database. Please deploy your bot first via /setupbot or the registration portal!'
+        }));
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        ok: true,
+        botId: bot.bot_id,
+        botName: bot.bot_name,
+        botAvatar: bot.bot_avatar,
+        status: bot.status,
+        customPrefix: bot.custom_prefix,
+        aiPersona: bot.ai_persona,
+        activityName: bot.activity_name,
+        hasPassword: !!bot.dashboard_password_hash,
+        createdAt: bot.created_at
+      }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // 2. POST /api/custom-bot/auth (Login & First-time Password Setup)
+  if (url.pathname === '/api/custom-bot/auth' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const { appid, password, action } = payload;
+
+        if (!appid || !appid.trim()) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ error: 'Bot Application ID is required' }));
+        }
+
+        const bot = getCustomBotById(appid.trim());
+        if (!bot) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            error: 'No bot found with this Application ID in the Krims Code network.'
+          }));
+        }
+
+        const hasExistingPassword = !!bot.dashboard_password_hash;
+
+        // Action A: First-Time Password Setup
+        if (action === 'setup_password' || (!hasExistingPassword && password)) {
+          if (hasExistingPassword) {
+            res.writeHead(403, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+              error: 'Password has already been established for this bot. To reset it, please open a verified Support Ticket in the Krims Code Support Server.'
+            }));
+          }
+
+          if (!password || password.trim().length < 6) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'Password must be at least 6 characters long.' }));
+          }
+
+          const hash = hashDashboardPassword(password.trim());
+          setCustomBotPassword(bot.bot_id, hash);
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            ok: true,
+            message: 'Master dashboard password created successfully!',
+            bot: {
+              botId: bot.bot_id,
+              botName: bot.bot_name,
+              botAvatar: bot.bot_avatar,
+              customPrefix: bot.custom_prefix,
+              aiPersona: bot.ai_persona,
+              activityName: bot.activity_name
+            }
+          }));
+        }
+
+        // Action B: Standard Sign-In
+        if (!hasExistingPassword) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            ok: false,
+            needsSetup: true,
+            message: 'This bot does not have a dashboard password yet. Please set your password for the first time.'
+          }));
+        }
+
+        if (!verifyDashboardPassword(password.trim(), bot.dashboard_password_hash)) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            error: 'Incorrect dashboard password. If you forgot your password, please open a support ticket in the Krims Code Support Server to verify ownership and reset it.'
+          }));
+        }
+
+        // Verified!
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({
+          ok: true,
+          bot: {
+            botId: bot.bot_id,
+            botName: bot.bot_name,
+            botAvatar: bot.bot_avatar,
+            customPrefix: bot.custom_prefix,
+            aiPersona: bot.ai_persona,
+            activityName: bot.activity_name,
+            status: bot.status,
+            guildId: bot.guild_id
+          }
+        }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // 3. POST /api/custom-bot/update-config
+  if (url.pathname === '/api/custom-bot/update-config' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const { appid, password, customPrefix, aiPersona, activityName } = payload;
+        const bot = getCustomBotById(appid?.trim());
+        if (!bot) return res.writeHead(404, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'Bot not found' }));
+
+        if (!verifyDashboardPassword(password?.trim(), bot.dashboard_password_hash)) {
+          return res.writeHead(401, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'Unauthorized: Invalid password' }));
+        }
+
+        updateCustomBotConfig(bot.bot_id, { customPrefix, aiPersona, activityName });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, message: 'Bot configuration updated successfully!' }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
   }
 
   // 1. Live Balance API (Direct SQL Query for Web & Minecraft)
