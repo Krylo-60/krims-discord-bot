@@ -1,6 +1,7 @@
 # Krims Code Premium 💎 • VIP Enterprise Intelligence Fleet
 
 [![Version](https://img.shields.io/badge/Release-VIP%20Enterprise%20Edition-F59E0B?logo=crown&logoColor=white)](#)
+[![Discord Support](https://img.shields.io/badge/Support-Discord%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/sYaVJtXgQb)
 [![Compute](https://img.shields.io/badge/Compute-Groq%20LPU%200ms%20Latency-00F2FF?logo=speedtest&logoColor=white)](#)
 [![License](https://img.shields.io/badge/Founder%20License-Lifetime%20Free-00FF66?logo=checkmarx&logoColor=white)](#)
 

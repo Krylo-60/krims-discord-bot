@@ -1,6 +1,7 @@
 # Krims Code AI 🤖 • Tactical Clan & Enterprise Bot Fleet (v5.5)
 
 [![Version](https://img.shields.io/badge/Release-v5.5%20Fleet%20Architecture-00FFFF?logo=rocket&logoColor=white)](#)
+[![Discord Support](https://img.shields.io/badge/Support-Discord%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/sYaVJtXgQb)
 [![Discord.js](https://img.shields.io/badge/Discord.js-v14.14-5865F2?logo=discord&logoColor=white)](https://discord.js.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-v20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![AI Engine](https://img.shields.io/badge/AI-Groq%20LPU%20%2B%20Gemini%202.5-00F2FF?logo=probot&logoColor=white)](#)
@@ -131,8 +132,10 @@ All primary commands can be triggered with the standard `!` prefix across both b
   * Neon Serverless PostgreSQL — Cloud economy, clan inventories, and player portal sync.
   * FalixNodes MySQL — Direct in-game Minecraft plugin bridge.
 * **Deployment:** Hosted 24/7 on [Render](https://render.com) Linux cloud containers with automated zero-downtime CI/CD.
-  * Live Web Dashboard: [https://krims-discord-bot-d57m.onrender.com/](https://krims-discord-bot-d57m.onrender.com/)
-  * Live Wiki Portal: [https://krims-discord-bot-d57m.onrender.com/wiki](https://krims-discord-bot-d57m.onrender.com/wiki)
+  * Live Web Dashboard: [https://krims-bot-dashboard.vercel.app/](https://krims-bot-dashboard.vercel.app/)
+  * Custom Bot Portal: [https://krims-bot-dashboard.vercel.app/custombot](https://krims-bot-dashboard.vercel.app/custombot)
+  * Live Wiki Portal: [https://krims-bot-dashboard.vercel.app/wiki](https://krims-bot-dashboard.vercel.app/wiki)
+  * Official Discord Support: [https://discord.gg/sYaVJtXgQb](https://discord.gg/sYaVJtXgQb)
   * Telemetry API: [https://krims-discord-bot-d57m.onrender.com/api/status](https://krims-discord-bot-d57m.onrender.com/api/status)
 
 ---
