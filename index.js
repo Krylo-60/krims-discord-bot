@@ -1154,41 +1154,36 @@ let botPresenceIndex = 0;
 function updateBotPresence() {
   if (!client?.user) return;
   const serverCount = client.guilds.cache.size || 1;
+  const totalMembers = client.guilds.cache.reduce((sum, g) => sum + (g.memberCount || 0), 0);
+
   const activities = [
-    { 
-      name: 'kryloplaysmc on Twitch', 
-      type: ActivityType.Streaming, 
-      url: 'https://www.twitch.tv/kryloplaysmc' 
-    },
     { 
       name: `/help • Serving ${serverCount} servers`, 
       type: ActivityType.Watching 
     },
     { 
-      name: '@krylomcyt on YouTube', 
-      type: ActivityType.Streaming, 
-      url: 'https://www.youtube.com/@krylomcyt' 
-    },
-    { 
-      name: '/ask • Krims Code AI v5.3', 
+      name: '/ask • Neural AI Brain v5.3', 
       type: ActivityType.Playing 
     },
     { 
-      name: 'twitch.tv/kryloplaysmc', 
-      type: ActivityType.Streaming, 
-      url: 'https://www.twitch.tv/kryloplaysmc' 
+      name: `over ${totalMembers.toLocaleString()} members`, 
+      type: ActivityType.Watching 
     },
     { 
       name: 'krims-bot-dashboard.vercel.app', 
       type: ActivityType.Watching 
     },
     { 
-      name: 'YouTube • @krylomcyt', 
-      type: ActivityType.Watching 
+      name: '/ticket • 24/7 AI & Staff Support', 
+      type: ActivityType.Listening 
     },
     { 
-      name: 'Krims Code Studio ⚡', 
+      name: '/pricing • Free Premium Active', 
       type: ActivityType.Playing 
+    },
+    { 
+      name: 'Krims Code Global Cloud ⚡', 
+      type: ActivityType.Watching 
     }
   ];
 
@@ -1196,24 +1191,13 @@ function updateBotPresence() {
   botPresenceIndex++;
 
   try {
-    if (act.type === ActivityType.Streaming && act.url) {
-      client.user.setPresence({
-        activities: [{
-          name: act.name,
-          type: ActivityType.Streaming,
-          url: act.url
-        }],
-        status: 'online'
-      });
-    } else {
-      client.user.setPresence({
-        activities: [{
-          name: act.name,
-          type: act.type
-        }],
-        status: 'online'
-      });
-    }
+    client.user.setPresence({
+      activities: [{
+        name: act.name,
+        type: act.type
+      }],
+      status: 'online'
+    });
   } catch (err) {
     console.warn('[Bot Presence] Update notice:', err.message);
   }
