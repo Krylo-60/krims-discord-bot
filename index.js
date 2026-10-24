@@ -5,7 +5,7 @@
  */
 import os from 'os';
 import crypto from 'crypto';
-import { Client, GuildScheduledEventEntityType, GuildScheduledEventPrivacyLevel, GatewayIntentBits, Partials, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder, GuildChannelManager, RoleManager, OverwriteType, ActivityType } from 'discord.js';
+import { Client, GuildScheduledEventEntityType, GuildScheduledEventPrivacyLevel, GatewayIntentBits, Partials, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder, GuildChannelManager, RoleManager, OverwriteType, ActivityType, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } from 'discord.js';
 import { KrimsClient } from '@krishivpb60/krims-code-sdk';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
@@ -2436,6 +2436,109 @@ client.on('interactionCreate', async (interaction) => {
   // Handle String Select Menu Interactions (Support Desk)
   if (interaction.isStringSelectMenu()) {
     const { customId, values } = interaction;
+
+    // ⚡ KryloStyle Public Bot Help Matrix - Interactive Category Switcher
+    if (customId === 'menu_help_category') {
+      const selected = values[0];
+      const guild = interaction.guild;
+      const serverName = guild?.name || 'Discord Community';
+
+      const categoryEmbeds = {
+        cat_overview: new EmbedBuilder()
+          .setColor(0x00F2FF)
+          .setTitle(`⚡ ${serverName} • Krims Code AI Public Matrix`)
+          .setDescription(
+            `Krims Code is an enterprise-grade AI utility bot deployed across **${interaction.client.guilds.cache.size}** servers live.\n\n` +
+            `Use the interactive module selector below to explore all command capabilities.`
+          )
+          .addFields(
+            { name: '🤖 AI Intelligence', value: '`/ask`, mentions, and real-time live weather radar', inline: true },
+            { name: '🛡️ Moderation Suite', value: '`/ban`, `/kick`, `/mute`, `/purge`, `/lockdown`', inline: true },
+            { name: '🪙 Economy & Vault', value: '`/balance`, `/daily`, `/pay`, `/coinflip`, `/work`', inline: true },
+            { name: '🎫 24/7 Support Hub', value: '`/ticket` drop-in panels with instant AI triage', inline: true },
+            { name: '🏆 Levels & Ranks', value: '`/rank`, `/leaderboard`, and voice leveling', inline: true },
+            { name: '🌐 Web Control Room', value: '[krims-bot-dashboard.vercel.app](https://krims-bot-dashboard.vercel.app)', inline: true }
+          )
+          .setThumbnail(interaction.client.user.displayAvatarURL())
+          .setFooter({ text: 'Krims Code Public Matrix • Global Cloud ⚡' })
+          .setTimestamp(),
+
+        cat_ai: new EmbedBuilder()
+          .setColor(0x00F2FF)
+          .setTitle('🤖 Neural AI Intelligence Module')
+          .setDescription(
+            'Powered by the **Krims Code Proprietary Multi-Brain Engine** (Gemini 2.5 Flash + Groq LPU Ultra-Low Latency).\n\n' +
+            '• **`/ask <prompt>`** — Ask any technical, gaming, creative, or coding question.\n' +
+            '• **`@Krims Code AI` Mention** — Mention the bot anywhere in chat for instant natural replies.\n' +
+            '• **Live Weather Radar** — Ask *"what is the weather in Tokyo?"* or *"forecast for London"* to fetch live Open-Meteo weather.\n' +
+            '• **Direct Message Support** — DM the bot for private AI conversations and assistance.'
+          )
+          .setThumbnail(interaction.client.user.displayAvatarURL())
+          .setFooter({ text: 'Krims Code AI Core' })
+          .setTimestamp(),
+
+        cat_mod: new EmbedBuilder()
+          .setColor(0xEF4444)
+          .setTitle('🛡️ Moderation & Server Protection Module')
+          .setDescription(
+            'Built-in security tools designed to keep communities safe from raids, spam, and rule breakers.\n\n' +
+            '• **`/ban <user> [reason]`** — Permanently ban an offender from the server.\n' +
+            '• **`/kick <user> [reason]`** — Remove a user from the server.\n' +
+            '• **`/mute <user> <duration>`** — Apply a timeout to silence disruptive users.\n' +
+            '• **`/unmute <user>`** — Remove a user timeout.\n' +
+            '• **`/purge <amount>`** — Bulk clean up to 100 messages instantly.\n' +
+            '• **`/lockdown` & `/unlock`** — Lock or unlock channels during emergencies.\n' +
+            '• **`/slowmode <seconds>`** — Control chat rate limits.'
+          )
+          .setFooter({ text: 'Krims Code Security Shield' })
+          .setTimestamp(),
+
+        cat_eco: new EmbedBuilder()
+          .setColor(0x10B981)
+          .setTitle('🪙 Economy, Rewards & Minigames')
+          .setDescription(
+            'Cross-server economy system with streaks, bank vaults, and casino games.\n\n' +
+            '• **`/balance`** — Check your wallet, bank balance, and net worth.\n' +
+            '• **`/daily`** — Claim daily streak bonus rewards every 24 hours.\n' +
+            '• **`/work`** — Complete hourly tasks to earn Krims Coins.\n' +
+            '• **`/pay <user> <amount>`** — Safely transfer coins to another member.\n' +
+            '• **`/coinflip <heads/tails> <amount>`** — Double your bet with fair odds.\n' +
+            '• **`/slots <bet>`** — Spin the three-reel casino slot machine.\n' +
+            '• **`/shop` & `/store`** — Browse items and custom roles for sale.'
+          )
+          .setFooter({ text: 'Krims Code Global Economy' })
+          .setTimestamp(),
+
+        cat_tickets: new EmbedBuilder()
+          .setColor(0x3B82F6)
+          .setTitle('🎫 Instant Support Ticketing System')
+          .setDescription(
+            'High-speed support ticketing equipped with the Instant AI First-Responder.\n\n' +
+            '• **`/ticket`** — Open a private support channel with customizable categories.\n' +
+            '• **Instant AI Triage** — The bot answers the exact second a ticket opens, gathering details and helping users before staff arrive.\n' +
+            '• **Close & Transcript** — Click `[🔒 Close Ticket]` to generate an archive log.'
+          )
+          .setFooter({ text: 'Krims Code Support Core' })
+          .setTimestamp(),
+
+        cat_community: new EmbedBuilder()
+          .setColor(0x8B5CF6)
+          .setTitle('🎮 Community, Leveling & Engagement')
+          .setDescription(
+            'Interactive engagement tools to keep your community active and talking.\n\n' +
+            '• **`/rank` / `/level`** — Generate your personalized glassmorphic rank card.\n' +
+            '• **`/leaderboard`** — View the top ranked text and voice chatters.\n' +
+            '• **`/poll <question> <opt1> <opt2>`** — Launch an interactive voting poll.\n' +
+            '• **`/giveaway <prize> <minutes>`** — Host automated giveaways.\n' +
+            '• **`/userinfo` & `/serverinfo`** — Deep analytical profile insights.'
+          )
+          .setFooter({ text: 'Krims Code Engagement Suite' })
+          .setTimestamp()
+      };
+
+      const targetEmbed = categoryEmbeds[selected] || categoryEmbeds.cat_overview;
+      return await interaction.update({ embeds: [targetEmbed] }).catch(() => {});
+    }
     if (customId === 'select_open_ticket') {
       const category = values[0];
       const categoryMap = {
@@ -6263,39 +6366,98 @@ client.on('interactionCreate', async (interaction) => {
     return;
   }
 
-  // Command: /help
+  // Command: /help (KryloStyle Public Bot Command Matrix)
   if (commandName === 'help') {
-    const cfg = await getCachedGuildConfig(interaction.guildId);
-    const ecoActive = cfg?.economyEnabled !== false;
-    const currSym = cfg?.currencySymbol || '🪙';
+    const guild = interaction.guild;
+    const serverName = guild?.name || 'Discord Community';
+    const serverCount = interaction.client.guilds.cache.size || 1;
 
     const embed = new EmbedBuilder()
       .setColor(0x00F2FF)
-      .setTitle(`⚡ ${interaction.guild?.name || 'Community'} • Bot Commands`)
+      .setAuthor({ 
+        name: `${serverName} • Krims Code Public Core`, 
+        iconURL: guild ? guild.iconURL() : interaction.client.user.displayAvatarURL() 
+      })
+      .setTitle('⚡ Krims Code AI • Public Command Matrix')
       .setDescription(
-        'Welcome to **Krims Code AI** by **Krims Code Studio**!\n' +
-        'A next-generation AI community bot built for every Discord server.\n\n' +
-        '🤖 **AI Chat & Intelligence:**\n' +
-        '• `/ask [question]` — Ask Krims Code AI anything (powered by Krims Code AI Multi-Brain Engine)!\n\n' +
-        '🏆 **Progression & Voice XP:**\n' +
-        '• `/rank` or `/level` — View your custom rank card and level progress!\n' +
-        '• `/leaderboard` — View the top ranked community members!\n\n' +
-        (ecoActive ? 
-        `🪙 **Economy & Store:**\n` +
-        `• \`/balance\` — Check your ${currSym} balance\n` +
-        `• \`/daily\` — Claim daily streak bonus\n` +
-        `• \`/shop\` or \`/store\` — View and purchase server store items\n` +
-        `• \`/coinflip [amount]\` — Coinflip minigame\n\n` : '') +
-        '🛡️ **Moderation & Community:**\n' +
-        '• `/mute`, `/unmute`, `/kick`, `/ban` — Server moderation\n' +
-        '• `/poll [question]` — Launch an interactive voting poll\n' +
-        '• `/userinfo` / `/serverinfo` — Profile and server statistics\n\n' +
-        '🌐 **Dashboard:** [krims-bot-dashboard.vercel.app](https://krims-bot-dashboard.vercel.app)'
+        `Welcome to the **Krims Code AI** command matrix, <@${interaction.user.id}>!\n\n` +
+        `Krims Code is a high-performance Discord automation engine deployed across **${serverCount}** servers live.\n\n` +
+        `**Select a module from the dropdown below to explore commands:**`
       )
-      .setFooter({ text: `${interaction.guild?.name || 'Discord'} • Krims Code Studio` })
+      .addFields(
+        { name: '🤖 AI Intelligence', value: '`/ask`, mentions, & weather radar', inline: true },
+        { name: '🛡️ Moderation Shield', value: '`/ban`, `/kick`, `/mute`, `/purge`, `/lockdown`', inline: true },
+        { name: '🪙 Economy & Vault', value: '`/balance`, `/daily`, `/work`, `/pay`, `/slots`', inline: true },
+        { name: '🎫 24/7 Ticketing', value: '`/ticket` drop-in panels with instant AI triage', inline: true },
+        { name: '🏆 Levels & Ranks', value: '`/rank`, `/leaderboard`, voice leveling', inline: true },
+        { name: '🌐 Web Control Room', value: '[krims-bot-dashboard.vercel.app](https://krims-bot-dashboard.vercel.app)', inline: true }
+      )
+      .setThumbnail(interaction.client.user.displayAvatarURL())
+      .setFooter({ text: 'Krims Code Public Matrix • Fast, Modular & Free', iconURL: interaction.client.user.displayAvatarURL() })
       .setTimestamp();
 
-    await interaction.reply({ embeds: [embed] }).catch(() => {});
+    // Interactive Category Select Menu
+    const categoryMenu = new ActionRowBuilder().addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId('menu_help_category')
+        .setPlaceholder('📂 Browse Category Modules...')
+        .addOptions(
+          new StringSelectMenuOptionBuilder()
+            .setLabel('Overview')
+            .setDescription('Return to main public bot overview')
+            .setValue('cat_overview')
+            .setEmoji('⚡'),
+          new StringSelectMenuOptionBuilder()
+            .setLabel('Artificial Intelligence')
+            .setDescription('Commands for /ask, weather queries, and neural chat')
+            .setValue('cat_ai')
+            .setEmoji('🤖'),
+          new StringSelectMenuOptionBuilder()
+            .setLabel('Server Moderation')
+            .setDescription('Ban, kick, mute, slowmode, and anti-raid controls')
+            .setValue('cat_mod')
+            .setEmoji('🛡️'),
+          new StringSelectMenuOptionBuilder()
+            .setLabel('Economy & Games')
+            .setDescription('Coins, balances, work, gambling, and daily rewards')
+            .setValue('cat_eco')
+            .setEmoji('🪙'),
+          new StringSelectMenuOptionBuilder()
+            .setLabel('Ticket System')
+            .setDescription('Setup support panels and AI-assisted tickets')
+            .setValue('cat_tickets')
+            .setEmoji('🎫'),
+          new StringSelectMenuOptionBuilder()
+            .setLabel('Community & Leveling')
+            .setDescription('Ranks, leaderboards, polls, and giveaways')
+            .setValue('cat_community')
+            .setEmoji('🎮')
+        )
+    );
+
+    // External Quick Links
+    const linksRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setLabel('Web Dashboard')
+        .setStyle(ButtonStyle.Link)
+        .setURL('https://krims-bot-dashboard.vercel.app')
+        .setEmoji('🌐'),
+      new ButtonBuilder()
+        .setLabel('Invite Bot')
+        .setStyle(ButtonStyle.Link)
+        .setURL(`https://discord.com/api/oauth2/authorize?client_id=${interaction.client.user.id}&permissions=8&scope=bot%20applications.commands`)
+        .setEmoji('👑'),
+      new ButtonBuilder()
+        .setLabel('Support Server')
+        .setStyle(ButtonStyle.Link)
+        .setURL('https://discord.gg/sYaVJtXgQb')
+        .setEmoji('💬')
+    );
+
+    await interaction.reply({ 
+      embeds: [embed], 
+      components: [categoryMenu, linksRow] 
+    }).catch(() => {});
     return;
   }
 
