@@ -2076,6 +2076,23 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     if (customId === 'btn_view_clans') {
+      if (interaction.guildId === '1557852594242719775') {
+        const eliteEmbed = new EmbedBuilder()
+          .setColor(0x8B5CF6)
+          .setTitle('🏰 Elite SMP • Known Factions & Standings')
+          .setDescription(
+            '**1. 🛡️ The Half-Lifes**\n' +
+            '• Leadership: <@1533703991882416373> (Jonesy) & <@1414143825538191373> (Krylo)\n' +
+            '• Standing: Our Faction\n\n' +
+            '**2. 🦇 Team Bat**\n' +
+            '• Standing: 🟢 Official Military Ally\n\n' +
+            '**3. ⚔️ Void Walkers**\n' +
+            '• Standing: 🔴 Hostile / Enemy Faction'
+          )
+          .setFooter({ text: 'The Half-Lifes • Elite SMP Diplomacy' });
+        return await interaction.reply({ embeds: [eliteEmbed], ephemeral: true });
+      }
+
       const clansList = Object.values(clanData || {});
       const embed = new EmbedBuilder()
         .setColor(0x00F2FF)
@@ -2085,7 +2102,7 @@ client.on('interactionCreate', async (interaction) => {
             ? 'No external clans currently registered. Use `/clan create` to found a clan!'
             : clansList.map((c, i) => `**${i + 1}. [${c.tag}] ${c.name}**\n• Leader: <@${c.leaderId}>\n• Members: ${c.members?.length || 1} | Vault: 🪙 ${c.vault?.toLocaleString() || 0} KC`).join('\n\n')
         )
-        .setFooter({ text: 'The Half-Lifes & KryloSMP Diplomacy' });
+        .setFooter({ text: 'KryloSMP Diplomacy System' });
       return await interaction.reply({ embeds: [embed], ephemeral: true });
     }
 
