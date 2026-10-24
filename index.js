@@ -4955,6 +4955,7 @@ client.on('interactionCreate', async (interaction) => {
       .setColor('#00F2FF')
       .setTitle('⚡ Krims Code AI — High-Performance Discord Bot Platform')
       .setDescription(
+        `✨ *“Dream higher, build higher.”*\n\n` +
         `⚡ **The Premier Neural AI, Moderation & Community Platform for Discord.**\n\n` +
         `• 🧠 **Neural AI Chat Engine:** Ultra-low latency conversational intelligence powered by Groq & Gemini.\n` +
         `• 🛡️ **Advanced Moderation & AutoMod:** Anti-spam, mute, ban, purge, and raid security.\n` +
@@ -4969,7 +4970,7 @@ client.on('interactionCreate', async (interaction) => {
         { name: '👑 Add To Server', value: `[Invite Bot](https://discord.com/api/oauth2/authorize?client_id=${interaction.client.user.id}&permissions=8&scope=bot%20applications.commands)`, inline: true },
         { name: '💬 Support Server', value: '[Join Support](https://discord.gg/sYaVJtXgQb)', inline: true }
       )
-      .setFooter({ text: '⚡ Powered by Krims Code AI • Made by Krylo and Krims studio' });
+      .setFooter({ text: '⚡ “Dream higher, build higher.” • Made by Krylo and Krims studio' });
 
     return interaction.reply({ embeds: [aboutEmbed], ephemeral: true });
   }
