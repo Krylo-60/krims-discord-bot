@@ -2036,6 +2036,59 @@ client.on('interactionCreate', async (interaction) => {
       return await interaction.showModal(modal);
     }
 
+    // 🤝 Alliances Directory Interactive Buttons
+    if (customId === 'btn_propose_alliance') {
+      const modal = new ModalBuilder()
+        .setCustomId('modal_alliance_proposal')
+        .setTitle('🤝 Propose Clan Alliance');
+
+      const targetClanInput = new TextInputBuilder()
+        .setCustomId('ally_target_clan')
+        .setLabel('Target Clan Name & Tag')
+        .setPlaceholder('e.g. The Half-Lifes [HL] or KryloArmy [IND]')
+        .setStyle(TextInputStyle.Short)
+        .setMaxLength(60)
+        .setRequired(true);
+
+      const treatyTypeInput = new TextInputBuilder()
+        .setCustomId('ally_treaty_type')
+        .setLabel('Treaty Type')
+        .setPlaceholder('Military Alliance / Non-Aggression Pact / Trade')
+        .setStyle(TextInputStyle.Short)
+        .setMaxLength(40)
+        .setRequired(true);
+
+      const termsInput = new TextInputBuilder()
+        .setCustomId('ally_terms')
+        .setLabel('Proposed Terms & Defense Rules')
+        .setPlaceholder('Describe mutual defense, shared zones, non-looting rules, etc.')
+        .setStyle(TextInputStyle.Paragraph)
+        .setMaxLength(1000)
+        .setRequired(true);
+
+      modal.addComponents(
+        new ActionRowBuilder().addComponents(targetClanInput),
+        new ActionRowBuilder().addComponents(treatyTypeInput),
+        new ActionRowBuilder().addComponents(termsInput)
+      );
+
+      return await interaction.showModal(modal);
+    }
+
+    if (customId === 'btn_view_clans') {
+      const clansList = Object.values(clanData || {});
+      const embed = new EmbedBuilder()
+        .setColor(0x00F2FF)
+        .setTitle('🏰 KryloSMP • Registered Clans & Factions')
+        .setDescription(
+          clansList.length === 0
+            ? 'No external clans currently registered. Use `/clan create` to found a clan!'
+            : clansList.map((c, i) => `**${i + 1}. [${c.tag}] ${c.name}**\n• Leader: <@${c.leaderId}>\n• Members: ${c.members?.length || 1} | Vault: 🪙 ${c.vault?.toLocaleString() || 0} KC`).join('\n\n')
+        )
+        .setFooter({ text: 'The Half-Lifes & KryloSMP Diplomacy' });
+      return await interaction.reply({ embeds: [embed], ephemeral: true });
+    }
+
     if (customId === 'krims_close_ticket' || customId === 'halflife_close_ticket') {
       const channel = interaction.channel;
       const isTicketChannel = channel && (
@@ -3845,6 +3898,42 @@ client.on('interactionCreate', async (interaction) => {
 
   if (interaction.isModalSubmit()) {
     const { customId } = interaction;
+
+    // 🤝 Clan Alliance Proposal Modal Submission
+    if (customId === 'modal_alliance_proposal') {
+      const targetClan = interaction.fields.getTextInputValue('ally_target_clan');
+      const treatyType = interaction.fields.getTextInputValue('ally_treaty_type');
+      const terms = interaction.fields.getTextInputValue('ally_terms');
+
+      const proposalEmbed = new EmbedBuilder()
+        .setColor(0xF59E0B)
+        .setTitle('🤝 NEW ALLIANCE PROPOSAL SUBMITTED')
+        .setDescription(
+          `**Submitted by:** <@${interaction.user.id}> (${interaction.user.tag})\n` +
+          `**Target Faction:** \`${targetClan}\`\n` +
+          `**Treaty Type:** \`${treatyType}\`\n\n` +
+          `**Proposed Terms & Rules:**\n>>> ${terms}`
+        )
+        .setFooter({ text: 'Awaiting Leadership Ratification • Krylo & Jonesy' })
+        .setTimestamp();
+
+      try {
+        const warRoom = interaction.guild?.channels.cache.get('1557855866038919179') || interaction.channel;
+        if (warRoom) {
+          await warRoom.send({ 
+            content: '👑 <@1414143825538191373> <@1533703991882416373> — New Alliance proposal submitted for review:',
+            embeds: [proposalEmbed] 
+          });
+        }
+      } catch (e) {
+        console.warn('[Alliance Proposal Relay Warning]:', e.message);
+      }
+
+      return await interaction.reply({
+        content: '✅ **Alliance Proposal Submitted!** Leadership (<@1414143825538191373> & <@1533703991882416373>) has been notified in War Room. Once ratified, it will be immortalized in <#1563542781450788958>!',
+        ephemeral: true
+      });
+    }
 
     // 🛡️ The Half Life's Clan Command - Modal Ticket Submission Handler
     if (customId.startsWith('modal_halflife_ticket_')) {
