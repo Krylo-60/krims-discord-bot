@@ -4952,21 +4952,21 @@ client.on('interactionCreate', async (interaction) => {
   // /about & /getbot
   if (commandName === 'about' || commandName === 'getbot') {
     const aboutEmbed = new EmbedBuilder()
-      .setColor('#00E5FF')
-      .setTitle('👑 Krims Code AI — The Multi-Bot Intelligence Engine')
+      .setColor('#00F2FF')
+      .setTitle('⚡ Krims Code AI — High-Performance Discord Bot Platform')
       .setDescription(
-        `This bot is powered by the **Krims Code AI Multi-Bot Engine**, developed by **Krylo**.\n\n` +
-        `**Core Features:**\n` +
-        `• 🧠 **Krims Neural AI Engine:** High-speed real-time conversational chat.\n` +
-        `• ⭐ **Krims Leveling & XP Engine:** Custom rank cards, XP tracking, leaderboards.\n` +
-        `• 🛡️ **Autonomous AutoMod & Security:** Anti-spam, mute, ban, warn logs.\n` +
-        `• ⚡ **Custom Commands, Tickets & Sticky Messages**\n\n` +
-        `**Want your own custom bot for your Discord server?**\n` +
-        `The first 100 server owners get a **FREE Custom Bot** forever!`
+        `⚡ **The Premier Neural AI, Moderation & Community Platform for Discord.**\n\n` +
+        `• 🧠 **Neural AI Chat Engine:** Ultra-low latency conversational intelligence powered by Groq & Gemini.\n` +
+        `• 🛡️ **Advanced Moderation & AutoMod:** Anti-spam, mute, ban, purge, and raid security.\n` +
+        `• 🪙 **Global Cross-Server Economy:** Coins, daily streaks, vaults, minigames & shop.\n` +
+        `• 🎫 **Instant AI Support Tickets:** 24/7 AI-assisted triage with transcript logging.\n` +
+        `• ⭐ **XP Leveling & Rank Cards:** Dynamic voice/text XP with glassmorphic cards.\n\n` +
+        `Built for creators, gaming clans, and competitive communities.`
       )
       .addFields(
         { name: '🌐 Web Dashboard', value: '[Open Dashboard](https://krims-bot-dashboard.vercel.app)', inline: true },
-        { name: '⚡ Deploy Yours', value: 'Type `/setupbot` or visit dashboard', inline: true }
+        { name: '👑 Add To Server', value: `[Invite Bot](https://discord.com/api/oauth2/authorize?client_id=${interaction.client.user.id}&permissions=8&scope=bot%20applications.commands)`, inline: true },
+        { name: '💬 Support Server', value: '[Join Support](https://discord.gg/sYaVJtXgQb)', inline: true }
       )
       .setFooter({ text: '⚡ Powered by Krims Code AI • Built by Krylo' });
 
