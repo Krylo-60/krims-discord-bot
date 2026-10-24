@@ -8816,12 +8816,12 @@ client.on('messageCreate', async (message) => {
             ? `**Test Verification:** <@${message.author.id}> linked Minecraft IGN **\`${testIgn}\`**!\n\n` +
               `• 🏷️ **Verified In-Game Name:** \`${testIgn}\`\n` +
               `• 🌐 **SMP Combat Status:** Active Clan Combatant\n` +
-              `• 💬 **Squad Chat:** <#1557859357419507853>`
+              `• 💬 **Squad Chat:** <#1557855867897127054>`
             : `Welcome <@${message.author.id}> to **The Half Life's**! 🛡️⚔️\n\n` +
-              `• 📜 **Read Clan Creed & Rules:** <#1557857077983199343>\n` +
+              `• 📜 **Read Clan Creed & Rules:** <#1557855862146465922>\n` +
               `• 📋 **Drop your Minecraft IGN in** <#1557858900806738050> to verify your roster card!\n` +
-              `• 🎨 **Pick your chat color & region in** <#1557879482813911181>\n` +
-              `• 💬 **Introduce yourself in** <#1557859357419507853>`
+              `• 🎨 **Pick your chat color & region in** <#1559251032465219587>\n` +
+              `• 💬 **Introduce yourself in** <#1557855867897127054>`
         )
         .setImage(`attachment://welcome_test_p${phaseArg}.png`)
         .setFooter({ text: `⚔️ CO-LEADER: KryloMCYT • 👑 LEADER: st1LLkill3r • Operative #${message.guild ? message.guild.memberCount : 5}` })
