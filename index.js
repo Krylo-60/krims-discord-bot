@@ -4961,14 +4961,15 @@ client.on('interactionCreate', async (interaction) => {
         `• 🪙 **Global Cross-Server Economy:** Coins, daily streaks, vaults, minigames & shop.\n` +
         `• 🎫 **Instant AI Support Tickets:** 24/7 AI-assisted triage with transcript logging.\n` +
         `• ⭐ **XP Leveling & Rank Cards:** Dynamic voice/text XP with glassmorphic cards.\n\n` +
-        `Built for creators, gaming clans, and competitive communities.`
+        `Built for creators, gaming clans, and competitive communities.\n\n` +
+        `🛠️ **Made by Krylo and Krims studio**`
       )
       .addFields(
         { name: '🌐 Web Dashboard', value: '[Open Dashboard](https://krims-bot-dashboard.vercel.app)', inline: true },
         { name: '👑 Add To Server', value: `[Invite Bot](https://discord.com/api/oauth2/authorize?client_id=${interaction.client.user.id}&permissions=8&scope=bot%20applications.commands)`, inline: true },
         { name: '💬 Support Server', value: '[Join Support](https://discord.gg/sYaVJtXgQb)', inline: true }
       )
-      .setFooter({ text: '⚡ Powered by Krims Code AI • Built by Krylo' });
+      .setFooter({ text: '⚡ Powered by Krims Code AI • Made by Krylo and Krims studio' });
 
     return interaction.reply({ embeds: [aboutEmbed], ephemeral: true });
   }
