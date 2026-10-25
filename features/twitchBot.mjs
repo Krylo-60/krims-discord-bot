@@ -97,7 +97,18 @@ const TRIVIA_QUESTIONS = [
   { q: "What tool is best for mining obsidian?", a: "diamond pickaxe" }
 ];
 
-let globalTwitchClient = null;
+export let globalTwitchClient = null;
+
+export function getTwitchBotStatus() {
+  const isReady = globalTwitchClient && typeof globalTwitchClient.readyState === 'function' && globalTwitchClient.readyState() === 'OPEN';
+  return {
+    name: 'Krims Code Twitch',
+    username: process.env.TWITCH_BOT_USERNAME || 'kryloplaysmc',
+    channels: getJoinedChannels(),
+    isOnline: !!isReady,
+    status: isReady ? 'ONLINE' : (globalTwitchClient ? globalTwitchClient.readyState() : 'INITIALIZING')
+  };
+}
 
 export function getJoinedChannels() {
   return [...joinedChannels];
@@ -190,6 +201,14 @@ export async function initTwitchBot(discordClient = null) {
     } else {
       console.log(`[TwitchBot] 🟣 Anonymous Chat Listener active in ${initialChannels.length} channel(s): ${initialChannels.join(', ')} (Real-time Stream Verification Ready!)`);
     }
+  });
+
+  client.on('disconnected', (reason) => {
+    console.warn(`[TwitchBot] ⚠️ Disconnected from Twitch: ${reason}`);
+  });
+
+  client.on('reconnect', () => {
+    console.log(`[TwitchBot] 🔄 Reconnecting to Twitch chat...`);
   });
 
   client.on('message', async (targetChannel, tags, message, self) => {

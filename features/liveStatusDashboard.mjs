@@ -1,5 +1,6 @@
 import { alphaClient, betaClient } from './alphaBetaSuite.mjs';
 import { premClient } from './premiumManager.mjs';
+import { getTwitchBotStatus } from './twitchBot.mjs';
 
 function formatUptime(uptimeMs) {
   const totalSeconds = Math.floor(uptimeMs / 1000);
@@ -73,7 +74,8 @@ export function getLiveStatusData(client, customBotManager = null) {
     fleet: {
       alpha: { name: 'Krims Code Alpha', isOnline: !!(alphaClient?.isReady && alphaClient.isReady()) },
       beta: { name: 'Krims Code Beta', isOnline: !!(betaClient?.isReady && betaClient.isReady()) },
-      premium: { name: 'Krims Code Premium', isOnline: !!(premClient?.isReady && premClient.isReady()) }
+      premium: { name: 'Krims Code Premium', isOnline: !!(premClient?.isReady && premClient.isReady()) },
+      twitch: getTwitchBotStatus()
     },
     customBots: {
       count: customBots.length,
@@ -97,6 +99,7 @@ export function renderLiveStatusHtml(data) {
   const master = data.masterBot;
   const isOnline = master.isOnline;
   const customCount = data.customBots.count;
+  const twitch = data.fleet?.twitch || { isOnline: false, channels: ['kryloplaysmc'], status: 'INITIALIZING' };
 
   const customBotsHtml = customCount > 0 
     ? data.customBots.list.map(bot => `
@@ -655,6 +658,18 @@ export function renderLiveStatusHtml(data) {
           <div class="service-meta">
             <span class="text-sub">Deployed Fleet</span>
             <span class="metric-highlight">${customCount} Sub-Bots</span>
+          </div>
+        </div>
+
+        <div class="service-card" style="border-color: rgba(168, 85, 247, 0.4); background: linear-gradient(145deg, #111827 0%, rgba(168, 85, 247, 0.05) 100%);">
+          <div class="service-header">
+            <div class="service-name">🟣 Krims Code Twitch Bot</div>
+            <span class="badge-pill-green" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">${twitch.isOnline ? 'ONLINE' : 'CONNECTING'}</span>
+          </div>
+          <p class="service-desc">Official Twitch Chat Bot co-hosted on Render. Features interactive chat minigames (!duel, !heist, !trivia, !points, !daily), Minecraft build ratings, and dual-brain neural chat assistance.</p>
+          <div class="service-meta">
+            <span class="text-sub">Channels: <code class="code-tag">${(twitch.channels || []).join(', ')}</code></span>
+            <span class="${twitch.isOnline ? 'text-green' : 'text-sub'}">🟣 ${twitch.status || 'ONLINE'}</span>
           </div>
         </div>
 

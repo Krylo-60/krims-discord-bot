@@ -569,6 +569,9 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           `• **⭐ Krims XP & Voice Leveling:** Chat and voice activity tracking with custom canvas rank cards (\`/rank\`, \`/leaderboard\`).\n` +
           `• **🛠️ All-In-One Utilities:** Instant translation, formula calculation, worldwide weather & reminders (\`/translate\`, \`/calc\`, \`/weather\`, \`/remind\`).\n` +
           `• **📡 Minecraft SMP Integration:** Real-time server telemetry, player locator radars, and webstore integration (\`/ip\`, \`/status\`, \`/store\`).\n\n` +
+          `📜 **Terms & Privacy Policies:**\n` +
+          `• **Terms of Service:** [krims-bot-dashboard.vercel.app/terms](https://krims-bot-dashboard.vercel.app/terms)\n` +
+          `• **Privacy Policy:** [krims-bot-dashboard.vercel.app/privacy](https://krims-bot-dashboard.vercel.app/privacy)\n\n` +
           `❤️ **Love Krims Code? Support Us:**\n` +
           `• Add Krims Code AI to your other servers for **FREE** by clicking on the bot's profile or running \`/getbot\`!\n` +
           `• Share it with your friends, moderators, and communities to support our development!`
@@ -578,7 +581,9 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
 
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('btn_open_byot_modal').setLabel('Deploy Free Bot').setStyle(ButtonStyle.Success).setEmoji('🤖'),
-        new ButtonBuilder().setLabel('Bot Dashboard').setStyle(ButtonStyle.Link).setURL('https://krims-bot-dashboard.vercel.app')
+        new ButtonBuilder().setLabel('Dashboard').setStyle(ButtonStyle.Link).setURL('https://krims-bot-dashboard.vercel.app'),
+        new ButtonBuilder().setLabel('Terms of Service').setStyle(ButtonStyle.Link).setURL('https://krims-bot-dashboard.vercel.app/terms'),
+        new ButtonBuilder().setLabel('Privacy Policy').setStyle(ButtonStyle.Link).setURL('https://krims-bot-dashboard.vercel.app/privacy')
       );
 
       return await interaction.reply({ embeds: [embed], components: [row] });
@@ -778,7 +783,19 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setURL('https://krims-bot-dashboard.vercel.app')
         .setEmoji('🌐');
 
-      const row = new ActionRowBuilder().addComponents(dashBtn, inviteBtn, supportBtn);
+      const termsBtn = new ButtonBuilder()
+        .setLabel('Terms')
+        .setStyle(ButtonStyle.Link)
+        .setURL('https://krims-bot-dashboard.vercel.app/terms')
+        .setEmoji('📜');
+
+      const privacyBtn = new ButtonBuilder()
+        .setLabel('Privacy')
+        .setStyle(ButtonStyle.Link)
+        .setURL('https://krims-bot-dashboard.vercel.app/privacy')
+        .setEmoji('🔒');
+
+      const row = new ActionRowBuilder().addComponents(dashBtn, inviteBtn, supportBtn, termsBtn, privacyBtn);
 
       if (category === 'ai') {
         const embed = new EmbedBuilder()

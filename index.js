@@ -2457,7 +2457,8 @@ client.on('interactionCreate', async (interaction) => {
             { name: '🪙 Economy & Vault', value: '`/balance`, `/daily`, `/pay`, `/coinflip`, `/work`', inline: true },
             { name: '🎫 24/7 Support Hub', value: '`/ticket` drop-in panels with instant AI triage', inline: true },
             { name: '🏆 Levels & Ranks', value: '`/rank`, `/leaderboard`, and voice leveling', inline: true },
-            { name: '🌐 Web Control Room', value: '[krims-bot-dashboard.vercel.app](https://krims-bot-dashboard.vercel.app)', inline: true }
+            { name: '🌐 Web Control Room', value: '[krims-bot-dashboard.vercel.app](https://krims-bot-dashboard.vercel.app)', inline: true },
+            { name: '📜 Terms & Privacy', value: '[Terms of Service](https://krims-bot-dashboard.vercel.app/terms) • [Privacy Policy](https://krims-bot-dashboard.vercel.app/privacy)', inline: true }
           )
           .setThumbnail(interaction.client.user.displayAvatarURL())
           .setFooter({ text: 'Krims Code Public Matrix • Global Cloud ⚡' })
@@ -12209,8 +12210,11 @@ if (token && token !== 'YOUR_DISCORD_TOKEN') {
   console.log('[!] DISCORD_TOKEN is missing or mock. Add a valid Discord Bot Token in the .env file to start the bot.');
 }
 
-// Initialize Krims Code Twitch Chatbot (supports anonymous stream chat listener for instant verification)
-initTwitchBot(client).catch(err => console.error('[TwitchBot] Initialization error:', err));
+// Initialize Krims Code Twitch Chatbot (online co-hosted with Discord bot on Render)
+console.log('[🚀 LAUNCHING TWITCH BOT] Starting Twitch bot instance with main Krims Code AI on Render...');
+initTwitchBot(client).then(() => {
+  console.log('[+] Twitch Bot instance successfully initialized and online!');
+}).catch(err => console.error('[TwitchBot] Initialization error:', err));
 
 // Global process error handlers to prevent crashes on Discord API timeouts/errors
 process.on('uncaughtException', (err) => {
