@@ -50,6 +50,26 @@ let premiumStore = {
       expiresAt: null,
       customBotsAllowed: 10,
       licenseKey: 'KRIMS-HALF-LIFES-FOUNDER'
+    },
+    // Grandfather Krylo's Skybase as Lifetime Enterprise Premium
+    '1549875778575929446': {
+      tier: 'enterprise',
+      tierName: '💎 Enterprise Lifetime VIP',
+      multiplier: 3.0,
+      activatedAt: Date.now(),
+      expiresAt: null,
+      customBotsAllowed: 10,
+      licenseKey: 'KRIMS-SKYBASE-FOUNDER'
+    },
+    // Grandfather KryloSMP as Lifetime Enterprise Premium
+    '1538225337048236082': {
+      tier: 'enterprise',
+      tierName: '💎 Enterprise Lifetime VIP',
+      multiplier: 3.0,
+      activatedAt: Date.now(),
+      expiresAt: null,
+      customBotsAllowed: 10,
+      licenseKey: 'KRIMS-KYLOSMP-FOUNDER'
     }
   },
   issuedKeys: {}
