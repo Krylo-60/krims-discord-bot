@@ -5,7 +5,9 @@ import {
   ButtonStyle, 
   PermissionFlagsBits, 
   ChannelType,
-  AttachmentBuilder
+  AttachmentBuilder,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder
 } from 'discord.js';
 import fs from 'fs';
 import path from 'path';
@@ -501,7 +503,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           `• 🔒 Buttons are disabled, and new submissions are locked out.\n\n` +
           `*Closed by <@${interaction.user.id}>*`
         )
-        .setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png')
+        .setImage('https://krims-bot-dashboard.vercel.app/skybase_banner.png')
         .setFooter({ text: 'Krylo\'s Skybase • Production Applications' })
         .setTimestamp();
       return await interaction.editReply({ embeds: [stopEmbed] });
@@ -705,7 +707,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setDescription(
           `Explore our open source bot repositories and community tools!\n\n` +
           `• 📦 **Krims Discord Bot:** [github.com/Krylo-60/krims-discord-bot](https://github.com/Krylo-60/krims-discord-bot)\n` +
-          `• ⚡ **AI Personalizer Portal:** [krims-code-chatbot.vercel.app](https://krims-code-chatbot.vercel.app/)`
+          `• ⚡ **AI Personalizer Portal:** [krims-bot-dashboard.vercel.app](https://krims-bot-dashboard.vercel.app/)`
         )
         .setTimestamp();
 
@@ -719,22 +721,64 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       const isSkybase = interaction.guildId === '1549875778575929446';
       const category = interaction.options?.getString ? interaction.options.getString('category') : null;
 
+      // Interactive Category Select Menu
+      const categoryMenu = new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+          .setCustomId('menu_help_category')
+          .setPlaceholder('📂 Browse Category Modules...')
+          .addOptions(
+            new StringSelectMenuOptionBuilder()
+              .setLabel('Overview')
+              .setDescription('Return to main public bot overview')
+              .setValue('cat_overview')
+              .setEmoji('⚡'),
+            new StringSelectMenuOptionBuilder()
+              .setLabel('Artificial Intelligence')
+              .setDescription('Commands for /ask, weather queries, and neural chat')
+              .setValue('cat_ai')
+              .setEmoji('🤖'),
+            new StringSelectMenuOptionBuilder()
+              .setLabel('Server Moderation')
+              .setDescription('Ban, kick, mute, slowmode, and anti-raid controls')
+              .setValue('cat_mod')
+              .setEmoji('🛡️'),
+            new StringSelectMenuOptionBuilder()
+              .setLabel('Economy & Games')
+              .setDescription('Coins, balances, work, gambling, and daily rewards')
+              .setValue('cat_eco')
+              .setEmoji('🪙'),
+            new StringSelectMenuOptionBuilder()
+              .setLabel('Ticket System')
+              .setDescription('Setup support panels and AI-assisted tickets')
+              .setValue('cat_tickets')
+              .setEmoji('🎫'),
+            new StringSelectMenuOptionBuilder()
+              .setLabel('Community & Leveling')
+              .setDescription('Ranks, leaderboards, polls, and giveaways')
+              .setValue('cat_community')
+              .setEmoji('🎮')
+          )
+      );
+
       const supportBtn = new ButtonBuilder()
-        .setLabel('🌐 Support Server')
+        .setLabel('Support Server')
         .setStyle(ButtonStyle.Link)
-        .setURL('https://discord.gg/sYaVJtXgQb');
+        .setURL('https://discord.gg/sYaVJtXgQb')
+        .setEmoji('💬');
 
       const inviteBtn = new ButtonBuilder()
-        .setLabel('➕ Invite Bot')
+        .setLabel('Invite Bot')
         .setStyle(ButtonStyle.Link)
-        .setURL('https://discord.com/oauth2/authorize?client_id=1523794466740371586&permissions=8&integration_type=0&scope=bot+applications.commands');
+        .setURL(`https://discord.com/oauth2/authorize?client_id=${interaction.client.user.id}&permissions=8&integration_type=0&scope=bot+applications.commands`)
+        .setEmoji('👑');
 
       const dashBtn = new ButtonBuilder()
-        .setLabel('⚡ Dashboard')
+        .setLabel('Web Dashboard')
         .setStyle(ButtonStyle.Link)
-        .setURL('https://krims-code-chatbot.vercel.app/');
+        .setURL('https://krims-bot-dashboard.vercel.app')
+        .setEmoji('🌐');
 
-      const row = new ActionRowBuilder().addComponents(supportBtn, inviteBtn, dashBtn);
+      const row = new ActionRowBuilder().addComponents(dashBtn, inviteBtn, supportBtn);
 
       if (category === 'ai') {
         const embed = new EmbedBuilder()
@@ -916,7 +960,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setFooter({ text: `${interaction.guild?.name || "Community"} • 100 Verified Commands Operational` })
         .setTimestamp();
 
-      return await interaction.reply({ embeds: [embed], components: [row] });
+      return await interaction.reply({ embeds: [embed], components: [categoryMenu, row] });
     }
 
     if (commandName === 'rules') {
@@ -1229,7 +1273,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setColor(0xFF0000)
         .setTitle('🔴 KRYLO IS LIVE!')
         .setDescription(`**${title}**\n\nJoin the live stream right now on YouTube!\nhttps://youtube.com/@Krylo-60`)
-        .setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png')
+        .setImage('https://krims-bot-dashboard.vercel.app/skybase_banner.png')
         .setTimestamp();
 
       return await interaction.reply({ content: '@everyone', embeds: [embed] });
@@ -1256,7 +1300,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           `• 📍 **Location:** Community Event Stage\n` +
           `• ⚠️ **Warning:** Special event rules apply. Have fun and collect loot!`
         )
-        .setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png')
+        .setImage('https://krims-bot-dashboard.vercel.app/skybase_banner.png')
         .setTimestamp();
 
       return await interaction.reply({ content: '@everyone', embeds: [embed] });
@@ -1493,7 +1537,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setTimestamp();
 
       if (isSkybase) {
-        embed.setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png');
+        embed.setImage('https://krims-bot-dashboard.vercel.app/skybase_banner.png');
       } else if (interaction.guild?.bannerURL()) {
         embed.setImage(interaction.guild.bannerURL({ size: 1024 }));
       }
@@ -2066,7 +2110,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setTimestamp();
 
       if (isSkybase) {
-        embed.setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png');
+        embed.setImage('https://krims-bot-dashboard.vercel.app/skybase_banner.png');
       } else if (interaction.guild?.bannerURL()) {
         embed.setImage(interaction.guild.bannerURL({ size: 1024 }));
       }

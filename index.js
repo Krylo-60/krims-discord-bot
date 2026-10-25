@@ -4890,7 +4890,7 @@ client.on('interactionCreate', async (interaction) => {
           `• 🔒 Buttons are disabled, and new submissions are locked out.\n\n` +
           `*Closed by <@${interaction.user.id}>*`
         )
-        .setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png')
+        .setImage('https://krims-bot-dashboard.vercel.app/skybase_banner.png')
         .setFooter({ text: 'Krylo\'s Skybase • Production Applications' })
         .setTimestamp();
       return interaction.editReply({ embeds: [stopEmbed] });
@@ -8882,7 +8882,7 @@ client.on('messageCreate', async (message) => {
           `• 🛡️ Applications will be forwarded to <#1549883558208868373> for staff review.\n\n` +
           `*Opened by <@${message.author.id}>*`
         )
-        .setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png')
+        .setImage('https://krims-bot-dashboard.vercel.app/skybase_banner.png')
         .setFooter({ text: 'Krylo\'s Skybase • Production Applications' })
         .setTimestamp();
       return message.reply({ embeds: [openEmbed] });
@@ -8913,7 +8913,7 @@ client.on('messageCreate', async (message) => {
           `• 🔒 Buttons are disabled, and new submissions are locked out.\n\n` +
           `*Closed by <@${message.author.id}>*`
         )
-        .setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png')
+        .setImage('https://krims-bot-dashboard.vercel.app/skybase_banner.png')
         .setFooter({ text: 'Krylo\'s Skybase • Production Applications' })
         .setTimestamp();
       return message.reply({ embeds: [stopEmbed] });
@@ -10115,7 +10115,7 @@ client.on('messageCreate', async (message) => {
         // 5. External Link Filter (Allow only trusted domains)
         const urlRegex = /(https?:\/\/[^\s]+)/gi;
         if (urlRegex.test(message.content)) {
-          const allowedDomains = ['youtube.com', 'youtu.be', 'play.hosting', 'onrender.com', 'discord.com', 'tenor.com', 'giphy.com', 'github.com', 'krims-code-chatbot.vercel.app'];
+          const allowedDomains = ['youtube.com', 'youtu.be', 'play.hosting', 'onrender.com', 'discord.com', 'tenor.com', 'giphy.com', 'github.com', 'krims-code-chatbot.vercel.app', 'krims-bot-dashboard.vercel.app'];
           const urls = message.content.match(urlRegex) || [];
           let blockLink = false;
           let blockedUrl = '';

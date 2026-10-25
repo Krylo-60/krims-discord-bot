@@ -56,7 +56,7 @@ export async function broadcastUpdateToAllGuildsAndOwners() {
         value:
           '• Strict server data isolation per guild.\n' +
           '• Server owners retain 100% control to view or erase their data anytime via `/memory action:reset`.\n' +
-          '• Full ToS details: type `/about` or visit https://krims-code-chatbot.vercel.app/terms'
+          '• Full ToS details: type `/about` or visit https://krims-bot-dashboard.vercel.app/terms'
       }
     )
     .setFooter({ text: 'Krims Code AI • Direct Dispatch to Server Owners' })

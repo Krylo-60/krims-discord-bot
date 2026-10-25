@@ -111,7 +111,7 @@ export function buildKlipyEmbed(item, query = 'Trending', index = 0, total = 1, 
     .setURL(klipyWebUrl)
     .setFooter({ 
       text: `KLIPY • Result ${index + 1} of ${total} • Query: "${query}"`,
-      iconURL: 'https://krims-code-chatbot.vercel.app/logo.png'
+      iconURL: 'https://krims-bot-dashboard.vercel.app/logo.png'
     })
     .setTimestamp();
 

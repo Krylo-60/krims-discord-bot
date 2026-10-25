@@ -86,10 +86,10 @@ export function buildApplicationPanel() {
       `• Maturity, respect, and ability to follow director instructions.\n\n` +
       `*Click the button below to open the application form!*`
     )
-    .setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png')
+    .setImage('https://krims-bot-dashboard.vercel.app/skybase_banner.png')
     .setFooter({
       text: 'Krylo\'s Skybase • Production Applications Powered by Krims Code AI',
-      iconURL: 'https://krims-code-chatbot.vercel.app/app_logo.jpg'
+      iconURL: 'https://krims-bot-dashboard.vercel.app/logo.png'
     })
     .setTimestamp();
 
@@ -133,10 +133,10 @@ export function buildClosedApplicationPanel() {
       `• When a recruitment call is announced, follow the instructions to jump into the recording!\n\n` +
       `🔔 *An announcement will be posted in <#1549882277209571329> as soon as applications reopen!*`
     )
-    .setImage('https://krims-code-chatbot.vercel.app/skybase_banner.png')
+    .setImage('https://krims-bot-dashboard.vercel.app/skybase_banner.png')
     .setFooter({
       text: 'Krylo\'s Skybase • Applications Managed by Krims Code AI',
-      iconURL: 'https://krims-code-chatbot.vercel.app/app_logo.jpg'
+      iconURL: 'https://krims-bot-dashboard.vercel.app/logo.png'
     })
     .setTimestamp();
 
