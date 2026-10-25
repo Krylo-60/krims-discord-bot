@@ -101,26 +101,17 @@ function savePremiumStore() {
 loadPremiumStore();
 
 /**
- * Checks if a guild has active Premium status
+ * Checks if a guild has active Premium status (100% Free Forever for all guilds)
  */
 export function getGuildPremiumStatus(guildId) {
   const g = premiumStore.guilds[guildId];
-  if (!g) return { isPremium: false, tier: 'free', tierName: 'Standard Free Tier', multiplier: 1.0 };
-
-  // Check if expired
-  if (g.expiresAt && g.expiresAt < Date.now()) {
-    delete premiumStore.guilds[guildId];
-    savePremiumStore();
-    return { isPremium: false, tier: 'free', tierName: 'Standard Free Tier', multiplier: 1.0 };
-  }
-
   return {
     isPremium: true,
-    tier: g.tier,
-    tierName: g.tierName,
-    multiplier: g.multiplier || 2.0,
-    expiresAt: g.expiresAt,
-    customBotsAllowed: g.customBotsAllowed || 1
+    tier: g?.tier || 'enterprise',
+    tierName: g?.tierName || '💎 Enterprise Lifetime VIP (100% Free Forever)',
+    multiplier: g?.multiplier || 3.0,
+    expiresAt: null,
+    customBotsAllowed: g?.customBotsAllowed || 999
   };
 }
 
@@ -192,54 +183,54 @@ export function redeemLicenseKey(guildId, key) {
  * Builds the lavish Premium Perks Embed
  */
 export function buildPremiumPerksEmbed(guildId = null) {
-  const status = guildId ? getGuildPremiumStatus(guildId) : { isPremium: false };
+  const status = guildId ? getGuildPremiumStatus(guildId) : { isPremium: true, tierName: '💎 Enterprise Lifetime VIP (100% Free Forever)' };
 
   const embed = new EmbedBuilder()
-    .setColor(0x8B5CF6) // Royal Violet / Amethyst
+    .setColor(0x00F2FF)
     .setAuthor({
-      name: 'Krims Code v5 • Premium & Enterprise VIP Architecture',
-      iconURL: 'https://cdn.discordapp.com/avatars/1523794466740371586/a_906dd0ce7ccf09e15e48c6a5bda79fa6.gif?size=256'
+      name: 'Krims Code • 100% Free Forever Enterprise Ecosystem',
+      iconURL: 'https://krims-bot-dashboard.vercel.app/logo.png'
     })
-    .setTitle('💎 Unlock Next-Generation Power with Krims Code Premium')
+    .setTitle('💎 Enterprise Power — 100% Free Forever for Every Server!')
     .setDescription(
-      `Take your Discord community to the absolute pinnacle with **Krims Code Premium**.\n` +
-      `Built on dedicated high-speed cloud clusters with guaranteed **0ms queue latency**, custom bot white-labeling, and advanced AI persona control.\n\n` +
-      `**Current Server Status:** ${status.isPremium ? `🟢 \`${status.tierName}\` (ACTIVE)` : '⚪ `Standard Free Tier`'}\n` +
+      `Every single feature in **Krims Code AI** and **Krims Code Premium** is **completely free forever**.\n` +
+      `No paywalls. No monthly fees. No locked tiers. Every community gets full enterprise power out of the box!\n\n` +
+      `**Current Server Status:** 🟢 \`${status.tierName}\` (PERMANENTLY UNLOCKED)\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
     )
     .addFields(
       {
-        name: '⚡ Pro Tier ($4.99 / mo)',
+        name: '🚀 Unlimited Custom Bot White-Labeling (Free Forever)',
         value: 
-          `• **1 Custom-Branded Bot:** Host under your server name & avatar\n` +
-          `• **2.0x Universal XP Multiplier:** Stacking permanent server boost\n` +
-          `• **Custom AI Persona:** Custom system prompt & persona name\n` +
-          `• **Standard Cloud Priority:** Fast responses without cooldowns`,
+          `• Host dedicated bots under your server name & avatar with \`/setupbot\`.\n` +
+          `• Zero subscription required — deploy custom bots instantly on our cloud.`,
         inline: false
       },
       {
-        name: '💎 Premium VIP Tier ($14.99 / mo)',
+        name: '🔥 3.0x Universal XP Leveling Multiplier (Free Forever)',
         value: 
-          `• **Up to 5 Custom Bots:** Spawn dedicated bots for events & departments\n` +
-          `• **3.0x Leveling Multiplier:** Maximum progression speed for all members\n` +
-          `• **0ms Dedicated Compute Pipeline:** Zero queue delay even during peak hours\n` +
-          `• **Full White-Labeling:** Remove all Krims branding if desired\n` +
-          `• **Priority Ticket Routing:** Automatic escalation to Lead Developers`,
+          `• Every message and voice activity in your server earns **3.0x XP** automatically!\n` +
+          `• Combine with \`/vote\` on Top.gg for a massive **6.0x Mega Booster**!`,
         inline: false
       },
       {
-        name: '👑 Enterprise Cluster (Custom Fleet)',
+        name: '🤖 Dual-Brain Neural Core (Gemini 2.5 Flash + Groq LPU)',
         value: 
-          `• **Unlimited Bot Spawning:** Fleet orchestration up to 50+ instances\n` +
-          `• **Dedicated Private Node.js / Python Cluster:** Isolated memory space\n` +
-          `• **Custom API Integration:** Sync with your own web platform & databases\n` +
-          `• **24/7 VIP SLA & Direct Developer Hotline**`,
+          `• Uncapped AI conversational intelligence, coding assistance, and live weather radar.\n` +
+          `• Dedicated compute routing with ultra-low latency.`,
+        inline: false
+      },
+      {
+        name: '🛡️ Automated Security & Anti-Raid Shield',
+        value: 
+          `• Automated emergency lockdown, mass purge, anti-spam, and moderation.\n` +
+          `• Support ticket dispatcher with instant automated AI resolution.`,
         inline: false
       }
     )
     .setFooter({
-      text: 'Krims Code v5 Enterprise Architecture • Zero Downtime',
-      iconURL: 'https://cdn.discordapp.com/avatars/1523794466740371586/a_906dd0ce7ccf09e15e48c6a5bda79fa6.gif?size=256'
+      text: 'Made by Krylo and Krims studio • "Dream higher, build higher."',
+      iconURL: 'https://krims-bot-dashboard.vercel.app/logo.png'
     })
     .setTimestamp();
 
@@ -256,13 +247,13 @@ export function buildPremiumActionRow() {
       .setStyle(ButtonStyle.Link)
       .setURL('https://krims-bot-dashboard.vercel.app/'),
     new ButtonBuilder()
-      .setLabel('📖 View Wiki Pricing')
+      .setLabel('📖 View Wiki & Guides')
       .setStyle(ButtonStyle.Link)
-      .setURL('https://krims-bot-dashboard.vercel.app/wiki#pricing'),
+      .setURL('https://krims-bot-dashboard.vercel.app/wiki.html'),
     new ButtonBuilder()
-      .setLabel('🎫 Contact Executive Support')
+      .setLabel('💬 Support Server')
       .setStyle(ButtonStyle.Link)
-      .setURL('https://discord.gg/EYHTgJX')
+      .setURL('https://discord.gg/sYaVJtXgQb')
   );
 }
 

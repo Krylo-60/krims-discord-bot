@@ -16,6 +16,8 @@ import { getModularFeaturesStatus } from './featureExpander.mjs';
 export const SUPPORT_GUILD_ID = '1561174283294609479'; // Krims Support & Updates
 export const OWNER_USER_ID = '1414143825538191373';
 export const EXECUTIVE_ROLE_ID = '1561175610930233464';
+export const LEAD_DEV_ROLE_ID = '1561175611870027908';
+export const BETA_TESTER_ROLE_ID = '1561175614008991746';
 
 /**
  * Guild-Scoped Slash Command Definitions for Alpha & Beta
@@ -105,6 +107,8 @@ export function isAuthorizedAlphaBetaUser(member, userId) {
   if (userId === OWNER_USER_ID) return true;
   if (member?.permissions?.has(PermissionFlagsBits.Administrator)) return true;
   if (member?.roles?.cache?.has(EXECUTIVE_ROLE_ID)) return true;
+  if (member?.roles?.cache?.has(LEAD_DEV_ROLE_ID)) return true;
+  if (member?.roles?.cache?.has(BETA_TESTER_ROLE_ID)) return true;
   return false;
 }
 
@@ -316,6 +320,10 @@ export function initAlphaBetaBotInstances() {
       betaClient.on('messageCreate', async (message) => {
         if (message.author.bot) return;
         if (message.mentions.has(betaClient.user)) {
+          const userPrompt = message.content.replace(/<@!?[0-9]+>/g, '').trim();
+          if (userPrompt.length > 0) {
+            return message.reply(`🧪 **Krims Code Beta:** Thanks for testing candidate features in <#1561175639606693929>! To inspect active candidate telemetry, run \`/beta status\` or test our pre-release modules.`);
+          }
           return message.reply('🧪 **Krims Code Beta online.** Pre-release candidate testing active in <#1561175639606693929>!');
         }
       });
@@ -351,6 +359,10 @@ export function initAlphaBetaBotInstances() {
       alphaClient.on('messageCreate', async (message) => {
         if (message.author.bot) return;
         if (message.mentions.has(alphaClient.user)) {
+          const userPrompt = message.content.replace(/<@!?[0-9]+>/g, '').trim();
+          if (userPrompt.length > 0) {
+            return message.reply(`⚡ **Krims Code Alpha:** Internal R&D Subsystem processing input: "${userPrompt.slice(0, 50)}...". Ping: \`${alphaClient.ws.ping}ms\` with 100% telemetry operational.`);
+          }
           return message.reply('⚡ **Krims Code Alpha online.** Classified R&D subsystem active in stealth mode.');
         }
       });
