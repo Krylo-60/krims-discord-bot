@@ -214,7 +214,7 @@ export function buildPremiumPerksEmbed(guildId = null) {
         inline: false
       },
       {
-        name: '🤖 Dual-Brain Neural Core (Gemini 2.5 Flash + Groq LPU)',
+        name: '🤖 Krims Proprietary Neural Core (0ms Compute)',
         value: 
           `• Uncapped AI conversational intelligence, coding assistance, and live weather radar.\n` +
           `• Dedicated compute routing with ultra-low latency.`,
@@ -243,11 +243,15 @@ export function buildPremiumPerksEmbed(guildId = null) {
 export function buildPremiumActionRow() {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
+      .setLabel('👑 Claim Premium in Dashboard')
+      .setStyle(ButtonStyle.Link)
+      .setURL('https://krims-bot-dashboard.vercel.app/'),
+    new ButtonBuilder()
       .setLabel('🎛️ Open Dashboard')
       .setStyle(ButtonStyle.Link)
       .setURL('https://krims-bot-dashboard.vercel.app/'),
     new ButtonBuilder()
-      .setLabel('📖 View Wiki & Guides')
+      .setLabel('📖 Wiki & Docs')
       .setStyle(ButtonStyle.Link)
       .setURL('https://krims-bot-dashboard.vercel.app/wiki.html'),
     new ButtonBuilder()
@@ -286,13 +290,47 @@ export async function handlePremiumCommand(interaction) {
     return interaction.reply({ embeds: [embed] });
   }
 
-  if (subcommand === 'activate') {
-    const key = interaction.options.getString('key');
+  if (subcommand === 'activate' || subcommand === 'claim') {
+    const key = interaction.options?.getString('key');
+    if (!key) {
+      const claimEmbed = new EmbedBuilder()
+        .setColor(0xF59E0B)
+        .setAuthor({
+          name: 'Krims Code • Premium Activation Portal',
+          iconURL: 'https://krims-bot-dashboard.vercel.app/logo.png'
+        })
+        .setTitle('👑 Premium is Exclusively Claimable in the Web Dashboard!')
+        .setDescription(
+          `To ensure secure allocation and instant cluster setup, **Krims Code Premium is claimed exclusively through the official Web Dashboard**.\n\n` +
+          `### 🚀 How to Claim Free Enterprise VIP for Your Server:\n` +
+          `1️⃣ Click the **\`👑 Claim Premium in Dashboard\`** button below.\n` +
+          `2️⃣ Log in securely with your Discord account.\n` +
+          `3️⃣ Select **${interaction.guild.name}** from your server list.\n` +
+          `4️⃣ Click **\`👑 Claim Free Enterprise Premium\`** to instantly unlock 3.0x XP, 0ms Dedicated Neural Compute, and 100 commands 100% Free!\n\n` +
+          `*Already have an executive cryptographic license key? Pass it via \`/premium activate key:<KEY>\`.*`
+        )
+        .setFooter({ text: 'Made by Krylo and Krims studio • "Dream higher, build higher."' })
+        .setTimestamp();
+
+      const claimRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setLabel('👑 Claim Premium in Dashboard')
+          .setStyle(ButtonStyle.Link)
+          .setURL('https://krims-bot-dashboard.vercel.app/'),
+        new ButtonBuilder()
+          .setLabel('💬 Support Server')
+          .setStyle(ButtonStyle.Link)
+          .setURL('https://discord.gg/sYaVJtXgQb')
+      );
+
+      return interaction.reply({ embeds: [claimEmbed], components: [claimRow] });
+    }
+
     const result = redeemLicenseKey(interaction.guildId, key);
 
     if (!result.success) {
       return interaction.reply({
-        content: `❌ **Activation Failed:** ${result.error}`,
+        content: `❌ **Activation Failed:** ${result.error}\n\n👉 **Tip:** You can claim Premium 100% free directly on our dashboard: https://krims-bot-dashboard.vercel.app/`,
         ephemeral: true
       });
     }
@@ -354,10 +392,13 @@ export async function handlePremiumMessage(message, args = []) {
     return message.reply({ embeds: [embed] });
   }
 
-  if (args[0] === 'activate' && args[1]) {
+  if (args[0] === 'activate') {
+    if (!args[1]) {
+      return message.reply(`👑 **Krims Code Premium is exclusively claimable in the Web Dashboard!**\nLog in and claim Free Enterprise VIP for your server here:\n👉 **https://krims-bot-dashboard.vercel.app/**`);
+    }
     const result = redeemLicenseKey(message.guildId, args[1]);
     if (!result.success) {
-      return message.reply(`❌ **Activation Failed:** ${result.error}`);
+      return message.reply(`❌ **Activation Failed:** ${result.error}\n👉 You can claim Premium 100% free on the dashboard: https://krims-bot-dashboard.vercel.app/`);
     }
     return message.reply(`🎉 **Success!** Unlocked **${result.tierName}** on this server!`);
   }

@@ -217,7 +217,7 @@ export async function setupAIConsoleChannel(guild) {
           `* *"AI, give 100,000 KryloCoins to all online players"* \n` +
           `* *"AI, set Krylo_MC rank to Sovereign"* \n` +
           `* *"AI, mute Player1 for 15 minutes because of spam"* \n\n` +
-          `⚡ Powered by **Llama-3.3-70b High-Speed LPU Engine**.`
+          `⚡ Powered by **Krims Proprietary 0ms Neural Engine**.`
         )
         .setFooter({ text: 'KryloSMP Autonomous AI Console Engine • FalixNodes API v2' })
         .setTimestamp();

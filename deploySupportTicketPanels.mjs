@@ -47,7 +47,7 @@ client.once('ready', async () => {
         .setDescription(
           `Welcome to the **KryloSMP 24/7 Support Portal**!\n\n` +
           `Have a question, encountered a bug, need store/item assistance, or want to report a player?\n` +
-          `Our administrative team and Gemini AI Assistant are available 24/7 to help!\n\n` +
+          `Our administrative team and Krims Neural AI Assistant are available 24/7 to help!\n\n` +
           `### 📋 How to Open a Support Ticket:\n` +
           `1️⃣ Click the **\`🎟️ Open Support Ticket\`** button below.\n` +
           `2️⃣ Describe your issue or query in the popup box.\n` +

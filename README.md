@@ -4,7 +4,7 @@
 [![Discord Support](https://img.shields.io/badge/Support-Discord%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/sYaVJtXgQb)
 [![Discord.js](https://img.shields.io/badge/Discord.js-v14.14-5865F2?logo=discord&logoColor=white)](https://discord.js.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-v20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![AI Engine](https://img.shields.io/badge/AI-Groq%20LPU%20%2B%20Gemini%202.5-00F2FF?logo=probot&logoColor=white)](#)
+[![AI Engine](https://img.shields.io/badge/AI-Krims%200ms%20Neural%20Core-00F2FF?logo=probot&logoColor=white)](#)
 [![Hosting](https://img.shields.io/badge/Deploy-Render%20Cloud-46E3B7?logo=render&logoColor=white)](https://render.com/)
 [![Founder](https://img.shields.io/badge/Founder-krylo__plays-FFD700?logo=discord&logoColor=black)](#-leadership--ownership)
 [![License](https://img.shields.io/badge/License-Proprietary%20%7C%20All%20Rights%20Reserved-FF0055.svg)](#-license)
@@ -20,7 +20,7 @@ The ecosystem runs as a coordinated fleet of specialized bot instances, each tai
 | Bot Instance | Client ID | Avatar Theme | Primary Role & Capabilities |
 | :--- | :---: | :---: | :--- |
 | **Krims Code AI** *(Master)* | `1523794466740371586` | 💎 Electric Cyan | Core community operations, 100 slash commands, leveling, moderation, tickets, and Minecraft database bridge. |
-| **Krims Code Premium** *(VIP)* | `1562586215822266599` | 👑 Golden Amber | Dedicated 0ms Groq LPU compute, 120B/27B open-source intelligence, automatic 2x XP multiplier, full 100-command powerhouse suite + `/premium`, and real-time Elite SMP leaderboard sync. |
+| **Krims Code Premium** *(VIP)* | `1562586215822266599` | 👑 Golden Amber | Dedicated 0ms Neural compute, 3x XP multiplier, full 100-command powerhouse suite + `/premium`, and real-time Elite SMP leaderboard sync. |
 | **Krims Code Alpha** *(Experimental)* | `1562208078517243977` | 🔴 Electric Crimson | Tactical combat analytics, PvP telemetry, and experimental feature sandbox. |
 | **Krims Code Beta** *(Experimental)* | `1562208157777133598` | 🟣 Quantum Amethyst | Development staging, rapid prototyping, and automated unit verification. |
 
@@ -54,7 +54,7 @@ Shared SQLite-backed dialogue memory giving both bots deep contextual awareness:
 
 ### 💎 3. Krims Code Premium Architecture (`features/premiumManager.mjs`)
 Engineered as an all-in-one VIP upgrade that includes **everything from the main bot** plus exclusive enterprise capabilities:
-* **High-Speed Groq LPUs:** Runs on dedicated open-source models (`openai/gpt-oss-120b`, `qwen/qwen3.8-27b`, `llama-3.3-70b-versatile`) with 0ms queue wait times.
+* **0ms Neural Compute:** Runs on dedicated proprietary neural nodes with 0ms queue wait times.
 * **Automatic 2x VIP XP Multiplier:** All messages in servers with Krims Code Premium automatically award double XP for leveling and rank cards.
 * **Full 100-Command Powerhouse Suite:** Supports all 100 master slash commands plus `/premium` and `/elitesmp`.
 * **Full Prefix System (`!`):** Responds to `!help`, `!rank`, `!daily`, `!balance`, `!leaderboard`, `!elitesmp`, and `!premium` with Golden VIP Embeds.
@@ -126,7 +126,7 @@ All primary commands can be triggered with the standard `!` prefix across both b
 
 * **Runtime:** Node.js v20+ (ES Modules) + Python 3 (Pillow graphical asset generator)
 * **Libraries:** `discord.js` v14.14, `@discordjs/voice`, `@neondatabase/serverless`, `better-sqlite3`
-* **Inference Engines:** Groq LPU (`openai/gpt-oss-120b`, `qwen/qwen3.8-27b`) + Google Gemini 2.5 Flash
+* **Inference Engines:** Krims Proprietary 0ms Neural Multi-Brain Engine
 * **Databases:**
   * SQLite (WAL Mode) — Local ultra-fast state, level cards, and AI dialogue memory.
   * Neon Serverless PostgreSQL — Cloud economy, clan inventories, and player portal sync.

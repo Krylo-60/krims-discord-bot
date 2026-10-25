@@ -951,7 +951,7 @@ Instructions:
         iconURL: client.user.displayAvatarURL({ extension: 'png' }) 
       })
       .setDescription(aiAnswer)
-      .setFooter({ text: 'Staff Response Window: 5 Mins – 3 Hours • Powered by Groq 0ms LPU' })
+      .setFooter({ text: 'Staff Response Window: 5 Mins – 3 Hours • Powered by Krims Proprietary 0ms Neural AI' })
       .setTimestamp();
 
     await channel.send({ embeds: [aiEmbed] });
@@ -2468,7 +2468,7 @@ client.on('interactionCreate', async (interaction) => {
           .setColor(0x00F2FF)
           .setTitle('🤖 Neural AI Intelligence Module')
           .setDescription(
-            'Powered by the **Krims Code Proprietary Multi-Brain Engine** (Gemini 2.5 Flash + Groq LPU Ultra-Low Latency).\n\n' +
+            'Powered by the **Krims Code Proprietary 0ms Neural Engine** (Ultra-Low Latency).\n\n' +
             '• **`/ask <prompt>`** — Ask any technical, gaming, creative, or coding question.\n' +
             '• **`@Krims Code AI` Mention** — Mention the bot anywhere in chat for instant natural replies.\n' +
             '• **Live Weather Radar** — Ask *"what is the weather in Tokyo?"* or *"forecast for London"* to fetch live Open-Meteo weather.\n' +
@@ -4958,7 +4958,7 @@ client.on('interactionCreate', async (interaction) => {
       .setDescription(
         `✨ *“Dream higher, build higher.”*\n\n` +
         `⚡ **The Premier Neural AI, Moderation & Community Platform for Discord.**\n\n` +
-        `• 🧠 **Neural AI Chat Engine:** Ultra-low latency conversational intelligence powered by Groq & Gemini.\n` +
+        `• 🧠 **Neural AI Chat Engine:** Ultra-low latency conversational intelligence powered by Krims Proprietary 0ms Neural Engine.\n` +
         `• 🛡️ **Advanced Moderation & AutoMod:** Anti-spam, mute, ban, purge, and raid security.\n` +
         `• 🪙 **Global Cross-Server Economy:** Coins, daily streaks, vaults, minigames & shop.\n` +
         `• 🎫 **Instant AI Support Tickets:** 24/7 AI-assisted triage with transcript logging.\n` +
@@ -4981,11 +4981,11 @@ client.on('interactionCreate', async (interaction) => {
     const pricingEmbed = new EmbedBuilder()
       .setColor('#F59E0B')
       .setTitle('💎 Krims Code AI — Tier Ladder & Launch Status')
-      .setDescription('Scale your Discord community with custom bots, dedicated Groq LPUs, and AI brains:')
+      .setDescription('Scale your Discord community with custom bots, dedicated 0ms Neural compute, and AI brains:')
       .addFields(
         { 
           name: '👑 Premium ($0.00 / FREE RIGHT NOW!)', 
-          value: '• **STATUS: OUT NOW & 100% FREE!**\n• Dedicated Groq 0ms LPUs (120B / 27B)\n• Automatic 2.0x VIP XP Multiplier on Chat & Voice\n• Golden VIP Rank Cards, Badges & 100 Commands\n• [Add Krims Code Premium](https://discord.com/oauth2/authorize?client_id=1562586215822266599&permissions=8&scope=bot%20applications.commands)', 
+          value: '• **STATUS: OUT NOW & 100% FREE!**\n• Dedicated 0ms Proprietary Neural Compute\n• Automatic 3.0x VIP XP Multiplier on Chat & Voice\n• Golden VIP Rank Cards, Badges & 100 Commands\n• [Add Krims Code Premium](https://discord.com/oauth2/authorize?client_id=1562586215822266599&permissions=8&scope=bot%20applications.commands)', 
           inline: false 
         },
         { 

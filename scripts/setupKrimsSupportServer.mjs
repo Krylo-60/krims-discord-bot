@@ -287,7 +287,7 @@ export async function deployKrimsSupportServer(guildId, customClient = null, cal
       `**Official Release Notes & Architecture Upgrade**\n\n` +
       `**🌟 Key Additions in v5.3:**\n` +
       `• **Dual-Phase Welcome Card Engine:** High-tech cyber visual cards with real-time 3D Minecraft skin head rendering.\n` +
-      `• **AI Self-Healing Engine:** Full zero-crash exception interception with automated Gemini root-cause diagnosis.\n` +
+      `• **AI Self-Healing Engine:** Full zero-crash exception interception with automated neural root-cause diagnosis.\n` +
       `• **30-Minute Context Watcher:** Automated active channel monitoring and context-aware chat banter.\n` +
       `• **Dynamic Server Footers:** Dynamic per-guild branding across all slash commands.\n` +
       `• **Ledgy Elite SMP Core Integration:** Dedicated server stats, IP status, and clan roster sync.\n\n` +
@@ -308,7 +308,7 @@ export async function deployKrimsSupportServer(guildId, customClient = null, cal
       `**System Metrics & Health Overview**\n\n` +
       `• **Status:** 🟢 100% Operational\n` +
       `• **Version:** \`v5.3 Enterprise\`\n` +
-      `• **AI Core:** Gemini 2.5 Flash / Groq Llama-3.3 70B Versatile\n` +
+      `• **AI Core:** Krims 0ms Neural Engine v5.5 (Proprietary Deep Learning)\n` +
       `• **AI Self-Healing:** ✅ ACTIVE (0 Crashes Recorded)\n` +
       `• **30-Min Server Watcher:** ✅ ACTIVE\n` +
       `• **Connected Guilds:** ${activeClient.guilds.cache.size}\n` +

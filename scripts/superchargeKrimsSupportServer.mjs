@@ -252,7 +252,7 @@ client.once('ready', async () => {
           .setDescription(
             `Welcome to the **AI Neural Laboratory**! Here, you can test and explore the intelligent capabilities powering the Krims Bot Ecosystem.\n\n` +
             `**🔬 Active AI Subsystems:**\n` +
-            `• **Gemini 2.5 Multi-turn Memory:** Learns server context, player identities, and Minecraft IGNs across chats.\n` +
+            `• **Krims Neural Multi-turn Memory:** Learns server context, player identities, and Minecraft IGNs across chats.\n` +
             `• **Zero-Crash Self-Healing:** Catches runtime exceptions, analyzes stack traces, and auto-patches state.\n` +
             `• **Contextual Chat Banter:** Periodically monitors server activity and chimes in with tactical advice and humor.\n` +
             `• **Dual-Phase Welcome Card Renderer:** Dynamically draws custom 3D Minecraft heads and cyber cards.\n\n` +

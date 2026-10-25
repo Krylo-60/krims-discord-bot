@@ -207,7 +207,7 @@ export class MultiBotManager {
             aiResponse = await geminiDirectAsk(cleanPrompt, systemInstruction, message.guild.name);
           } else {
             // Direct fallback response
-            aiResponse = `Hey! I received your query: "${cleanPrompt}". My Gemini AI brain is actively processing responses. Powered by Krims Code AI!`;
+            aiResponse = `Hey! I received your query: "${cleanPrompt}". My Krims Neural AI brain is actively processing responses. Powered by Krims Code AI!`;
           }
 
           const replyEmbed = new EmbedBuilder()

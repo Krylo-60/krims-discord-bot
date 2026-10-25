@@ -2,23 +2,23 @@
 
 [![Version](https://img.shields.io/badge/Release-VIP%20Enterprise%20Edition-F59E0B?logo=crown&logoColor=white)](#)
 [![Discord Support](https://img.shields.io/badge/Support-Discord%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/sYaVJtXgQb)
-[![Compute](https://img.shields.io/badge/Compute-Groq%20LPU%200ms%20Latency-00F2FF?logo=speedtest&logoColor=white)](#)
+[![Compute](https://img.shields.io/badge/Compute-0ms%20Neural%20Latency-00F2FF?logo=speedtest&logoColor=white)](#)
 [![License](https://img.shields.io/badge/Founder%20License-Lifetime%20Free-00FF66?logo=checkmarx&logoColor=white)](#)
 
-**Krims Code Premium** (Client ID: `1562586215822266599`) is the elite, dedicated VIP flagship bot of the Krims Code ecosystem. Designed for competitive SMP clans and high-tier communities, it provides **100% of the features from the main bot** combined with enterprise-grade dedicated LPU hardware and exclusive VIP perks.
+**Krims Code Premium** (Client ID: `1562586215822266599`) is the elite, dedicated VIP flagship bot of the Krims Code ecosystem. Designed for competitive SMP clans and high-tier communities, it provides **100% of the features from the main bot** combined with enterprise-grade dedicated neural hardware and exclusive VIP perks.
 
 ---
 
 ## ⚡ What Makes Krims Code Premium Worth It?
 
-### 1. Dedicated 0ms Groq LPU Compute
-Standard public bots suffer from queued requests and token throttles. Krims Code Premium routes requests directly to high-throughput LPUs:
-* **Primary Models:** `openai/gpt-oss-120b` & `qwen/qwen3.8-27b`
+### 1. Dedicated 0ms Neural Compute
+Standard public bots suffer from queued requests and token throttles. Krims Code Premium routes requests directly to high-throughput proprietary neural nodes:
+* **Inference Core:** Krims Multi-Brain 0ms Neural Engine
 * **Queue Latency:** **0ms** (Instant streaming generation)
 * **High-Context Awareness:** Automatically injects real-time server facts, live clan leaderboards, and persistent multi-turn memory.
 
-### 2. Automatic 2x XP Multiplier
-Every server running Krims Code Premium automatically activates the **2.0x VIP XP Multiplier**:
+### 2. Automatic 3x XP Multiplier
+Every server running Krims Code Premium automatically activates the **3.0x VIP XP Multiplier**:
 * Chatters level up twice as fast.
 * `/rank` cards render with exclusive Golden VIP borders and badges.
 * Integrated with voice XP timers and Top.gg upvote bonuses.
