@@ -576,6 +576,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           `• Add Krims Code AI to your other servers for **FREE** by clicking on the bot's profile or running \`/getbot\`!\n` +
           `• Share it with your friends, moderators, and communities to support our development!`
         )
+        .setImage('https://krims-bot-dashboard.vercel.app/banners/krims_code_support_banner.jpg')
         .setFooter({ text: 'Krims Code AI • Created with pride by Krylo Team' })
         .setTimestamp();
 

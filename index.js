@@ -4971,6 +4971,7 @@ client.on('interactionCreate', async (interaction) => {
         { name: '👑 Add To Server', value: `[Invite Bot](https://discord.com/api/oauth2/authorize?client_id=${interaction.client.user.id}&permissions=8&scope=bot%20applications.commands)`, inline: true },
         { name: '💬 Support Server', value: '[Join Support](https://discord.gg/sYaVJtXgQb)', inline: true }
       )
+      .setImage('https://krims-bot-dashboard.vercel.app/banners/krims_code_support_banner.jpg')
       .setFooter({ text: '⚡ “Dream higher, build higher.” • Made by Krylo and Krims studio' });
 
     return interaction.reply({ embeds: [aboutEmbed], ephemeral: true });
