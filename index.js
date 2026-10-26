@@ -8502,6 +8502,38 @@ client.on('messageCreate', async (message) => {
       return message.reply(payload);
     }
 
+    // 🌦️ Prefix Live Weather Command (!weather, !forecast, !w)
+    if (lowerMsg.startsWith('!weather') || lowerMsg.startsWith('!forecast') || lowerMsg.startsWith('!w ')) {
+      const parts = message.content.trim().split(/\s+/);
+      const loc = parts.slice(1).join(' ').trim();
+      if (!loc) {
+        return message.reply('⚠️ Please provide a city or location! (e.g. `!weather Mangaluru` or `!weather Tokyo`)');
+      }
+
+      try {
+        const liveWeather = await fetchLiveWeather(loc);
+        if (!liveWeather) {
+          return message.reply(`❌ Could not find weather details for **${loc}**. Please check the spelling or try a nearby major city.`);
+        }
+
+        const embed = new EmbedBuilder()
+          .setColor(0x38BDF8)
+          .setTitle(`🌦️ Real-Time Weather • ${liveWeather.placeName}`)
+          .setDescription(`**Condition:** ${liveWeather.icon} ${liveWeather.condition}`)
+          .addFields(
+            { name: '🌡️ Temperature', value: `**${liveWeather.tempC}°C** / **${liveWeather.tempF}°F**\n*(Feels like ${liveWeather.feelsC}°C)*`, inline: true },
+            { name: '💧 Humidity', value: `\`${liveWeather.humidity}%\``, inline: true },
+            { name: '💨 Wind Speed', value: `\`${liveWeather.windKm} km/h\` (${liveWeather.windMph} mph)`, inline: true }
+          )
+          .setFooter({ text: 'Global Real-Time Weather Radar • Open-Meteo' })
+          .setTimestamp();
+
+        return message.reply({ embeds: [embed] });
+      } catch (err) {
+        return message.reply(`❌ Could not find weather details for **${loc}**.`);
+      }
+    }
+
     // 🚀 Discord Voice Activities & Games (!activity, !activities)
     if (lowerMsg.startsWith('!activity') || lowerMsg.startsWith('!activities')) {
       const parts = message.content.trim().split(/\s+/);
