@@ -656,6 +656,11 @@ export function initPremiumBotInstance() {
       premClient.on('messageCreate', async (message) => {
         if (message.author.bot) return;
 
+        // Never answer or process when @everyone or @here is happening
+        if (message.mentions?.everyone || message.content.includes('@everyone') || message.content.includes('@here')) {
+          return;
+        }
+
         const contentLower = message.content.toLowerCase().trim();
 
         // 1. Prefix !premium command
@@ -823,10 +828,21 @@ export function initPremiumBotInstance() {
           }
         }
 
-        // Direct mention or question for Premium Bot
-        if (premClient?.user && message.mentions.has(premClient.user)) {
-          const mentionRegex = new RegExp(`<@!?${premClient.user.id}>`, 'g');
-          const cleanPrompt = message.content.replace(mentionRegex, '').trim();
+        // Direct mention or question for Premium Bot (strictly ignoring @everyone, @here, and role pings)
+        const hasDirectUserMention = premClient?.user && 
+          message.mentions.users.has(premClient.user.id) && 
+          !message.mentions.everyone &&
+          !message.content.includes('@everyone') &&
+          !message.content.includes('@here');
+
+        if (hasDirectUserMention) {
+          // If the mention came solely from a reply header without explicitly typing the bot's mention, ignore
+          const directMentionRegex = new RegExp(`<@!?${premClient.user.id}>`);
+          if (message.reference && !directMentionRegex.test(message.content)) {
+            return;
+          }
+
+          const cleanPrompt = message.content.replace(new RegExp(`<@!?${premClient.user.id}>`, 'g'), '').trim();
 
           if (cleanPrompt.length > 0) {
             // User asked a question! Generate an elite VIP response
