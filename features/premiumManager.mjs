@@ -772,6 +772,57 @@ export function initPremiumBotInstance() {
           }
         }
 
+        // 9. Prefix !ask and !ai command for Premium Bot
+        if (contentLower.startsWith('!ask ') || contentLower.startsWith('!ai ')) {
+          const prompt = message.content.replace(/^!(ask|ai)\s+/i, '').trim();
+          if (prompt) {
+            if (message.channel.sendTyping) await message.channel.sendTyping().catch(() => {});
+            const ans = await askPremiumAi(
+              prompt,
+              message.guild?.name,
+              message.author.displayName || message.author.username,
+              message.author.id,
+              message.guild?.id,
+              message.channel?.id
+            );
+            return message.reply(`💎 **[VIP Intelligence]**\n${ans}`);
+          }
+        }
+
+        // 10. Prefix !calc command for Premium Bot
+        if (contentLower.startsWith('!calc ')) {
+          const expr = message.content.slice(6).trim();
+          if (expr) {
+            if (message.channel.sendTyping) await message.channel.sendTyping().catch(() => {});
+            const ans = await askPremiumAi(
+              `Solve this mathematical, scientific, or word problem step by step: "${expr}". Provide the clean final answer in plain Discord text without LaTeX.`,
+              message.guild?.name,
+              message.author.displayName || message.author.username,
+              message.author.id,
+              message.guild?.id,
+              message.channel?.id
+            );
+            return message.reply(`🧮 **[VIP Quantum Calculator]**\n${ans}`);
+          }
+        }
+
+        // 11. Prefix !joke command for Premium Bot
+        if (contentLower === '!joke') {
+          if (message.channel.sendTyping) await message.channel.sendTyping().catch(() => {});
+          const joke = await askPremiumAi('Tell a hilarious, punchy gamer or programming joke in 1-2 lines.', message.guild?.name);
+          return message.reply(`😂 **[VIP Comedy Engine]**\n${joke}`);
+        }
+
+        // 12. Prefix !eightball command for Premium Bot
+        if (contentLower.startsWith('!eightball ') || contentLower.startsWith('!8ball ')) {
+          const q = message.content.replace(/^!(eightball|8ball)\s+/i, '').trim();
+          if (q) {
+            if (message.channel.sendTyping) await message.channel.sendTyping().catch(() => {});
+            const prophecy = await askPremiumAi(`You are the mystic Krims Code VIP Oracle 8-Ball. Predict the answer to: "${q}" in 1 witty sentence!`, message.guild?.name);
+            return message.reply(`🎱 **[VIP Mystic Oracle]**\n🔮 **Prophecy:** *${prophecy}*`);
+          }
+        }
+
         // Direct mention or question for Premium Bot
         if (premClient?.user && message.mentions.has(premClient.user)) {
           const mentionRegex = new RegExp(`<@!?${premClient.user.id}>`, 'g');

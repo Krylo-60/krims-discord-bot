@@ -8534,6 +8534,52 @@ client.on('messageCreate', async (message) => {
       }
     }
 
+    // 🧠 Prefix Ask / AI Command (!ask, !ai)
+    if (lowerMsg.startsWith('!ask ') || lowerMsg.startsWith('!ai ')) {
+      const prompt = message.content.replace(/^!(ask|ai)\s+/i, '').trim();
+      if (prompt) {
+        if (message.channel.sendTyping) await message.channel.sendTyping().catch(() => {});
+        const userName = message.author.displayName || message.author.username;
+        const answer = await geminiDirectAsk(prompt, '', message.guild?.name, message.guild?.id, message.author.id, userName);
+        if (answer) return message.reply(sanitizeDiscordFormatting(answer));
+      }
+    }
+
+    // 🧮 Prefix Quantum Calculator (!calc)
+    if (lowerMsg.startsWith('!calc ')) {
+      const expr = message.content.slice(6).trim();
+      if (expr) {
+        try {
+          const sanitized = expr.replace(/[^0-9+\-*/().%^ \t]/g, '');
+          if (sanitized.trim()) {
+            const evalExpr = sanitized.replace(/\^/g, '**');
+            const result = Function(`'use strict'; return (${evalExpr})`)();
+            return message.reply(`🧮 **Calculator:** \`${expr}\` = **\`${result}\`**`);
+          }
+        } catch (_) {}
+        if (message.channel.sendTyping) await message.channel.sendTyping().catch(() => {});
+        const aiSol = await geminiDirectAsk(`Solve this math or science problem: "${expr}". Give the clean final answer in plain text without LaTeX.`);
+        return message.reply(`🧮 **AI Quantum Calculator:**\n${aiSol || 'Could not solve expression.'}`);
+      }
+    }
+
+    // 😂 Prefix Joke Command (!joke)
+    if (lowerMsg === '!joke') {
+      if (message.channel.sendTyping) await message.channel.sendTyping().catch(() => {});
+      const joke = await geminiDirectAsk('Tell a funny, punchy programmer or gamer joke in 1-2 lines.', 'You are the Krims Code AI Comedy Engine.');
+      return message.reply(`😂 **AI Comedy Engine:**\n${joke || 'Why do programmers prefer dark mode? Because light attracts bugs!'}`);
+    }
+
+    // 🎱 Prefix 8-Ball Command (!eightball, !8ball)
+    if (lowerMsg.startsWith('!eightball ') || lowerMsg.startsWith('!8ball ')) {
+      const q = message.content.replace(/^!(eightball|8ball)\s+/i, '').trim();
+      if (q) {
+        if (message.channel.sendTyping) await message.channel.sendTyping().catch(() => {});
+        const prophecy = await geminiDirectAsk(`You are the mystic Krims AI Oracle 8-Ball. The user asks: "${q}". Give a witty, fun 1-sentence prediction!`, 'You are the Krims AI Mystic 8-Ball Oracle.');
+        return message.reply(`🎱 **AI Mystic 8-Ball Oracle:**\n🔮 **Prophecy:** *${prophecy || 'Outlook very good!'}*`);
+      }
+    }
+
     // 🚀 Discord Voice Activities & Games (!activity, !activities)
     if (lowerMsg.startsWith('!activity') || lowerMsg.startsWith('!activities')) {
       const parts = message.content.trim().split(/\s+/);

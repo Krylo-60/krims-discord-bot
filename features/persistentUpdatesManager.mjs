@@ -19,11 +19,30 @@ export const DEFAULT_UPDATES_CHANNEL_ID = '1561175627799994402'; // #🚀・𝖡
  */
 const INITIAL_UPDATES = [
   {
+    id: 'upd_v5_5_0',
+    version: 'v5.5.0',
+    title: 'Krims Code v5.5 — Autonomous AI Everywhere & Global Radar Release',
+    date: '2026-10-25',
+    timestamp: Date.now(),
+    category: 'Major Platform & AI Architecture Upgrade',
+    summary: 'Universal expansion of Krims AI across all commands and systems: Dual-Stage Global Weather Radar, AI Quantum Math Engine, Mystic Oracle & Comedy generators, Web Dashboard-exclusive Premium, and co-hosted Twitch-Discord sync.',
+    highlights: [
+      '🌐 AI Everywhere Integration: All interactive commands (/calc, /eightball, /joke, /meme, /ask, mentions) and prefix commands (!ai, !calc, !weather, !eightball) now utilize full neural intelligence',
+      '🌦️ Dual-Stage Global Weather Radar: Instant atmospheric forecasting with OpenStreetMap Photon fuzzy geocoding, resolving typos and phonetic city spellings automatically',
+      '🧮 AI Quantum Math Engine: Natural language arithmetic, word problems, algebra, physics, and science equations solved step-by-step with zero LaTeX errors',
+      '💎 Web Dashboard-Exclusive Premium: Unified license claiming and perk management strictly accessible via https://krims-bot-dashboard.vercel.app',
+      '📺 Render Co-Hosted Twitch & Discord Bot: Seamless Twitch stream chat bridge, subscriber verification, and Discord role synchronization',
+      '👑 100% Free Lifetime Founder Guilds: Grandfathered unlimited VIP compute pipelines for community headquarters with zero fees'
+    ],
+    author: 'Krims Engineering Team',
+    pinned: true
+  },
+  {
     id: 'upd_v5_3_0',
     version: 'v5.3.0',
     title: 'Krims Code v5 — Powered by Krims AI v3.1 Neural Engine',
     date: '2026-10-21',
-    timestamp: Date.now(),
+    timestamp: Date.now() - 86400000 * 4,
     category: 'Major Platform Release',
     summary: 'Official release of Krims Code v5 running the next-generation Krims AI v3.1 Neural Core, Single-Key Modular Feature Expander, 100-command enterprise Wiki, and full white-label security isolation.',
     highlights: [
@@ -35,7 +54,7 @@ const INITIAL_UPDATES = [
       '⚡ Instant Guild Command Deduplication: Global 100-command fleet synchronized across Discord with 0 duplicate registrations'
     ],
     author: 'Krims Engineering Team',
-    pinned: true
+    pinned: false
   },
   {
     id: 'upd_v5_2_0',

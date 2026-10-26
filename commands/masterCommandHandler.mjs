@@ -599,7 +599,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       return await handleEliteSmpCommand(interaction);
     }
 
-    if (commandName === 'ask') {
+    if (commandName === 'ask' || commandName === 'ai') {
       const action = interaction.options.getString('action');
       const prompt = interaction.options.getString('prompt');
 
@@ -1479,6 +1479,21 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
 
     if (commandName === 'eightball') {
       const question = interaction.options.getString('question');
+      
+      let answer = null;
+      if (context.geminiDirectAsk) {
+        try {
+          await interaction.deferReply();
+          const aiAnswer = await context.geminiDirectAsk(
+            `You are the mystic, all-seeing Krims AI Oracle 8-Ball. The user asks: "${question}". Provide a witty, dramatic, mystical, yet decisive 1-sentence prediction!`,
+            'You are the Krims AI Mystic 8-Ball Oracle. Keep prophecies to exactly 1 concise, fun, evocative sentence in plain Discord text.'
+          );
+          if (aiAnswer && aiAnswer.trim().length > 0) {
+            answer = aiAnswer.trim();
+          }
+        } catch (e) {}
+      }
+
       const answers = [
         'It is certain.', 'Without a doubt.', 'Yes definitely.',
         'You may rely on it.', 'As I see it, yes.', 'Most likely.',
@@ -1487,54 +1502,100 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         'Don\'t count on it.', 'My reply is no.', 'My sources say no.',
         'Outlook not so good.', 'Very doubtful.'
       ];
-      const answer = answers[Math.floor(Math.random() * answers.length)];
+      if (!answer) {
+        answer = answers[Math.floor(Math.random() * answers.length)];
+      }
 
       const embed = new EmbedBuilder()
-        .setColor(0x7C3AED)
-        .setTitle('🎱 Magic 8-Ball')
+        .setColor(0x8B5CF6)
+        .setTitle('🎱 AI Mystic 8-Ball Oracle')
         .addFields(
           { name: '❓ Question', value: question, inline: false },
-          { name: '🔮 Answer', value: `**${answer}**`, inline: false }
+          { name: '🔮 Oracle Prophecy', value: `**${answer}**`, inline: false }
         )
+        .setFooter({ text: 'Krims Code AI • Neural Oracle Prediction' })
         .setTimestamp();
 
+      if (interaction.deferred) {
+        return await interaction.editReply({ embeds: [embed] });
+      }
       return await interaction.reply({ embeds: [embed] });
     }
 
     if (commandName === 'joke') {
-      const jokes = [
+      let joke = null;
+      if (context.geminiDirectAsk) {
+        try {
+          await interaction.deferReply();
+          const aiJoke = await context.geminiDirectAsk(
+            'Tell a hilarious, punchy, clean programmer, gamer, or Minecraft SMP joke. Exactly 1-2 lines with setup and punchline.',
+            'You are the Krims Code AI Comedy Engine. Deliver sharp, witty, laugh-out-loud tech and gaming jokes in clean plain text.'
+          );
+          if (aiJoke && aiJoke.trim().length > 0) {
+            joke = aiJoke.trim();
+          }
+        } catch (e) {}
+      }
+
+      const fallbackJokes = [
         'Why do programmers prefer dark mode? Because light attracts bugs!',
         'How many programmers does it take to change a light bulb? None, that is a hardware issue!',
         'Why did the developer go broke? Because they used up all their cache!',
         'What is an astronaut\'s favorite key on the keyboard? The space bar!',
         'Why do robots love pizza? Because it comes in slices and bytes!'
       ];
-      const joke = jokes[Math.floor(Math.random() * jokes.length)];
+      if (!joke) {
+        joke = fallbackJokes[Math.floor(Math.random() * fallbackJokes.length)];
+      }
 
       const embed = new EmbedBuilder()
         .setColor(0x00FF66)
-        .setTitle('😂 Community Joke')
+        .setTitle('😂 AI Comedy Engine')
         .setDescription(joke)
+        .setFooter({ text: 'Krims Code AI • Neural Humor Generator' })
         .setTimestamp();
 
+      if (interaction.deferred) {
+        return await interaction.editReply({ embeds: [embed] });
+      }
       return await interaction.reply({ embeds: [embed] });
     }
 
     if (commandName === 'meme') {
+      let caption = null;
+      if (context.geminiDirectAsk) {
+        try {
+          await interaction.deferReply();
+          const aiMeme = await context.geminiDirectAsk(
+            'Create a super relatable, viral, funny "When you..." gamer or Discord community meme scenario in 1-2 lines.',
+            'You are the Krims Code AI Meme Engine. Create relatable, hilarious gaming scenarios in plain Discord markdown.'
+          );
+          if (aiMeme && aiMeme.trim().length > 0) {
+            caption = aiMeme.trim();
+          }
+        } catch (e) {}
+      }
+
       const memes = [
         { caption: 'When you render an 8K video for 4 hours and find a typo in the title card...', img: 'https://i.imgur.com/example.png' },
         { caption: 'Filming a cinematic shoot and someone walks straight through the frame.', img: 'https://i.imgur.com/example2.png' },
         { caption: 'Editing timeline at 3 AM: Just one more audio adjustment...', img: 'https://i.imgur.com/example3.png' }
       ];
-      const m = memes[Math.floor(Math.random() * memes.length)];
+      if (!caption) {
+        const m = memes[Math.floor(Math.random() * memes.length)];
+        caption = m.caption;
+      }
 
       const embed = new EmbedBuilder()
         .setColor(0xFFAA00)
-        .setTitle('🐸 Community Meme')
-        .setDescription(m.caption)
-        .setFooter({ text: 'Have a funny meme? Post in #memes!' })
+        .setTitle('🐸 AI Meme Engine')
+        .setDescription(caption)
+        .setFooter({ text: 'Krims Code AI • Post your memes in #memes!' })
         .setTimestamp();
 
+      if (interaction.deferred) {
+        return await interaction.editReply({ embeds: [embed] });
+      }
       return await interaction.reply({ embeds: [embed] });
     }
 
@@ -2727,6 +2788,21 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         // Sanitize for safe arithmetic calculation
         const sanitized = expr.replace(/[^0-9+\-*/().%^ \t]/g, '');
         if (!sanitized.trim()) {
+          // If no pure arithmetic digits, hand off to AI Quantum Math Engine!
+          if (context.geminiDirectAsk) {
+            await interaction.deferReply();
+            const aiSol = await context.geminiDirectAsk(
+              `Solve this mathematical, scientific, or word problem step-by-step: "${expr}". Provide the final answer clearly in plain text with no LaTeX.`,
+              'You are the Krims Code Quantum Math AI Engine. Solve math, science, and word problems step by step clearly and concisely in plain Discord text.'
+            );
+            const embed = new EmbedBuilder()
+              .setColor(0x10B981)
+              .setTitle('🧮 AI Quantum Calculator')
+              .setDescription(aiSol || `Could not evaluate: \`${expr}\``)
+              .setFooter({ text: 'Krims Code AI • Quantum Mathematical Engine' })
+              .setTimestamp();
+            return await interaction.editReply({ embeds: [embed] });
+          }
           return await interaction.reply({ content: '❌ Invalid mathematical expression. Allowed symbols: `+`, `-`, `*`, `/`, `^`, `%`, `(`, `)`.', ephemeral: true });
         }
         // Safely evaluate simple math
@@ -2745,6 +2821,22 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
 
         return await interaction.reply({ embeds: [embed] });
       } catch (calcErr) {
+        if (context.geminiDirectAsk) {
+          try {
+            if (!interaction.deferred) await interaction.deferReply();
+            const aiSol = await context.geminiDirectAsk(
+              `Solve this mathematical or scientific problem: "${expr}". Provide the clean final answer in plain text without LaTeX.`,
+              'You are the Krims Code Quantum Math AI Engine. Solve math problems step by step.'
+            );
+            const embed = new EmbedBuilder()
+              .setColor(0x10B981)
+              .setTitle('🧮 AI Quantum Calculator')
+              .setDescription(aiSol || `Error: ${calcErr.message}`)
+              .setFooter({ text: 'Krims Code AI • Quantum Mathematical Engine' })
+              .setTimestamp();
+            return await interaction.editReply({ embeds: [embed] });
+          } catch (e) {}
+        }
         return await interaction.reply({ content: `❌ Error solving expression: \`${calcErr.message}\``, ephemeral: true });
       }
     }
