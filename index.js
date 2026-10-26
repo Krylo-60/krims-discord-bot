@@ -73,6 +73,7 @@ import {
   initPremiumBotInstance,
   getGuildPremiumStatus
 } from './features/premiumManager.mjs';
+import { fetchLiveWeather, extractWeatherQueryCity, WMO_WEATHER_CODES } from './features/weatherService.mjs';
 import { TopggManager } from './features/topggManager.mjs';
 import { handleMasterSlashCommand } from './commands/masterCommandHandler.mjs';
 import { masterCommandJson } from './commands/masterCommandRegistry.mjs';
@@ -310,111 +311,7 @@ export function sanitizeDiscordFormatting(text) {
 // ════════════════════════════════════════════════════════════
 // 🌦️ OPEN-METEO WEATHER INTEL ENGINE (100% Free, Zero-Key API)
 // ════════════════════════════════════════════════════════════
-const WMO_WEATHER_CODES = {
-  0: { desc: 'Clear sky', icon: '☀️' },
-  1: { desc: 'Mainly clear', icon: '🌤️' },
-  2: { desc: 'Partly cloudy', icon: '⛅' },
-  3: { desc: 'Overcast', icon: '☁️' },
-  45: { desc: 'Fog', icon: '🌫️' },
-  48: { desc: 'Depositing rime fog', icon: '🌫️' },
-  51: { desc: 'Light drizzle', icon: '🌦️' },
-  53: { desc: 'Moderate drizzle', icon: '🌦️' },
-  55: { desc: 'Dense drizzle', icon: '🌧️' },
-  56: { desc: 'Light freezing drizzle', icon: '🌧️❄️' },
-  57: { desc: 'Dense freezing drizzle', icon: '🌧️❄️' },
-  61: { desc: 'Slight rain', icon: '🌦️' },
-  63: { desc: 'Moderate rain', icon: '🌧️' },
-  65: { desc: 'Heavy rain', icon: '🌧️' },
-  66: { desc: 'Light freezing rain', icon: '🌧️❄️' },
-  67: { desc: 'Heavy freezing rain', icon: '🌧️❄️' },
-  71: { desc: 'Slight snowfall', icon: '🌨️' },
-  73: { desc: 'Moderate snowfall', icon: '❄️' },
-  75: { desc: 'Heavy snowfall', icon: '❄️⛄' },
-  77: { desc: 'Snow grains', icon: '❄️' },
-  80: { desc: 'Slight rain showers', icon: '🌦️' },
-  81: { desc: 'Moderate rain showers', icon: '🌧️' },
-  82: { desc: 'Violent rain showers', icon: '⛈️' },
-  85: { desc: 'Slight snow showers', icon: '🌨️' },
-  86: { desc: 'Heavy snow showers', icon: '❄️' },
-  95: { desc: 'Thunderstorm', icon: '⛈️' },
-  96: { desc: 'Thunderstorm with slight hail', icon: '⛈️' },
-  99: { desc: 'Thunderstorm with heavy hail', icon: '⛈️' }
-};
-
-function extractWeatherQueryCity(text) {
-  if (!text || typeof text !== 'string') return null;
-  const clean = text.trim();
-  const patterns = [
-    /(?:weather|forecast|temperature|temp|climate|conditions)\s+(?:in|for|at|of)\s+([^?!.,\n]+)/i,
-    /(?:how(?:'s|\s+is)\s+(?:the\s+)?weather\s+(?:like\s+)?in)\s+([^?!.,\n]+)/i,
-    /(?:is\s+it\s+(?:raining|snowing|sunny|cold|hot|warm)\s+in)\s+([^?!.,\n]+)/i,
-    /(?:what(?:'s|\s+is)\s+(?:the\s+)?(?:weather|temp|temperature)\s+(?:like\s+)?in)\s+([^?!.,\n]+)/i,
-    /([a-zA-Z\s.-]+?)\s+(?:weather|forecast|temperature)/i
-  ];
-  for (const pat of patterns) {
-    const m = clean.match(pat);
-    if (m && m[1]) {
-      let loc = m[1].replace(/\b(today|tomorrow|now|right now|currently|outside|please|thanks|bro|bot|krims|krims code|tell me|give me|check)\b/gi, '').trim();
-      loc = loc.replace(/^[,\s]+|[,\s]+$/g, '');
-      if (loc.length >= 2 && !/^(the|a|an|it|this|that|my)$/i.test(loc)) {
-        return loc;
-      }
-    }
-  }
-  return null;
-}
-
-async function fetchLiveOpenMeteoWeather(city) {
-  try {
-    const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`;
-    const geoRes = await fetch(geoUrl, { signal: AbortSignal.timeout(4000) });
-    if (!geoRes.ok) return null;
-    const geoData = await geoRes.json();
-    if (!geoData.results || !geoData.results.length) return null;
-
-    const loc = geoData.results[0];
-    const lat = loc.latitude;
-    const lon = loc.longitude;
-    const placeName = [loc.name, loc.admin1, loc.country].filter(Boolean).join(', ');
-
-    const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
-    const wRes = await fetch(forecastUrl, { signal: AbortSignal.timeout(4000) });
-    if (!wRes.ok) return null;
-    const wData = await wRes.json();
-    const curr = wData.current;
-    if (!curr) return null;
-
-    const wmo = WMO_WEATHER_CODES[curr.weather_code] || { desc: 'Clear/Variable', icon: '🌤️' };
-    const tempC = Math.round(curr.temperature_2m * 10) / 10;
-    const tempF = Math.round(((tempC * 9/5) + 32) * 10) / 10;
-    const feelsC = Math.round(curr.apparent_temperature * 10) / 10;
-    const feelsF = Math.round(((feelsC * 9/5) + 32) * 10) / 10;
-    const humidity = curr.relative_humidity_2m;
-    const windKm = Math.round(curr.wind_speed_10m * 10) / 10;
-    const windMph = Math.round(windKm * 0.621371 * 10) / 10;
-
-    const highC = wData.daily?.temperature_2m_max?.[0] !== undefined ? `${wData.daily.temperature_2m_max[0]}°C` : 'N/A';
-    const lowC = wData.daily?.temperature_2m_min?.[0] !== undefined ? `${wData.daily.temperature_2m_min[0]}°C` : 'N/A';
-
-    return {
-      placeName,
-      condition: wmo.desc,
-      icon: wmo.icon,
-      tempC,
-      tempF,
-      feelsC,
-      feelsF,
-      humidity,
-      windKm,
-      windMph,
-      highC,
-      lowC,
-      time: curr.time
-    };
-  } catch (err) {
-    return null;
-  }
-}
+const fetchLiveOpenMeteoWeather = fetchLiveWeather;
 
 async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', guildId = null, userId = null, userName = '') {
   const formattingRule = "\nCRITICAL DISCORD FORMATTING RULE: Discord DOES NOT support LaTeX, KaTeX, or MathJax. NEVER output LaTeX syntax (such as \\boxed{}, \\times, \\frac{}, \\[, \\], or $$). Write all math, formulas, equations, numbers, and calculations in clean plain text and standard Discord markdown (e.g. 100^9 = 10^18 = 1,000,000,000,000,000,000). Never place formulas inside raw square brackets [ ]. Keep answers ultra-clean and easy to read on mobile and desktop.";
@@ -451,7 +348,7 @@ async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', g
           `• Wind Velocity: ${liveWeather.windKm} km/h (${liveWeather.windMph} mph)\n` +
           `• Today's Peak / Valley (High / Low): ${liveWeather.highC} / ${liveWeather.lowC}\n` +
           `• Local Measurement Time: ${liveWeather.time}\n` +
-          `AI DIRECTIVE: The user is inquiring about the weather. Answer their question naturally, enthusiastically, and accurately using this exact live data! State the temperature in both °C and °F, describe the conditions with the emoji, and provide a helpful, tailored practical tip (such as grabbing an umbrella, dressing warm, or enjoying the sunshine).`;
+          `AI DIRECTIVE: The user is inquiring about real-world weather for "${liveWeather.placeName}". You DO have real-time live weather capabilities via the integrated Open-Meteo radar. NEVER claim that you cannot pull live weather data. Answer their question naturally, enthusiastically, and accurately using this exact live data! State the temperature in both °C and °F, describe the conditions with the emoji, and provide a helpful, tailored practical tip (such as grabbing an umbrella, dressing warm, or enjoying the sunshine).`;
       }
     } catch (wErr) {
       // Fallback silently if offline

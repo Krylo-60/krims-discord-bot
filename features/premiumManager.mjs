@@ -1,5 +1,6 @@
 import { getEliteSmpSystemPrompt, ELITE_SMP_COMMAND_DEFINITION, handleEliteSmpCommand } from './eliteSmpKnowledge.mjs';
 import { recordConversationTurn, getRecentServerMemory, buildServerMemoryContext } from './aiMemoryEngine.mjs';
+import { fetchLiveWeather, extractWeatherQueryCity } from './weatherService.mjs';
 import { masterCommandJson } from '../commands/masterCommandRegistry.mjs';
 import { handleMasterSlashCommand } from '../commands/masterCommandHandler.mjs';
 import { getBalance, claimDaily } from '../databaseEngine.mjs';
@@ -485,9 +486,31 @@ export async function askPremiumAi(prompt, guildName = '', userName = 'Member', 
   const serverFactsContext = guildId ? buildServerMemoryContext(guildId, guildName) : '';
   const recentHistory = guildId ? getRecentServerMemory(guildId, 6) : [];
 
+  // 🌦️ Real-Time Live Weather Detection & High-Priority Injection
+  let weatherDirective = '';
+  const detectedCity = extractWeatherQueryCity(prompt);
+  if (detectedCity) {
+    try {
+      const liveWeather = await fetchLiveWeather(detectedCity);
+      if (liveWeather) {
+        weatherDirective = `\n\n[HIGH-PRIORITY REAL-TIME METEOROLOGICAL INTELLIGENCE via Open-Meteo API]:\n` +
+          `• Target Location: ${liveWeather.placeName}\n` +
+          `• Sky & Atmosphere: ${liveWeather.icon} ${liveWeather.condition}\n` +
+          `• Current Temperature: ${liveWeather.tempC}°C (${liveWeather.tempF}°F)\n` +
+          `• Heat Index / Feels Like: ${liveWeather.feelsC}°C (${liveWeather.feelsF}°F)\n` +
+          `• Relative Humidity: ${liveWeather.humidity}%\n` +
+          `• Wind Velocity: ${liveWeather.windKm} km/h (${liveWeather.windMph} mph)\n` +
+          `• Today's Peak / Valley (High / Low): ${liveWeather.highC} / ${liveWeather.lowC}\n` +
+          `• Local Measurement Time: ${liveWeather.time}\n` +
+          `CRITICAL INSTRUCTION: The user is inquiring about real-world weather for "${liveWeather.placeName}". Even though you have Elite SMP and gaming lore, this is a REAL-WORLD geographic location inquiry. Do NOT confuse this with Minecraft biomes, do NOT tell the user to use /weather in-game, and do NOT claim you lack live weather data. Answer their inquiry accurately, warmly, and concisely using this real-time report, mentioning both °C and °F and conditions with the emoji!`;
+      }
+    } catch (e) {}
+  }
+
   const eliteIntel = await getEliteSmpSystemPrompt();
   const vipSystemPrompt = `${eliteIntel}
 ${serverFactsContext}
+${weatherDirective}
 
 You are Krims Code Premium, the elite, high-performance VIP AI Intelligence for ${guildName || 'this Discord server'}.
 You are noticeably sharper, faster, more articulate, and more insightful than standard Discord bots.

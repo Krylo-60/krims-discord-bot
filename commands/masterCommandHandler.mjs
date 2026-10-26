@@ -48,6 +48,7 @@ import {
 
 import { handlePremiumCommand } from '../features/premiumManager.mjs';
 import { handleEliteSmpCommand } from '../features/eliteSmpKnowledge.mjs';
+import { fetchLiveWeather } from '../features/weatherService.mjs';
 
 import {
   linkCountingChannel,
@@ -2752,30 +2753,21 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       const loc = interaction.options.getString('location');
       await interaction.deferReply();
       try {
-        const wRes = await fetch(`https://wttr.in/${encodeURIComponent(loc)}?format=j1`);
-        const wData = await wRes.json();
-
-        const current = wData.current_condition?.[0];
-        const area = wData.nearest_area?.[0];
-        const cityName = area?.areaName?.[0]?.value || loc;
-        const country = area?.country?.[0]?.value || '';
-
-        const tempC = current?.temp_C || 'N/A';
-        const tempF = current?.temp_F || 'N/A';
-        const desc = current?.weatherDesc?.[0]?.value || 'Clear';
-        const humidity = current?.humidity || 'N/A';
-        const windKmph = current?.windspeedKmph || 'N/A';
+        const liveWeather = await fetchLiveWeather(loc);
+        if (!liveWeather) {
+          return await interaction.editReply({ content: `❌ Could not find weather details for **${loc}**. Please check the spelling or try a nearby major city.` });
+        }
 
         const embed = new EmbedBuilder()
           .setColor(0x38BDF8)
-          .setTitle(`☀️ Real-Time Weather • ${cityName}, ${country}`)
-          .setDescription(`**Condition:** ${desc}`)
+          .setTitle(`🌦️ Real-Time Weather • ${liveWeather.placeName}`)
+          .setDescription(`**Condition:** ${liveWeather.icon} ${liveWeather.condition}`)
           .addFields(
-            { name: '🌡️ Temperature', value: `**${tempC}°C** / **${tempF}°F**`, inline: true },
-            { name: '💧 Humidity', value: `\`${humidity}%\``, inline: true },
-            { name: '💨 Wind Speed', value: `\`${windKmph} km/h\``, inline: true }
+            { name: '🌡️ Temperature', value: `**${liveWeather.tempC}°C** / **${liveWeather.tempF}°F**\n*(Feels like ${liveWeather.feelsC}°C)*`, inline: true },
+            { name: '💧 Humidity', value: `\`${liveWeather.humidity}%\``, inline: true },
+            { name: '💨 Wind Speed', value: `\`${liveWeather.windKm} km/h\` (${liveWeather.windMph} mph)`, inline: true }
           )
-          .setFooter({ text: 'Global Real-Time Weather Sensor' })
+          .setFooter({ text: 'Global Real-Time Weather Radar • Open-Meteo' })
           .setTimestamp();
 
         return await interaction.editReply({ embeds: [embed] });
