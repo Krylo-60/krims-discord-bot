@@ -12,6 +12,7 @@ import {
 import { getCurrentBetaFeature, promoteBetaFeatureToMain, dispatchWeeklyBetaDrop } from './weeklyFeatureIncubator.mjs';
 import { getMemoryStats } from './aiMemoryEngine.mjs';
 import { getModularFeaturesStatus } from './featureExpander.mjs';
+import { getBalance, addCoins } from '../databaseEngine.mjs';
 
 export const SUPPORT_GUILD_ID = '1561174283294609479'; // Krims Support & Updates
 export const OWNER_USER_ID = '1414143825538191373';
@@ -30,6 +31,11 @@ export const ALPHA_BETA_COMMAND_DEFINITIONS = [
     default_member_permissions: '8', // Administrator only — completely hidden from regular members in Discord UI!
     dm_permission: false,
     options: [
+      {
+        name: 'sneakpeek',
+        description: '⚡ [Classified Sneak Peek] Preview Krims Rewards economy evolution & Premium pass unlocking',
+        type: ApplicationCommandOptionType.Subcommand
+      },
       {
         name: 'status',
         description: 'View internal Alpha engine telemetry, memory matrix buffers, and model latency',
@@ -77,6 +83,11 @@ export const ALPHA_BETA_COMMAND_DEFINITIONS = [
         type: ApplicationCommandOptionType.Subcommand
       }
     ]
+  },
+  {
+    name: 'sneakpeek',
+    description: '⚡ [Classified Sneak Peek] Preview Krims Rewards economy evolution & Premium pass unlocking',
+    dm_permission: false
   }
 ];
 
@@ -124,6 +135,13 @@ export async function handleAlphaCommand(interaction) {
   }
 
   const subcommand = interaction.options.getSubcommand();
+
+  
+  if (subcommand === 'sneakpeek') {
+    const bal = getBalance(interaction.user.id);
+    const payload = buildKrimsRewardsSneakPeekEmbed(interaction.user, bal?.krylocoins ?? 1000, bal?.daily_streak ?? 0);
+    return interaction.reply({ ...payload, ephemeral: true });
+  }
 
   if (subcommand === 'status') {
     const memStats = getMemoryStats ? getMemoryStats(interaction.guildId) : { learnedCount: 0 };
@@ -199,6 +217,86 @@ export async function handleAlphaCommand(interaction) {
 /**
  * Handles /beta slash command execution
  */
+
+/**
+ * Builds the high-tech Krims Rewards Sneak Peek Embed & Interactive Buttons
+ */
+export function buildKrimsRewardsSneakPeekEmbed(user, currentRewards = 1000, streak = 0) {
+  const embed = new EmbedBuilder()
+    .setColor(0x00F2FF)
+    .setAuthor({
+      name: 'KRIMS CODE ALPHA • SNEAK PEEK CLASSIFIED',
+      iconURL: 'https://cdn.discordapp.com/avatars/1523794466740371586/a_906dd0ce7ccf09e15e48c6a5bda79fa6.gif?size=256'
+    })
+    .setTitle('💎 Economy Protocol Evolution: Krims Rewards')
+    .setDescription(
+      `**Classification:** \`TOP-SECRET SNEAK PEEK\` • **Launch Date:** \`NEXT MONDAY (NOV 2)\`\n\n` +
+      `### ⚡ The Evolution: KryloCoins ➔ Krims Rewards\n` +
+      `KryloCoins are officially retiring and evolving into **Krims Rewards (KR)** with an automatic **1:1 balance conversion**!\n\n` +
+      `### 👑 The Exclusive Key to Krims Code Premium\n` +
+      `Krims Rewards will be the **ONLY WAY** to unlock and access **Krims Code Premium**!\n` +
+      `Earn KR by being active in voice lounges, chatting, maintaining daily streaks, voting on Top.gg, and winning SMP events.\n\n` +
+      `### 🎟️ Upcoming Premium Passes (Unlocking Next Monday):\n` +
+      `• 🌟 **7-Day Krims Code Premium Pass:** \`2,500 KR\`\n` +
+      `• 👑 **30-Day Krims Code Premium Pass:** \`8,000 KR\`\n` +
+      `• ⚡ **Enterprise Lifetime Access:** \`25,000 KR\`\n\n` +
+      `### 💼 Your Alpha Rewards Vault:\n` +
+      `• **Current Balance:** \`${currentRewards.toLocaleString()} Krims Rewards (KR)\`\n` +
+      `• **Active Daily Streak:** \`${streak} Days\`\n` +
+      `• **Clearance Status:** \`Alpha Sneak Peek Cleared\``
+    )
+    .setFooter({ text: 'Krims Code Alpha Protocol • Official Reveal Next Monday' })
+    .setTimestamp();
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('alpha_claim_bonus')
+      .setLabel('🎁 Claim Alpha Bonus (+250 KR)')
+      .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
+      .setCustomId('alpha_simulate_unlock')
+      .setLabel('👑 Preview Premium Unlock')
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId('alpha_countdown_info')
+      .setLabel('⏳ Unlocks Next Monday')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(true)
+  );
+
+  return { embeds: [embed], components: [row] };
+}
+
+export async function handleSneakPeekCommand(interaction) {
+  const bal = getBalance(interaction.user.id);
+  const payload = buildKrimsRewardsSneakPeekEmbed(interaction.user, bal?.krylocoins ?? 1000, bal?.daily_streak ?? 0);
+  return interaction.reply({ ...payload, ephemeral: true });
+}
+
+export async function handleAlphaButtonInteraction(interaction) {
+  if (interaction.customId === 'alpha_claim_bonus') {
+    const updated = addCoins(interaction.user.id, 250);
+    return interaction.reply({
+      content: `🎉 **+250 Krims Rewards (KR) Claimed!** Your current vault balance is **${(updated?.krylocoins ?? 1250).toLocaleString()} KR**.\nKeep chatting, hanging out in voice lounges, and maintaining daily streaks to stack up rewards before next Monday's big reveal!`,
+      ephemeral: true
+    });
+  }
+
+  if (interaction.customId === 'alpha_simulate_unlock') {
+    const bal = getBalance(interaction.user.id);
+    const kr = bal?.krylocoins ?? 1000;
+    return interaction.reply({
+      content: `👑 **Krims Code Premium Pass Simulator (Sneak Peek):**\n\n` +
+               `• **Your Krims Rewards:** \`${kr.toLocaleString()} KR\`\n` +
+               `• **7-Day Premium Pass:** \`2,500 KR\` ${kr >= 2500 ? '✅ **[ELIGIBLE TO UNLOCK MONDAY]**' : '⏳ *(Need ' + (2500 - kr).toLocaleString() + ' more KR)*'}\n` +
+               `• **30-Day Premium Pass:** \`8,000 KR\` ${kr >= 8000 ? '✅ **[ELIGIBLE TO UNLOCK MONDAY]**' : '⏳ *(Need ' + (8000 - kr).toLocaleString() + ' more KR)*'}\n` +
+               `• **Enterprise Lifetime:** \`25,000 KR\` ${kr >= 25000 ? '✅ **[ELIGIBLE TO UNLOCK MONDAY]**' : '⏳ *(Need ' + (25000 - kr).toLocaleString() + ' more KR)*'}\n\n` +
+               `*Starting next Monday, spending your Krims Rewards is the ONLY way to access Krims Code Premium!*`,
+      ephemeral: true
+    });
+  }
+}
+
 export async function handleBetaCommand(interaction) {
   if (interaction.guildId !== SUPPORT_GUILD_ID || !isAuthorizedAlphaBetaUser(interaction.member, interaction.user.id)) {
     return interaction.reply({
@@ -338,7 +436,7 @@ export function initAlphaBetaBotInstances() {
   if (process.env.KRIMS_ALPHA_TOKEN) {
     try {
       alphaClient = new Client({ 
-        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] 
+        intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] 
       });
       alphaClient.once('ready', async () => {
         console.log(`[+] Dedicated Krims Code Alpha bot connected as ${alphaClient.user.tag}`);
@@ -347,23 +445,40 @@ export function initAlphaBetaBotInstances() {
         // Register alpha slash commands under Alpha bot identity in Support Guild
         const g = alphaClient.guilds.cache.get(SUPPORT_GUILD_ID);
         if (g) {
-          await g.commands.set([ALPHA_BETA_COMMAND_DEFINITIONS[0]]).catch(() => {});
+          const alphaCommands = [ALPHA_BETA_COMMAND_DEFINITIONS[0]];
+          if (ALPHA_BETA_COMMAND_DEFINITIONS[2]) alphaCommands.push(ALPHA_BETA_COMMAND_DEFINITIONS[2]);
+          await g.commands.set(alphaCommands).catch(() => {});
         }
       });
 
       alphaClient.on('interactionCreate', async (interaction) => {
-        if (!interaction.isChatInputCommand()) return;
-        if (interaction.commandName === 'alpha') return handleAlphaCommand(interaction);
+        if (interaction.isChatInputCommand()) {
+          if (interaction.commandName === 'alpha') return handleAlphaCommand(interaction);
+          if (interaction.commandName === 'sneakpeek') return handleSneakPeekCommand(interaction);
+        } else if (interaction.isButton()) {
+          return handleAlphaButtonInteraction(interaction);
+        }
       });
 
       alphaClient.on('messageCreate', async (message) => {
         if (message.author.bot) return;
+        const text = message.content.toLowerCase().trim();
+        if (text === '!sneakpeek' || text === '!rewards' || text === '!alpha rewards' || text === '!alpha sneakpeek') {
+          const bal = getBalance(message.author.id);
+          const payload = buildKrimsRewardsSneakPeekEmbed(message.author, bal?.krylocoins ?? 1000, bal?.daily_streak ?? 0);
+          return message.reply(payload);
+        }
         if (message.mentions.has(alphaClient.user)) {
           const userPrompt = message.content.replace(/<@!?[0-9]+>/g, '').trim();
-          if (userPrompt.length > 0) {
-            return message.reply(`⚡ **Krims Code Alpha:** Internal R&D Subsystem processing input: "${userPrompt.slice(0, 50)}...". Ping: \`${alphaClient.ws.ping}ms\` with 100% telemetry operational.`);
+          if (userPrompt.toLowerCase().includes('sneak') || userPrompt.toLowerCase().includes('reward') || userPrompt.toLowerCase().includes('coin') || userPrompt.toLowerCase().includes('premium')) {
+            const bal = getBalance(message.author.id);
+            const payload = buildKrimsRewardsSneakPeekEmbed(message.author, bal?.krylocoins ?? 1000, bal?.daily_streak ?? 0);
+            return message.reply(payload);
           }
-          return message.reply('⚡ **Krims Code Alpha online.** Classified R&D subsystem active in stealth mode.');
+          if (userPrompt.length > 0) {
+            return message.reply(`⚡ **Krims Code Alpha:** Internal R&D Subsystem processing: "${userPrompt.slice(0, 50)}...". Run \`!sneakpeek\` or \`/alpha sneakpeek\` to preview the upcoming Krims Rewards economy evolution!`);
+          }
+          return message.reply('⚡ **Krims Code Alpha online.** Classified R&D subsystem active in stealth mode. Type `!sneakpeek` to view the economy evolution.');
         }
       });
 

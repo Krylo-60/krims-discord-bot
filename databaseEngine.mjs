@@ -582,3 +582,17 @@ export function updateCustomBotConfig(botId, { customPrefix, aiPersona, activity
   }
   return res;
 }
+
+export function getKrimsRewards(discordId) {
+  const row = getBalance(discordId);
+  return {
+    discordId,
+    krimsRewards: row?.krylocoins ?? 1000,
+    streak: row?.daily_streak ?? 0,
+    lastDaily: row?.last_daily ?? 0
+  };
+}
+
+export function addKrimsRewards(discordId, amount) {
+  return addCoins(discordId, amount);
+}
