@@ -89,6 +89,11 @@ import {
   buildActivitySelectMenu 
 } from './features/discordActivityEngine.mjs';
 import { 
+  HALF_LIFES_PING_COMMAND_DEF, 
+  handlePingRolesSlashCommand, 
+  handlePingRoleButton 
+} from './features/halfLifesPingRoles.mjs';
+import { 
   handleKlipyButtonInteraction, 
   searchKlipy, 
   getKlipyTrending, 
@@ -1194,7 +1199,14 @@ client.once('ready', async () => {
       await skybaseGuild.commands.set(uniqueCommands).catch(e => console.warn('[Guild Cmds] Sync warning:', e.message));
       console.log('[+] Instant Guild commands synced to Krylo\'s Skybase!');
     }
-    console.log('[+] Slash commands registered globally & locally in Skybase!');
+
+    // Sync Guild-Specific Command Suite for The Half Lifes
+    const halfLifesGuild = client.guilds.cache.get(HALF_LIFES_GUILD_ID);
+    if (halfLifesGuild) {
+      await halfLifesGuild.commands.create(HALF_LIFES_PING_COMMAND_DEF).catch(e => console.warn('[HalfLifes Cmd] Register notice:', e.message));
+      console.log('[+] Guild-specific /pingroles synced exclusively to The Half Lifes!');
+    }
+    console.log('[+] Slash commands registered globally & locally in Skybase and The Half Lifes!');
 
   // Sync persistent platform updates to Discord
   try {
@@ -1847,6 +1859,11 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.isButton()) {
     const { customId } = interaction;
     console.log(`[Button Click] customId: "${customId}" by ${interaction.user?.tag} (${interaction.user?.id}) in ${interaction.guild?.name || 'DM'}`);
+
+    // 🔔 The Half Lifes Clan Ping & Notification Preference Buttons
+    if (customId.startsWith('btn_ping_')) {
+      return await handlePingRoleButton(interaction);
+    }
 
     // 🎫 Krims Code Support Hub - Interactive Ticket Buttons (Trigger Modal Popup)
     if (customId.startsWith('krims_ticket_')) {
@@ -4740,6 +4757,11 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   if (!interaction.isChatInputCommand()) return;
+
+  // 🔔 Guild-Specific Command: /pingroles for The Half Lifes
+  if (interaction.commandName === 'pingroles') {
+    return await handlePingRolesSlashCommand(interaction);
+  }
 
   // Master Slash Command Router with crash shield & option normalization
   return await handleMasterSlashCommand(interaction, client, {
