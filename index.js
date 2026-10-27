@@ -64,6 +64,7 @@ import {
   handleAlphaCommand,
   handleBetaCommand,
   handleAlphaBetaMessage,
+  handleAlphaButtonInteraction,
   initAlphaBetaBotInstances
 } from './features/alphaBetaSuite.mjs';
 import { getEliteSmpSystemPrompt, ELITE_SMP_COMMAND_DEFINITION, handleEliteSmpCommand } from './features/eliteSmpKnowledge.mjs';
@@ -1787,6 +1788,11 @@ async function executeGameBoostOptimization(author) {
 
 
 client.on('interactionCreate', async (interaction) => {
+  // 💎 Handle Krims Code Alpha Sneak Peek Button Interactions (Zero commands needed)
+  if (interaction.isButton() && interaction.customId.startsWith('alpha_')) {
+    return await handleAlphaButtonInteraction(interaction);
+  }
+
   // 🎬 Handle Skybase Video Crew & Early Access Application Interactions
   if (
     (interaction.isButton() && (
