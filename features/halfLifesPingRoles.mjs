@@ -11,6 +11,8 @@ export const HALF_LIFES_GUILD_ID = '1557852594242719775';
 export const HALF_LIFES_ROLES_CHANNEL_ID = '1559251032465219587';
 
 export const ROLE_IDS = {
+  ALL_PINGS: '1564743693871747082',
+  NO_PINGS: '1564743695847129229',
   SMP_PINGS: '1564741897862258908',
   RAID_ALERTS: '1557877145051856989',
   ANNOUNCEMENTS: '1557877146775720087',
@@ -23,12 +25,12 @@ export const HALF_LIFES_PING_COMMAND_DEF = {
   options: [
     {
       name: 'setup',
-      description: 'Post the interactive notification preferences card in #🏷️・roles',
+      description: 'Post or refresh the interactive notification preferences card in #🏷️・roles',
       type: ApplicationCommandOptionType.Subcommand
     },
     {
       name: 'toggle',
-      description: 'Quickly toggle your SMP Pings role on or off',
+      description: 'Quickly toggle your All Pings role on or off',
       type: ApplicationCommandOptionType.Subcommand
     }
   ]
@@ -40,30 +42,48 @@ export function buildPingRolesEmbed(guildIconUrl) {
     .setTitle('⚔️ THE HALF LIFES • PING & NOTIFICATION PREFERENCES')
     .setThumbnail(guildIconUrl || null)
     .setDescription(
-      'Welcome Operatives! Choose your alert preferences below to stay in the loop without unwanted `@everyone` notifications.\n\n' +
-      '🔔 **SMP Pings** — Get pinged when teammates call for SMP gaming, trading, and team-ups.\n' +
-      '⚔️ **War & Raid Alerts** — Combat alerts, base defense, and counter-raids.\n' +
-      '📢 **Clan Announcements** — Major clan milestones, roster announcements, and server changes.\n' +
-      '🎮 **Squad Game Nights** — Casual minigames, tournament brackets, and voice hangouts.\n\n' +
-      '🔕 **Mute All Pings** — Remove all optional ping roles for quiet mode.\n\n' +
-      '*Click any button below to toggle your roles on or off anytime!*'
+      'Welcome Operatives! Choose your alert preferences below to stay in the loop without unwanted `@everyone` pings.\n\n' +
+      '🟢 **All Pings** (`@🔔・All Pings`) — Opt-in to all clan notifications! You will be pinged when anyone calls for the team.\n' +
+      '🔴 **No Pings** (`@𝔕・No Pings`) — Opt-out of all casual pings! You will never receive team or casual pings.\n\n' +
+      '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+      '**Specific Notification Categories:**\n' +
+      '🔔 **SMP Pings** — Teammates hopping on the SMP, sharing loot, or calling for team-ups.\n' +
+      '⚔️ **Raid Alerts** — Urgent combat alerts, base defense, and counter-raids.\n' +
+      '📢 **Announcements** — Major clan milestones, roster announcements, and server changes.\n' +
+      '🎮 **Game Nights** — Minigames, events, and voice hangouts.\n\n' +
+      '*Click the buttons below to set or toggle your roles anytime!*'
     )
     .setFooter({ text: 'The Half Lifes • Clan Notification Manager • Krims Code Enterprise' })
     .setTimestamp();
 }
 
 export function buildPingRolesActionRows() {
+  // Row 1: Primary All Pings vs No Pings
   const row1 = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId('btn_ping_smp')
-      .setLabel('SMP Pings')
+      .setCustomId('btn_ping_all')
+      .setLabel('All Pings')
       .setEmoji('🔔')
       .setStyle(ButtonStyle.Success),
     new ButtonBuilder()
-      .setCustomId('btn_ping_raid')
-      .setLabel('Raid Alerts')
+      .setCustomId('btn_ping_none')
+      .setLabel('No Pings')
+      .setEmoji('🔕')
+      .setStyle(ButtonStyle.Danger)
+  );
+
+  // Row 2: Granular categories
+  const row2 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('btn_ping_smp')
+      .setLabel('SMP Pings')
       .setEmoji('⚔️')
       .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId('btn_ping_raid')
+      .setLabel('Raid Alerts')
+      .setEmoji('🛡️')
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId('btn_ping_announcement')
       .setLabel('Announcements')
@@ -74,14 +94,6 @@ export function buildPingRolesActionRows() {
       .setLabel('Game Nights')
       .setEmoji('🎮')
       .setStyle(ButtonStyle.Secondary)
-  );
-
-  const row2 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId('btn_ping_mute_all')
-      .setLabel('Mute All Optional Pings')
-      .setEmoji('🔕')
-      .setStyle(ButtonStyle.Danger)
   );
 
   return [row1, row2];
@@ -124,7 +136,7 @@ export async function handlePingRolesSlashCommand(interaction) {
       await targetChannel.send({ embeds: [embed], components });
 
       return interaction.reply({
-        content: `✅ Notification Preferences panel successfully posted in ${targetChannel}!`,
+        content: `✅ Notification Preferences panel (with **All Pings** & **No Pings**) successfully posted in ${targetChannel}!`,
         ephemeral: true
       });
     } catch (err) {
@@ -136,7 +148,7 @@ export async function handlePingRolesSlashCommand(interaction) {
   }
 
   if (sub === 'toggle') {
-    return await toggleRoleOnMember(interaction, ROLE_IDS.SMP_PINGS, '🔔・SMP Pings');
+    return await toggleRoleOnMember(interaction, ROLE_IDS.ALL_PINGS, '🔔・All Pings');
   }
 }
 
@@ -146,6 +158,77 @@ export async function handlePingRolesSlashCommand(interaction) {
 export async function handlePingRoleButton(interaction) {
   const { customId, member, guild } = interaction;
 
+  // 1. All Pings Button
+  if (customId === 'btn_ping_all') {
+    try {
+      const allRole = await getOrFetchRole(guild, ROLE_IDS.ALL_PINGS, '🔔・All Pings');
+      const noRole = await getOrFetchRole(guild, ROLE_IDS.NO_PINGS, '🔕・No Pings');
+
+      if (!allRole) {
+        return interaction.reply({ content: '❌ Could not find the **All Pings** role.', ephemeral: true });
+      }
+
+      const toAdd = [allRole.id];
+      const toRemove = [];
+
+      if (noRole && member.roles.cache.has(noRole.id)) {
+        toRemove.push(noRole.id);
+      }
+
+      // Also add category roles
+      for (const catId of [ROLE_IDS.SMP_PINGS, ROLE_IDS.RAID_ALERTS, ROLE_IDS.ANNOUNCEMENTS, ROLE_IDS.GAME_NIGHTS]) {
+        if (!member.roles.cache.has(catId) && guild.roles.cache.has(catId)) {
+          toAdd.push(catId);
+        }
+      }
+
+      if (toRemove.length > 0) await member.roles.remove(toRemove, 'Opted into All Pings');
+      await member.roles.add(toAdd, 'Opted into All Pings');
+
+      return interaction.reply({
+        content: '🔔 **All Pings Enabled!** You now have the **@🔔・All Pings** role. You will be notified whenever someone pings the clan!',
+        ephemeral: true
+      });
+    } catch (err) {
+      return interaction.reply({ content: `❌ Error updating roles: ${err.message}`, ephemeral: true });
+    }
+  }
+
+  // 2. No Pings Button
+  if (customId === 'btn_ping_none') {
+    try {
+      const noRole = await getOrFetchRole(guild, ROLE_IDS.NO_PINGS, '🔕・No Pings');
+      const allRole = await getOrFetchRole(guild, ROLE_IDS.ALL_PINGS, '🔔・All Pings');
+
+      if (!noRole) {
+        return interaction.reply({ content: '❌ Could not find the **No Pings** role.', ephemeral: true });
+      }
+
+      const rolesToRemove = [
+        ROLE_IDS.ALL_PINGS,
+        ROLE_IDS.SMP_PINGS,
+        ROLE_IDS.RAID_ALERTS,
+        ROLE_IDS.ANNOUNCEMENTS,
+        ROLE_IDS.GAME_NIGHTS
+      ].filter(id => member.roles.cache.has(id));
+
+      if (rolesToRemove.length > 0) {
+        await member.roles.remove(rolesToRemove, 'Opted into No Pings');
+      }
+      if (!member.roles.cache.has(noRole.id)) {
+        await member.roles.add(noRole.id, 'Opted into No Pings');
+      }
+
+      return interaction.reply({
+        content: '🔕 **No Pings Enabled!** You now have the **@𝔕・No Pings** role and all notification roles were removed. You will not be disturbed!',
+        ephemeral: true
+      });
+    } catch (err) {
+      return interaction.reply({ content: `❌ Error updating roles: ${err.message}`, ephemeral: true });
+    }
+  }
+
+  // 3. Category Buttons
   if (customId === 'btn_ping_smp') {
     return await toggleRoleOnMember(interaction, ROLE_IDS.SMP_PINGS, '🔔・SMP Pings');
   }
@@ -161,46 +244,21 @@ export async function handlePingRoleButton(interaction) {
   if (customId === 'btn_ping_games') {
     return await toggleRoleOnMember(interaction, ROLE_IDS.GAME_NIGHTS, '🎮 Squad Game Nights');
   }
+}
 
-  if (customId === 'btn_ping_mute_all') {
-    try {
-      const rolesToRemove = [
-        ROLE_IDS.SMP_PINGS,
-        ROLE_IDS.RAID_ALERTS,
-        ROLE_IDS.ANNOUNCEMENTS,
-        ROLE_IDS.GAME_NIGHTS
-      ].filter(id => member.roles.cache.has(id));
-
-      if (rolesToRemove.length === 0) {
-        return interaction.reply({
-          content: '🔕 You already have all optional notification roles disabled. You are in quiet mode!',
-          ephemeral: true
-        });
-      }
-
-      await member.roles.remove(rolesToRemove, 'User requested mute all optional pings');
-      return interaction.reply({
-        content: '🔕 **Quiet Mode Active!** Removed all optional ping roles. You will no longer receive casual or team pings.',
-        ephemeral: true
-      });
-    } catch (err) {
-      return interaction.reply({
-        content: `❌ Could not remove roles: ${err.message}`,
-        ephemeral: true
-      });
-    }
+async function getOrFetchRole(guild, roleId, fallbackName) {
+  let role = guild.roles.cache.get(roleId) || await guild.roles.fetch(roleId).catch(() => null);
+  if (!role && fallbackName) {
+    const cleanFallback = fallbackName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    role = guild.roles.cache.find(r => r.name.toLowerCase().replace(/[^a-z0-9]/g, '').includes(cleanFallback));
   }
+  return role;
 }
 
 async function toggleRoleOnMember(interaction, roleId, roleName) {
   const { member, guild } = interaction;
   try {
-    let role = guild.roles.cache.get(roleId) || await guild.roles.fetch(roleId).catch(() => null);
-
-    if (!role) {
-      // Auto-fallback: search by name
-      role = guild.roles.cache.find(r => r.name.toLowerCase().includes(roleName.toLowerCase().replace(/[^a-z0-9]/g, '')));
-    }
+    const role = await getOrFetchRole(guild, roleId, roleName);
 
     if (!role) {
       return interaction.reply({
@@ -216,9 +274,13 @@ async function toggleRoleOnMember(interaction, roleId, roleName) {
         ephemeral: true
       });
     } else {
+      // If adding a ping category, remove the No Pings role if present
+      if (member.roles.cache.has(ROLE_IDS.NO_PINGS)) {
+        await member.roles.remove(ROLE_IDS.NO_PINGS, 'User enabled a ping category').catch(() => {});
+      }
       await member.roles.add(role, 'User toggled notification role on');
       return interaction.reply({
-        content: `🔔 Added **${role.name}**! You will now be notified when the team pings this role.`,
+        content: `🔔 Added **${role.name}**! You will now be notified when the team pings this category.`,
         ephemeral: true
       });
     }
