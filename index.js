@@ -779,6 +779,34 @@ async function triggerTicketAIInstantResponse(channel, { user, subject = '', det
   try {
     channel.sendTyping().catch(() => {});
 
+    // Check if the server owners / admin roles are offline
+    let areAdminsOffline = true;
+    try {
+      if (guild) {
+        const adminRoles = guild.roles.cache.filter(r => 
+          r.permissions.has(PermissionFlagsBits.Administrator) ||
+          /owner|founder|admin|co-owner|co owner|head admin|leadership/i.test(r.name)
+        );
+        const adminRoleIds = new Set(adminRoles.map(r => r.id));
+        
+        const staffMembers = guild.members.cache.filter(m => 
+          !m.user.bot && (
+            m.id === guild.ownerId || 
+            m.permissions.has(PermissionFlagsBits.Administrator) ||
+            m.roles.cache.some(r => adminRoleIds.has(r.id))
+          )
+        );
+
+        const onlineStaff = staffMembers.filter(m => m.presence && m.presence.status && m.presence.status !== 'offline');
+        if (onlineStaff.size > 0) {
+          areAdminsOffline = false;
+        }
+      }
+    } catch (_) {}
+
+    const offlineNotice = `🌙 **Notice:** The server owners and admin roles are currently offline right now, sorry for the inconvenience! But me, **Krims**, is here! Ask me whatever you need and I will assist you right now, and I will inform the owners and staff team about what you need the moment they come online!`;
+    const onlineNotice = `👋 **Welcome to Support!** The server owners and staff team have been notified. In the meantime, me, **Krims**, is here to assist you right now! Ask me whatever you need and I will help you immediately!`;
+
     const fullTicketText = `${subject} ${details}`.toLowerCase();
     const isCustomServerRequest = fullTicketText.includes('server') || 
       fullTicketText.includes('make a server') || 
@@ -798,15 +826,18 @@ async function triggerTicketAIInstantResponse(channel, { user, subject = '', det
 User: @${user.tag} (ID: ${user.id})
 Ticket Subject / Department: "${subject}"
 User Submitted Details: "${details || 'No additional details provided'}"
-Server: "${guild?.name || 'Krims Support Central'}"
+Server: "${guild?.name || 'Support Central'}"
+Admin Staff Status: ${areAdminsOffline ? 'ALL OWNERS & ADMIN ROLES ARE CURRENTLY OFFLINE' : 'OWNERS / ADMIN ROLES ARE ONLINE'}
 
 Instructions:
 1. Greet the user warmly and confirm their ticket has been established.
-2. CRITICAL NIGHT-SHIFT DIRECTIVE:
-   - Always state clearly at the very top: "🌙 **Notice:** No mods are available right now (overnight hours), sorry for the inconvenience! But me, **Krims**, is here! Ask me whatever you need and I will assist you right now, and I will inform Krylo and the staff team about what you need the moment they wake up!"
+2. STAFF PRESENCE DIRECTIVE:
+   - If Admin Staff Status is OFFLINE: State clearly at the very top: "${offlineNotice}"
+   - If Admin Staff Status is ONLINE: State clearly at the very top: "${onlineNotice}"
+   - NOTE: Krylo is the supreme creator and bot owner, NOT a mod. The server founders and owners are the staff leadership. Always refer to them as "the owners and staff team".
 3. If this is a request to have a Custom Discord or Minecraft Server created by the Krims Code team:
    - Enthusiastically confirm their custom server request has been logged!
-   - Highlight: "Our verified engineering staff will review all specs first thing in the morning."
+   - Highlight: "Our verified engineering staff will review all specs the moment they review this ticket."
    - Prompt them with 3 quick questions to help speed up the build:
      a) Server Theme: Is this for a Minecraft Clan/SMP, an esports gaming team, or a content/creator studio?
      b) Key Features Needed: Roles/permissions, AutoMod defense, Leveling with custom rank cards, or a Custom Bot token?
@@ -816,10 +847,10 @@ Instructions:
    - Prompt them to provide their Custom Bot Application ID so staff can verify their owner status and reset it.
 5. For any other technical issue, bug, or bot question:
    - Try your absolute best to immediately troubleshoot the error, explain the feature/command, or provide the direct solution!
-   - Reassure them that staff will review the transcript and follow up in the morning.
+   - Reassure them that the owners and staff will review the transcript and assist.
 6. Format with clean Discord markdown, emojis, and a reassuring tone.`;
 
-    const systemInstruction = "You are Krims Support AI, an intelligent, empathetic, and ultra-fast support assistant for the Krims Code bot fleet. The human staff and Krylo are offline sleeping for the night. Tell the user no mods are available now and apologize for the inconvenience, but explain that you (Krims) are here to help them with anything and that you will tell the staff about what they need the moment they wake up.";
+    const systemInstruction = `You are Krims Support AI, an intelligent, empathetic, and ultra-fast support assistant for the community server. ${areAdminsOffline ? 'The server owners and admin roles are currently offline. Apologize for the inconvenience, explain that the owners and staff are offline right now, but assure them that you (Krims) are here to help them with anything and that you will inform the owners and staff team about what they need the moment they come online.' : 'The server owners and staff team are alerted. Greet the user and assist them immediately with whatever they need.'} Never refer to Krylo as a mod; the server owners/founders are the leadership.`;
 
     let aiAnswer = null;
     if (typeof geminiDirectAsk === 'function') {
@@ -827,24 +858,25 @@ Instructions:
     }
 
     if (!aiAnswer) {
+      const headerNotice = areAdminsOffline ? offlineNotice : onlineNotice;
       if (isCustomServerRequest) {
         aiAnswer = `👋 Hello <@${user.id}>! I'm **Krims Support AI**.\n\n` +
-          `🌙 **Notice:** No mods are available right now, sorry for the inconvenience! But me, **Krims**, is here. Ask me whatever you need and I will tell the staff about what you need the moment they wake up!\n\n` +
+          `${headerNotice}\n\n` +
           `🚀 **Your Custom Server Request has been logged!**\n` +
           `To help us get your server built as fast as possible, please drop a few details:\n` +
           `1. **Server Purpose:** Is this for a Minecraft Clan/SMP, Esports team, or Creator studio?\n` +
           `2. **Key Modules:** Roles, AutoMod, Voice/Text Leveling, or a Custom Bot token?\n` +
           `3. **Theme & Style:** Any specific color theme or inspiration?\n\n` +
-          `I will compile all your requirements for Krylo and the staff team! ⚡`;
+          `I will compile all your requirements for the owners and staff team! ⚡`;
       } else if (isPasswordReset) {
         aiAnswer = `👋 Hello <@${user.id}>! I'm **Krims Support AI**.\n\n` +
-          `🌙 **Notice:** No mods are available right now, sorry for the inconvenience! But me, **Krims**, is here. Ask me whatever you need and I will tell the staff about what you need the moment they wake up!\n\n` +
+          `${headerNotice}\n\n` +
           `🔒 **Custom Bot Dashboard Security Verification**\n` +
           `To protect your bot token from unauthorized hijacking, passwords can only be reset via verified ticket.\n\n` +
-          `👉 Please reply with your **Bot Application ID** below. Staff will verify your Discord account and reset your credentials first thing in the morning!`;
+          `👉 Please reply with your **Bot Application ID** below. Staff will verify your Discord account and reset your credentials!`;
       } else {
         aiAnswer = `👋 Hello <@${user.id}>! I am **Krims Support AI**.\n\n` +
-          `🌙 **Notice:** No mods are available right now, sorry for the inconvenience! But me, **Krims**, is here. Ask me whatever you need and I will tell the staff about what you need the moment they wake up! ⚡\n\n` +
+          `${headerNotice} ⚡\n\n` +
           `I've logged your request: **"${subject}"**.\n` +
           `Please provide any questions, screenshots, or details below — I am here to help you right now!`;
       }
@@ -12062,8 +12094,7 @@ async function handleTicketMessage(message) {
         "- NEVER mention any Minecraft server, KSMP, or server IP addresses.\n" +
         "- Never reveal private real identity information; refer to creator as Krylo or Krylo Team."
       : "You are Krims Support AI, the official support assistant for the community server. " +
-        "Human staff and Krylo are offline sleeping for the night, so you (Krims) are actively assisting users right now. " +
-        "Answer their questions directly, troubleshoot problems, and reassure them you are recording all notes to brief the staff team when they awaken. Never reveal private real names.";
+        "If the server owners and admin roles are offline, explain that the owners and staff are offline right now, but reassure them you (Krims) are actively assisting them and logging all details to brief the owners and staff team the moment they come online. Never refer to Krylo as a mod; the server founders/owners are the leadership.";
 
     let history = conversationHistory.get(message.channel.id) || [];
     
