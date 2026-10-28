@@ -802,22 +802,24 @@ Server: "${guild?.name || 'Krims Support Central'}"
 
 Instructions:
 1. Greet the user warmly and confirm their ticket has been established.
-2. If this is a request to have a Custom Discord or Minecraft Server created by the Krims Code team:
+2. CRITICAL NIGHT-SHIFT DIRECTIVE:
+   - Always state clearly at the very top: "🌙 **Notice:** No mods are available right now (overnight hours), sorry for the inconvenience! But me, **Krims**, is here! Ask me whatever you need and I will assist you right now, and I will inform Krylo and the staff team about what you need the moment they wake up!"
+3. If this is a request to have a Custom Discord or Minecraft Server created by the Krims Code team:
    - Enthusiastically confirm their custom server request has been logged!
-   - Highlight: "Our verified engineering staff typically responds within 5 minutes to 3 hours."
+   - Highlight: "Our verified engineering staff will review all specs first thing in the morning."
    - Prompt them with 3 quick questions to help speed up the build:
      a) Server Theme: Is this for a Minecraft Clan/SMP, an esports gaming team, or a content/creator studio?
      b) Key Features Needed: Roles/permissions, AutoMod defense, Leveling with custom rank cards, or a Custom Bot token?
      c) Aesthetic: Any preferred color palette or custom banner ideas?
-3. If this is a Custom Bot Dashboard Password Reset / Change request:
+4. If this is a Custom Bot Dashboard Password Reset / Change request:
    - Confirm that passwords cannot be changed on the web for security against hijacking.
    - Prompt them to provide their Custom Bot Application ID so staff can verify their owner status and reset it.
-4. For any other technical issue, bug, or bot question:
+5. For any other technical issue, bug, or bot question:
    - Try your absolute best to immediately troubleshoot the error, explain the feature/command, or provide the direct solution!
-   - Reassure them that human staff has been notified and will review everything shortly.
-5. Format with clean Discord markdown, emojis, and a reassuring tone.`;
+   - Reassure them that staff will review the transcript and follow up in the morning.
+6. Format with clean Discord markdown, emojis, and a reassuring tone.`;
 
-    const systemInstruction = "You are Krims Support AI, an intelligent, empathetic, and ultra-fast support assistant for the Krims Code bot fleet. Answer immediately, address the user's inquiry directly, and try your absolute best to help them on the spot.";
+    const systemInstruction = "You are Krims Support AI, an intelligent, empathetic, and ultra-fast support assistant for the Krims Code bot fleet. The human staff and Krylo are offline sleeping for the night. Tell the user no mods are available now and apologize for the inconvenience, but explain that you (Krims) are here to help them with anything and that you will tell the staff about what they need the moment they wake up.";
 
     let aiAnswer = null;
     if (typeof geminiDirectAsk === 'function') {
@@ -827,23 +829,24 @@ Instructions:
     if (!aiAnswer) {
       if (isCustomServerRequest) {
         aiAnswer = `👋 Hello <@${user.id}>! I'm **Krims Support AI**.\n\n` +
-          `🚀 **Your Custom Server Request has been dispatched!**\n` +
-          `Our engineering staff has been notified and typically responds within **5 minutes to 3 hours**.\n\n` +
+          `🌙 **Notice:** No mods are available right now, sorry for the inconvenience! But me, **Krims**, is here. Ask me whatever you need and I will tell the staff about what you need the moment they wake up!\n\n` +
+          `🚀 **Your Custom Server Request has been logged!**\n` +
           `To help us get your server built as fast as possible, please drop a few details:\n` +
           `1. **Server Purpose:** Is this for a Minecraft Clan/SMP, Esports team, or Creator studio?\n` +
           `2. **Key Modules:** Roles, AutoMod, Voice/Text Leveling, or a Custom Bot token?\n` +
           `3. **Theme & Style:** Any specific color theme or inspiration?\n\n` +
-          `Staff will review your requirements the moment they step in! ⚡`;
+          `I will compile all your requirements for Krylo and the staff team! ⚡`;
       } else if (isPasswordReset) {
         aiAnswer = `👋 Hello <@${user.id}>! I'm **Krims Support AI**.\n\n` +
+          `🌙 **Notice:** No mods are available right now, sorry for the inconvenience! But me, **Krims**, is here. Ask me whatever you need and I will tell the staff about what you need the moment they wake up!\n\n` +
           `🔒 **Custom Bot Dashboard Security Verification**\n` +
           `To protect your bot token from unauthorized hijacking, passwords can only be reset via verified ticket.\n\n` +
-          `👉 Please reply with your **Bot Application ID** below. Staff will verify your Discord account against our owner registry and securely reset your credentials!`;
+          `👉 Please reply with your **Bot Application ID** below. Staff will verify your Discord account and reset your credentials first thing in the morning!`;
       } else {
         aiAnswer = `👋 Hello <@${user.id}>! I am **Krims Support AI**.\n\n` +
+          `🌙 **Notice:** No mods are available right now, sorry for the inconvenience! But me, **Krims**, is here. Ask me whatever you need and I will tell the staff about what you need the moment they wake up! ⚡\n\n` +
           `I've logged your request: **"${subject}"**.\n` +
-          `Our verified staff has been alerted and typically responds within **5 minutes to 3 hours**.\n\n` +
-          `Please provide any screenshots, error codes, or additional details below, and I'll do my best to assist you while staff prepares your ticket! ⚡`;
+          `Please provide any questions, screenshots, or details below — I am here to help you right now!`;
       }
     }
 
@@ -12058,7 +12061,8 @@ async function handleTicketMessage(message) {
         "- NEVER mention any Minecraft server, KSMP, or server IP addresses.\n" +
         "- Never reveal private real identity information; refer to creator as Krylo or Krylo Team."
       : "You are Krims Support AI, the official support assistant for the community server. " +
-        "Provide a friendly, helpful, and concise solution to the user's issue. Never reveal private real names.";
+        "Human staff and Krylo are offline sleeping for the night, so you (Krims) are actively assisting users right now. " +
+        "Answer their questions directly, troubleshoot problems, and reassure them you are recording all notes to brief the staff team when they awaken. Never reveal private real names.";
 
     let history = conversationHistory.get(message.channel.id) || [];
     
