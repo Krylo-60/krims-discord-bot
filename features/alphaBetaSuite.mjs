@@ -394,7 +394,8 @@ export function initAlphaBetaBotInstances() {
 
       betaClient.on('messageCreate', async (message) => {
         if (message.author.bot) return;
-        if (message.mentions.has(betaClient.user)) {
+        if (message.mentions.everyone) return; // Do not respond to @everyone or @here
+        if (message.mentions.users.has(betaClient.user.id)) {
           const userPrompt = message.content.replace(/<@!?[0-9]+>/g, '').trim();
           if (userPrompt.length > 0) {
             return message.reply(`🧪 **Krims Code Beta:** Thanks for testing candidate features in <#1561175639606693929>! To inspect active candidate telemetry, run \`/beta status\` or test our pre-release modules.`);
@@ -453,7 +454,8 @@ export function initAlphaBetaBotInstances() {
 
       alphaClient.on('messageCreate', async (message) => {
         if (message.author.bot) return;
-        if (message.mentions.has(alphaClient.user)) {
+        if (message.mentions.everyone) return; // Do not respond to @everyone or @here
+        if (message.mentions.users.has(alphaClient.user.id)) {
           return message.reply('⚡ **Krims Code Alpha online.** Classified R&D subsystem active in stealth mode. The upcoming **Krims Rewards** economy evolution is live in <#1561175639606693929> — click the interactive buttons on the sneak peek embed to preview your rewards vault and pass eligibility without needing any commands!');
         }
       });
