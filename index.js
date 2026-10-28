@@ -9135,6 +9135,7 @@ client.on('messageCreate', async (message) => {
       }
     }
 
+    let aiReply = null;
     try {
       await message.channel.sendTyping().catch(() => {});
 
@@ -9146,7 +9147,7 @@ client.on('messageCreate', async (message) => {
       }
 
       if (imageUrl) {
-        aiReply = await groqVisionAsk(imageUrl, cleanPrompt || 'Describe this image and answer any questions about it.') ||
+        aiReply = (typeof groqVisionAsk === 'function' ? await groqVisionAsk(imageUrl, cleanPrompt || 'Describe this image and answer any questions about it.') : null) ||
                   await geminiDirectAsk(`[User shared an image: ${imageUrl}]\n${cleanPrompt}`, '', message.guild.name, message.guild.id, message.author.id, message.member?.displayName || message.author.username);
       } else {
         aiReply = await geminiDirectAsk(cleanPrompt, '', message.guild.name, message.guild.id, message.author.id, message.member?.displayName || message.author.username);
@@ -9157,14 +9158,14 @@ client.on('messageCreate', async (message) => {
       }
 
       // 💾 Record persistent server AI memory
-      if (message.guild?.id) {
+      if (message.guild?.id && typeof recordConversationTurn === 'function') {
         recordConversationTurn(message.guild.id, message.channel.id, message.author.id, message.member?.displayName || message.author.username, cleanPrompt, aiReply);
       }
 
       // Voice TTS audio playback if bot is active in a voice channel
       try {
         const botVoiceChannel = message.guild.members?.me?.voice?.channel;
-        if (botVoiceChannel) {
+        if (botVoiceChannel && typeof speakInVoiceChannel === 'function') {
           const ttsSpeech = aiReply.replace(/[*_~`>#]/g, '').trim().slice(0, 200);
           await speakInVoiceChannel(message.guild.id, ttsSpeech);
         }
