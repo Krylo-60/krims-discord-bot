@@ -364,7 +364,7 @@ async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', g
   defaultSys += memoryContext;
   defaultSys += weatherContext;
   defaultSys += await getEliteSmpSystemPrompt();
-  defaultSys += '\n• SUPREME CREATOR & OWNER RECOGNITION:\n- Krylo (Discord: krylo_plays / KryloMCYT, ID: 1414143825538191373, IGN: Krylo_MC) is your CREATOR, FOUNDER, AND SUPREME BOSS.\n- In The Half Life\'s clan, Krylo is the official Team Co-Leader (st1llkill3r is Team Leader). Krylo is also the Supreme Server & Bot Owner with a permanent Lifetime Founder License (100% Free Forever). When Krylo speaks, always salute him and recognize his supreme authority!\n';
+  defaultSys += '\n• SUPREME CREATOR & OWNER RECOGNITION:\n- Krylo (Discord: krylo_plays / KryloMCYT, ID: 1414143825538191373, IGN: Krylo_MC) is your CREATOR, FOUNDER, AND SUPREME BOSS.\n- In The Half Life\'s clan, Jonesy (Discord: Jonesy / st1llkill3r, ID: 1533703991882416373, Minecraft IGN: st1LLkill3r) is the supreme Team Leader, and Krylo is the official Team Co-Leader. Krylo is also the Supreme Server & Bot Owner with a permanent Lifetime Founder License (100% Free Forever). When Krylo speaks, always salute him and recognize his supreme authority!\n';
   defaultSys += formattingRule;
 
   const sysInstr = systemInstruction 

@@ -7,31 +7,65 @@
 import { learnServerFact } from './aiMemoryEngine.mjs';
 import { handleRosterIgnWelcomeUpdate } from './welcomeCardEngine.mjs';
 
+// Protected Leadership & Admin IDs that must NEVER have their nickname modified by auto-sync
+export const PROTECTED_MEMBER_IDS = new Set([
+  '1533703991882416373', // Jonesy / st1LLkill3r (The Half Life's Clan Leader)
+  '1414143825538191373', // Krylo / Krylo_MC (Supreme Creator & Co-Leader)
+]);
+
+// Common English words that must NEVER be extracted as valid Minecraft IGNs
+const STOPWORDS = new Set([
+  'like', 'that', 'this', 'here', 'there', 'what', 'when', 'where', 'good', 'well',
+  'name', 'user', 'team', 'clan', 'leader', 'owner', 'admin', 'moderator', 'staff',
+  'mine', 'your', 'ours', 'them', 'they', 'dont', 'cant', 'wont', 'just', 'some',
+  'more', 'play', 'help', 'wait', 'with', 'from', 'have', 'said', 'tell', 'know',
+  'about', 'think', 'again', 'right', 'wrong', 'yeah', 'okay', 'sure', 'fine', 'cool',
+  'game', 'server', 'smp', 'life', 'dead', 'kill', 'died', 'base', 'raid', 'loot'
+]);
+
 export function extractIgn(content, isRosterChannel = false) {
   if (!content) return null;
   const trimmed = content.trim();
 
-  // Pattern 1: Command prefix (e.g. !ign Steve, !mcign Steve)
-  const cmdMatch = trimmed.match(/^!(?:ign|mcign|name|setign)\s+`?([a-zA-Z0-9_]{3,16})`?/i);
-  if (cmdMatch) return cmdMatch[1];
+  // Pattern 1: Command prefix (e.g. !ign Steve, !mcign Steve, !setign Steve) - Allowed in any channel
+  const cmdMatch = trimmed.match(/^!(?:ign|mcign|setign)\s+`?([a-zA-Z0-9_]{3,16})`?$/i);
+  if (cmdMatch) {
+    const candidate = cmdMatch[1];
+    if (!STOPWORDS.has(candidate.toLowerCase())) return candidate;
+  }
 
-  // Pattern 2: Explicit label (e.g. • Minecraft IGN: CrazyCoolCam, MC IGN: Steve, IGN: Alex)
-  const labeledMatch = trimmed.match(/(?:minecraft\s*ign|mc\s*ign|\bign\b)\s*[:=\-]?\s*`?([a-zA-Z0-9_]{3,16})`?/i);
-  if (labeledMatch) return labeledMatch[1];
+  // Conversational and loose patterns are STRICTLY restricted to dedicated roster/verification channels!
+  // In normal chat channels (#team-chat, #general, etc.), we NEVER parse normal sentences as IGNs.
+  if (!isRosterChannel) {
+    return null;
+  }
 
-  // Pattern 3: Conversational (e.g. My IGN is CrazyCoolCam, My MC name is Steve)
-  const phraseMatch = trimmed.match(/(?:my\s*(?:minecraft\s*|mc\s*)?(?:ign|name|username)\s*(?:is)?\s*[:=\-]?)\s*`?([a-zA-Z0-9_]{3,16})`?/i);
-  if (phraseMatch) return phraseMatch[1];
+  // Pattern 2: Explicit label inside roster channels (e.g. "IGN: Steve", "MC IGN: Steve", "Minecraft IGN: Alex")
+  const labeledMatch = trimmed.match(/(?:(?:minecraft|mc)\s*ign|\bign\b)\s*[:=\-]\s*`?([a-zA-Z0-9_]{3,16})`?/i);
+  if (labeledMatch) {
+    const candidate = labeledMatch[1];
+    if (!STOPWORDS.has(candidate.toLowerCase())) return candidate;
+  }
 
-  // Pattern 4: In dedicated roster channel, check if the first line or standalone message is a valid MC IGN
-  if (isRosterChannel) {
-    // Exact standalone single-word IGN (3-16 chars, letters/numbers/underscore)
-    if (/^[a-zA-Z0-9_]{3,16}$/.test(trimmed)) {
+  // Pattern 3: Strict conversational inside roster channels (e.g. "My IGN is Steve", "My MC username is Alex")
+  // Requires explicit "is", "=", or ":"
+  const phraseMatch = trimmed.match(/^my\s*(?:minecraft\s*|mc\s*)?(?:ign|name|username)\s*(?:is|=|:)\s*`?([a-zA-Z0-9_]{3,16})`?$/i);
+  if (phraseMatch) {
+    const candidate = phraseMatch[1];
+    if (!STOPWORDS.has(candidate.toLowerCase())) return candidate;
+  }
+
+  // Pattern 4: Standalone single-word IGN in dedicated roster channel
+  if (/^[a-zA-Z0-9_]{3,16}$/.test(trimmed)) {
+    if (!STOPWORDS.has(trimmed.toLowerCase())) {
       return trimmed;
     }
-    // First line is just an IGN, followed by other details
-    const lines = trimmed.split('\n').map(l => l.trim()).filter(Boolean);
-    if (lines.length > 0 && /^[a-zA-Z0-9_]{3,16}$/.test(lines[0])) {
+  }
+
+  // Pattern 5: First line of a structured application form in dedicated roster channel
+  const lines = trimmed.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length > 0 && /^[a-zA-Z0-9_]{3,16}$/.test(lines[0])) {
+    if (!STOPWORDS.has(lines[0].toLowerCase())) {
       return lines[0];
     }
   }
@@ -41,6 +75,11 @@ export function extractIgn(content, isRosterChannel = false) {
 
 export async function handleRosterMessage(message) {
   if (!message.guild || message.author.bot) return false;
+
+  // Immunize Leadership & Protected Members
+  if (PROTECTED_MEMBER_IDS.has(message.author.id)) {
+    return false;
+  }
 
   const channelName = (message.channel.name || '').toLowerCase();
   const isRosterChannel = channelName.includes('roster') ||
@@ -55,10 +94,15 @@ export async function handleRosterMessage(message) {
     const member = message.member || await message.guild.members.fetch(message.author.id).catch(() => null);
     if (!member) return false;
 
+    // Immunize server owners & admins
+    if (message.guild.ownerId === member.id || member.permissions.has('Administrator')) {
+      return false;
+    }
+
     // 🧠 Learn member IGN into persistent server AI memory
     learnServerFact(
       message.guild.id,
-      `member_${ign.toLowerCase()}`,
+      `member_${member.id}`,
       `Discord user @${member.user.username} (${member.user.tag}) has verified Minecraft IGN: "${ign}".`,
       'Roster Sync'
     );
@@ -73,13 +117,6 @@ export async function handleRosterMessage(message) {
     // Already matches
     if (member.nickname === ign || (!member.nickname && member.user.username === ign)) {
       await message.react('✅').catch(() => {});
-      return true;
-    }
-
-    // Server owner cannot be renamed via bot API (Discord protocol 50013)
-    if (message.guild.ownerId === member.id) {
-      await message.react('✅').catch(() => {});
-      console.log(`[RosterAutoNick] IGN "${ign}" registered for server owner @${member.user.username} (Discord bypasses bot renaming for owner)`);
       return true;
     }
 
