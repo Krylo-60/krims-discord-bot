@@ -120,7 +120,8 @@ import {
 } from './features/aiSelfHealingEngine.mjs';
 import { 
   startAutoModScheduler, 
-  syncGuildAutoMod 
+  syncGuildAutoMod,
+  getGlobalAutoModRuleCount
 } from './features/autoModSyncEngine.mjs';
 
 const guildConfigCache = new Map();
@@ -10523,6 +10524,76 @@ client.on('messageCreate', async (message) => {
       }, 5000);
       return;
     }
+  }
+
+  // Command: !automod [setup | status]
+  if (content.toLowerCase().startsWith(botPrefix + 'automod') || content.toLowerCase().startsWith('!automod')) {
+    if (!message.guild) {
+      await message.reply("❌ AutoMod commands can only be run inside a Discord server!");
+      return;
+    }
+    const parts = content.trim().split(/\s+/);
+    const sub = parts[1]?.toLowerCase() || 'status';
+
+    if (sub === 'setup') {
+      const canManage = message.member?.permissions?.has(PermissionFlagsBits.ManageGuild) || 
+                        message.member?.permissions?.has(PermissionFlagsBits.Administrator) ||
+                        message.author.id === '1414143825538191373';
+      if (!canManage) {
+        await message.reply("❌ **Permission Denied:** You need `Manage Server` permissions to deploy Discord native AutoMod rules.");
+        return;
+      }
+      const sentMsg = await message.reply("🔄 **Deploying native Discord AutoMod rule suite...**");
+      const created = await syncGuildAutoMod(message.guild);
+      const rules = await message.guild.autoModerationRules.fetch().catch(() => null);
+      const currentGuildRules = rules ? rules.size : 0;
+      const globalStats = await getGlobalAutoModRuleCount(client);
+
+      const embed = new EmbedBuilder()
+        .setColor(0x00F2FF)
+        .setTitle('🛡️ Discord Native AutoMod Suite Configured!')
+        .setDescription(`Successfully synchronized Discord native AutoMod security rules for **${message.guild.name}**!`)
+        .addFields(
+          { name: '📥 Rules Deployed This Run', value: `\`+${created} Rules\``, inline: true },
+          { name: '🔒 Server Active Rules', value: `\`${currentGuildRules} / 10 Active\``, inline: true },
+          { name: '🌐 Global Badge Progress', value: `\`${globalStats.totalRules} / 100 Rules\` (${Math.min(100, Math.round((globalStats.totalRules / 100) * 100))}%)`, inline: true },
+          {
+            name: '🎖️ Discord "Uses AutoMod" Badge Status',
+            value: globalStats.qualified 
+              ? '✅ **QUALIFIED!** Over 100 native rules active across servers. Discord profile badge will appear automatically.'
+              : `⏳ **${globalStats.needed} more rules needed** across servers to unlock the official Discord profile shield badge.`
+          }
+        )
+        .setFooter({ text: 'Krims Code AI • Native AutoMod Security Engine', iconURL: client.user.displayAvatarURL() })
+        .setTimestamp();
+
+      await sentMsg.edit({ content: null, embeds: [embed] });
+      return;
+    }
+
+    // Default status
+    const rules = await message.guild.autoModerationRules.fetch().catch(() => null);
+    const currentGuildRules = rules ? rules.size : 0;
+    const globalStats = await getGlobalAutoModRuleCount(client);
+
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('🛡️ Discord Native AutoMod Status & Badge Qualification')
+      .setDescription(`Real-time telemetry for Discord native AutoMod rules across the Krims fleet.`)
+      .addFields(
+        { name: '📍 This Server', value: `\`${currentGuildRules} Active Rules\``, inline: true },
+        { name: '🌐 Connected Guilds', value: `\`${globalStats.guildCount} Servers\``, inline: true },
+        { name: '🎯 100-Rule Badge Target', value: `\`${globalStats.totalRules} / 100 Rules\` (${Math.min(100, Math.round((globalStats.totalRules / 100) * 100))}%)`, inline: true },
+        {
+          name: '📊 How to Get the Badge',
+          value: 'Discord automatically awards the **"Uses AutoMod"** badge to a bot profile once it actively manages **100+ native AutoMod rules** across all servers. Run `!automod setup` (or `/automod setup`) in your servers to deploy rules and help hit the milestone!'
+        }
+      )
+      .setFooter({ text: 'Krims Code AI • Native AutoMod Security Engine', iconURL: client.user.displayAvatarURL() })
+      .setTimestamp();
+
+    await message.reply({ embeds: [embed] });
+    return;
   }
 
   // Command: !ticket

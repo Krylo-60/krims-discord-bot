@@ -141,6 +141,27 @@ export async function syncGuildAutoMod(guild) {
       }
     }
 
+    // 5. Mention Spam Rule (Anti-Raid Mass Mentions)
+    const hasMentionSpam = existingRules.some(r => r.triggerType === AutoModerationRuleTriggerType.MentionSpam || r.triggerType === 5);
+    if (!hasMentionSpam) {
+      try {
+        await guild.autoModerationRules.create({
+          name: '🛡️ AutoMod • Anti-Raid Mention Spam Shield',
+          eventType: AutoModerationRuleEventType.MessageSend,
+          triggerType: AutoModerationRuleTriggerType.MentionSpam,
+          triggerMetadata: { mentionTotalLimit: 5 },
+          actions: [
+            {
+              type: AutoModerationActionType.BlockMessage,
+              metadata: { customMessage: '🛡️ Mass mention spam blocked by AutoMod.' }
+            }
+          ],
+          enabled: true
+        });
+        rulesCreated++;
+      } catch (_) {}
+    }
+
     return rulesCreated;
   } catch (err) {
     console.warn(`[AutoMod Sync Notice] Guild "${guild.name}":`, err.message);
@@ -185,4 +206,32 @@ export function startAutoModScheduler(client, intervalHours = 6) {
   return setInterval(() => {
     syncAllGuildsAutoMod(client).catch(() => {});
   }, intervalMs);
+}
+
+/**
+ * Fetch global active AutoMod rule counts across all connected guilds
+ */
+export async function getGlobalAutoModRuleCount(client) {
+  let totalRules = 0;
+  const guildStats = [];
+
+  for (const [, guild] of client.guilds.cache) {
+    try {
+      const fullGuild = await guild.fetch().catch(() => null);
+      if (!fullGuild) continue;
+      const rules = await fullGuild.autoModerationRules.fetch().catch(() => null);
+      const count = rules ? rules.size : 0;
+      totalRules += count;
+      guildStats.push({ name: fullGuild.name, id: fullGuild.id, count });
+    } catch (_) {}
+  }
+
+  return {
+    totalRules,
+    guildCount: client.guilds.cache.size,
+    threshold: 100,
+    needed: Math.max(0, 100 - totalRules),
+    qualified: totalRules >= 100,
+    guildStats
+  };
 }

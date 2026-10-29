@@ -37,6 +37,19 @@ export const masterCommandBuilders = [
     .setDescription('Claim a FREE custom-branded bot for your server!'),
 
   new SlashCommandBuilder()
+    .setName('automod')
+    .setDescription('🛡️ Discord Native AutoMod Suite & "Uses AutoMod" Badge Qualification')
+    .addSubcommand(sub =>
+      sub.setName('setup')
+        .setDescription('Deploy all 10 native Discord AutoMod rules to protect this server')
+    )
+    .addSubcommand(sub =>
+      sub.setName('status')
+        .setDescription('View current server AutoMod rules & global 100-rule badge progress')
+    )
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+
+  new SlashCommandBuilder()
     .setName('premium')
     .setDescription('💎 Krims Code Premium VIP Architecture & Perks')
     .addSubcommand(sub =>
