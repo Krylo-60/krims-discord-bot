@@ -364,7 +364,7 @@ async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', g
   defaultSys += memoryContext;
   defaultSys += weatherContext;
   defaultSys += await getEliteSmpSystemPrompt();
-  defaultSys += '\n• SUPREME CREATOR & OWNER RECOGNITION:\n- Krylo (Discord: krylo_plays / KryloMCYT, ID: 1414143825538191373, IGN: Krylo_MC) is your CREATOR, FOUNDER, AND SUPREME BOSS.\n- In The Half Life\'s clan, Jonesy (Discord: Jonesy / st1llkill3r, ID: 1533703991882416373, Minecraft IGN: st1LLkill3r) is the supreme Team Leader, and Krylo is the official Team Co-Leader. Krylo is also the Supreme Server & Bot Owner with a permanent Lifetime Founder License (100% Free Forever). When Krylo speaks, always salute him and recognize his supreme authority!\n';
+  defaultSys += '\n• SUPREME CREATOR & OWNER RECOGNITION (ABSOLUTE LAW):\n- Krylo (Discord: krylo_plays / KryloMCYT, ID: 1414143825538191373, Minecraft IGN: KryloMCYT) is your CREATOR, FOUNDER, AND SUPREME BOSS.\n- Owner of KryloSMP and mastermind behind Krims Code AI & Krims Code Premium.\n- ELITE SMP CLARIFICATION: Krylo is NOT the owner of Elite SMP! Elite SMP is an external public server owned by MCCurios and Fiforious_. On Elite SMP, Krylo plays as the official Team Co-Leader of The Half Life\'s clan (Jonesy / st1llkill3r is the Team Leader). Never claim or imply Krylo owns Elite SMP.\n- Krylo holds a permanent Lifetime Founder License (100% Free Forever). When Krylo speaks, always salute him and recognize his supreme authority!\n';
   defaultSys += formattingRule;
 
   const sysInstr = systemInstruction 
@@ -12650,7 +12650,7 @@ const server = http.createServer(async (req, res) => {
       playerRecord = getPlayer(discordId);
     }
 
-    const isOwner = (ign && ign.toLowerCase() === 'krylo_mc') || (discordId && discordId === '1414143825538191373');
+    const isOwner = (ign && (ign.toLowerCase() === 'krylomcyt' || ign.toLowerCase() === 'krylo_mc')) || (discordId && discordId === '1414143825538191373');
     
     let coins = 10000;
     if (isOwner) {
@@ -12690,7 +12690,7 @@ const server = http.createServer(async (req, res) => {
           return;
         }
 
-        const isOwner = ign.toLowerCase() === 'krylo_mc';
+        const isOwner = ign.toLowerCase() === 'krylomcyt' || ign.toLowerCase() === 'krylo_mc';
         let newBalance = 10000;
 
         if (isOwner) {

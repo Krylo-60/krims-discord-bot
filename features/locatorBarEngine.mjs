@@ -134,7 +134,7 @@ export async function getLocatorColor(input) {
   // Generate simulated locator neighbors
   const neighborSamples = [
     'Notch', 'Jeb_', 'DanTDM', 'Technoblade', 'Dream', 'Grian', 'MumboJumbo',
-    'CaptainSparklez', 'TommyInnit', 'GeorgeNotFound', 'Sapnap', 'Krylo_MC'
+    'CaptainSparklez', 'TommyInnit', 'GeorgeNotFound', 'Sapnap', 'KryloMCYT'
   ];
 
   return {
