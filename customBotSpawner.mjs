@@ -250,7 +250,18 @@ export class MultiBotManager {
           )
           .setFooter({ text: 'Krims Code AI • The Future of Discord Communities' });
 
-        await interaction.reply({ embeds: [aboutEmbed], ephemeral: true });
+        return await interaction.reply({ embeds: [aboutEmbed], ephemeral: true });
+      }
+
+      // Delegate all other slash commands to Master Command Handler
+      try {
+        const { handleMasterSlashCommand } = await import('./commands/masterCommandHandler.mjs');
+        await handleMasterSlashCommand(interaction, client, { isCustomBot: true, customBotConfig: config });
+      } catch (cmdErr) {
+        console.error(`[CustomBot ${client.user.tag}] Slash command error for /${interaction.commandName}:`, cmdErr);
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({ content: '⚠️ An error occurred executing this command.', ephemeral: true }).catch(() => {});
+        }
       }
     });
   }
@@ -289,7 +300,18 @@ export class MultiBotManager {
       activityName: activityName || `Krims Code AI • /about`
     });
 
-    // 4. Spawn the bot instance
+    // 4. Auto-deploy 100 global slash commands to Discord Gateway
+    try {
+      const { REST, Routes } = await import('discord.js');
+      const { masterCommandJson } = await import('./commands/masterCommandRegistry.mjs');
+      const rest = new REST({ version: '10' }).setToken(token);
+      await rest.put(Routes.applicationCommands(discordUser.id), { body: masterCommandJson });
+      console.log(`[MultiBotManager] 🚀 Auto-deployed ${masterCommandJson.length} slash commands to bot ${discordUser.username} (${discordUser.id})`);
+    } catch (deployErr) {
+      console.warn(`[MultiBotManager] ⚠️ Slash command auto-deploy notice:`, deployErr.message);
+    }
+
+    // 5. Spawn the bot instance
     const spawnResult = await this.spawnClient({
       guildId: effectiveGuildId,
       ownerId,

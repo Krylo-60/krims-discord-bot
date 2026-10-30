@@ -32,9 +32,6 @@ export const masterCommandBuilders = [
     .setName('about')
     .setDescription('Learn about the Krims Code AI Multi-Bot Engine and get your own free bot!'),
 
-  new SlashCommandBuilder()
-    .setName('getbot')
-    .setDescription('Claim a FREE custom-branded bot for your server!'),
 
   new SlashCommandBuilder()
     .setName('automod')
