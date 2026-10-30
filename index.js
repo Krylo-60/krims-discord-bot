@@ -320,7 +320,7 @@ export function sanitizeDiscordFormatting(text) {
 // ════════════════════════════════════════════════════════════
 const fetchLiveOpenMeteoWeather = fetchLiveWeather;
 
-async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', guildId = null, userId = null, userName = '') {
+export async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', guildId = null, userId = null, userName = '') {
   const formattingRule = "\nCRITICAL DISCORD FORMATTING RULE: Discord DOES NOT support LaTeX, KaTeX, or MathJax. NEVER output LaTeX syntax (such as \\boxed{}, \\times, \\frac{}, \\[, \\], or $$). Write all math, formulas, equations, numbers, and calculations in clean plain text and standard Discord markdown (e.g. 100^9 = 10^18 = 1,000,000,000,000,000,000). Never place formulas inside raw square brackets [ ]. Keep answers ultra-clean and easy to read on mobile and desktop.";
 
   const isDM = !guildId && !!userId;
@@ -1191,6 +1191,7 @@ client.once('ready', async () => {
   try {
     const { multiBotManager } = await import('./customBotSpawner.mjs');
     globalMultiBotManager = multiBotManager;
+    multiBotManager.setAiProvider(geminiDirectAsk);
     await multiBotManager.startAllBots();
     console.log(`[MultiBot] 🚀 MultiBotManager active! ${multiBotManager.getLiveCount()} custom bots online.`);
   } catch (err) {

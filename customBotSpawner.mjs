@@ -30,6 +30,10 @@ export class MultiBotManager {
     this.isInitialized = false;
   }
 
+  setAiProvider(fn) {
+    geminiDirectAsk = fn;
+  }
+
   /**
    * Test if a bot token is valid via Discord REST API
    * @param {string} token 
@@ -229,11 +233,12 @@ export class MultiBotManager {
             `You are ${client.user.username}, an intelligent and helpful Discord bot powered by Krims Code AI. Answer clearly, accurately, and politely. Always be friendly and helpful.`;
 
           let aiResponse = '';
-          if (geminiDirectAsk) {
-            aiResponse = await geminiDirectAsk(cleanPrompt, systemInstruction, message.guild.name);
+          const askFunction = geminiDirectAsk || (await import('./index.js').then(m => m.geminiDirectAsk).catch(() => null));
+          if (typeof askFunction === 'function') {
+            aiResponse = await askFunction(cleanPrompt, systemInstruction, message.guild.name, message.guild.id, message.author.id, message.member?.displayName || message.author.username);
           } else {
-            // Direct fallback response
-            aiResponse = `Hey! I received your query: "${cleanPrompt}". My Krims Neural AI brain is actively processing responses. Powered by Krims Code AI!`;
+            // Direct in-character fallback response
+            aiResponse = `🔥 Hey **${message.author.username}**! I'm **${client.user.username}**, guardian of **${message.guild.name}**! Ask me anything or explore commands with \`/about\`! 🚀`;
           }
 
           const replyEmbed = new EmbedBuilder()
