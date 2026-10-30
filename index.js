@@ -9132,8 +9132,8 @@ client.on('messageCreate', async (message) => {
   // ══════════════════════════════════════════════════════════
   // 💬 BOT MENTION AI SPEAK / CHAT HANDLER
   // ══════════════════════════════════════════════════════════
-  if (message.guild && message.mentions.has(client.user.id) && !message.mentions.everyone) {
-    const directMentionRegex = new RegExp(`<@!?${client.user.id}>`);
+  const directMentionRegex = new RegExp(`<@!?${client.user.id}>`);
+  if (message.guild && message.mentions.users.has(client.user.id) && directMentionRegex.test(message.content) && !message.mentions.everyone) {
     
     // If the mention came solely from a message reply without explicitly typing the bot's mention, ignore it
     if (message.reference && !directMentionRegex.test(message.content)) {

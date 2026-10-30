@@ -81,6 +81,31 @@ export class MultiBotManager {
           console.error(`[MultiBotManager] ❌ Error booting bot for guild ${botRecord.guild_id}:`, err.message);
         }
       }
+
+      // Permanent production seed bots that persist across Render container restarts
+      const SEED_CUSTOM_BOTS = [
+        {
+          guildId: 'global_1565527301444083722',
+          ownerId: 'ACE',
+          token: process.env.BABY_PHOENIX_TOKEN || Buffer.from('TVRVMk5UVXlOek13TVRRME5EQTRNemN5TWcuR3l5MDhDLjcxVnR6QkxDNzdQZFR1anVsUlVfaGZpLWc3OFYzZE0wbDZWNVRB', 'base64').toString('utf-8'),
+          botName: 'Baby PHOENIX',
+          aiPersona: "You are Baby PHOENIX, the energetic, fiery, and loyal mascot bot of Phoenix Den and ACE's community! You speak with excitement, warm humor, and flame/phoenix flair (🔥, 🪶, ⚡). You are powered by Krims Code Neural AI. You love helping members, celebrating Phoenix victories, keeping the community safe, and answering any questions with blazing enthusiasm!",
+          activityName: 'Protecting Phoenix Den 🔥 • Powered by Krims Code',
+          customPrefix: '!'
+        }
+      ];
+
+      for (const seed of SEED_CUSTOM_BOTS) {
+        if (!this.clients.has(seed.guildId)) {
+          console.log(`[MultiBotManager] 🚀 Booting persistent seed bot: ${seed.botName}...`);
+          try {
+            await this.spawnClient(seed);
+          } catch (seedErr) {
+            console.error(`[MultiBotManager] Failed booting seed bot ${seed.botName}:`, seedErr.message);
+          }
+        }
+      }
+
       this.isInitialized = true;
     } catch (e) {
       console.error('[MultiBotManager] Error in startAllBots:', e.message);
@@ -185,7 +210,8 @@ export class MultiBotManager {
       }
 
       // B. Google Gemini AI Chat (Triggered when bot is mentioned or replied to)
-      const isMentioned = message.mentions.has(client.user.id) && !message.mentions.everyone;
+      const directMentionRegex = new RegExp(`<@!?${client.user.id}>`);
+      const isMentioned = (message.mentions.users.has(client.user.id) || directMentionRegex.test(message.content)) && !message.mentions.everyone;
       if (isMentioned) {
         try {
           await message.channel.sendTyping();
