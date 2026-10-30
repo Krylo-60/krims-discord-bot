@@ -165,8 +165,8 @@ export class MultiBotManager {
     client.on('messageCreate', async (message) => {
       if (!message.guild || message.author.bot) return;
 
-      // Only respond to messages in the registered guild (or all if multi-server)
-      if (guildId && message.guild.id !== guildId) return;
+      // Only respond to messages in the registered guild (or all if multi-server/global)
+      if (guildId && guildId !== 'global' && !guildId.startsWith('global_') && message.guild.id !== guildId) return;
 
       // A. Krims-Style Leveling XP
       try {
@@ -271,12 +271,14 @@ export class MultiBotManager {
       ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png` 
       : null;
 
+    const effectiveGuildId = (!guildId || guildId === 'global') ? `global_${discordUser.id}` : guildId;
+
     // 2. Encrypt token with AES-256-GCM
     const encryptedToken = encryptToken(token);
 
     // 3. Save to database
     saveCustomBot({
-      guildId,
+      guildId: effectiveGuildId,
       ownerId,
       botTokenEncrypted: encryptedToken,
       botId: discordUser.id,
@@ -289,7 +291,7 @@ export class MultiBotManager {
 
     // 4. Spawn the bot instance
     const spawnResult = await this.spawnClient({
-      guildId,
+      guildId: effectiveGuildId,
       ownerId,
       token,
       botName: finalBotName,
