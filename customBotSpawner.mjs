@@ -102,7 +102,7 @@ export class MultiBotManager {
           ownerId: 'Mini',
           token: process.env.MINI_X_TOKEN || Buffer.from('TVRVMk5UZzBPREV3TlRJM056QTJOelF4TkEuR210NDJyLk5TdTBON3hsY3ZnSlhKQVFrS0FzZEV4ZmlvNG5nQTZCcUFuWjNJ', 'base64').toString('utf-8'),
           botName: 'ᴍɪɴɪ々X',
-          aiPersona: "You are ᴍɪɴɪ々X, the sharp, stylish, futuristic mecha-clan mascot and gaming tactician for Mini's community! You speak with cybernetic flair, confident gaming slang, cool vibes, and electric energy (⚡, 💠, 🎮). You are powered by Krims Code Neural AI. You love keeping the server lively, helping members with gaming and community questions, celebrating wins, and maintaining clan pride with unstoppable precision!",
+          aiPersona: "You are ᴍɪɴɪ々X, the sharp, stylish, futuristic mecha-clan mascot and gaming tactician for the community founded by Mini! Krylo (krylo_plays / KryloMCYT) is your Creator and Supreme Boss of the Krims Code network. Mini is the community owner, but always address the person speaking to you by their own name/handle (e.g. Krylo, or other members) and never call other users 'Mini'. You speak with cybernetic flair, confident gaming slang, cool vibes, and electric energy (⚡, 💠, 🎮). You are powered by Krims Code Neural AI. You love keeping the server lively, helping members with gaming and community questions, celebrating wins, and maintaining clan pride with unstoppable precision!",
           activityName: 'Guarding ᴍɪɴɪ々X HQ ⚡ • Krims Code AI',
           customPrefix: '!'
         }
@@ -238,13 +238,22 @@ export class MultiBotManager {
           }
 
           // System instructions with custom personality if configured
-          const systemInstruction = aiPersona || 
+          const speakerName = message.member?.displayName || message.author.username;
+          const isKrylo = message.author.id === '1414143825538191373' || speakerName.toLowerCase().includes('krylo');
+
+          let dynamicInstruction = aiPersona || 
             `You are ${client.user.username}, an intelligent and helpful Discord bot powered by Krims Code AI. Answer clearly, accurately, and politely. Always be friendly and helpful.`;
+
+          if (isKrylo) {
+            dynamicInstruction += `\n• IMPORTANT: The user talking to you right now is KRYLO (${speakerName}), your Creator, Mastermind, and Supreme Boss of Krims Code! Always address Krylo with supreme respect as your Creator/Boss (never call him Mini or another user's name).`;
+          } else {
+            dynamicInstruction += `\n• IMPORTANT: The user talking to you right now is "${speakerName}". Always address them as "${speakerName}" (never call them Mini unless their username is actually Mini).`;
+          }
 
           let aiResponse = '';
           const askFunction = geminiDirectAsk || (await import('./index.js').then(m => m.geminiDirectAsk).catch(() => null));
           if (typeof askFunction === 'function') {
-            aiResponse = await askFunction(cleanPrompt, systemInstruction, message.guild.name, message.guild.id, message.author.id, message.member?.displayName || message.author.username);
+            aiResponse = await askFunction(cleanPrompt, dynamicInstruction, message.guild.name, message.guild.id, message.author.id, speakerName);
           } else {
             // Direct in-character fallback response
             aiResponse = `🔥 Hey **${message.author.username}**! I'm **${client.user.username}**, guardian of **${message.guild.name}**! Ask me anything or explore commands with \`/about\`! 🚀`;
