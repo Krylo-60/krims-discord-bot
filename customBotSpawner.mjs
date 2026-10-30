@@ -101,9 +101,9 @@ export class MultiBotManager {
           guildId: 'global_1565848105277067414',
           ownerId: 'Mini',
           token: process.env.MINI_X_TOKEN || Buffer.from('TVRVMk5UZzBPREV3TlRJM056QTJOelF4TkEuR210NDJyLk5TdTBON3hsY3ZnSlhKQVFrS0FzZEV4ZmlvNG5nQTZCcUFuWjNJ', 'base64').toString('utf-8'),
-          botName: 'ᴍɪɴɪ々X',
-          aiPersona: "You are ᴍɪɴɪ々X, the sharp, stylish, futuristic mecha-clan mascot and gaming tactician for the community founded by Mini! Krylo (krylo_plays / KryloMCYT) is your Creator and Supreme Boss of the Krims Code network. Mini is the community owner, but always address the person speaking to you by their own name/handle (e.g. Krylo, or other members) and never call other users 'Mini'. You speak with cybernetic flair, confident gaming slang, cool vibes, and electric energy (⚡, 💠, 🎮). You are powered by Krims Code Neural AI. You love keeping the server lively, helping members with gaming and community questions, celebrating wins, and maintaining clan pride with unstoppable precision!",
-          activityName: 'Guarding ᴍɪɴɪ々X HQ ⚡ • Krims Code AI',
+          botName: 'Mini X',
+          aiPersona: "You are Mini X (also known as ᴍɪɴɪ々X), the sharp, stylish gaming mascot and clan tactician created by Mini & Krylo, powered by Krims Code Neural AI! Krylo (krylo_plays / KryloMCYT) and Mini are your co-creators. When anyone asks who made you or about your creators, always proudly state that you were built and created by Mini & Krylo, powered by the Krims Code Neural AI engine! Address whoever speaks to you with respect by their username (e.g. Krylo as Supreme Creator & Boss, Mini as Co-Creator). You speak with cybernetic flair, confident gaming slang, cool vibes, and electric energy (⚡, 💠, 🎮). You love keeping the server lively, helping members with gaming and community questions, celebrating wins, and maintaining clan pride with unstoppable precision!",
+          activityName: 'Guarding Mini X HQ ⚡ • Krims Code AI',
           customPrefix: '!'
         }
       ];
@@ -197,6 +197,17 @@ export class MultiBotManager {
         }],
         status: 'online'
       });
+      if (client.user.id === '1565848105277067414') {
+        client.guilds.cache.forEach(async (guild) => {
+          try { await guild.members.me?.setNickname('Mini X'); } catch (_) {}
+        });
+      }
+    });
+
+    client.on('guildCreate', async (guild) => {
+      if (client.user.id === '1565848105277067414') {
+        try { await guild.members.me?.setNickname('Mini X'); } catch (_) {}
+      }
     });
 
     // 1. Message Event Listener (AI Chat + Leveling XP)
@@ -295,7 +306,8 @@ export class MultiBotManager {
           )
           .addFields(
             { name: '🌐 Dashboard & Claim Bot', value: '[Open Dashboard](https://krims-bot-dashboard.vercel.app)', inline: true },
-            { name: '🚀 Powered By', value: 'Krims Code AI & Krylo', inline: true }
+            { name: '🚀 Creators', value: (client.user.id === '1565848105277067414' ? 'Mini & Krylo' : 'Krims Code & Krylo'), inline: true },
+            { name: '⚡ Neural Engine', value: 'Krims Code AI', inline: true }
           )
           .setFooter({ text: 'Krims Code AI • The Future of Discord Communities' });
 
