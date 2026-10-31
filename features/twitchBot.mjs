@@ -577,8 +577,34 @@ export async function initTwitchBot(discordClient = null) {
       return;
     }
 
+    // Community, Server & Stream Info Commands
+    if (cmd === '!discord' || cmd === '!dc') {
+      client.say(targetChannel, `🟣 Join Krylo's Official Discord & Clan Comms: https://discord.gg/2hSXQKHvvX 🚀`);
+      return;
+    }
+
+    if (cmd === '!smp' || cmd === '!ip' || cmd === '!server') {
+      client.say(targetChannel, `⛏️ KryloSMP IP: play.krylosmp.net (Bedrock: 19132) • Join our Discord (!discord) to get whitelisted & join the clan! ⚔️`);
+      return;
+    }
+
+    if (cmd === '!ign' || cmd === '!mc') {
+      client.say(targetChannel, `🎮 Krylo's Minecraft IGN is "KryloMCYT"!`);
+      return;
+    }
+
+    if (cmd === '!clan' || cmd === '!halflifes') {
+      client.say(targetChannel, `⚔️ The Half Lifes Clan: High-tier SMP squad led by Krylo & st1LLkill3r! Join VC on Discord (!discord) to raid with us! 🐉`);
+      return;
+    }
+
+    if (cmd === '!store' || cmd === '!shop') {
+      client.say(targetChannel, `🛒 Check out the official KryloSMP store & ranks: https://krylosmp.firebaseapp.com 💎`);
+      return;
+    }
+
     if (cmd === '!commands' || cmd === '!help') {
-      client.say(targetChannel, `🎮 KRIMS CODE COMMANDS: !join, !leave, !points, !daily, !gamble <amt>, !duel @user <amt>, !heist <amt>, !trivia, !leaderboard, !ratebuild, !ask <question>`);
+      client.say(targetChannel, `🎮 KRIMS CODE COMMANDS: !discord, !smp, !ip, !ign, !clan, !points, !daily, !gamble <amt>, !duel @user <amt>, !heist <amt>, !trivia, !ratebuild, !ask <question>`);
       return;
     }
   });
