@@ -781,9 +781,16 @@ async function triggerTicketAIInstantResponse(channel, { user, subject = '', det
     channel.sendTyping().catch(() => {});
 
     // Check if the server owners / admin roles are offline
-    let areAdminsOffline = true;
+    let areAdminsOffline = false;
     try {
-      if (guild) {
+      // If the ticket opener is Krylo (Creator/Boss) or an admin, the leadership is obviously online!
+      const isOpenerAdmin = user.id === '1414143825538191373' || 
+        user.id === guild?.ownerId || 
+        (guild && guild.members.cache.get(user.id)?.permissions?.has(PermissionFlagsBits.Administrator));
+
+      if (isOpenerAdmin) {
+        areAdminsOffline = false;
+      } else if (guild) {
         const adminRoles = guild.roles.cache.filter(r => 
           r.permissions.has(PermissionFlagsBits.Administrator) ||
           /owner|founder|admin|co-owner|co owner|head admin|leadership/i.test(r.name)
@@ -798,12 +805,19 @@ async function triggerTicketAIInstantResponse(channel, { user, subject = '', det
           )
         );
 
-        const onlineStaff = staffMembers.filter(m => m.presence && m.presence.status && m.presence.status !== 'offline');
-        if (onlineStaff.size > 0) {
+        // Only mark offline if we actually have presence intent data and every single staff member is explicitly offline
+        const staffWithPresence = staffMembers.filter(m => m.presence && m.presence.status);
+        if (staffWithPresence.size > 0) {
+          const onlineStaff = staffWithPresence.filter(m => m.presence.status !== 'offline');
+          areAdminsOffline = onlineStaff.size === 0;
+        } else {
+          // Without privileged Presence Intent, presence is always undefined; default to false so we don't falsely claim staff is offline
           areAdminsOffline = false;
         }
       }
-    } catch (_) {}
+    } catch (_) {
+      areAdminsOffline = false;
+    }
 
     const offlineNotice = `🌙 **Notice:** The server owners and admin roles are currently offline right now, sorry for the inconvenience! But me, **Krims**, is here! Ask me whatever you need and I will assist you right now, and I will inform the owners and staff team about what you need the moment they come online!`;
     const onlineNotice = `👋 **Welcome to Support!** The server owners and staff team have been notified. In the meantime, me, **Krims**, is here to assist you right now! Ask me whatever you need and I will help you immediately!`;
