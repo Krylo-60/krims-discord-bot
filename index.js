@@ -524,6 +524,7 @@ const client = new Client({
     GatewayIntentBits.DirectMessages,
     GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildVoiceStates,
     GatewayIntentBits.AutoModerationExecution,
     GatewayIntentBits.AutoModerationConfiguration
