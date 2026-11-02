@@ -38,22 +38,22 @@ export const HALF_LIFES_PING_COMMAND_DEF = {
 
 export function buildPingRolesEmbed(guildIconUrl) {
   return new EmbedBuilder()
-    .setColor(0x00F2FF)
-    .setTitle('⚔️ THE HALF LIFES • PING & NOTIFICATION PREFERENCES')
+    .setColor(0xFFD700)
+    .setTitle('✨ THE LIGHT BEARERS • NOTIFICATION & ALERT PREFERENCES')
     .setThumbnail(guildIconUrl || null)
     .setDescription(
-      'Welcome Operatives! Choose your alert preferences below to stay in the loop without unwanted `@everyone` pings.\n\n' +
-      '🟢 **All Pings** (`@🔔・All Pings`) — Opt-in to all clan notifications! You will be pinged when anyone calls for the team.\n' +
-      '🔴 **No Pings** (`@𝔕・No Pings`) — Opt-out of all casual pings! You will never receive team or casual pings.\n\n' +
+      'Welcome Guardians! Choose your alert preferences below to stay in the loop without unwanted `@everyone` pings.\n\n' +
+      '🟢 **All Pings** (`@🔔・All Pings`) — Opt-in to all guild notifications! You will be pinged when anyone calls for the team.\n' +
+      '🔴 **No Pings** (`@𝔕・No Pings`) — Opt-out of all casual pings! You will never receive guild or casual pings.\n\n' +
       '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
       '**Specific Notification Categories:**\n' +
       '🔔 **SMP Pings** — Teammates hopping on the SMP, sharing loot, or calling for team-ups.\n' +
-      '⚔️ **Raid Alerts** — Urgent combat alerts, base defense, and counter-raids.\n' +
-      '📢 **Announcements** — Major clan milestones, roster announcements, and server changes.\n' +
+      '⚔️ **Raid Alerts** — Urgent defense alerts, base sanctuary protection, and counter-raids.\n' +
+      '📢 **Announcements** — Major guild milestones, sanctuary building projects, and roster updates.\n' +
       '🎮 **Game Nights** — Minigames, events, and voice hangouts.\n\n' +
       '*Click the buttons below to set or toggle your roles anytime!*'
     )
-    .setFooter({ text: 'The Half Lifes • Clan Notification Manager • Krims Code Enterprise' })
+    .setFooter({ text: 'The Light Bearers • Guild Notification Manager • Krims Code Enterprise' })
     .setTimestamp();
 }
 

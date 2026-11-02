@@ -197,7 +197,7 @@ if __name__ == '__main__':
     parser.add_argument('--mc_head', default='')
     parser.add_argument('--username', required=True)
     parser.add_argument('--member_count', type=int, default=1)
-    parser.add_argument('--server_name', default='THE HALF LIFES')
+    parser.add_argument('--server_name', default='THE LIGHT BEARERS')
     parser.add_argument('--phase', type=int, choices=[1, 2], default=1)
     parser.add_argument('--out', required=True)
     args = parser.parse_args()

@@ -115,35 +115,35 @@ export function buildTeamApplicationPanel() {
   const isOpen = isClanAppOpen();
 
   const embed = new EmbedBuilder()
-    .setColor(isOpen ? 0xFF4500 : 0x7F1D1D)
-    .setTitle('⚔️ THE HALF LIFE\'S — OFFICIAL SQUAD APPLICATION')
+    .setColor(isOpen ? 0xFFD700 : 0x7F1D1D)
+    .setTitle('✨ THE LIGHT BEARERS — OFFICIAL GUILD RECRUITMENT')
     .setDescription(
-      `Welcome to **The Half Life's** official recruitment portal!\n\n` +
-      `We are an elite, competitive Minecraft SMP squad built on loyalty, relentless PvP combat, strategic base engineering, and coordinate defense. We fight down to the half-heart.\n\n` +
+      `Welcome to **The Light Bearers** official recruitment portal!\n\n` +
+      `We are a united, competitive Minecraft SMP guild dedicated to being a light in the dark. We stand against bullies and griefers, engineer subterranean sanctuaries, master automated redstone farms, and grind resources as one family.\n\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `### 📋 RECRUITMENT REQUIREMENTS:\n` +
       `• **Active SMP Player:** Plays actively on our target SMP (Elite SMP).\n` +
-      `• **Team Comms:** Active in Discord text & voice comms during operations and raids.\n` +
-      `• **Unbreakable Creed:** **Never** leak base coordinates or betray squad members under any circumstance.\n` +
-      `• **Maturity & Skill:** Respectful, focused on squad progress, and ready to grind.\n\n` +
+      `• **Guild Loyalty:** Unbreakable trust — **never** leak base coordinates or betray guild members.\n` +
+      `• **Team First:** Respectful, focused on guild progress, and ready to stand with us.\n` +
+      `• **Voice & Comms:** Active in Discord text & voice during key operations.\n\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `### 🎯 AVAILABLE ROLES:\n` +
-      `• ⚔️ **PvP Specialist / Raider** — Frontline combat & defense.\n` +
-      `• 🏗️ **Architect / Base Builder** — Fortifications, vaults & aesthetic base design.\n` +
+      `• 🛡️ **Guardian / Base Defender** — Combat protection, counter-raids & frontline defense.\n` +
+      `• 🏗️ **Architect / Sanctuary Builder** — Underground base design, vaults & aesthetics.\n` +
       `• ⚡ **Redstone Engineer** — Traps, blast doors & automated farms.\n` +
-      `• ⛏️ **Miner & Resource Grinder** — Underground resource harvesting & gear supply.\n\n` +
+      `• ⛏️ **Miner & Merchant** — Underground resource harvesting, gear supply & trading.\n\n` +
       (isOpen 
-        ? `👉 *Click the button below to fill out your entry questionnaire! Once approved by Clan Leadership, you will receive a private DM with the invite link to join the team!*` 
-        : `🔒 *Recruitment is currently closed by Clan Leadership. Check back soon!*`)
+        ? `👉 *Click the button below to fill out your entry questionnaire! Once approved by Guild Leadership, you will receive a private DM with the invite link to join the team!*` 
+        : `🔒 *Recruitment is currently closed by Guild Leadership. Check back soon!*`)
     )
     .setThumbnail('https://cdn.discordapp.com/emojis/1561391538355961997.png')
-    .setFooter({ text: 'The Half Life\'s • Autonomous Recruitment Matrix' })
+    .setFooter({ text: 'The Light Bearers • Autonomous Recruitment Matrix' })
     .setTimestamp();
 
   const button = new ButtonBuilder()
     .setCustomId('btn_open_clan_app_modal')
-    .setLabel(isOpen ? '⚔️ Apply to The Half Life\'s' : '🔒 Applications Closed')
-    .setStyle(isOpen ? ButtonStyle.Danger : ButtonStyle.Secondary)
+    .setLabel(isOpen ? '✨ Apply to The Light Bearers' : '🔒 Applications Closed')
+    .setStyle(isOpen ? ButtonStyle.Primary : ButtonStyle.Secondary)
     .setDisabled(!isOpen);
 
   const row = new ActionRowBuilder().addComponents(button);
@@ -156,12 +156,14 @@ export function buildTeamApplicationPanel() {
 export async function setupTeamApplicationChannel(guild) {
   if (!guild || guild.id !== CLAN_GUILD_ID) return null;
 
-  let ch = guild.channels.cache.find(c => 
-    c.id === '1561393934653980795' ||
-    c.name.includes('𝗍𝖾𝖺𝗆-𝖺𝗉𝗉𝗅𝗒') || 
-    c.name.toLowerCase().includes('team-apply') || 
-    c.name.toLowerCase().includes('clan-apply') ||
-    c.name.toLowerCase().includes('apply')
+  const channels = await guild.channels.fetch();
+  let ch = channels.get('1561393934653980795') || channels.find(c => 
+    c && c.type === ChannelType.GuildText && (
+      c.name.includes('𝗍𝖾𝖺𝗆-𝖺𝗉𝗉𝗅𝗒') || 
+      c.name.toLowerCase().includes('team-apply') || 
+      c.name.toLowerCase().includes('clan-apply') ||
+      c.name.toLowerCase().includes('apply')
+    )
   );
   
   if (!ch) {
@@ -169,10 +171,10 @@ export async function setupTeamApplicationChannel(guild) {
       name: '📝・𝗍𝖾𝖺𝗆-𝖺𝗉𝗉𝗅𝗒',
       type: ChannelType.GuildText,
       parent: CLAN_CATEGORY_ID,
-      topic: 'Official Recruitment Portal for The Half Life\'s competitive SMP team. Click the button to apply!',
+      topic: 'Official Recruitment Portal for The Light Bearers SMP guild. Click the button to apply!',
       permissionOverwrites: [
         {
-          id: guild.roles.everyone.id,
+          id: guild.roles?.everyone?.id || guild.id,
           allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory],
           deny: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.AddReactions, PermissionFlagsBits.CreatePublicThreads]
         },
@@ -219,7 +221,7 @@ export async function handleTeamClanApplicationInteraction(interaction) {
 
     const modal = new ModalBuilder()
       .setCustomId('modal_submit_clan_app')
-      .setTitle('The Half Life\'s Team Application');
+      .setTitle('The Light Bearers Guild Application');
 
     const ignInput = new TextInputBuilder()
       .setCustomId('clan_app_ign')
@@ -231,8 +233,8 @@ export async function handleTeamClanApplicationInteraction(interaction) {
 
     const specialtyInput = new TextInputBuilder()
       .setCustomId('clan_app_specialty')
-      .setLabel('Primary Specialty / Role')
-      .setPlaceholder('e.g. PvP Combat, Base Builder, Redstone, Grinder')
+      .setLabel('Primary Role / Specialty')
+      .setPlaceholder('Guardian/PvP, Base Builder, Redstone, Merchant/Grinder')
       .setStyle(TextInputStyle.Short)
       .setMaxLength(60)
       .setRequired(true);
@@ -247,16 +249,16 @@ export async function handleTeamClanApplicationInteraction(interaction) {
 
     const expInput = new TextInputBuilder()
       .setCustomId('clan_app_experience')
-      .setLabel('Previous SMP / Clan Warfare Experience')
-      .setPlaceholder('Describe any previous factions, SMP teams, or PvP experience')
+      .setLabel('Building / Defense / SMP Skills & Experience')
+      .setPlaceholder('Describe your building, redstone, defense, or faction experience')
       .setStyle(TextInputStyle.Paragraph)
       .setMaxLength(800)
       .setRequired(true);
 
     const whyInput = new TextInputBuilder()
       .setCustomId('clan_app_why')
-      .setLabel('Why do you want to join The Half Life\'s?')
-      .setPlaceholder('What makes you a loyal, dedicated addition to the squad?')
+      .setLabel('Why join The Light Bearers? (How will you help?)')
+      .setPlaceholder('How will you stand with us to build a better community?')
       .setStyle(TextInputStyle.Paragraph)
       .setMaxLength(800)
       .setRequired(true);
@@ -282,9 +284,9 @@ export async function handleTeamClanApplicationInteraction(interaction) {
 
     await interaction.reply({
       content: 
-        `⚔️ **Application Successfully Submitted!**\n\n` +
-        `Thank you **${interaction.user.username}**! Your entry application for **The Half Life's** has been delivered directly to Clan Leadership in the updates terminal.\n` +
-        `Our leaders (<@&${CLAN_LEADER_ROLE_ID}> & <@&${CLAN_COLEADER_ROLE_ID}>) will review your responses. Once approved, you will receive an automated private DM with the official team invite link! 🛡️`,
+        `✨ **Application Successfully Submitted!**\n\n` +
+        `Thank you **${interaction.user.username}**! Your entry application for **The Light Bearers** has been delivered directly to Guild Leadership in the updates terminal.\n` +
+        `Our leaders (<@&${CLAN_LEADER_ROLE_ID}> & <@&${CLAN_COLEADER_ROLE_ID}>) will review your responses. Once approved, you will receive an automated private DM with the official guild invite link! 🛡️✨`,
       ephemeral: true
     });
 
@@ -298,23 +300,23 @@ export async function handleTeamClanApplicationInteraction(interaction) {
 
         if (updatesChannel) {
           const reviewEmbed = new EmbedBuilder()
-            .setColor(0xFF4500)
+            .setColor(0xFFD700)
             .setTitle('📥 NEW CANDIDATE ENTRY APPLICATION RECEIVED')
             .setDescription(
-              `A new candidate has submitted their entry application to join **The Half Life's**!\n\n` +
+              `A new candidate has submitted their entry application to join **The Light Bearers**!\n\n` +
               `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
               `👤 **Applicant:** <@${interaction.user.id}> (\`${interaction.user.tag}\`)\n` +
               `🆔 **User ID:** \`${interaction.user.id}\`\n` +
               `🎮 **Minecraft IGN:** **\`${ign}\`**\n` +
-              `⚔️ **Specialty / Role:** \`${specialty}\`\n` +
+              `✨ **Specialty / Role:** \`${specialty}\`\n` +
               `🕒 **Activity & Timezone:** \`${activity}\`\n\n` +
-              `📜 **Previous Experience:**\n> ${experience.replace(/\n/g, '\n> ')}\n\n` +
-              `🤝 **Why Join The Half Life's:**\n> ${why.replace(/\n/g, '\n> ')}\n` +
+              `📜 **Building & Defense Experience:**\n> ${experience.replace(/\n/g, '\n> ')}\n\n` +
+              `🤝 **Why Join The Light Bearers:**\n> ${why.replace(/\n/g, '\n> ')}\n` +
               `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-              `*Click "Accept & Send Invite" to automatically dispatch the private server invite link to the user's DMs!*`
+              `*Click "Accept & Send Invite" to automatically dispatch the private guild invite link to the user's DMs!*`
             )
             .setThumbnail(interaction.user.displayAvatarURL({ dynamic: true }))
-            .setFooter({ text: 'The Half Life\'s • Leadership Review Matrix' })
+            .setFooter({ text: 'The Light Bearers • Leadership Review Matrix' })
             .setTimestamp();
 
           const actionRow = new ActionRowBuilder().addComponents(
@@ -381,21 +383,21 @@ export async function handleTeamClanApplicationInteraction(interaction) {
       let dmSent = false;
       if (targetUser) {
         const dmEmbed = new EmbedBuilder()
-          .setColor(0x10B981)
-          .setTitle('🎉 CONGRATULATIONS! WELCOME TO THE HALF LIFE\'S! ⚔️')
+          .setColor(0xFFD700)
+          .setTitle('🎉 CONGRATULATIONS! WELCOME TO THE LIGHT BEARERS! ✨')
           .setDescription(
-            `Hey **${targetUser.username}**, your application to join **The Half Life's** has been **ACCEPTED** by <@${interaction.user.id}>!\n\n` +
-            `You have been granted access to our private clan headquarters.\n\n` +
+            `Hey **${targetUser.username}**, your application to join **The Light Bearers** has been **ACCEPTED** by <@${interaction.user.id}>!\n\n` +
+            `You have been granted access to our private guild sanctuary.\n\n` +
             `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-            `🔗 **YOUR OFFICIAL SQUAD INVITE LINK:**\n` +
+            `🔗 **YOUR OFFICIAL GUILD INVITE LINK:**\n` +
             `👉 **${CLAN_INVITE_URL}**\n` +
             `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
             `### 🚀 NEXT STEPS:\n` +
             `1. Click the link above to join our private server.\n` +
             `2. You will be automatically awarded the **<@&${CLAN_RECRUIT_ROLE_ID}>** rank.\n` +
-            `3. Introduce yourself to the squad in <#${CLAN_TEAM_CHAT_ID}>!\n` +
-            `4. Read our core creed and server rules in <#1557855862146465922>.\n\n` +
-            `*Remember: Loyalty to the squad above all. Never leak base coordinates.* 🛡️`
+            `3. Introduce yourself to the guild in <#${CLAN_TEAM_CHAT_ID}>!\n` +
+            `4. Read our guild creed and server rules in <#1557855862146465922>.\n\n` +
+            `*Remember: Be a light in the darkness. Never leak base coordinates.* ✨🛡️`
           )
           .setThumbnail('https://cdn.discordapp.com/emojis/1561391538355961997.png')
           .setTimestamp();

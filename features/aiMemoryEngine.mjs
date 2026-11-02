@@ -52,14 +52,14 @@ try {
 // 🧠 DEFAULT SEED FACTS FOR CORE SERVERS
 // ──────────────────────────────────────────────────────────
 const DEFAULT_SERVER_FACTS = {
-  // The_Half_Lifes Elite SMP Team Server
+  // The Light Bearers (formerly The Half Life's) Elite SMP Guild Server
   '1557852594242719775': [
-    { key: 'team_identity', value: 'The Half Life\'s — Competitive Minecraft SMP team focused on strategic base design, PvP warfare, and coordinate defense.' },
-    { key: 'team_leader', value: 'st1LLkill3r (IGN: st1LLkill3r) is the official Team Leader of The Half Life\'s.' },
-    { key: 'team_co_leader', value: 'Krylo (Discord: krylo_plays / KryloMCYT, Minecraft IGN: KryloMCYT) is the official Team Co-Leader of The Half Life\'s, owner of KryloSMP, and Supreme Creator of Krims Code. Note: Krylo is NOT the owner of Elite SMP (Elite SMP is owned by MCCurios and Fiforious_).' },
-    { key: 'builder_specialist', value: 'CrazyCoolCam (Minecraft IGN: CrazyCoolCam) — Builder, Redstone Engineer, and underground miner.' },
+    { key: 'team_identity', value: 'The Light Bearers (TLB) — Noble Minecraft SMP guild dedicated to being a light in the dark, building underground sanctuaries, defending members against griefers, and trading resources as a united team.' },
+    { key: 'team_leader', value: 'Jonesy / st1LLkill3r (IGN: st1LLkill3r) is the official Guild Leader of The Light Bearers.' },
+    { key: 'team_co_leader', value: 'Krylo (Discord: krylo_plays / KryloMCYT, Minecraft IGN: KryloMCYT) is the official Guild Co-Leader of The Light Bearers, owner of KryloSMP, and Supreme Creator of Krims Code. Note: Krylo is NOT the owner of Elite SMP (Elite SMP is owned by MCCurios and Fiforious_).' },
+    { key: 'builder_specialist', value: 'CrazyCoolCam (Minecraft IGN: CrazyCoolCam) — Master Builder, Merchant, Redstone Engineer, and underground architect.' },
     { key: 'minecraft_server', value: 'Elite SMP by Ledgy. Java IP: EliteSmp.gg | Bedrock IP: Mc.eliteSmp.gg (Port 19132) | Discord: https://discord.gg/XBgjQxbWpb' },
-    { key: 'team_creed', value: 'We fight down to the half-heart. Loyalty to the squad above all. Never leak base coordinates.' }
+    { key: 'team_creed', value: 'We are a light in the darkness. We stand together, rebuild from the ashes, protect base coordinates with our lives, and stand up for all guild members.' }
   ],
   // Krylo\'s Skybase Community Server
   '1549875778575929446': [

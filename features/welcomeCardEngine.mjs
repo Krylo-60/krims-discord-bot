@@ -125,21 +125,21 @@ export async function handleGuildMemberAddWelcome(member) {
       avatarUrl,
       username: member.user.username,
       memberCount,
-      serverName: "THE HALF LIFE'S",
+      serverName: "THE LIGHT BEARERS",
       phase: 1
     });
 
     const embed = new EmbedBuilder()
-      .setColor(0x00FFFF)
-      .setTitle('⚡ NEW OPERATIVE DEPLOYED — THE HALF LIFE\'S')
+      .setColor(0xFFD700)
+      .setTitle('✨ NEW GUARDIAN DEPLOYED — THE LIGHT BEARERS')
       .setDescription(
-        `Welcome <@${member.id}> to **The Half Life's**! 🛡️⚔️\n\n` +
-        `• 📜 **Read Clan Creed & Rules:** <#${HALF_LIFES_CREED_CHANNEL_ID}>\n` +
+        `Welcome <@${member.id}> to **The Light Bearers**! 🛡️✨\n\n` +
+        `• 📜 **Read Guild Creed & Rules:** <#${HALF_LIFES_CREED_CHANNEL_ID}>\n` +
         `• 📋 **Drop your Minecraft IGN in** <#${HALF_LIFES_ROSTER_CHANNEL_ID}> to verify your roster card & unlock your 3D skin badge!\n` +
-        `• 🎨 **Pick your chat color & region in** <#${HALF_LIFES_ROLES_CHANNEL_ID}>\n` +
+        `• 🎨 **Pick your chat color & specialty in** <#${HALF_LIFES_ROLES_CHANNEL_ID}>\n` +
         `• 💬 **Introduce yourself in** <#${HALF_LIFES_TEAM_CHAT_CHANNEL_ID}>`
       )
-      .setFooter({ text: `⚔️ CO-LEADER: KryloMCYT • 👑 LEADER: st1LLkill3r • Operative #${memberCount}` })
+      .setFooter({ text: `✨ CO-LEADER: KryloMCYT • 👑 LEADER: Jonesy / st1LLkill3r • Guardian #${memberCount}` })
       .setTimestamp();
 
     let sentMsg;
@@ -147,13 +147,13 @@ export async function handleGuildMemberAddWelcome(member) {
       const attachment = new AttachmentBuilder(cardBuffer, { name: 'welcome_card.png' });
       embed.setImage('attachment://welcome_card.png');
       sentMsg = await welcomeCh.send({
-        content: `⚔️ Welcome to the ranks, <@${member.id}>! Stand ready for SMP domination.`,
+        content: `✨ Welcome to the light, <@${member.id}>! Stand together as The Light Bearers.`,
         embeds: [embed],
         files: [attachment]
       });
     } else {
       sentMsg = await welcomeCh.send({
-        content: `⚔️ Welcome to the ranks, <@${member.id}>! Stand ready for SMP domination.`,
+        content: `✨ Welcome to the light, <@${member.id}>! Stand together as The Light Bearers.`,
         embeds: [embed]
       });
     }
@@ -205,7 +205,7 @@ export async function handleRosterIgnWelcomeUpdate(guild, userId, ign) {
       mcHeadUrl,
       username: `${ign}`,
       memberCount,
-      serverName: "THE HALF LIFE'S",
+      serverName: "THE LIGHT BEARERS",
       phase: 2
     });
 
@@ -216,17 +216,17 @@ export async function handleRosterIgnWelcomeUpdate(guild, userId, ign) {
 
     const attachment = new AttachmentBuilder(cardBuffer, { name: 'welcome_card_verified.png' });
     const embed = new EmbedBuilder()
-      .setColor(0x00FF88)
-      .setTitle('✅ OPERATIVE VERIFIED & ROSTER DEPLOYED')
+      .setColor(0xFFD700)
+      .setTitle('✅ GUARDIAN VERIFIED & ROSTER DEPLOYED')
       .setDescription(
-        `<@${userId}> has officially linked Minecraft IGN **\`${ign}\`**! ⚔️🛡️\n\n` +
+        `<@${userId}> has officially linked Minecraft IGN **\`${ign}\`**! ✨🛡️\n\n` +
         `• 🏷️ **Verified In-Game Name:** \`${ign}\`\n` +
-        `• 🌐 **SMP Combat Status:** Active Clan Combatant\n` +
-        `• 💬 **Squad Chat:** <#${HALF_LIFES_TEAM_CHAT_CHANNEL_ID}>\n` +
-        `• ⚔️ **All clan communications & coordinates unlocked!**`
+        `• 🌐 **SMP Status:** Active Light Bearer Guardian\n` +
+        `• 💬 **Guild Chat:** <#${HALF_LIFES_TEAM_CHAT_CHANNEL_ID}>\n` +
+        `• ✨ **All sanctuary communications & project channels unlocked!**`
       )
       .setImage('attachment://welcome_card_verified.png')
-      .setFooter({ text: `⚔️ CO-LEADER: KryloMCYT • 👑 LEADER: st1LLkill3r • Operative #${memberCount} [VERIFIED]` })
+      .setFooter({ text: `✨ CO-LEADER: KryloMCYT • 👑 LEADER: Jonesy / st1LLkill3r • Guardian #${memberCount} [VERIFIED]` })
       .setTimestamp();
 
     if (record && record.message_id) {
@@ -234,7 +234,7 @@ export async function handleRosterIgnWelcomeUpdate(guild, userId, ign) {
         const targetMsg = await welcomeCh.messages.fetch(record.message_id).catch(() => null);
         if (targetMsg) {
           await targetMsg.edit({
-            content: `🛡️ **Operative Roster Updated:** <@${userId}> is officially verified as **\`${ign}\`**!`,
+            content: `✨ **Guardian Roster Updated:** <@${userId}> is officially verified as **\`${ign}\`**!`,
             embeds: [embed],
             files: [attachment]
           });

@@ -2037,7 +2037,7 @@ client.on('interactionCreate', async (interaction) => {
           .setColor(0x8B5CF6)
           .setTitle('🏰 Elite SMP • Known Factions & Standings')
           .setDescription(
-            '**1. 🛡️ The Half-Lifes**\n' +
+            '**1. ✨ The Light Bearers**\n' +
             '• Leadership: <@1533703991882416373> (Jonesy) & <@1414143825538191373> (Krylo)\n' +
             '• Standing: Our Faction\n\n' +
             '**2. 🦇 Team Bat**\n' +
@@ -2045,7 +2045,7 @@ client.on('interactionCreate', async (interaction) => {
             '**3. ⚔️ Void Walkers**\n' +
             '• Standing: 🔴 Hostile / Enemy Faction'
           )
-          .setFooter({ text: 'The Half-Lifes • Elite SMP Diplomacy' });
+          .setFooter({ text: 'The Light Bearers • Elite SMP Diplomacy' });
         return await interaction.reply({ embeds: [eliteEmbed], ephemeral: true });
       }
 
