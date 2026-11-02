@@ -21,6 +21,26 @@ try {
   // Will fallback to direct fetch if needed
 }
 
+// ═════════════════════════════════════════════════════════════════════════════
+// 🧠 1-MIND COLLECTIVE LEVELING COORDINATOR (TURN-TAKING ACROSS BOTS)
+// Ensures bots in the same server share 1 mind and take turns announcing level ups
+// ═════════════════════════════════════════════════════════════════════════════
+const processedMessages = new Set();
+const guildLevelingTurns = new Map();
+
+const BOT_LEVEL_FLAIRS = {
+  '1565527301444083722': { // Baby Phoenix
+    color: '#FF6B00',
+    title: '🔥 PHOENIX LEVEL UP!',
+    prefix: '🔥'
+  },
+  '1565848105277067414': { // Mini X
+    color: '#00F2FF',
+    title: '⚡ CYBER LEVEL UP!',
+    prefix: '⚡'
+  }
+};
+
 export class MultiBotManager {
   constructor() {
     /** @type {Map<string, Client>} Map<guildId, Client> */
@@ -217,20 +237,47 @@ export class MultiBotManager {
       // Only respond to messages in the registered guild (or all if multi-server/global)
       if (guildId && guildId !== 'global' && !guildId.startsWith('global_') && message.guild.id !== guildId) return;
 
-      // A. Krims-Style Leveling XP
-      try {
-        const xpEarned = Math.floor(Math.random() * 10) + 15;
-        const xpResult = addXp(message.author.id, xpEarned);
-        if (xpResult && xpResult.leveledUp) {
-          const levelEmbed = new EmbedBuilder()
-            .setColor('#5865F2')
-            .setTitle('🎉 LEVEL UP!')
-            .setDescription(`GG **${message.author.username}**, you just advanced to **Level ${xpResult.level}**!`)
-            .setFooter({ text: '⚡ Powered by Krims Code AI • Type /about for your free bot' });
-          message.channel.send({ embeds: [levelEmbed] }).catch(() => {});
+      // A. 🧠 1-Mind Krims Leveling XP with Turn-Taking
+      if (!processedMessages.has(message.id)) {
+        processedMessages.add(message.id);
+        setTimeout(() => processedMessages.delete(message.id), 60000);
+
+        try {
+          const xpEarned = Math.floor(Math.random() * 10) + 15;
+          const xpResult = addXp(message.author.id, xpEarned);
+          if (xpResult && xpResult.leveledUp) {
+            // Find all active Krims bots present in this server
+            const eligibleBots = [];
+            for (const c of this.clients.values()) {
+              if (c.isReady() && c.guilds.cache.has(message.guild.id)) {
+                eligibleBots.push(c);
+              }
+            }
+
+            if (eligibleBots.length > 0) {
+              const currentTurn = guildLevelingTurns.get(message.guild.id) || 0;
+              const chosenBot = eligibleBots[currentTurn % eligibleBots.length];
+              guildLevelingTurns.set(message.guild.id, currentTurn + 1);
+
+              const botFlair = BOT_LEVEL_FLAIRS[chosenBot.user.id] || {
+                color: '#5865F2',
+                title: '🎉 LEVEL UP!',
+                prefix: '⚡'
+              };
+
+              const levelEmbed = new EmbedBuilder()
+                .setColor(botFlair.color)
+                .setTitle(botFlair.title)
+                .setDescription(`${botFlair.prefix} GG **${message.author.username}**, you just advanced to **Level ${xpResult.level}**!`)
+                .setFooter({ text: `${botFlair.prefix} Powered by Krims 1-Mind Network • Announced by ${chosenBot.user.username}` });
+
+              const targetChannel = chosenBot.channels.cache.get(message.channel.id) || message.channel;
+              targetChannel.send({ embeds: [levelEmbed] }).catch(() => {});
+            }
+          }
+        } catch (err) {
+          // Continue silently if DB busy
         }
-      } catch (err) {
-        // Continue silently if DB busy
       }
 
       // B. Google Gemini AI Chat (Triggered when bot is mentioned or replied to)
