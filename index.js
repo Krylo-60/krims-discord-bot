@@ -4126,16 +4126,16 @@ client.on('interactionCreate', async (interaction) => {
         const ticketGreeting = new EmbedBuilder()
           .setTitle(`${dept.emoji} ${dept.title} — ${subject}`)
           .setDescription(
-            `Hello <@${interaction.user.id}>! Your private ticket channel has been established with **The Half Life's** Clan Command.\n\n` +
+            `Hello <@${interaction.user.id}>! Your private ticket channel has been established with **The Light Bearers** Clan Command.\n\n` +
             `**📋 Reason / Subject:** ${subject}\n` +
             `**📝 Submitted Details:**\n>>> ${details}\n\n` +
             `**👤 Opened By:** <@${interaction.user.id}> (\`${interaction.user.tag}\`)\n` +
             `**👑 Leadership & Staff Alert:** All Clan Leaders, Administrators, and Moderators have been summoned.\n\n` +
             `Clan Command will assist you directly in this channel. When your issue is resolved, click **Close Ticket** below.`
           )
-          .setColor(dept.alert ? 0xFF0000 : 0x00F2FF)
+          .setColor(dept.alert ? 0xFF0000 : 0xFFD700)
           .setThumbnail(client.user.displayAvatarURL({ extension: 'png', size: 512 }))
-          .setFooter({ text: 'The Half Life\'s Clan Ticket System • Powered by Krims Bot' })
+          .setFooter({ text: 'The Light Bearers Clan Ticket System • Powered by Krims Bot' })
           .setTimestamp();
 
         let pingHeader = dept.alert 
@@ -8860,7 +8860,7 @@ client.on('messageCreate', async (message) => {
         mcHeadUrl,
         username: testIgn || message.author.username,
         memberCount: message.guild ? message.guild.memberCount : 5,
-        serverName: "THE HALF LIFE'S",
+        serverName: "THE LIGHT BEARERS",
         phase: phaseArg
       });
 
@@ -8870,22 +8870,22 @@ client.on('messageCreate', async (message) => {
 
       const attachment = new AttachmentBuilder(cardBuffer, { name: `welcome_test_p${phaseArg}.png` });
       const embed = new EmbedBuilder()
-        .setColor(phaseArg === 2 ? 0x00FF88 : 0x00FFFF)
-        .setTitle(phaseArg === 2 ? '✅ [PREVIEW] OPERATIVE VERIFIED & ROSTER DEPLOYED' : '⚡ [PREVIEW] NEW OPERATIVE DEPLOYED — THE HALF LIFE\'S')
+        .setColor(phaseArg === 2 ? 0xFFD700 : 0x00FFFF)
+        .setTitle(phaseArg === 2 ? '✅ [PREVIEW] GUARDIAN VERIFIED & ROSTER DEPLOYED' : '✨ [PREVIEW] NEW GUARDIAN DEPLOYED — THE LIGHT BEARERS')
         .setDescription(
           phaseArg === 2
             ? `**Test Verification:** <@${message.author.id}> linked Minecraft IGN **\`${testIgn}\`**!\n\n` +
               `• 🏷️ **Verified In-Game Name:** \`${testIgn}\`\n` +
-              `• 🌐 **SMP Combat Status:** Active Clan Combatant\n` +
-              `• 💬 **Squad Chat:** <#1557855867897127054>`
-            : `Welcome <@${message.author.id}> to **The Half Life's**! 🛡️⚔️\n\n` +
-              `• 📜 **Read Clan Creed & Rules:** <#1557855862146465922>\n` +
+              `• 🌐 **SMP Status:** Active Light Bearer Guardian\n` +
+              `• 💬 **Guild Chat:** <#1557855867897127054>`
+            : `Welcome <@${message.author.id}> to **The Light Bearers**! ✨🛡️\n\n` +
+              `• 📜 **Read Guild Creed & Rules:** <#1557855862146465922>\n` +
               `• 📋 **Drop your Minecraft IGN in** <#1557858900806738050> to verify your roster card!\n` +
               `• 🎨 **Pick your chat color & region in** <#1559251032465219587>\n` +
               `• 💬 **Introduce yourself in** <#1557855867897127054>`
         )
         .setImage(`attachment://welcome_test_p${phaseArg}.png`)
-        .setFooter({ text: `⚔️ CO-LEADER: KryloMCYT • 👑 LEADER: st1LLkill3r • Operative #${message.guild ? message.guild.memberCount : 5}` })
+        .setFooter({ text: `✨ CO-LEADER: KryloMCYT • 👑 LEADER: Jonesy • Guardian #${message.guild ? message.guild.memberCount : 5}` })
         .setTimestamp();
 
       await statusMsg.edit({

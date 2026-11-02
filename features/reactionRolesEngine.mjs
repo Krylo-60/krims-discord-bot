@@ -63,9 +63,9 @@ export async function deployClanReactionRolePanel(channel) {
 
   const embed = new EmbedBuilder()
     .setColor(0x00FF88)
-    .setTitle('🏷️ THE HALF LIFES — NOTIFICATION & REGION ROLES')
+    .setTitle('🏷️ THE LIGHT BEARERS — NOTIFICATION & REGION ROLES')
     .setDescription(
-      `Welcome to **The Half Lifes** role selector! React below to customize your squad notifications and timezone so you never miss a war or raid! ⚔️\n\n` +
+      `Welcome to **The Light Bearers** role selector! React below to customize your squad notifications and timezone so you never miss a defense or raid! ✨\n\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `### 🔔 Pings & Squad Notifications\n` +
       `⚔️ • <@&1557877145051856989> — *Pinged for active server raids, PvP battles & wars*\n` +
@@ -79,7 +79,7 @@ export async function deployClanReactionRolePanel(channel) {
       `👉 **Click any emoji below to receive the role!** Click it again anytime to remove it.`
     )
     .setThumbnail('https://krims-discord-bot-d57m.onrender.com/gifs/the_half_lifes.gif')
-    .setFooter({ text: 'The Half Lifes • Automated Role Dispatcher' })
+    .setFooter({ text: 'The Light Bearers • Automated Role Dispatcher' })
     .setTimestamp();
 
   const msg = await channel.send({ embeds: [embed] });
@@ -107,7 +107,7 @@ export async function deployClanColorRolesPanel(channel) {
 
   const embed = new EmbedBuilder()
     .setColor(0x00E5FF)
-    .setTitle('🎨 THE HALF LIFES — CHAT COLOR ROLES')
+    .setTitle('🎨 THE LIGHT BEARERS — CHAT COLOR ROLES')
     .setDescription(
       `Equip a vibrant custom color for your username in chat and the member list! 🌟\n\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
@@ -125,7 +125,7 @@ export async function deployClanColorRolesPanel(channel) {
       `*(Selecting a new color automatically swaps your color so you only have 1 active color. Unclick your reaction to reset to default.)*`
     )
     .setThumbnail('https://krims-discord-bot-d57m.onrender.com/gifs/the_half_lifes.gif')
-    .setFooter({ text: 'The Half Lifes • Cosmetic Color Picker' })
+    .setFooter({ text: 'The Light Bearers • Cosmetic Color Picker' })
     .setTimestamp();
 
   const msg = await channel.send({ embeds: [embed] });
