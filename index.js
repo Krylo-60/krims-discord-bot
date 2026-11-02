@@ -1116,7 +1116,7 @@ function updateBotPresence() {
       type: ActivityType.Watching 
     },
     { 
-      name: '/ask • Neural AI Brain v5.3', 
+      name: '/ask • Neural AI Brain v5.7', 
       type: ActivityType.Playing 
     },
     { 
@@ -13145,7 +13145,7 @@ client.on('guildCreate', async (guild) => {
         )
         .setColor(0x00F2FF)
         .setThumbnail(avatarUrl)
-        .setFooter({ text: 'Krims Bot v5.3 Enterprise' })
+        .setFooter({ text: 'Krims Bot v5.7 Enterprise' })
         .setTimestamp();
 
       const introRow = new ActionRowBuilder().addComponents(

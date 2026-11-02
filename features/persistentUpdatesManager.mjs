@@ -19,11 +19,29 @@ export const DEFAULT_UPDATES_CHANNEL_ID = '1561175627799994402'; // #🚀・𝖡
  */
 const INITIAL_UPDATES = [
   {
+    id: 'upd_v5_7_0',
+    version: 'v5.7.0',
+    title: 'Krims Code v5.7 — Fleet & 1-Mind Synchronization Update',
+    date: '2026-11-02',
+    timestamp: Date.now(),
+    category: 'Major Fleet & Intelligence Upgrade',
+    summary: 'Universal deployment of the 1-Mind Multi-Bot Leveling Coordinator, privileged Presence Intent Gateway integration, Custom Bot Engine 2.0, and Autonomous Recruitment Matrix 2.0.',
+    highlights: [
+      '🧠 1-Mind Multi-Bot Leveling Coordinator: Turn-taking rotation across co-located custom bots (Baby Phoenix 🔥 & Mini X ⚡) with zero duplicate level-up spam and unique bot flair',
+      '👁️ Privileged Presence Gateway Architecture: Real-time member presence tracking, dynamic owner bypass in tickets, and accurate staff dispatch',
+      '⚡ Custom Bot Engine 2.0: Co-creator credits (Mini & Krylo), automatic font normalization (Mini X), and dynamic speaker recognition',
+      '⚔️ Autonomous Recruitment Matrix 2.0: Multi-role recruitment questionnaire supporting Raiders, Builders, Redstone Engineers, Miners, and Grinders',
+      '🌐 Server Hierarchy Layout Engine: Non-destructive 11-category channel reorganization preserving all roles, channels, and permissions'
+    ],
+    author: 'Krims Engineering Team',
+    pinned: true
+  },
+  {
     id: 'upd_v5_5_0',
     version: 'v5.5.0',
     title: 'Krims Code v5.5 — Autonomous AI Everywhere & Global Radar Release',
     date: '2026-10-25',
-    timestamp: Date.now(),
+    timestamp: Date.now() - 86400000 * 8,
     category: 'Major Platform & AI Architecture Upgrade',
     summary: 'Universal expansion of Krims AI across all commands and systems: Dual-Stage Global Weather Radar, AI Quantum Math Engine, Mystic Oracle & Comedy generators, Web Dashboard-exclusive Premium, and co-hosted Twitch-Discord sync.',
     highlights: [
@@ -35,7 +53,7 @@ const INITIAL_UPDATES = [
       '👑 100% Free Lifetime Founder Guilds: Grandfathered unlimited VIP compute pipelines for community headquarters with zero fees'
     ],
     author: 'Krims Engineering Team',
-    pinned: true
+    pinned: false
   },
   {
     id: 'upd_v5_3_0',
