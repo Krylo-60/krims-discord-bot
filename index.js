@@ -4486,8 +4486,10 @@ client.on('interactionCreate', async (interaction) => {
           dbBal = getBalance(interaction.user.id);
         } catch (_) {}
 
-        let mcUsername = (dbPlayer && dbPlayer.minecraft_ign) ? dbPlayer.minecraft_ign : (interaction.user.id === '1414143825538191373' ? 'Krylo_MC' : 'Not Linked');
-        let playerBalance = dbBal ? dbBal.krylocoins : (interaction.user.id === '1414143825538191373' ? 106000 : 1000);
+        const isCreator = interaction.user.id === '1414143825538191373' || interaction.user.id === '1541508115302719512';
+        let mcUsername = (dbPlayer && dbPlayer.minecraft_ign) ? dbPlayer.minecraft_ign : (isCreator ? 'Krylo_MC' : 'Not Linked');
+        let playerBalance = dbBal ? dbBal.krylocoins : (isCreator ? 106000 : 1000);
+        if (isCreator && playerBalance < 106000) playerBalance = 106000;
 
         const profileEmbed = new EmbedBuilder()
           .setColor(0x00F2FF)
@@ -4496,7 +4498,7 @@ client.on('interactionCreate', async (interaction) => {
           .addFields(
             { name: '👤 Discord User', value: `${interaction.user.tag} (<@${interaction.user.id}>)`, inline: true },
             { name: '🎮 Minecraft Account', value: mcUsername !== 'Not Linked' ? `\`${mcUsername}\`` : '❌ Not Linked', inline: true },
-            { name: '🪙 KryloCoins', value: `\`${Math.floor(playerBalance).toLocaleString()} ⛃\``, inline: true },
+            { name: '💎 Krims Rewards', value: `\`${Math.floor(playerBalance).toLocaleString()} KR\``, inline: true },
             { name: '📋 Reason / Question', value: userTicketReasonText },
             { name: '🚨 Priority Level', value: `${calculatedPriority === 'No Staff Needed' ? '🟢 Standard / General' : calculatedPriority === 'High' ? '🔴 High Priority' : '🟡 Medium Priority'}`, inline: true }
           )
@@ -6873,8 +6875,9 @@ client.on('interactionCreate', async (interaction) => {
 
       const calculatedPriority = await calculatePriority(userTicketReasonText);
 
-      let mcUsername = 'Not Linked';
-      let playerBalance = 0;
+      const isCreator = interaction.user.id === '1414143825538191373' || interaction.user.id === '1541508115302719512';
+      let mcUsername = isCreator ? 'Krylo_MC' : 'Not Linked';
+      let playerBalance = isCreator ? 106000 : 0;
       try {
         const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
           method: 'POST',
@@ -6896,6 +6899,7 @@ client.on('interactionCreate', async (interaction) => {
       } catch (e) {
         console.warn('[Ticket Log] Failed to fetch config:', e.message);
       }
+      if (isCreator && playerBalance < 106000) playerBalance = 106000;
 
       const profileEmbed = new EmbedBuilder()
         .setColor(0x00F2FF)
@@ -6904,7 +6908,7 @@ client.on('interactionCreate', async (interaction) => {
         .addFields(
           { name: '👤 Discord User', value: `${interaction.user.tag} (<@${interaction.user.id}>)`, inline: true },
           { name: '🎮 Minecraft Account', value: mcUsername !== 'Not Linked' ? `\`${mcUsername}\`` : '❌ Not Linked', inline: true },
-          { name: '🪙 KryloCoins', value: `\`${Math.floor(playerBalance).toLocaleString()} ⛃\``, inline: true },
+          { name: '💎 Krims Rewards', value: `\`${Math.floor(playerBalance).toLocaleString()} KR\``, inline: true },
           { name: '📋 Reason / Question', value: userTicketReasonText },
           { name: '🚨 Priority Level', value: `${calculatedPriority === 'No Staff Needed' ? '🟢 Standard / General' : calculatedPriority === 'High' ? '🔴 High Priority' : '🟡 Medium Priority'}`, inline: true }
         )
@@ -10663,8 +10667,9 @@ client.on('messageCreate', async (message) => {
 
       const calculatedPriority = await calculatePriority(userTicketReasonText);
 
-      let mcUsername = 'Not Linked';
-      let playerBalance = 0;
+      const isCreator = message.author.id === '1414143825538191373' || message.author.id === '1541508115302719512';
+      let mcUsername = isCreator ? 'Krylo_MC' : 'Not Linked';
+      let playerBalance = isCreator ? 106000 : 0;
       try {
         const configRes = await fetch('https://krims-code-chatbot.vercel.app/api/chat', {
           method: 'POST',
@@ -10686,6 +10691,7 @@ client.on('messageCreate', async (message) => {
       } catch (e) {
         console.warn('[Ticket Log] Failed to fetch config:', e.message);
       }
+      if (isCreator && playerBalance < 106000) playerBalance = 106000;
 
       const profileEmbed = new EmbedBuilder()
         .setColor(0x00F2FF)
@@ -10694,7 +10700,7 @@ client.on('messageCreate', async (message) => {
         .addFields(
           { name: '👤 Discord User', value: `${message.author.tag} (<@${message.author.id}>)`, inline: true },
           { name: '🎮 Minecraft Account', value: mcUsername !== 'Not Linked' ? `\`${mcUsername}\`` : '❌ Not Linked', inline: true },
-          { name: '🪙 KryloCoins', value: `\`${Math.floor(playerBalance).toLocaleString()} ⛃\``, inline: true },
+          { name: '💎 Krims Rewards', value: `\`${Math.floor(playerBalance).toLocaleString()} KR\``, inline: true },
           { name: '📋 Reason / Question', value: userTicketReasonText },
           { name: '🚨 Priority Level', value: `${calculatedPriority === 'No Staff Needed' ? '🟢 Standard / General' : calculatedPriority === 'High' ? '🔴 High Priority' : '🟡 Medium Priority'}`, inline: true }
         )
