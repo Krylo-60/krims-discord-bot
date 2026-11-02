@@ -59,22 +59,53 @@ def generate_card(avatar_input, mc_head_input, username, member_count, server_na
             mc_head_path = mc_head_input
 
     W, H = 1100, 480
-    img = Image.new('RGBA', (W, H), (10, 14, 23, 255))
-    draw = ImageDraw.Draw(img)
+    banner_path = os.path.join(base_dir, 'assets', 'the_light_bearers_banner.jpg')
+    if not os.path.exists(banner_path):
+        banner_path = os.path.join(images_dir, 'the_light_bearers_banner.jpg')
 
-    # Gradient background
-    for y in range(H):
-        ratio = y / H
-        r = int(10 + (6 - 10) * ratio)
-        g = int(14 + (24 - 14) * ratio)
-        b = int(23 + (38 - 23) * ratio)
-        draw.line([(0, y), (W, y)], fill=(r, g, b, 255))
+    if os.path.exists(banner_path):
+        b_raw = Image.open(banner_path).convert('RGBA')
+        bw, bh = b_raw.size
+        target_ratio = W / H
+        cur_ratio = bw / bh
+        if cur_ratio > target_ratio:
+            new_w = int(bh * target_ratio)
+            left = (bw - new_w) // 2
+            b_crop = b_raw.crop((left, 0, left + new_w, bh))
+        else:
+            new_h = int(bw / target_ratio)
+            top = (bh - new_h) // 2
+            b_crop = b_raw.crop((0, top, bw, top + new_h))
+        
+        banner_base = b_crop.resize((W, H), Image.Resampling.LANCZOS)
+        banner_base = ImageEnhance.Brightness(banner_base).enhance(0.40)
+        banner_base = ImageEnhance.Contrast(banner_base).enhance(1.15)
+        
+        # Vignette shade overlay to guarantee high-contrast text readability
+        shade = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+        s_draw = ImageDraw.Draw(shade)
+        for x in range(W):
+            ratio = x / W
+            alpha = int(205 - ratio * 85) # 205 on far left down to 120 on right
+            s_draw.line([(x, 0), (x, H)], fill=(8, 12, 22, max(0, min(255, alpha))))
+        img = Image.alpha_composite(banner_base, shade)
+    else:
+        img = Image.new('RGBA', (W, H), (10, 14, 23, 255))
+        draw_bg = ImageDraw.Draw(img)
+        for y in range(H):
+            ratio = y / H
+            r = int(10 + (6 - 10) * ratio)
+            g = int(14 + (24 - 14) * ratio)
+            b = int(23 + (38 - 23) * ratio)
+            draw_bg.line([(0, y), (W, y)], fill=(r, g, b, 255))
+
+    draw = ImageDraw.Draw(img)
 
     # Cyber Grid
     grid_overlay = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     g_draw = ImageDraw.Draw(grid_overlay)
-    for x in range(0, W, 40): g_draw.line([(x, 0), (x, H)], fill=(0, 255, 200, 16), width=1)
-    for y in range(0, H, 40): g_draw.line([(0, y), (W, y)], fill=(0, 255, 200, 16), width=1)
+    for x in range(0, W, 40): g_draw.line([(x, 0), (x, H)], fill=(0, 255, 200, 12), width=1)
+    for y in range(0, H, 40): g_draw.line([(0, y), (W, y)], fill=(0, 255, 200, 12), width=1)
 
     # Watermarked Clan Shield / Sacred Light Bearers Emblem
     if os.path.exists(clan_logo_path):
