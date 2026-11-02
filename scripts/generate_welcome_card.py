@@ -8,7 +8,8 @@ def generate_card(avatar_input, mc_head_input, username, member_count, server_na
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     fonts_dir = os.path.join(base_dir, 'assets', 'fonts')
     images_dir = os.path.join(base_dir, 'assets', 'images')
-    clan_logo_path = os.path.join(images_dir, 'clan_shield.jpg')
+    tlb_logo_path = os.path.join(images_dir, 'light_bearers_emblem.jpg')
+    clan_logo_path = tlb_logo_path if os.path.exists(tlb_logo_path) else os.path.join(images_dir, 'clan_shield.jpg')
 
     # Font lookups with fallbacks
     font_bahn = os.path.join(fonts_dir, 'bahnschrift.ttf')
@@ -75,13 +76,15 @@ def generate_card(avatar_input, mc_head_input, username, member_count, server_na
     for x in range(0, W, 40): g_draw.line([(x, 0), (x, H)], fill=(0, 255, 200, 16), width=1)
     for y in range(0, H, 40): g_draw.line([(0, y), (W, y)], fill=(0, 255, 200, 16), width=1)
 
-    # Watermarked Clan Shield
+    # Watermarked Clan Shield / Sacred Light Bearers Emblem
     if os.path.exists(clan_logo_path):
         shield = Image.open(clan_logo_path).convert('RGBA').resize((360, 360), Image.Resampling.LANCZOS)
-        alpha = shield.split()[3]
-        alpha = ImageEnhance.Brightness(alpha).enhance(0.25)
+        c_mask = Image.new('L', (360, 360), 0)
+        ImageDraw.Draw(c_mask).ellipse([12, 12, 348, 348], fill=255)
+        c_mask = c_mask.filter(ImageFilter.GaussianBlur(15))
+        alpha = c_mask.point(lambda p: int(p * 0.40))
         shield.putalpha(alpha)
-        img.paste(shield, (W - 380, (H - 360) // 2), shield)
+        img.paste(shield, (W - 390, (H - 360) // 2), shield)
 
     img = Image.alpha_composite(img, grid_overlay)
 
@@ -160,7 +163,7 @@ def generate_card(avatar_input, mc_head_input, username, member_count, server_na
 
         # Footer
         draw.rectangle([tX, 340, W - 90, 385], fill=(8, 16, 28, 230), outline=(0, 255, 200, 80), width=1)
-        draw.text((tX + 20, 362), 'CO-LEADER: KryloMCYT  •  LEADER: st1LLkill3r  •  DROP IGN IN #ROSTER', fill=(160, 185, 210, 255), font=footer_font, anchor='lm')
+        draw.text((tX + 20, 362), 'CO-LEADER: KryloMCYT  •  LEADER: Jonesy  •  DROP IGN IN #ROSTER', fill=(160, 185, 210, 255), font=footer_font, anchor='lm')
 
     else:
         # Phase 2: Roster Verified with Minecraft IGN
@@ -181,7 +184,7 @@ def generate_card(avatar_input, mc_head_input, username, member_count, server_na
 
         # Footer
         draw.rectangle([tX, 340, W - 90, 385], fill=(8, 16, 28, 230), outline=(0, 255, 200, 80), width=1)
-        draw.text((tX + 20, 362), 'CO-LEADER: KryloMCYT  •  LEADER: st1LLkill3r  •  BASE COMMS: UNLOCKED', fill=(160, 185, 210, 255), font=footer_font, anchor='lm')
+        draw.text((tX + 20, 362), 'CO-LEADER: KryloMCYT  •  LEADER: Jonesy  •  BASE COMMS: UNLOCKED', fill=(160, 185, 210, 255), font=footer_font, anchor='lm')
 
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     img.convert('RGB').save(out_path, quality=95)

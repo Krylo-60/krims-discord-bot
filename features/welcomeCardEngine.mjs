@@ -50,7 +50,7 @@ export async function renderWelcomeCard({
   mcHeadUrl = '',
   username,
   memberCount = 1,
-  serverName = "THE HALF LIFE'S",
+  serverName = "THE LIGHT BEARERS",
   phase = 1
 }) {
   const scriptPath = path.join(rootDir, 'scripts', 'generate_welcome_card.py');
