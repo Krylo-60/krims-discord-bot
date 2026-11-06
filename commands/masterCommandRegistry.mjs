@@ -587,6 +587,16 @@ export const masterCommandBuilders = [
         { name: '💬 Messages (Chat Activity)', value: 'messages' },
         { name: '⚡ XP & Levels', value: 'xp' }
       )),
+  new SlashCommandBuilder()
+    .setName('lb')
+    .setDescription('🏆 Quick alias: View top community messages & XP leaderboards!')
+    .addStringOption(opt => opt.setName('type')
+      .setDescription('Leaderboard category to display')
+      .setRequired(false)
+      .addChoices(
+        { name: '💬 Messages (Chat Activity)', value: 'messages' },
+        { name: '⚡ XP & Levels', value: 'xp' }
+      )),
 
   ELITE_SMP_COMMAND_DEFINITION,
 

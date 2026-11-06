@@ -2401,7 +2401,7 @@ if (commandName === 'pay' || commandName === 'tip' || commandName === 'gift') {
       return await interaction.reply({ embeds: [embed] });
     }
 
-    if (commandName === 'leaderboard' || commandName === 'xpleaderboard') {
+    if (commandName === 'leaderboard' || commandName === 'xpleaderboard' || commandName === 'lb') {
       const type = commandName === 'xpleaderboard' ? 'xp' : (interaction.options.getString('type') || 'messages');
       return await handleLeaderboardCommand(interaction, type);
     }
