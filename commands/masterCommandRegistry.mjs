@@ -698,6 +698,44 @@ export const masterCommandBuilders = [
     .setDescription('🟣 Get your secure code to link your Twitch in stream chat & claim roles!')
     .addStringOption(opt => opt.setName('username').setDescription('Your Twitch username (optional)').setRequired(false)),
 
+
+  // ──────────────────────────────────────────────────────────
+  // 9. 📈 V5.9 & V6.0 KRIMS REWARDS PROTOCOL & GA CONVERGENCE
+  // ──────────────────────────────────────────────────────────
+  new SlashCommandBuilder()
+    .setName('stake')
+    .setDescription('📈 Stake Krims Rewards (KR) to earn 12.5% compounding daily APY yield!')
+    .addIntegerOption(opt => opt.setName('amount').setDescription('Amount of KR to stake').setRequired(true).setMinValue(1)),
+
+  new SlashCommandBuilder()
+    .setName('unstake')
+    .setDescription('📉 Unstake Krims Rewards (KR) and return them to your liquid wallet.')
+    .addIntegerOption(opt => opt.setName('amount').setDescription('Amount of KR to unstake').setRequired(true).setMinValue(1)),
+
+  new SlashCommandBuilder()
+    .setName('yield')
+    .setDescription('🌾 Check your accumulated staking yield and claim your interest rewards!'),
+
+  new SlashCommandBuilder()
+    .setName('kr-top')
+    .setDescription('🏆 View the Top 10 wealthiest members and coin holders across the entire network!'),
+
+  new SlashCommandBuilder()
+    .setName('cli-key')
+    .setDescription('🔑 Generate a secure API token for the Krims CLI (NPM & pip) terminal integration!')
+    .addStringOption(opt => opt.setName('label').setDescription('Friendly label for this CLI token').setRequired(false)),
+
+  new SlashCommandBuilder()
+    .setName('redeem')
+    .setDescription('🛍️ Access the Krims Rewards v6.0 Redemption Marketplace for exclusive perks!')
+    .addStringOption(opt => opt.setName('perk').setDescription('Perk to redeem').setRequired(false)
+      .addChoices(
+        { name: '👑 Founder Pioneer Profile Badge (5,000 KR)', value: 'founder_badge' },
+        { name: '⚡ Priority 0ms Bot Neural Compute (15,000 KR)', value: 'vip_queue' },
+        { name: '🎨 Custom Discord Name Color (25,000 KR)', value: 'color_custom' },
+        { name: '⛏️ KryloSMP In-Game Particle Aura & Whitelist (50,000 KR)', value: 'ksmp_cosmetic' }
+      )),
+
   new SlashCommandBuilder()
     .setName('emojis')
     .setDescription('✨ View all official custom Application Emojis available across Krims Code AI!')

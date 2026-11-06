@@ -241,8 +241,26 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     dashboard_password_hash TEXT,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  
+  -- 10. Staking Protocol (v5.9.0)
+  CREATE TABLE IF NOT EXISTS staking (
+    discord_id TEXT PRIMARY KEY,
+    staked_amount INTEGER DEFAULT 0,
+    last_claimed_at INTEGER DEFAULT 0,
+    total_earned INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  -- 11. Dual-CLI Handshake Tokens (v5.9.0)
+  CREATE TABLE IF NOT EXISTS cli_tokens (
+    token TEXT PRIMARY KEY,
+    discord_id TEXT NOT NULL,
+    label TEXT DEFAULT 'Krims CLI Key',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_used_at DATETIME
   );
 `);
+
 
 try {
   db.exec("ALTER TABLE custom_bots ADD COLUMN dashboard_password_hash TEXT;");
@@ -648,4 +666,255 @@ export function getKrimsRewards(discordId) {
 
 export function addKrimsRewards(discordId, amount) {
   return addCoins(discordId, amount);
+}
+
+
+if (neonPool) {
+  neonPool.query(`
+    CREATE TABLE IF NOT EXISTS staking (
+      discord_id VARCHAR(64) PRIMARY KEY,
+      staked_amount BIGINT DEFAULT 0,
+      last_claimed_at BIGINT DEFAULT 0,
+      total_earned BIGINT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS cli_tokens (
+      token VARCHAR(128) PRIMARY KEY,
+      discord_id VARCHAR(64) NOT NULL,
+      label VARCHAR(128) DEFAULT 'Krims CLI Key',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      last_used_at TIMESTAMP
+    );
+  `).catch(e => console.warn('[Neon Staking/CLI Table Init Warning]:', e.message));
+}
+
+
+
+// ═══════════════════════════════════════════════════════════
+// 📈 V5.9.0 STAKING ENGINE & DUAL-CLI HANDSHAKE PROTOCOL
+// ═══════════════════════════════════════════════════════════
+
+export function getStakingInfo(discordId) {
+  if (!discordId) return null;
+  let row = db.prepare('SELECT * FROM staking WHERE discord_id = ?').get(discordId);
+  if (!row) {
+    db.prepare('INSERT INTO staking (discord_id, staked_amount, last_claimed_at, total_earned) VALUES (?, 0, 0, 0)').run(discordId);
+    row = { discord_id: discordId, staked_amount: 0, last_claimed_at: 0, total_earned: 0 };
+  }
+
+  const stakedAmount = Number(row.staked_amount || 0);
+  const lastClaimed = Number(row.last_claimed_at || 0);
+  const now = Date.now();
+  let pendingYield = 0;
+
+  // Staking yield calculation: 12.5% APY compounding continuously
+  if (stakedAmount > 0 && lastClaimed > 0) {
+    const elapsedSeconds = Math.max(0, Math.floor((now - lastClaimed) / 1000));
+    // Yield formula: (staked * 0.125 * elapsedSeconds) / (365 * 86400)
+    pendingYield = Math.floor((stakedAmount * 0.125 * elapsedSeconds) / (365 * 86400));
+  }
+
+  return {
+    discordId,
+    stakedAmount,
+    lastClaimedAt: lastClaimed,
+    totalEarned: Number(row.total_earned || 0),
+    pendingYield,
+    apy: 12.5
+  };
+}
+
+export function stakeRewards(discordId, amount) {
+  if (!discordId) throw new Error("Discord ID required.");
+  if (!amount || amount <= 0 || !Number.isInteger(amount)) throw new Error("Stake amount must be a positive whole number.");
+
+  const eco = getBalance(discordId);
+  const currentLiquid = eco?.krylocoins ?? 1000;
+  if (currentLiquid < amount) {
+    throw new Error(`Insufficient liquid balance. You have **${currentLiquid.toLocaleString()} KR**, but tried to stake **${amount.toLocaleString()} KR**.`);
+  }
+
+  // Auto-claim any accrued yield first before increasing principle
+  const currentInfo = getStakingInfo(discordId);
+  let accruedClaimed = 0;
+  if (currentInfo.pendingYield > 0) {
+    accruedClaimed = currentInfo.pendingYield;
+  }
+
+  const now = Date.now();
+  const tx = db.transaction(() => {
+    // Deduct liquid
+    db.prepare('UPDATE economy SET krylocoins = krylocoins - ? WHERE discord_id = ?').run(amount, discordId);
+    // Add staked + claim pending yield into total_earned & update last_claimed_at
+    db.prepare(`
+      INSERT INTO staking (discord_id, staked_amount, last_claimed_at, total_earned)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(discord_id) DO UPDATE SET
+        staked_amount = staked_amount + excluded.staked_amount,
+        total_earned = total_earned + excluded.total_earned,
+        last_claimed_at = excluded.last_claimed_at
+    `).run(discordId, amount, now, accruedClaimed);
+
+    if (accruedClaimed > 0) {
+      db.prepare('UPDATE economy SET krylocoins = krylocoins + ? WHERE discord_id = ?').run(accruedClaimed, discordId);
+    }
+  });
+  tx();
+
+  if (neonPool) {
+    neonPool.query(`
+      INSERT INTO staking (discord_id, staked_amount, last_claimed_at, total_earned)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT(discord_id) DO UPDATE SET
+        staked_amount = staking.staked_amount + $2,
+        total_earned = staking.total_earned + $4,
+        last_claimed_at = $3
+    `, [discordId, amount, now, accruedClaimed]).catch(e => console.warn('[Neon Staking Sync Warning]:', e.message));
+  }
+
+  return {
+    success: true,
+    stakedAmount: amount,
+    newTotalStaked: currentInfo.stakedAmount + amount,
+    accruedClaimed
+  };
+}
+
+export function unstakeRewards(discordId, amount) {
+  if (!discordId) throw new Error("Discord ID required.");
+  if (!amount || amount <= 0 || !Number.isInteger(amount)) throw new Error("Unstake amount must be a positive whole number.");
+
+  const currentInfo = getStakingInfo(discordId);
+  if (currentInfo.stakedAmount < amount) {
+    throw new Error(`Insufficient staked balance. You currently have **${currentInfo.stakedAmount.toLocaleString()} KR** staked, but tried to unstake **${amount.toLocaleString()} KR**.`);
+  }
+
+  const now = Date.now();
+  let accruedClaimed = currentInfo.pendingYield;
+
+  const tx = db.transaction(() => {
+    // Return unstaked amount (+ any accrued pending yield) to liquid balance
+    db.prepare('UPDATE economy SET krylocoins = krylocoins + ? WHERE discord_id = ?').run(amount + accruedClaimed, discordId);
+    // Deduct staked amount
+    db.prepare(`
+      UPDATE staking
+      SET staked_amount = staked_amount - ?,
+          total_earned = total_earned + ?,
+          last_claimed_at = ?
+      WHERE discord_id = ?
+    `).run(amount, accruedClaimed, now, discordId);
+  });
+  tx();
+
+  if (neonPool) {
+    neonPool.query(`
+      UPDATE staking
+      SET staked_amount = staked_amount - $1,
+          total_earned = total_earned + $2,
+          last_claimed_at = $3
+      WHERE discord_id = $4
+    `, [amount, accruedClaimed, now, discordId]).catch(e => console.warn('[Neon Unstake Sync Warning]:', e.message));
+  }
+
+  return {
+    success: true,
+    unstakedAmount: amount,
+    remainingStaked: currentInfo.stakedAmount - amount,
+    accruedClaimed
+  };
+}
+
+export function claimStakingYield(discordId) {
+  const currentInfo = getStakingInfo(discordId);
+  if (!currentInfo.pendingYield || currentInfo.pendingYield <= 0) {
+    return {
+      success: false,
+      claimed: 0,
+      message: "No staking yield available to claim yet. Accrual takes a short time at 12.5% APY."
+    };
+  }
+
+  const claimed = currentInfo.pendingYield;
+  const now = Date.now();
+
+  const tx = db.transaction(() => {
+    db.prepare('UPDATE economy SET krylocoins = krylocoins + ? WHERE discord_id = ?').run(claimed, discordId);
+    db.prepare('UPDATE staking SET total_earned = total_earned + ?, last_claimed_at = ? WHERE discord_id = ?').run(claimed, now, discordId);
+  });
+  tx();
+
+  if (neonPool) {
+    neonPool.query(`
+      UPDATE staking
+      SET total_earned = total_earned + $1,
+          last_claimed_at = $2
+      WHERE discord_id = $3
+    `, [claimed, now, discordId]).catch(e => console.warn('[Neon Claim Yield Sync Warning]:', e.message));
+  }
+
+  return {
+    success: true,
+    claimed,
+    newTotalEarned: currentInfo.totalEarned + claimed
+  };
+}
+
+export function getGlobalLeaderboard(limit = 10) {
+  const rows = db.prepare(`
+    SELECT 
+      e.discord_id,
+      e.krylocoins as liquid,
+      e.bank,
+      COALESCE(s.staked_amount, 0) as staked,
+      (e.krylocoins + e.bank + COALESCE(s.staked_amount, 0)) as net_worth,
+      e.daily_streak as streak,
+      p.minecraft_ign
+    FROM economy e
+    LEFT JOIN staking s ON e.discord_id = s.discord_id
+    LEFT JOIN players p ON e.discord_id = p.discord_id
+    ORDER BY net_worth DESC
+    LIMIT ?
+  `).all(limit);
+
+  return rows;
+}
+
+export function generateCliToken(discordId, label = 'Krims CLI Key') {
+  if (!discordId) throw new Error("Discord ID required.");
+  import('crypto').then(() => {});
+  // 32-byte hex key
+  const randomHex = Array.from({length: 32}, () => Math.floor(Math.random() * 16).toString(16)).join('');
+  const token = `krims_cli_${randomHex}`;
+
+  db.prepare(`
+    INSERT INTO cli_tokens (token, discord_id, label)
+    VALUES (?, ?, ?)
+  `).run(token, discordId, label);
+
+  if (neonPool) {
+    neonPool.query(`
+      INSERT INTO cli_tokens (token, discord_id, label)
+      VALUES ($1, $2, $3)
+    `, [token, discordId, label]).catch(e => console.warn('[Neon CLI Token Sync Warning]:', e.message));
+  }
+
+  return {
+    token,
+    discordId,
+    label
+  };
+}
+
+export function verifyCliToken(token) {
+  if (!token) return null;
+  const row = db.prepare('SELECT * FROM cli_tokens WHERE token = ?').get(token);
+  if (row) {
+    db.prepare('UPDATE cli_tokens SET last_used_at = CURRENT_TIMESTAMP WHERE token = ?').run(token);
+    return {
+      valid: true,
+      discordId: row.discord_id,
+      label: row.label
+    };
+  }
+  return null;
 }

@@ -1,4 +1,9 @@
 import { 
+  getEcosystemReleaseStatus, 
+  REDEEMABLE_PERKS,
+  V6_0_GA_TIMESTAMP 
+} from '../features/timeGatedReleaseEngine.mjs';
+import { 
   EmbedBuilder, 
   ActionRowBuilder, 
   ButtonBuilder, 
@@ -83,6 +88,13 @@ import {
   claimDaily, 
   transferCoins, 
   transferRewards, 
+  stakeRewards, 
+  unstakeRewards, 
+  claimStakingYield, 
+  getStakingInfo, 
+  getGlobalLeaderboard, 
+  generateCliToken, 
+  verifyCliToken, 
   setPlayerVerification, 
   getPlayer 
 } from '../databaseEngine.mjs';
@@ -1857,7 +1869,220 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       return await interaction.reply({ embeds: [embed] });
     }
 
-    if (commandName === 'pay' || commandName === 'tip' || commandName === 'gift') {
+        // ═══════════════════════════════════════════════════════════
+    // 📈 V5.9.0 & V6.0.0 KRIMS REWARDS PROTOCOL & GA CONVERGENCE
+    // ═══════════════════════════════════════════════════════════
+
+    if (commandName === 'stake') {
+      const amount = interaction.options.getInteger('amount');
+      try {
+        const result = stakeRewards(interaction.user.id, amount);
+        const info = getStakingInfo(interaction.user.id);
+
+        const embed = new EmbedBuilder()
+          .setColor(0x00F2FF)
+          .setTitle('📈 STAKING PROTOCOL: DEPOSIT CONFIRMED')
+          .setDescription(
+            `Successfully staked **+${amount.toLocaleString()} KR** into the Krims Rewards Liquidity & Yield Pool! 💎⚡\n\n` +
+            `• 🏛️ **Total Principal Staked:** \`${info.stakedAmount.toLocaleString()} KR\`\n` +
+            `• 📊 **Compounding Yield:** \`12.5% APY\` (Daily compounding)\n` +
+            (result.accruedClaimed > 0 ? `• 🌾 **Auto-Claimed Prior Yield:** \`+${result.accruedClaimed.toLocaleString()} KR\`\n` : '') +
+            `• 🕒 **Next Yield Distribution:** Continuous (Check anytime with \`/yield\`)\n\n` +
+            `*Your staked KR earns interest around the clock and can be unstaked anytime with \`/unstake\`.*`
+          )
+          .setFooter({ text: 'Krims Rewards Staking Protocol v5.9.0 • 12.5% APY' })
+          .setTimestamp();
+
+        return await interaction.reply({ embeds: [embed] });
+      } catch (err) {
+        return await interaction.reply({ content: `❌ Staking failed: ${err.message}`, ephemeral: true });
+      }
+    }
+
+    if (commandName === 'unstake') {
+      const amount = interaction.options.getInteger('amount');
+      try {
+        const result = unstakeRewards(interaction.user.id, amount);
+        const info = getStakingInfo(interaction.user.id);
+        const bal = getBalance(interaction.user.id);
+
+        const embed = new EmbedBuilder()
+          .setColor(0x10B981)
+          .setTitle('📉 STAKING PROTOCOL: WITHDRAWAL CONFIRMED')
+          .setDescription(
+            `Successfully unstaked **${amount.toLocaleString()} KR** from the yield pool! 🔓\n\n` +
+            `• 💰 **Liquid Wallet Balance:** \`${(bal?.krylocoins ?? 0).toLocaleString()} KR\`\n` +
+            `• 🏛️ **Remaining Staked:** \`${info.stakedAmount.toLocaleString()} KR\`\n` +
+            (result.accruedClaimed > 0 ? `• 🌾 **Auto-Claimed Pending Yield:** \`+${result.accruedClaimed.toLocaleString()} KR\`\n` : '') +
+            `• 🔒 **Security Guarantee:** 100% principal returned with zero lockup penalty.`
+          )
+          .setFooter({ text: 'Krims Rewards Staking Protocol v5.9.0' })
+          .setTimestamp();
+
+        return await interaction.reply({ embeds: [embed] });
+      } catch (err) {
+        return await interaction.reply({ content: `❌ Unstaking failed: ${err.message}`, ephemeral: true });
+      }
+    }
+
+    if (commandName === 'yield') {
+      const claimResult = claimStakingYield(interaction.user.id);
+      const updatedInfo = getStakingInfo(interaction.user.id);
+      const bal = getBalance(interaction.user.id);
+
+      const embed = new EmbedBuilder()
+        .setColor(0xF59E0B)
+        .setTitle('🌾 KRIMS REWARDS YIELD HARVESTER')
+        .setDescription(
+          `### Staking Yield & Accrual Overview\n\n` +
+          `• 🏛️ **Active Staked Principal:** \`${updatedInfo.stakedAmount.toLocaleString()} KR\`\n` +
+          `• 📈 **Current APY Rate:** \`12.5% Annually\` (~0.034% per day)\n` +
+          `• 💰 **Liquid Wallet:** \`${(bal?.krylocoins ?? 0).toLocaleString()} KR\`\n` +
+          `• 🏆 **Lifetime Yield Harvested:** \`${updatedInfo.totalEarned.toLocaleString()} KR\`\n\n` +
+          (claimResult.success && claimResult.claimed > 0
+            ? `🎉 **Harvest Success:** \`+${claimResult.claimed.toLocaleString()} KR\` claimed directly into your wallet!`
+            : `⏳ **Pending Accrual:** Yield compounds continuously. Check back soon for your next harvest!`)
+        )
+        .setFooter({ text: 'Krims Rewards Staking • Daily Compounding Engine' })
+        .setTimestamp();
+
+      return await interaction.reply({ embeds: [embed] });
+    }
+
+    if (commandName === 'kr-top') {
+      const topHolders = getGlobalLeaderboard(10);
+      let desc = '### 👑 Network-Wide Wealth & Staking Leaderboard\n\n';
+
+      const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+      topHolders.forEach((holder, idx) => {
+        const medal = medals[idx] || '🎖️';
+        const ignTag = holder.minecraft_ign ? ` • IGN: \`${holder.minecraft_ign}\`` : '';
+        const streakTag = holder.streak > 0 ? ` 🔥 ${holder.streak}d streak` : '';
+        desc += `${medal} **<@${holder.discord_id}>** — **${holder.net_worth.toLocaleString()} KR**${ignTag}${streakTag}\n` +
+                `   ↳ Liquid: \`${holder.liquid.toLocaleString()}\` | Staked: \`${holder.staked.toLocaleString()}\`\n`;
+      });
+
+      if (topHolders.length === 0) {
+        desc += '*No economy records active yet. Be the first to earn and stake!*';
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor(0xFFD700)
+        .setTitle('🏆 GLOBAL KRIMS REWARDS RICH LIST (KR-TOP)')
+        .setDescription(desc)
+        .setFooter({ text: 'Ranked by Total Net Worth (Liquid + Bank + Staked KR) • Real-Time Cloud Sync' })
+        .setTimestamp();
+
+      return await interaction.reply({ embeds: [embed] });
+    }
+
+    if (commandName === 'cli-key') {
+      const label = interaction.options.getString('label') || 'Discord CLI Key';
+      const tokenData = generateCliToken(interaction.user.id, label);
+
+      const embed = new EmbedBuilder()
+        .setColor(0x8B5CF6)
+        .setTitle('🔑 DUAL-CLI HANDSHAKE TOKEN GENERATED')
+        .setDescription(
+          `Your personal authentication key for the **Official Krims Code CLI Partnership** has been created!\n\n` +
+          `\`\`\`\n${tokenData.token}\n\`\`\`\n` +
+          `⚠️ **Keep this key private!** Anyone with this key can query your KR wallet and trigger CLI commands.\n\n` +
+          `**Quick Setup Instructions:**\n` +
+          `• **NPM Package:** \`npm i -g @krishivpb60/krims-code-cli\`\n` +
+          `• **PyPI Package:** \`pip install krims-code-cli\`\n` +
+          `• **Terminal Auth:** \`krims config set --token ${tokenData.token}\`\n\n` +
+          `Try running \`krims rewards balance\` right from your command line!`
+        )
+        .setFooter({ text: 'Dual-CLI Handshake Protocol v5.9.0 • NPM & PyPI' })
+        .setTimestamp();
+
+      return await interaction.reply({ embeds: [embed], ephemeral: true });
+    }
+
+    if (commandName === 'redeem') {
+      const perkId = interaction.options.getString('perk');
+      const status = getEcosystemReleaseStatus();
+      const userEco = getBalance(interaction.user.id);
+      const userBalance = userEco?.krylocoins ?? 1000;
+
+      if (!status.isGA) {
+        let catalog = '### 🛍️ Official v6.0 Redemption Marketplace Catalog\n\n' +
+                      `*The Marketplace officially opens when **v6.0.0 GA Converges on November 9, 2026**!*\n` +
+                      `⏳ **Countdown:** \`${status.countdownText}\`\n\n` +
+                      `**Your Current Balance:** \`${userBalance.toLocaleString()} KR\`\n\n`;
+
+        REDEEMABLE_PERKS.forEach(p => {
+          const canAfford = userBalance >= p.cost ? '✅' : '🔒';
+          catalog += `${canAfford} **${p.name}** — \`${p.cost.toLocaleString()} KR\`\n` +
+                     `   ↳ ${p.description}\n`;
+        });
+
+        catalog += `\n💡 *Tip: Stake your KR with \`/stake\` now to earn 12.5% APY so you can afford high-tier perks on launch day!*`;
+
+        const embed = new EmbedBuilder()
+          .setColor(0x00F2FF)
+          .setTitle('⏳ KRIMS REWARDS v6.0 REDEMPTION MARKETPLACE (PREVIEW)')
+          .setDescription(catalog)
+          .setFooter({ text: 'Scheduled Activation: Nov 9, 2026 00:00:00 UTC • GA Convergence' })
+          .setTimestamp();
+
+        return await interaction.reply({ embeds: [embed] });
+      }
+
+      if (!perkId) {
+        let catalog = '### 🛍️ Official v6.0 Redemption Marketplace\n\n' +
+                      `**Your Current Balance:** \`${userBalance.toLocaleString()} KR\`\n\n` +
+                      `Select a perk to redeem using \`/redeem <perk>\`:\n\n`;
+
+        REDEEMABLE_PERKS.forEach(p => {
+          const canAfford = userBalance >= p.cost ? '✅' : '❌';
+          catalog += `${canAfford} **${p.name}** — \`${p.cost.toLocaleString()} KR\`\n` +
+                     `   ↳ ${p.description}\n` +
+                     `   ↳ Redeem: \`${p.command}\`\n\n`;
+        });
+
+        const embed = new EmbedBuilder()
+          .setColor(0x10B981)
+          .setTitle('🛍️ KRIMS REWARDS v6.0 REDEMPTION MARKETPLACE (ACTIVE)')
+          .setDescription(catalog)
+          .setFooter({ text: 'Krims Code v6.0.0 General Availability Live' })
+          .setTimestamp();
+
+        return await interaction.reply({ embeds: [embed] });
+      }
+
+      const perk = REDEEMABLE_PERKS.find(p => p.id === perkId);
+      if (!perk) {
+        return await interaction.reply({ content: '❌ Invalid perk selected.', ephemeral: true });
+      }
+
+      if (userBalance < perk.cost) {
+        return await interaction.reply({
+          content: `❌ Insufficient funds. **${perk.name}** costs **${perk.cost.toLocaleString()} KR**, but you have **${userBalance.toLocaleString()} KR**. Stake more or earn daily bonuses to unlock it!`,
+          ephemeral: true
+        });
+      }
+
+      removeCoins(interaction.user.id, perk.cost);
+      const newBal = (userBalance - perk.cost);
+
+      const embed = new EmbedBuilder()
+        .setColor(0x10B981)
+        .setTitle('🎉 PERK REDEEMED SUCCESSFULLY!')
+        .setDescription(
+          `You have officially unlocked **${perk.name}**! 🚀\n\n` +
+          `• 💎 **Price Paid:** \`-${perk.cost.toLocaleString()} KR\`\n` +
+          `• 💰 **Remaining Wallet Balance:** \`${newBal.toLocaleString()} KR\`\n` +
+          `• 📜 **Perk Details:** ${perk.description}\n` +
+          `• 🛡️ **Receipt ID:** \`RED-${Date.now().toString(36).toUpperCase()}\``
+        )
+        .setFooter({ text: 'Krims Rewards GA Marketplace • Production Verified' })
+        .setTimestamp();
+
+      return await interaction.reply({ embeds: [embed] });
+    }
+
+if (commandName === 'pay' || commandName === 'tip' || commandName === 'gift') {
       const targetUser = interaction.options.getUser('user');
       const amount = interaction.options.getInteger('amount');
       const note = interaction.options.getString('note') || '';

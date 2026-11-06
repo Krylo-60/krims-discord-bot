@@ -19,11 +19,29 @@ export const DEFAULT_UPDATES_CHANNEL_ID = '1561175627799994402'; // #🚀・𝖡
  */
 const INITIAL_UPDATES = [
   {
+    id: 'upd_v5_9_0',
+    version: 'v5.9.0',
+    title: 'Krims Code v5.9 — Staking Protocol & Dual-CLI Handshake Release',
+    date: '2026-11-06',
+    timestamp: Date.now(),
+    category: 'Release Candidate & Convergence',
+    summary: 'Universal deployment of the 12.5% APY Staking Yield Engine, Global Rich List (/kr-top), Dual-CLI Handshake Tokens (/cli-key), and the automated time-gated v6.0.0 GA Convergence Engine.',
+    highlights: [
+      '📈 12.5% APY Staking Protocol: Deposit Krims Rewards into the yield pool (/stake), withdraw anytime (/unstake), and harvest daily compounding interest (/yield)',
+      '🏆 Global Rich List (/kr-top): Real-time network-wide leaderboard ranking top guardians by total net worth (liquid + bank + staked KR)',
+      '🔑 Dual-CLI Handshake Protocol (/cli-key): Generate AES authentication keys powering both the NPM (@krishivpb60/krims-code-cli) and Python pip (krims-code-cli) terminal packages',
+      '⏳ Time-Gated v6.0.0 GA Convergence Engine: Automated system scheduled for Nov 9, 2026 00:00:00 UTC to unlock the official Redemption Marketplace (/redeem) and production GA status',
+      '🐘 Neon Lakebase Hardening: Atomic multi-table replication across SQLite and serverless PostgreSQL'
+    ],
+    author: 'Krims Engineering Team',
+    pinned: true
+  },
+  {
     id: 'upd_v5_8_0',
     version: 'v5.8.0',
     title: 'Krims Code v5.8 — Multi-Bot Fleet Turn-Taking & P2P Rewards Release',
     date: '2026-11-06',
-    timestamp: Date.now(),
+    timestamp: Date.now() - 3600000,
     category: 'Major Economy, Security & Clan Architecture Upgrade',
     summary: 'Official deployment of Peer-to-Peer Krims Rewards economy (/pay, /tip, /gift), procedural 1-Mind fleet flair, hardened Neon Lakebase Postgres sync, and 12-question clan recruitment matrix.',
     highlights: [
@@ -34,7 +52,7 @@ const INITIAL_UPDATES = [
       '🪔 Universal Dawn Star & Wings Clan Identity: Modernized welcome card visual assets and server-wide rebranding'
     ],
     author: 'Krims Engineering Team',
-    pinned: true
+    pinned: false
   },
   {
     id: 'upd_v5_7_0',

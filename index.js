@@ -1,3 +1,4 @@
+import { checkAndTriggerGABroadcast } from './features/timeGatedReleaseEngine.mjs';
 /**
  * 👑 KRYLOSMP MASTER GOOGLE SHEETS:
  * 1. Support & Ticket Logs Sheet: https://docs.google.com/spreadsheets/d/1F4NRwssxFxJO58uX6CTHvXqSMoEMoLhJGRI2IeghF-g/edit?gid=377764939#gid=377764939
@@ -1171,6 +1172,13 @@ client.once('ready', async () => {
     console.log('[+] Dedicated fleet runners (Alpha, Beta, Premium) initialized!');
   } catch (fleetErr) {
     console.warn('[Fleet] Runner initialization notice:', fleetErr.message);
+  }
+
+  try {
+    checkAndTriggerGABroadcast(client);
+    setInterval(() => checkAndTriggerGABroadcast(client), 60 * 1000);
+  } catch (gaErr) {
+    console.warn('[TimeGatedRelease] Engine notice:', gaErr.message);
   }
 
   startAutoUpdater();
