@@ -40,8 +40,8 @@ export function extractIgn(content, isRosterChannel = false) {
     return null;
   }
 
-  // Pattern 2: Explicit label inside roster channels (e.g. "IGN: Steve", "MC IGN: Steve", "Minecraft IGN: Alex")
-  const labeledMatch = trimmed.match(/(?:(?:minecraft|mc)\s*ign|\bign\b)\s*[:=\-]\s*`?([a-zA-Z0-9_]{3,16})`?/i);
+  // Pattern 2: Explicit label inside roster channels (e.g. "IGN Voidless10", "IGN: Steve", "MC IGN: Steve", "Minecraft IGN Alex", "My IGN is Voidless10")
+  const labeledMatch = trimmed.match(/(?:(?:minecraft|mc)\s*ign|\bign\b)\s*(?:is\s+|[:=\-]\s*|\s+)`?([a-zA-Z0-9_]{3,16})`?/i);
   if (labeledMatch) {
     const candidate = labeledMatch[1];
     if (!STOPWORDS.has(candidate.toLowerCase())) return candidate;
@@ -62,10 +62,14 @@ export function extractIgn(content, isRosterChannel = false) {
     }
   }
 
-  // Pattern 5: First line of a structured application form in dedicated roster channel
+  // Pattern 5: Multi-line messages / application forms in dedicated roster channel
   const lines = trimmed.split('\n').map(l => l.trim()).filter(Boolean);
-  if (lines.length > 0 && /^[a-zA-Z0-9_]{3,16}$/.test(lines[0])) {
-    if (!STOPWORDS.has(lines[0].toLowerCase())) {
+  if (lines.length > 0) {
+    const line0Labeled = lines[0].match(/(?:(?:minecraft|mc)\s*ign|\bign\b)\s*(?:is\s+|[:=\-]\s*|\s+)`?([a-zA-Z0-9_]{3,16})`?/i);
+    if (line0Labeled && !STOPWORDS.has(line0Labeled[1].toLowerCase())) {
+      return line0Labeled[1];
+    }
+    if (/^[a-zA-Z0-9_]{3,16}$/.test(lines[0]) && !STOPWORDS.has(lines[0].toLowerCase())) {
       return lines[0];
     }
   }
@@ -81,8 +85,10 @@ export async function handleRosterMessage(message) {
     return false;
   }
 
-  const channelName = (message.channel.name || '').toLowerCase();
-  const isRosterChannel = channelName.includes('roster') ||
+  const rawChannelName = message.channel.name || '';
+  const channelName = rawChannelName.normalize('NFKD').toLowerCase();
+  const isRosterChannel = message.channel.id === '1557858900806738050' || // Official The Light Bearers Roster Channel
+                          channelName.includes('roster') ||
                           channelName.includes('ign') ||
                           channelName.includes('verify') ||
                           channelName.includes('directory');
@@ -116,7 +122,12 @@ export async function handleRosterMessage(message) {
 
     // Already matches
     if (member.nickname === ign || (!member.nickname && member.user.username === ign)) {
+      await message.react('🏷️').catch(() => {});
       await message.react('✅').catch(() => {});
+      await message.reply({
+        content: `🏷️ **Minecraft IGN Linked:** Your server nickname has been updated to **\`${ign}\`**! ⚔️`,
+        allowedMentions: { repliedUser: false }
+      }).catch(() => {});
       return true;
     }
 
