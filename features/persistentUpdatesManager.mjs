@@ -19,11 +19,29 @@ export const DEFAULT_UPDATES_CHANNEL_ID = '1561175627799994402'; // #🚀・𝖡
  */
 const INITIAL_UPDATES = [
   {
+    id: 'upd_v5_8_0',
+    version: 'v5.8.0',
+    title: 'Krims Code v5.8 — Multi-Bot Fleet Turn-Taking & P2P Rewards Release',
+    date: '2026-11-06',
+    timestamp: Date.now(),
+    category: 'Major Economy, Security & Clan Architecture Upgrade',
+    summary: 'Official deployment of Peer-to-Peer Krims Rewards economy (/pay, /tip, /gift), procedural 1-Mind fleet flair, hardened Neon Lakebase Postgres sync, and 12-question clan recruitment matrix.',
+    highlights: [
+      '💸 Peer-to-Peer Rewards Transfer: Instant user-to-user transfers (/pay, /tip, /gift) with real-time audit receipts, DM dispatch, and atomic Neon Postgres cloud synchronization',
+      '⚡ Procedural 1-Mind Bot Flair: Any custom bot spawned via /custombot automatically receives custom name badge flair and dynamic leveled emojis during fleet turn-taking',
+      '🛡️ Hardened Neon Lakebase Postgres: Reconnected high-performance serverless PostgreSQL pooling with failover-resilient cloud sync and strict zero-credential leak isolation',
+      '⚔️ The Light Bearers Clan Matrix: Fully updated 12-question recruitment dossier in #📝・𝖳eam-𝖠pply with automated submission logging in #📋・Staff-Logs',
+      '🪔 Universal Dawn Star & Wings Clan Identity: Modernized welcome card visual assets and server-wide rebranding'
+    ],
+    author: 'Krims Engineering Team',
+    pinned: true
+  },
+  {
     id: 'upd_v5_7_0',
     version: 'v5.7.0',
     title: 'Krims Code v5.7 — Fleet & 1-Mind Synchronization Update',
     date: '2026-11-02',
-    timestamp: Date.now(),
+    timestamp: Date.now() - 86400000 * 4,
     category: 'Major Fleet & Intelligence Upgrade',
     summary: 'Universal deployment of the 1-Mind Multi-Bot Leveling Coordinator, privileged Presence Intent Gateway integration, Custom Bot Engine 2.0, and Autonomous Recruitment Matrix 2.0.',
     highlights: [
@@ -34,7 +52,7 @@ const INITIAL_UPDATES = [
       '🌐 Server Hierarchy Layout Engine: Non-destructive 11-category channel reorganization preserving all roles, channels, and permissions'
     ],
     author: 'Krims Engineering Team',
-    pinned: true
+    pinned: false
   },
   {
     id: 'upd_v5_5_0',

@@ -41,6 +41,44 @@ const BOT_LEVEL_FLAIRS = {
   }
 };
 
+
+export function getProceduralBotFlair(botUser) {
+  if (!botUser) return { color: '#00F2FF', title: '🎉 LEVEL UP!', prefix: '⚡' };
+  if (BOT_LEVEL_FLAIRS[botUser.id]) return BOT_LEVEL_FLAIRS[botUser.id];
+
+  const name = (botUser.username || '').toLowerCase();
+  let color = '#00F2FF';
+  let prefix = '⚡';
+  let title = `🚀 ${botUser.username.toUpperCase()} LEVEL UP!`;
+
+  if (name.includes('phoenix') || name.includes('fire')) {
+    color = '#FF6B00';
+    prefix = '🔥';
+    title = '🔥 PHOENIX LEVEL UP!';
+  } else if (name.includes('dragon') || name.includes('shadow')) {
+    color = '#A855F7';
+    prefix = '🐉';
+    title = '🐉 DRAGON ASCENSION!';
+  } else if (name.includes('mini') || name.includes('cyber')) {
+    color = '#00F2FF';
+    prefix = '⚡';
+    title = '⚡ CYBER LEVEL UP!';
+  } else if (name.includes('light') || name.includes('sun')) {
+    color = '#F59E0B';
+    prefix = '✨';
+    title = '✨ RADIANT LEVEL UP!';
+  } else {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+    color = '#' + '00000'.substring(0, 6 - c.length) + c;
+    prefix = '💎';
+    title = `💎 ${botUser.username.toUpperCase()} LEVEL UP!`;
+  }
+
+  return { color, prefix, title };
+}
+
 export class MultiBotManager {
   constructor() {
     /** @type {Map<string, Client>} Map<guildId, Client> */
@@ -259,11 +297,7 @@ export class MultiBotManager {
               const chosenBot = eligibleBots[currentTurn % eligibleBots.length];
               guildLevelingTurns.set(message.guild.id, currentTurn + 1);
 
-              const botFlair = BOT_LEVEL_FLAIRS[chosenBot.user.id] || {
-                color: '#5865F2',
-                title: '🎉 LEVEL UP!',
-                prefix: '⚡'
-              };
+              const botFlair = getProceduralBotFlair(chosenBot.user);
 
               const levelEmbed = new EmbedBuilder()
                 .setColor(botFlair.color)

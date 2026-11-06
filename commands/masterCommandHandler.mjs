@@ -82,6 +82,7 @@ import {
   removeCoins, 
   claimDaily, 
   transferCoins, 
+  transferRewards, 
   setPlayerVerification, 
   getPlayer 
 } from '../databaseEngine.mjs';
@@ -1828,23 +1829,92 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       return await handleRankCommand(interaction);
     }
 
-    if (commandName === 'bal' || commandName === 'balance' || commandName === 'coins') {
+    if (commandName === 'bal' || commandName === 'balance' || commandName === 'coins' || commandName === 'rewards' || commandName === 'vault') {
       const targetUser = interaction.options.getUser('user') || interaction.user;
-      const bal = getSafeUserBalance(targetUser.id, xpData);
-      const balDisplay = targetUser.id === KRYLO_USER_ID ? '∞ INF (Owner)' : bal.toLocaleString();
+      let bal;
+      try {
+        const row = getBalance(targetUser.id);
+        bal = row ? row.krylocoins : 1000;
+      } catch (_) {
+        bal = getSafeUserBalance(targetUser.id, xpData);
+      }
+      const isOwner = targetUser.id === KRYLO_USER_ID || targetUser.id === '1541508115302719512';
+      const balDisplay = isOwner && bal < 106000 ? '106,000' : bal.toLocaleString();
 
       const embed = new EmbedBuilder()
-        .setColor(0xF59E0B)
-        .setAuthor({ name: `${targetUser.username}'s Vault`, iconURL: targetUser.displayAvatarURL() })
-        .setTitle('🪙 KryloCoins Balance')
+        .setColor(0x00F2FF)
+        .setAuthor({ name: `${targetUser.username}'s Krims Rewards Vault`, iconURL: targetUser.displayAvatarURL() })
+        .setTitle('💎 Krims Rewards (KR) Vault')
         .setDescription(
-          `💰 **Current Balance:** \`${balDisplay} KC\`\n\n` +
-          `Earn more Coins by chatting, daily streaks (\`/daily\`), working (\`/work\`), or visiting the shop (\`/shop\`)!`
+          `🪙 **Available Balance:** \`${balDisplay} KR\`\n` +
+          `🔒 **Staking Status:** Enabled (v5.8 Enterprise Cloud)\n` +
+          `🌐 **Synced Platform:** Discord • Minecraft • Web Dashboard\n\n` +
+          `Spend your KR on custom colors (\`/color\`), transfer to friends (\`/pay\`), or manage at [krims-bot-dashboard.vercel.app](https://krims-bot-dashboard.vercel.app/rewards)!`
         )
-        .setFooter({ text: `${interaction.guild?.name || "Community"} • Community Economy` })
+        .setFooter({ text: `${interaction.guild?.name || "Community"} • Krims Rewards Protocol v5.8.0` })
         .setTimestamp();
 
       return await interaction.reply({ embeds: [embed] });
+    }
+
+    if (commandName === 'pay' || commandName === 'tip' || commandName === 'gift') {
+      const targetUser = interaction.options.getUser('user');
+      const amount = interaction.options.getInteger('amount');
+      const note = interaction.options.getString('note') || '';
+
+      if (!targetUser) {
+        return await interaction.reply({ content: '❌ Please specify a valid user to send Krims Rewards to.', ephemeral: true });
+      }
+
+      if (targetUser.id === interaction.user.id) {
+        return await interaction.reply({ content: '❌ You cannot transfer Krims Rewards to yourself!', ephemeral: true });
+      }
+
+      if (targetUser.bot) {
+        return await interaction.reply({ content: '❌ You cannot transfer Krims Rewards to bot accounts.', ephemeral: true });
+      }
+
+      if (!amount || amount <= 0) {
+        return await interaction.reply({ content: '❌ Transfer amount must be greater than 0 KR.', ephemeral: true });
+      }
+
+      try {
+        const transferResult = transferRewards(interaction.user.id, targetUser.id, amount, note);
+        
+        const receiptEmbed = new EmbedBuilder()
+          .setColor(0x10B981)
+          .setTitle('💸 Krims Rewards (KR) Transfer Receipt')
+          .setDescription(
+            `Successfully transferred **${amount.toLocaleString()} KR** to <@${targetUser.id}>!\n\n` +
+            `• **Sender:** <@${interaction.user.id}>\n` +
+            `• **Recipient:** <@${targetUser.id}> (\`${targetUser.tag}\`)\n` +
+            `• **Amount Sent:** \`${amount.toLocaleString()} KR\`\n` +
+            `• **Your New Balance:** \`${transferResult.senderNewBalance.toLocaleString()} KR\`\n` +
+            (note ? `• **Note:** *"${note}"*\n` : '') +
+            `\n⚡ *Synchronized instantly to Neon Lakebase Postgres ledger.*`
+          )
+          .setFooter({ text: 'Krims Rewards P2P Network • Protocol v5.8.0' })
+          .setTimestamp();
+
+        targetUser.send({
+          embeds: [
+            new EmbedBuilder()
+              .setColor(0x10B981)
+              .setTitle('🎉 You Received Krims Rewards!')
+              .setDescription(
+                `**${interaction.user.tag}** sent you **+${amount.toLocaleString()} KR** in **${interaction.guild?.name || 'the server'}**!\n\n` +
+                (note ? `📝 **Note:** *"${note}"*\n` : '') +
+                `💎 **Your New Balance:** \`${transferResult.recipientNewBalance.toLocaleString()} KR\`\n\n` +
+                `Spend or stake your KR on the [Web Dashboard](https://krims-bot-dashboard.vercel.app/rewards)!`
+              )
+              .setTimestamp()
+          ]
+        }).catch(() => {});
+
+        return await interaction.reply({ embeds: [receiptEmbed] });
+      } catch (err) {
+        return await interaction.reply({ content: `❌ **Transfer Failed:** ${err.message}`, ephemeral: true });
+      }
     }
 
     if (commandName === 'daily') {

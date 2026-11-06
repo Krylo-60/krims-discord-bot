@@ -515,14 +515,29 @@ export const masterCommandBuilders = [
 
   new SlashCommandBuilder()
     .setName('balance')
-    .setDescription('💰 Check your current KryloCoins & economy balance!')
+    .setDescription('💎 Check your current Krims Rewards (KR) vault balance!')
     .addUserOption(opt => opt.setName('user').setDescription('User to check balance of').setRequired(false)),
 
   new SlashCommandBuilder()
     .setName('pay')
-    .setDescription('💸 Transfer KryloCoins securely to another player!')
+    .setDescription('💸 Transfer Krims Rewards (KR) securely to another player!')
     .addUserOption(opt => opt.setName('user').setDescription('Recipient player').setRequired(true))
-    .addIntegerOption(opt => opt.setName('amount').setDescription('Amount of KryloCoins to send').setRequired(true)),
+    .addIntegerOption(opt => opt.setName('amount').setDescription('Amount of Krims Rewards (KR) to send').setRequired(true))
+    .addStringOption(opt => opt.setName('note').setDescription('Optional memo/note').setRequired(false)),
+
+  new SlashCommandBuilder()
+    .setName('tip')
+    .setDescription('✨ Tip Krims Rewards (KR) to another community member!')
+    .addUserOption(opt => opt.setName('user').setDescription('Recipient player').setRequired(true))
+    .addIntegerOption(opt => opt.setName('amount').setDescription('Amount of Krims Rewards (KR) to tip').setRequired(true))
+    .addStringOption(opt => opt.setName('note').setDescription('Optional memo/note').setRequired(false)),
+
+  new SlashCommandBuilder()
+    .setName('gift')
+    .setDescription('🎁 Send a Krims Rewards (KR) gift to a friend!')
+    .addUserOption(opt => opt.setName('user').setDescription('Recipient player').setRequired(true))
+    .addIntegerOption(opt => opt.setName('amount').setDescription('Amount of Krims Rewards (KR) to gift').setRequired(true))
+    .addStringOption(opt => opt.setName('note').setDescription('Optional memo/note').setRequired(false)),
 
   new SlashCommandBuilder()
     .setName('slots')

@@ -338,6 +338,59 @@ export function removeCoins(discordId, amount) {
   return true;
 }
 
+
+export function transferRewards(senderId, recipientId, amount, note = '') {
+  if (senderId === recipientId) throw new Error("You cannot send Krims Rewards to yourself.");
+  if (!amount || amount <= 0 || !Number.isInteger(amount)) throw new Error("Transfer amount must be a positive whole number.");
+
+  const transferTx = db.transaction(() => {
+    const senderBal = getBalance(senderId);
+    if (senderBal.krylocoins < amount) {
+      throw new Error(`Insufficient funds. Your vault contains ${senderBal.krylocoins.toLocaleString()} KR, but you tried to send ${amount.toLocaleString()} KR.`);
+    }
+
+    db.prepare('UPDATE economy SET krylocoins = krylocoins - ? WHERE discord_id = ?').run(amount, senderId);
+    db.prepare('INSERT OR IGNORE INTO players (discord_id) VALUES (?)').run(recipientId);
+    db.prepare(`
+      INSERT INTO economy (discord_id, krylocoins) VALUES (?, ?)
+      ON CONFLICT(discord_id) DO UPDATE SET krylocoins = krylocoins + excluded.krylocoins
+    `).run(recipientId, amount);
+
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS reward_transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sender_id TEXT,
+        recipient_id TEXT,
+        amount INTEGER,
+        note TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `).run();
+
+    db.prepare(`
+      INSERT INTO reward_transactions (sender_id, recipient_id, amount, note)
+      VALUES (?, ?, ?, ?)
+    `).run(senderId, recipientId, amount, note);
+
+    return {
+      senderNewBalance: senderBal.krylocoins - amount,
+      recipientNewBalance: getBalance(recipientId).krylocoins
+    };
+  });
+
+  const res = transferTx();
+
+  if (neonPool) {
+    neonPool.query(`UPDATE economy SET krylocoins = krylocoins - $1 WHERE discord_id = $2`, [amount, senderId]).catch(() => {});
+    neonPool.query(`
+      INSERT INTO economy (discord_id, krylocoins) VALUES ($1, $2)
+      ON CONFLICT (discord_id) DO UPDATE SET krylocoins = economy.krylocoins + EXCLUDED.krylocoins
+    `, [recipientId, amount]).catch(() => {});
+  }
+
+  return res;
+}
+
 export function getTopBalances(limit = 10) {
   return db.prepare(`
     SELECT e.discord_id, e.krylocoins, p.minecraft_ign 
