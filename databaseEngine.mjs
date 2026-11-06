@@ -241,7 +241,8 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     dashboard_password_hash TEXT,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  
+  );
+
   -- 10. Staking Protocol (v5.9.0)
   CREATE TABLE IF NOT EXISTS staking (
     discord_id TEXT PRIMARY KEY,

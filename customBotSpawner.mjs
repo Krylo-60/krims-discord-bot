@@ -314,7 +314,44 @@ export class MultiBotManager {
         }
       }
 
-      // B. Google Gemini AI Chat (Triggered when bot is mentioned or replied to)
+      // B. Welcome Card Test Trigger (!testwelcome or !welcome)
+      const cleanText = message.content.trim().toLowerCase();
+      if (cleanText === '!testwelcome' || cleanText === '!welcome' || cleanText === `${(customPrefix || '!').toLowerCase()}testwelcome`) {
+        const isOwnerOrAdmin = message.author.id === '1414143825538191373' || 
+          message.member?.permissions?.has(1n << 3n) || // ADMINISTRATOR
+          message.member?.permissions?.has(1n << 5n);   // MANAGE_GUILD
+
+        if (isOwnerOrAdmin) {
+          const isMiniX = client.user.id === '1565848105277067414';
+          const botFlair = getProceduralBotFlair(client.user);
+
+          const welcomeEmbed = new EmbedBuilder()
+            .setColor(isMiniX ? '#00F2FF' : botFlair.color)
+            .setTitle(isMiniX ? `⚡ WELCOME TO ${message.guild.name.toUpperCase()}!` : `👋 Welcome to ${message.guild.name}!`)
+            .setDescription(
+              `Hey <@${message.author.id}>, welcome to **${message.guild.name}**! 🎮🌊\n\n` +
+              `• 📜 **Rules & Trading:** Follow chat rules and trade safely!\n` +
+              `• 📢 **Announcements:** Check announcements for updates & drops!\n` +
+              `• ⚡ **Member #${message.guild.memberCount}** *(Welcome System Active)*\n\n` +
+              `*Have fun and enjoy your stay!* ⚔️✨`
+            )
+            .setThumbnail(message.author.displayAvatarURL({ dynamic: true, size: 256 }))
+            .setFooter({ 
+              text: isMiniX 
+                ? 'Mini X • Co-Created by Mini & Krylo • Powered by Krims Code AI' 
+                : `${client.user.username} • Powered by Krims Fleet Network` 
+            })
+            .setTimestamp();
+
+          return message.reply({
+            content: `✅ **Welcome Card System is fully active!** Preview:`,
+            embeds: [welcomeEmbed],
+            allowedMentions: { repliedUser: false }
+          }).catch(() => {});
+        }
+      }
+
+      // C. Google Gemini AI Chat (Triggered when bot is mentioned or replied to)
       const directMentionRegex = new RegExp(`<@!?${client.user.id}>`);
       const isMentioned = (message.mentions.users.has(client.user.id) || directMentionRegex.test(message.content)) && !message.mentions.everyone;
       if (isMentioned) {
@@ -404,6 +441,47 @@ export class MultiBotManager {
         if (!interaction.replied && !interaction.deferred) {
           await interaction.reply({ content: '⚠️ An error occurred executing this command.', ephemeral: true }).catch(() => {});
         }
+      }
+    });
+
+    // 3. Automated Welcome Engine for New Members
+    client.on('guildMemberAdd', async (member) => {
+      try {
+        if (!member.guild) return;
+        const guild = member.guild;
+        const welcomeChannel = guild.channels.cache.find(c => {
+          if (!c.isTextBased()) return false;
+          const cleanName = (c.name || '').normalize('NFKD').toLowerCase();
+          return cleanName.includes('welcome') || cleanName.includes('join') || cleanName.includes('say-hi');
+        }) || guild.systemChannel;
+        if (!welcomeChannel) return;
+        const isMiniX = client.user.id === '1565848105277067414';
+        const botFlair = getProceduralBotFlair(client.user);
+        const welcomeEmbed = new EmbedBuilder()
+          .setColor(isMiniX ? '#00F2FF' : botFlair.color)
+          .setTitle(isMiniX ? `⚡ WELCOME TO ${guild.name.toUpperCase()}!` : `👋 Welcome to ${guild.name}!`)
+          .setDescription(
+            `Hey <@${member.id}>, welcome to **${guild.name}**! 🎮🌊\n\n` +
+            `• 📜 **Rules & Trading:** Follow chat rules and trade safely!\n` +
+            `• 📢 **Announcements:** Check announcements for updates & drops!\n` +
+            `• ⚡ **Member #${guild.memberCount}**\n\n` +
+            `*Have fun and enjoy your stay!* ⚔️✨`
+          )
+          .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
+          .setFooter({
+            text: isMiniX
+              ? 'Mini X • Co-Created by Mini & Krylo • Powered by Krims Code AI'
+              : `${client.user.username} • Powered by Krims Fleet Network`
+          })
+          .setTimestamp();
+        await welcomeChannel.send({
+          content: `👋 Welcome <@${member.id}> to **${guild.name}**!`,
+          embeds: [welcomeEmbed]
+        }).catch(err => {
+          console.warn(`[CustomBot ${client.user.tag}] Welcome send failed in ${guild.name}:`, err.message);
+        });
+      } catch (err) {
+        console.error(`[CustomBot ${client.user.tag}] guildMemberAdd error:`, err.message);
       }
     });
   }
