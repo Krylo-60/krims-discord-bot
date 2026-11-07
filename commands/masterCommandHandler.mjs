@@ -1046,9 +1046,13 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           name: '⚔️ Duels, RPG & Universe (18)', 
           value: '`/challenge`, `/duel`, `/endduel`, `/pvp`, `/tournament`, `/bounty`, `/trade`, `/pet`, `/fish`, `/mine`, `/craft`, `/enchant`, `/raid`, `/profile`, `/inventory`, `/achievements`, `/heist`, `/rob`' 
         },
-        { 
-          name: '🧭 Utility, Voice & Fun (17)', 
-          value: '`/ping`, `/uptime`, `/remind`, `/translate`, `/calc`, `/weather`, `/gif`, `/activity`, `/voice`, `/counting`, `/coinflip`, `/roll`, `/eightball`, `/joke`, `/meme`, `/bday`, `/gameboost`' 
+        {
+          name: '🧭 Essential Utilities & Voice (8)',
+          value: '`/ping`, `/uptime`, `/remind`, `/translate`, `/activity`, `/voice`, `/counting`, `/emojis`'
+        },
+        {
+          name: '⚡ Quick Prefix Minigames & Tools (!)',
+          value: '`!bet <amount>`, `!rps`, `!trivia`, `!roast`, `!compliment`, `!partners`, `!setwelcome`, `!settickets`, `!roll`, `!8ball`, `!joke`, `!meme`, `!calc`, `!afk`, `!weather`'
         }
       ];
 

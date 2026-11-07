@@ -10888,7 +10888,9 @@ client.on('messageCreate', async (message) => {
         { name: '🏆 Progression & Leveling', value: `\`!rank\`, \`!level\`, \`!leaderboard\` — Real-time text & voice XP.` },
         { name: '🛡️ Moderation Tools', value: `\`!mute\`, \`!unmute\`, \`!kick\`, \`!ban\`, \`!lockdown\`, \`!slowmode\`` },
         { name: '🎟️ Support Tickets', value: `\`${botPrefix}ticket\` — Private player support channel creation.` },
-        { name: '📊 Network Telemetry', value: `\`${botPrefix}diagnose\` — System health and API uptime status.` }
+        { name: '📊 Network Telemetry', value: `\`${botPrefix}diagnose\` — System health and API uptime status.` },
+        { name: '⚡ Essential Slash Commands (/)', value: '`/help`, `/about`, `/rank`, `/lb`, `/balance`, `/daily`, `/pay`, `/ticket`, `/setupbot`, `/warn`, `/mute`, `/ban`, `/purge`, `/lockdown`, `/stake`, `/redeem`' },
+        { name: '🎮 Quick Prefix Commands (!)', value: '`!bet <amount>`, `!rps`, `!trivia`, `!roast`, `!compliment`, `!partners`, `!setwelcome`, `!settickets`, `!daily`, `!balance`, `!roll`, `!8ball`, `!joke`, `!meme`, `!calc`, `!afk`' }
       ],
       timestamp: new Date().toISOString(),
       footer: {

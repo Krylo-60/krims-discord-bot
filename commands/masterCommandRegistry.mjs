@@ -754,4 +754,18 @@ export const masterCommandBuilders = [
 /**
  * Array of raw JSON definitions ready for Discord REST API registration
  */
-export const masterCommandJson = masterCommandBuilders.map(cmd => typeof cmd?.toJSON === 'function' ? cmd.toJSON() : cmd);
+/**
+ * Commands streamlined to prefix commands (!) to keep slash commands below Discord's 100-command ceiling
+ */
+export const PREFIX_ONLY_COMMANDS = new Set([
+  'calc', 'roll', 'eightball', 'joke', 'meme', 'coinflip', 'afk', 'ip', 'bday',
+  'locator', 'gameboost', 'adminabuse', 'endduel', 'stopstream', 'gif', 'weather',
+  'tip', 'gift', 'inventory', 'achievements', 'unstake', 'yield'
+]);
+
+/**
+ * Array of raw JSON definitions ready for Discord REST API registration (curated essential slash commands <= 100)
+ */
+export const masterCommandJson = masterCommandBuilders
+  .map(cmd => typeof cmd?.toJSON === 'function' ? cmd.toJSON() : cmd)
+  .filter(cmd => !PREFIX_ONLY_COMMANDS.has(cmd.name));
