@@ -1,3 +1,16 @@
+import {
+  handleSetWelcomeCommand,
+  handleSetTicketsCommand,
+  handleWelcomeTicketInteraction
+} from './features/welcomeTicketsManager.mjs';
+import {
+  handleBetCommand,
+  handleRpsCommand,
+  handleTriviaCommand,
+  handleRoastCommand,
+  handleComplimentCommand,
+  handlePartnersCommand
+} from './features/freeCommandsEngine.mjs';
 import { Client, GatewayIntentBits, Partials, ActivityType, EmbedBuilder } from 'discord.js';
 import fetch from 'node-fetch';
 import { encryptToken, decryptToken } from './tokenSecurity.mjs';
@@ -314,6 +327,39 @@ export class MultiBotManager {
         }
       }
 
+      // 👋 Universal Welcome & Ticket Configuration Commands
+      if (cleanText.startsWith('!setwelcome') || cleanText.startsWith(`${p}setwelcome`)) {
+        const args = message.content.trim().split(/\s+/).slice(1);
+        return handleSetWelcomeCommand(message, args);
+      }
+      if (cleanText.startsWith('!settickets') || cleanText.startsWith(`${p}settickets`)) {
+        const args = message.content.trim().split(/\s+/).slice(1);
+        return handleSetTicketsCommand(message, args);
+      }
+
+      // Free Community & Casino Commands: !bet, !rps, !trivia, !roast, !compliment, !partners
+      const p = (customPrefix || '!').toLowerCase();
+      if (cleanText.startsWith('!bet') || cleanText.startsWith('!gamble') || cleanText.startsWith(`${p}bet`)) {
+        const args = message.content.trim().split(/\s+/).slice(1);
+        return handleBetCommand(message, args);
+      }
+      if (cleanText.startsWith('!rps') || cleanText.startsWith(`${p}rps`)) {
+        const args = message.content.trim().split(/\s+/).slice(1);
+        return handleRpsCommand(message, args);
+      }
+      if (cleanText === '!trivia' || cleanText === '!quiz' || cleanText === `${p}trivia` || cleanText === `${p}quiz`) {
+        return handleTriviaCommand(message);
+      }
+      if (cleanText.startsWith('!roast') || cleanText.startsWith(`${p}roast`)) {
+        return handleRoastCommand(message, message.mentions.users.first());
+      }
+      if (cleanText.startsWith('!compliment') || cleanText.startsWith(`${p}compliment`)) {
+        return handleComplimentCommand(message, message.mentions.users.first());
+      }
+      if (cleanText === '!partners' || cleanText === '!partner' || cleanText === `${p}partners`) {
+        return handlePartnersCommand(message);
+      }
+
       // B. Welcome Card Test Trigger (!testwelcome or !welcome)
       const cleanText = message.content.trim().toLowerCase();
       if (cleanText === '!testwelcome' || cleanText === '!welcome' || cleanText === `${(customPrefix || '!').toLowerCase()}testwelcome`) {
@@ -406,6 +452,10 @@ export class MultiBotManager {
 
     // 2. Interaction Event Listener (Commands like /about and /getbot)
     client.on('interactionCreate', async (interaction) => {
+      if (interaction.isButton() && (interaction.customId.startsWith('welcome_') || interaction.customId.startsWith('tickets_'))) {
+        const handled = await handleWelcomeTicketInteraction(interaction);
+        if (handled) return;
+      }
       if (!interaction.isChatInputCommand()) return;
 
       if (interaction.commandName === 'about' || interaction.commandName === 'getbot') {

@@ -1,3 +1,16 @@
+import {
+  handleSetWelcomeCommand,
+  handleSetTicketsCommand,
+  handleWelcomeTicketInteraction
+} from './features/welcomeTicketsManager.mjs';
+import {
+  handleBetCommand,
+  handleRpsCommand,
+  handleTriviaCommand,
+  handleRoastCommand,
+  handleComplimentCommand,
+  handlePartnersCommand
+} from './features/freeCommandsEngine.mjs';
 import { checkAndTriggerGABroadcast } from './features/timeGatedReleaseEngine.mjs';
 /**
  * 👑 KRYLOSMP MASTER GOOGLE SHEETS:
@@ -1849,6 +1862,11 @@ async function executeGameBoostOptimization(author) {
 
 client.on('interactionCreate', async (interaction) => {
   // 💎 Handle Krims Code Alpha Sneak Peek Button Interactions (Zero commands needed)
+  if (interaction.isButton() && (interaction.customId.startsWith('welcome_') || interaction.customId.startsWith('tickets_'))) {
+    const handled = await handleWelcomeTicketInteraction(interaction);
+    if (handled) return;
+  }
+
   if (interaction.isButton() && interaction.customId.startsWith('alpha_')) {
     return await handleAlphaButtonInteraction(interaction);
   }
@@ -9874,6 +9892,58 @@ client.on('messageCreate', async (message) => {
 
     await message.reply({ embeds: [payEmbed] });
     return;
+  }
+
+  // 👋 Command: !setwelcome, !welcomeconfig
+  if (lowerMsg.startsWith('!setwelcome') || lowerMsg.startsWith('!welcomeconfig')) {
+    const args = content.split(/\s+/).slice(1);
+    await message.channel.sendTyping().catch(() => {});
+    return await handleSetWelcomeCommand(message, args);
+  }
+
+  // 🎟️ Command: !settickets, !ticketconfig
+  if (lowerMsg.startsWith('!settickets') || lowerMsg.startsWith('!ticketconfig')) {
+    const args = content.split(/\s+/).slice(1);
+    await message.channel.sendTyping().catch(() => {});
+    return await handleSetTicketsCommand(message, args);
+  }
+
+  // 🪙 Free Utility & Economy Commands: !bet, !gamble
+  if (lowerMsg.startsWith('!bet') || lowerMsg.startsWith('!gamble')) {
+    const args = content.split(/\s+/).slice(1);
+    await message.channel.sendTyping().catch(() => {});
+    return await handleBetCommand(message, args);
+  }
+
+  // ✂️ Command: !rps
+  if (lowerMsg.startsWith('!rps')) {
+    const args = content.split(/\s+/).slice(1);
+    await message.channel.sendTyping().catch(() => {});
+    return await handleRpsCommand(message, args);
+  }
+
+  // 🧠 Command: !trivia, !quiz
+  if (lowerMsg === '!trivia' || lowerMsg === '!quiz') {
+    await message.channel.sendTyping().catch(() => {});
+    return await handleTriviaCommand(message);
+  }
+
+  // 🔥 Command: !roast
+  if (lowerMsg.startsWith('!roast')) {
+    const target = message.mentions.users.first();
+    return await handleRoastCommand(message, target);
+  }
+
+  // 💖 Command: !compliment
+  if (lowerMsg.startsWith('!compliment')) {
+    const target = message.mentions.users.first();
+    return await handleComplimentCommand(message, target);
+  }
+
+  // 🤝 Command: !partners
+  if (lowerMsg === '!partners' || lowerMsg === '!partner') {
+    await message.channel.sendTyping().catch(() => {});
+    return await handlePartnersCommand(message);
   }
 
   // Command: !coinflip <amount> [heads|tails]
