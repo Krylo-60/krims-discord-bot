@@ -569,7 +569,7 @@ export class MultiBotManager {
           .setColor('#FF4747')
           .setTitle('🗑️ Message Deleted')
           .setDescription(
-            `**Author:** <@${author?.id || 'Unknown'}> (' + (author?.tag || 'Unknown') + ')\n` +
+            '**Author:** <@' + (author?.id || 'Unknown') + '> (`' + (author?.tag || author?.username || 'Unknown') + '`)\n' +
             `**Channel:** <#${message.channel.id}>\n\n` +
             `**Content:**\n${message.content ? message.content.slice(0, 1024) : '*No text content (or embed/attachment)*'}`
           )
@@ -641,7 +641,7 @@ export class MultiBotManager {
           .setColor('#FFA500')
           .setTitle('✏️ Message Edited')
           .setDescription(
-            `**Author:** <@${author?.id || 'Unknown'}> (' + (author?.tag || 'Unknown') + ')\n` +
+            '**Author:** <@' + (author?.id || 'Unknown') + '> (`' + (author?.tag || author?.username || 'Unknown') + '`)\n' +
             `**Channel:** <#${(newMsg.channel || oldMsg.channel).id}>\n\n` +
             `**Before:**\n${oldContent.slice(0, 1000)}\n\n` +
             `**After:**\n${newContent.slice(0, 1000)}`
