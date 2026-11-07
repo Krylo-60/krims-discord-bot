@@ -327,45 +327,54 @@ export function renderKrimsWikiHtml(statusData = null) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Krims Wiki — Official Documentation & Guide</title>
+  <title>Krims Wiki — Official Bot Documentation & Knowledge Base</title>
   <link rel="icon" type="image/png" href="${master.avatarUrl}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Orbitron:wght@700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-dark: #070a13;
-      --bg-sidebar: #0d121f;
-      --card-bg: #111827;
-      --card-border: rgba(34, 211, 238, 0.15);
-      --card-hover: rgba(34, 211, 238, 0.3);
-      --cyan: #22d3ee;
-      --cyan-glow: rgba(34, 211, 238, 0.4);
-      --purple: #a855f7;
+      --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-display: 'Orbitron', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --bg-dark: #0a0d14;
+      --bg-sidebar: #0f131d;
+      --card-bg: rgba(21, 26, 38, 0.85);
+      --card-border: rgba(0, 242, 255, 0.18);
+      --card-hover: rgba(0, 242, 255, 0.35);
+      --cyan: #00f2ff;
+      --cyan-glow: rgba(0, 242, 255, 0.45);
+      --purple: #8b5cf6;
+      --purple-glow: rgba(139, 92, 246, 0.45);
+      --discord-blurple: #5865F2;
       --green: #10b981;
-      --text-main: #f8fafc;
-      --text-sub: #94a3b8;
+      --text-main: #f0f6fc;
+      --text-sub: #8b949e;
       --sidebar-width: 280px;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; scrollbar-width: thin; scrollbar-color: #00f2ff rgba(8, 12, 22, 0.85); }
+
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: rgba(8, 12, 22, 0.85); border-radius: 8px; }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #00f2ff 0%, #7000ff 100%); border-radius: 8px; }
 
     body {
       background-color: var(--bg-dark);
       background-image: 
-        radial-gradient(circle at 10% 20%, rgba(34, 211, 238, 0.05) 0%, transparent 40%),
-        radial-gradient(circle at 90% 80%, rgba(168, 85, 247, 0.05) 0%, transparent 40%);
+        radial-gradient(circle at 10% 10%, rgba(0, 242, 255, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 90%, rgba(112, 0, 255, 0.08) 0%, transparent 40%);
       color: var(--text-main);
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: var(--font-main);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
     }
 
-    /* Top Navbar */
+    /* Vercel Winning Top Navbar */
     .wiki-header {
-      background: rgba(13, 18, 31, 0.85);
-      backdrop-filter: blur(12px);
+      background: rgba(15, 19, 29, 0.85);
+      backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--card-border);
       position: sticky;
       top: 0;
@@ -374,6 +383,7 @@ export function renderKrimsWikiHtml(statusData = null) {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     }
 
     .brand-link {
@@ -385,62 +395,83 @@ export function renderKrimsWikiHtml(statusData = null) {
     }
 
     .brand-logo {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
       border: 2px solid var(--cyan);
+      box-shadow: 0 0 12px var(--cyan-glow);
     }
 
     .brand-title {
+      font-family: var(--font-display);
       font-size: 1.15rem;
       font-weight: 800;
-      letter-spacing: -0.01em;
+      letter-spacing: 0.05em;
       background: linear-gradient(135deg, #fff 40%, var(--cyan) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
-    .header-actions {
+    .notifyme-nav-links {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 1.2rem;
     }
 
-    .header-btn {
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      font-weight: 600;
+    .notifyme-nav-link {
+      color: var(--text-sub);
       text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
+    }
+
+    .notifyme-nav-link:hover {
+      color: var(--cyan);
+      text-shadow: 0 0 10px var(--cyan-glow);
+    }
+
+    .notifyme-nav-link.active {
+      color: var(--cyan);
+      font-weight: 700;
+      text-shadow: 0 0 10px var(--cyan-glow);
+    }
+
+    .btn-nav-invite {
+      background: linear-gradient(135deg, #00f2ff, #7000ff);
+      color: #fff !important;
+      font-weight: 700;
+      font-size: 0.82rem;
+      padding: 7px 15px;
+      border-radius: 6px;
+      text-decoration: none;
+      box-shadow: 0 0 14px rgba(0, 242, 255, 0.3);
       transition: all 0.2s ease;
     }
 
-    .header-btn-secondary {
-      background: rgba(255, 255, 255, 0.08);
+    .btn-nav-login {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 15px;
+      background: var(--discord-blurple);
+      border: none;
+      border-radius: 6px;
       color: #fff;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-    }
-
-    .header-btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: var(--cyan);
-    }
-
-    .header-btn-primary {
-      background: var(--cyan);
-      color: #032b2f;
       font-weight: 700;
+      font-size: 0.82rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
     }
 
-    .header-btn-primary:hover {
-      background: #67e8f9;
-      transform: translateY(-1px);
+    @media (max-width: 960px) {
+      .notifyme-nav-links { display: none !important; }
     }
 
-    /* Layout Wrapper */
     .wiki-layout {
       display: flex;
       flex: 1;
@@ -727,17 +758,24 @@ export function renderKrimsWikiHtml(statusData = null) {
 <body>
   <!-- Header -->
   <header class="wiki-header">
-    <a href="/wiki" class="brand-link">
+    <a href="https://krims-bot-dashboard.vercel.app" class="brand-link">
       <img src="${master.avatarUrl}" alt="Krims Code AI" class="brand-logo" />
       <div>
         <span class="brand-title">KRIMS WIKI</span>
       </div>
     </a>
-    <div class="header-actions">
-      <a href="/" class="header-btn header-btn-secondary">📊 Live Status</a>
-      <a href="https://top.gg/bot/1523794466740371586/vote" target="_blank" class="header-btn header-btn-secondary">🗳️ Vote (2x XP)</a>
-      <a href="https://discord.gg/u2bpcHe3eC" target="_blank" class="header-btn header-btn-primary">💬 Support Server</a>
-    </div>
+
+    <nav class="notifyme-nav-links">
+      <a href="https://discord.gg/sYaVJtXgQb" target="_blank" class="notifyme-nav-link">Support</a>
+      <a href="/wiki" class="notifyme-nav-link active">Guide</a>
+      <a href="https://krims-bot-dashboard.vercel.app/custombot" class="notifyme-nav-link">Custom Bot</a>
+      <a href="https://krims-bot-dashboard.vercel.app/updates" class="notifyme-nav-link" style="color: #00f2ff; font-weight: 700;">🚀 Updates</a>
+      <a href="https://krims-bot-dashboard.vercel.app/rewards" class="notifyme-nav-link" style="color: #00f2ff; font-weight: 700; text-shadow: 0 0 10px rgba(0, 242, 255, 0.4);">💎 Rewards (Beta)</a>
+      <a href="/" class="notifyme-nav-link">Status</a>
+      <a href="https://top.gg/bot/1523794466740371586/vote" target="_blank" class="notifyme-nav-link">Vote</a>
+      <a href="https://discord.com/api/oauth2/authorize?client_id=1523794466740371586&permissions=8&scope=bot%20applications.commands" target="_blank" class="btn-nav-invite">Add Bot</a>
+      <a href="https://krims-bot-dashboard.vercel.app" class="btn-nav-login">Dashboard</a>
+    </nav>
   </header>
 
   <!-- Main Layout -->

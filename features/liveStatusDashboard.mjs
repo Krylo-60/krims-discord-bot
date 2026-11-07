@@ -133,39 +133,67 @@ export function renderLiveStatusHtml(data) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Krims Code AI — Live System Status</title>
+  <title>Krims Code AI — Live System Status & Telemetry</title>
   <link rel="icon" type="image/png" href="${master.avatarUrl}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Orbitron:wght@700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-dark: #090d16;
-      --card-bg: #111827;
-      --card-border: rgba(34, 211, 238, 0.15);
-      --card-hover: rgba(34, 211, 238, 0.25);
-      --cyan: #22d3ee;
-      --cyan-glow: rgba(34, 211, 238, 0.4);
+      --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-display: 'Orbitron', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --bg-dark: #0a0d14;
+      --bg-sidebar: #0f131d;
+      --bg-card: rgba(21, 26, 38, 0.85);
+      --bg-card-hover: rgba(27, 33, 48, 0.95);
+      --card-border: rgba(0, 242, 255, 0.18);
+      --card-hover: rgba(0, 242, 255, 0.35);
+      --cyan: #00f2ff;
+      --cyan-glow: rgba(0, 242, 255, 0.45);
+      --purple: #8b5cf6;
+      --purple-glow: rgba(139, 92, 246, 0.45);
+      --discord-blurple: #5865F2;
       --green: #10b981;
       --green-glow: rgba(16, 185, 129, 0.4);
       --red: #ef4444;
-      --text-main: #f8fafc;
-      --text-sub: #94a3b8;
+      --text-main: #f0f6fc;
+      --text-sub: #8b949e;
+      --text-dim: #6e7681;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      scrollbar-width: thin;
+      scrollbar-color: #00f2ff rgba(8, 12, 22, 0.85);
+    }
+
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(8, 12, 22, 0.85);
+      border-radius: 8px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #00f2ff 0%, #7000ff 100%);
+      border-radius: 8px;
     }
 
     body {
       background-color: var(--bg-dark);
       background-image: 
-        radial-gradient(circle at 15% 15%, rgba(34, 211, 238, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 85% 85%, rgba(16, 185, 129, 0.06) 0%, transparent 40%);
+        radial-gradient(circle at 15% 10%, rgba(0, 242, 255, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 90%, rgba(112, 0, 255, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.04) 0%, transparent 50%);
       color: var(--text-main);
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: var(--font-main);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -173,20 +201,24 @@ export function renderLiveStatusHtml(data) {
 
     /* Container */
     .container {
-      max-width: 1150px;
+      max-width: 1200px;
       margin: 0 auto;
-      padding: 30px 20px 60px 20px;
+      padding: 24px 20px 60px 20px;
       width: 100%;
     }
 
-    /* Navbar */
-    .navbar {
+    /* Vercel Winning Navbar */
+    .notifyme-nav-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding-bottom: 24px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      padding: 14px 24px;
+      background: rgba(15, 19, 29, 0.75);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-lg);
       margin-bottom: 35px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     }
 
     .brand {
@@ -206,27 +238,106 @@ export function renderLiveStatusHtml(data) {
     }
 
     .brand-text h1 {
-      font-size: 1.25rem;
+      font-family: var(--font-display);
+      font-size: 1.15rem;
       font-weight: 800;
-      letter-spacing: -0.02em;
+      letter-spacing: 0.05em;
+      background: linear-gradient(135deg, #fff 30%, var(--cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
     .brand-text p {
-      font-size: 0.8rem;
+      font-size: 0.76rem;
       color: var(--text-sub);
+      font-family: var(--font-main);
+    }
+
+    .notifyme-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+    }
+
+    .notifyme-nav-link {
+      color: var(--text-sub);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .notifyme-nav-link:hover {
+      color: var(--cyan);
+      text-shadow: 0 0 10px var(--cyan-glow);
+    }
+
+    .notifyme-nav-link.active {
+      color: var(--cyan);
+      font-weight: 700;
+      text-shadow: 0 0 10px var(--cyan-glow);
+    }
+
+    .btn-nav-invite {
+      background: linear-gradient(135deg, #00f2ff, #7000ff);
+      color: #fff !important;
+      font-weight: 700;
+      font-size: 0.82rem;
+      padding: 7px 15px;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      box-shadow: 0 0 14px rgba(0, 242, 255, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .btn-nav-invite:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 20px rgba(0, 242, 255, 0.5);
+    }
+
+    .btn-nav-login {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 15px;
+      background: var(--discord-blurple);
+      border: none;
+      border-radius: var(--radius-sm);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.82rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .btn-nav-login:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 960px) {
+      .notifyme-nav-links {
+        display: none !important;
+      }
     }
 
     .badge-status {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 8px 16px;
+      padding: 6px 14px;
       background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.3);
+      border: 1px solid rgba(16, 185, 129, 0.35);
       border-radius: 30px;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 700;
       color: #34d399;
+      font-family: var(--font-mono);
+      letter-spacing: 0.04em;
     }
 
     .dot {
@@ -247,60 +358,71 @@ export function renderLiveStatusHtml(data) {
     /* Hero Metrics Grid */
     .metrics-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 18px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
       margin-bottom: 35px;
     }
 
     .metric-card {
-      background: var(--card-bg);
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
       border: 1px solid var(--card-border);
-      border-radius: 16px;
-      padding: 20px;
-      transition: transform 0.2s ease, border-color 0.2s ease;
+      border-radius: var(--radius-md);
+      padding: 22px;
+      transition: all 0.25s ease;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
     }
 
     .metric-card:hover {
-      transform: translateY(-2px);
+      transform: translateY(-3px);
       border-color: var(--card-hover);
+      box-shadow: 0 12px 30px rgba(0, 242, 255, 0.15);
     }
 
     .metric-label {
       font-size: 0.8rem;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.06em;
       color: var(--text-sub);
       margin-bottom: 8px;
       display: flex;
       align-items: center;
       gap: 6px;
+      font-weight: 600;
     }
 
     .metric-value {
-      font-size: 1.7rem;
+      font-family: var(--font-display);
+      font-size: 1.85rem;
       font-weight: 800;
       color: #fff;
+      letter-spacing: 0.02em;
     }
 
     .metric-highlight {
       color: var(--cyan);
+      text-shadow: 0 0 15px var(--cyan-glow);
     }
 
     /* Primary Bot Spotlight Card */
     .section-title {
-      font-size: 1.2rem;
-      font-weight: 700;
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
       margin-bottom: 18px;
       display: flex;
       align-items: center;
       gap: 10px;
+      color: #fff;
     }
 
     .master-card {
-      background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(15, 23, 42, 0.9) 100%);
-      border: 1px solid rgba(34, 211, 238, 0.3);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(21, 26, 38, 0.95) 0%, rgba(15, 19, 29, 0.95) 100%);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(0, 242, 255, 0.25);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-lg);
       padding: 30px;
       margin-bottom: 40px;
       display: flex;
@@ -325,7 +447,7 @@ export function renderLiveStatusHtml(data) {
       height: 90px;
       border-radius: 50%;
       border: 3px solid var(--cyan);
-      box-shadow: 0 0 20px var(--cyan-glow);
+      box-shadow: 0 0 22px var(--cyan-glow);
     }
 
     .status-badge-lg {
@@ -335,34 +457,37 @@ export function renderLiveStatusHtml(data) {
       width: 18px;
       height: 18px;
       background: var(--green);
-      border: 3px solid var(--card-bg);
+      border: 3px solid var(--bg-card);
       border-radius: 50%;
+      box-shadow: 0 0 10px var(--green);
     }
 
     .master-info h2 {
+      font-family: var(--font-display);
       font-size: 1.6rem;
       font-weight: 800;
-      letter-spacing: -0.02em;
+      letter-spacing: 0.02em;
       margin-bottom: 4px;
+      color: #fff;
     }
 
     .master-info p {
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       color: var(--text-sub);
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
 
     .roles-chips {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 7px;
     }
 
     .chip {
-      background: rgba(34, 211, 238, 0.1);
-      border: 1px solid rgba(34, 211, 238, 0.25);
+      background: rgba(0, 242, 255, 0.08);
+      border: 1px solid rgba(0, 242, 255, 0.25);
       color: #a5f3fc;
-      padding: 3px 10px;
+      padding: 4px 11px;
       border-radius: 20px;
       font-size: 0.75rem;
       font-weight: 600;
@@ -378,35 +503,38 @@ export function renderLiveStatusHtml(data) {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 11px 20px;
-      border-radius: 12px;
+      padding: 11px 22px;
+      border-radius: var(--radius-sm);
       font-size: 0.9rem;
       font-weight: 700;
       text-decoration: none;
-      transition: all 0.2s ease;
+      transition: all 0.25s ease;
       cursor: pointer;
     }
 
     .btn-primary {
-      background: var(--cyan);
-      color: #042f2e;
-      box-shadow: 0 4px 14px var(--cyan-glow);
+      background: linear-gradient(135deg, #00f2ff, #7000ff);
+      color: #fff;
+      box-shadow: 0 4px 18px rgba(0, 242, 255, 0.35);
+      border: none;
     }
 
     .btn-primary:hover {
-      background: #67e8f9;
       transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(0, 242, 255, 0.5);
     }
 
     .btn-secondary {
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.06);
       color: #fff;
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.14);
     }
 
     .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.12);
+      border-color: var(--cyan);
       transform: translateY(-2px);
+      color: var(--cyan);
     }
 
     /* Fleet & Service Grid */
@@ -418,10 +546,18 @@ export function renderLiveStatusHtml(data) {
     }
 
     .service-card {
-      background: var(--card-bg);
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
       border: 1px solid var(--card-border);
-      border-radius: 16px;
+      border-radius: var(--radius-md);
       padding: 22px;
+      transition: all 0.25s ease;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    .service-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--card-hover);
     }
 
     .service-header {
@@ -440,9 +576,9 @@ export function renderLiveStatusHtml(data) {
     }
 
     .service-desc {
-      font-size: 0.85rem;
+      font-size: 0.86rem;
       color: var(--text-sub);
-      line-height: 1.5;
+      line-height: 1.55;
       margin-bottom: 16px;
     }
 
@@ -461,6 +597,7 @@ export function renderLiveStatusHtml(data) {
       border-radius: 12px;
       font-size: 0.75rem;
       font-weight: 700;
+      font-family: var(--font-mono);
     }
 
     /* Custom Bots List */
@@ -469,20 +606,28 @@ export function renderLiveStatusHtml(data) {
     }
 
     .bot-card {
-      background: var(--card-bg);
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
       border: 1px solid var(--card-border);
-      border-radius: 16px;
+      border-radius: var(--radius-md);
       padding: 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 12px;
+      transition: all 0.25s ease;
+    }
+
+    .bot-card:hover {
+      border-color: var(--card-hover);
+      transform: translateY(-2px);
     }
 
     .empty-state {
-      background: rgba(17, 24, 39, 0.6);
-      border: 2px dashed rgba(255, 255, 255, 0.1);
-      border-radius: 18px;
+      background: rgba(21, 26, 38, 0.6);
+      backdrop-filter: blur(16px);
+      border: 2px dashed rgba(0, 242, 255, 0.2);
+      border-radius: var(--radius-lg);
       padding: 40px 20px;
       text-align: center;
     }
@@ -493,6 +638,7 @@ export function renderLiveStatusHtml(data) {
     }
 
     .empty-title {
+      font-family: var(--font-display);
       font-size: 1.15rem;
       font-weight: 700;
       margin-bottom: 8px;
@@ -507,11 +653,11 @@ export function renderLiveStatusHtml(data) {
     }
 
     .code-tag {
-      background: rgba(34, 211, 238, 0.15);
+      background: rgba(0, 242, 255, 0.15);
       color: var(--cyan);
-      padding: 2px 6px;
+      padding: 2px 7px;
       border-radius: 6px;
-      font-family: 'JetBrains Mono', monospace;
+      font-family: var(--font-mono);
       font-size: 0.85rem;
     }
 
@@ -522,7 +668,7 @@ export function renderLiveStatusHtml(data) {
       padding: 25px;
       color: var(--text-sub);
       font-size: 0.85rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     footer a {
@@ -540,20 +686,34 @@ export function renderLiveStatusHtml(data) {
 </head>
 <body>
   <div class="container">
-    <!-- Navbar -->
-    <header class="navbar">
-      <a href="/" class="brand">
+    <!-- Vercel Winning Navbar -->
+    <header class="navbar notifyme-nav-bar">
+      <a href="https://krims-bot-dashboard.vercel.app" class="brand">
         <img src="${master.avatarUrl}" alt="Krims Code AI" class="brand-logo" />
         <div class="brand-text">
           <h1>KRIMS CODE AI</h1>
           <p>Live Fleet Status & Systems Telemetry</p>
         </div>
       </a>
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <a href="/wiki" class="btn btn-secondary" style="padding: 7px 14px; font-size: 0.82rem; text-decoration: none;">📖 Krims Wiki</a>
+      
+      <nav class="notifyme-nav-links">
+        <a href="https://discord.gg/sYaVJtXgQb" target="_blank" class="notifyme-nav-link">Support</a>
+        <a href="https://krims-bot-dashboard.vercel.app/wiki" class="notifyme-nav-link">Guide</a>
+        <a href="https://krims-bot-dashboard.vercel.app/custombot" class="notifyme-nav-link">Custom Bot</a>
+        <a href="https://krims-bot-dashboard.vercel.app/updates" class="notifyme-nav-link" style="color: #00f2ff; font-weight: 700;">🚀 Updates</a>
+        <a href="https://krims-bot-dashboard.vercel.app/rewards" class="notifyme-nav-link" style="color: #00f2ff; font-weight: 700; text-shadow: 0 0 10px rgba(0, 242, 255, 0.4);">💎 Rewards (Beta)</a>
+        <a href="/" class="notifyme-nav-link active">Status</a>
+        <a href="https://top.gg/bot/1523794466740371586/vote" target="_blank" class="notifyme-nav-link">Vote</a>
+        <a href="https://discord.com/api/oauth2/authorize?client_id=1523794466740371586&permissions=8&scope=bot%20applications.commands" target="_blank" class="btn-nav-invite">Add Bot</a>
+        <a href="https://krims-bot-dashboard.vercel.app" class="btn-nav-login">
+          <span>Dashboard</span>
+        </a>
+      </nav>
+
+      <div style="display: flex; align-items: center; gap: 10px;">
         <div class="badge-status">
           <span class="dot"></span>
-          <span id="liveStatusText">${data.systemStatus === 'OPERATIONAL' ? 'ALL SYSTEMS OPERATIONAL' : 'SYSTEM DEGRADED'}</span>
+          <span id="liveStatusText">${data.systemStatus === 'OPERATIONAL' ? 'OPERATIONAL' : 'DEGRADED'}</span>
         </div>
       </div>
     </header>
