@@ -102,7 +102,10 @@ export async function checkAndTriggerGABroadcast(client) {
         `• 🛍️ **Redemption Marketplace Active:** Use \`/redeem\` to unlock custom role colors, Founder prestige badges, and Minecraft cosmetics.\n` +
         `• 📈 **Staking Yield Engine (12.5% APY):** Earn compounding daily Krims Rewards with \`/stake\`, \`/unstake\`, and \`/yield\`.\n` +
         `• 📦 **Dual-CLI Integration Live:** Connect directly to your terminal via \`npm i -g @krishivpb60/krims-code-cli\` and \`pip install krims-code-cli\` using your \`/cli-key\`.\n` +
-        `• 🏆 **Global Rich List:** Check \`/kr-top\` to see the wealthiest guardians across the network!\n\n` +
+        `• 🏆 **Global Rich List:** Check \`/kr-top\` to see the wealthiest guardians across the network!\n` +
+        `• 🎙️ **Krims Voice AI × Krims Code CLI × Krims SDK:** Real-time speech synthesis & audio streaming in terminal and code.\n` +
+        `• 👋 **Universal Welcome System 2.0:** 1-click auto-create \`#👋・welcome\`, custom small font Cyber Profile Cards & Text Embed choices.\n` +
+        `• 🎟️ **Support Ticket Hub 2.0:** 1-click auto-create \`#🎫・open-a-ticket\` button panels & \`#📋・ticket-logs\` archives.\n\n` +
         `🔗 **Access the Live Web Vault:** [krims-bot-dashboard.vercel.app/rewards](https://krims-bot-dashboard.vercel.app/rewards)`
       )
       .setImage('https://krims-bot-dashboard.vercel.app/logo.png')
