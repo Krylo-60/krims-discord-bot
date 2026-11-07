@@ -484,6 +484,73 @@ export class MultiBotManager {
         console.error(`[CustomBot ${client.user.tag}] guildMemberAdd error:`, err.message);
       }
     });
+
+    // 4. Moderation & Audit Logs (Message Delete & Edit Logging)
+    client.on('messageDelete', async (message) => {
+      try {
+        if (!message.guild || message.author?.bot) return;
+        const logChannel = message.guild.channels.cache.find(c => {
+          if (!c.isTextBased()) return false;
+          const clean = (c.name || '').normalize('NFKD').toLowerCase();
+          return clean.includes('mod-log') || clean.includes('mod-logs') || clean.includes('moderation-log') || clean.includes('audit-log');
+        });
+        if (!logChannel) return;
+        const isMiniX = client.user.id === '1565848105277067414';
+        const deleteEmbed = new EmbedBuilder()
+          .setColor('#FF4747')
+          .setTitle('🗑️ Message Deleted')
+          .setDescription(
+            `**Author:** <@${message.author?.id || 'Unknown'}> (\`${message.author?.tag || 'Unknown'}\`)\n` +
+            `**Channel:** <#${message.channel.id}>\n\n` +
+            `**Content:**\n${message.content ? message.content.slice(0, 1024) : '*No text content (or embed/attachment)*'}`
+          )
+          .setFooter({
+            text: isMiniX
+              ? 'Mini X Mod Log • Co-Created by Mini & Krylo'
+              : `${client.user.username} • Krims AutoMod Engine`
+          })
+          .setTimestamp();
+        if (message.attachments?.size > 0) {
+          const names = message.attachments.map(a => a.name).join(', ');
+          deleteEmbed.addFields({ name: '📎 Attachments', value: names.slice(0, 1024) });
+        }
+        await logChannel.send({ embeds: [deleteEmbed] }).catch(() => {});
+      } catch (err) {
+        console.error(`[CustomBot ${client.user.tag}] messageDelete log error:`, err.message);
+      }
+    });
+
+    client.on('messageUpdate', async (oldMsg, newMsg) => {
+      try {
+        if (!oldMsg.guild || oldMsg.author?.bot) return;
+        if (oldMsg.content === newMsg.content) return;
+        const logChannel = oldMsg.guild.channels.cache.find(c => {
+          if (!c.isTextBased()) return false;
+          const clean = (c.name || '').normalize('NFKD').toLowerCase();
+          return clean.includes('mod-log') || clean.includes('mod-logs') || clean.includes('moderation-log') || clean.includes('audit-log');
+        });
+        if (!logChannel) return;
+        const isMiniX = client.user.id === '1565848105277067414';
+        const editEmbed = new EmbedBuilder()
+          .setColor('#FFA500')
+          .setTitle('✏️ Message Edited')
+          .setDescription(
+            `**Author:** <@${oldMsg.author?.id}> (\`${oldMsg.author?.tag}\`)\n` +
+            `**Channel:** <#${oldMsg.channel.id}>\n\n` +
+            `**Before:**\n${oldMsg.content ? oldMsg.content.slice(0, 500) : '*Empty*'}\n\n` +
+            `**After:**\n${newMsg.content ? newMsg.content.slice(0, 500) : '*Empty*'}`
+          )
+          .setFooter({
+            text: isMiniX
+              ? 'Mini X Mod Log • Co-Created by Mini & Krylo'
+              : `${client.user.username} • Krims AutoMod Engine`
+          })
+          .setTimestamp();
+        await logChannel.send({ embeds: [editEmbed] }).catch(() => {});
+      } catch (err) {
+        console.error(`[CustomBot ${client.user.tag}] messageUpdate log error:`, err.message);
+      }
+    });
   }
 
   /**
