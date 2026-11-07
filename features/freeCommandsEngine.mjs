@@ -418,3 +418,39 @@ export async function handlePartnersCommand(message) {
 
   return message.reply({ embeds: [embed] });
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 6. ⚡ !aura / !krylo — Krylo Supreme Animated Aura Showcase
+// ═════════════════════════════════════════════════════════════════════════════
+export async function handleAuraCommand(message) {
+  const gifUrl = 'https://krims-discord-bot-d57m.onrender.com/gifs/krylo_aura_all_in_one.gif';
+  const embed = new EmbedBuilder()
+    .setColor(0x00F2FF)
+    .setTitle('⚡ KRYLO SUPREME AURA • +1,000,000 AURA ⚡')
+    .setDescription(
+      `👑 **Java Minecraft Player:** \`KryloMCYT\`\n` +
+      `⚔️ **Factions:** [IND] • The Light Bearers [TLB]\n` +
+      `⚡ **Sovereignty:** Infinite Aura • God of Code & PvP\n\n` +
+      `*Domination across Elite SMP, TLB, and KryloSMP.*`
+    )
+    .setImage(gifUrl)
+    .setFooter({ text: 'Krims Code • Powered by Krylo', iconURL: 'https://cdn.discordapp.com/avatars/1414143825538191373/90c635bbd2b9deb44f9c6564891eaee4.png' })
+    .setTimestamp();
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setLabel('View HD GIF')
+      .setStyle(ButtonStyle.Link)
+      .setURL(gifUrl),
+    new ButtonBuilder()
+      .setLabel('Elite SMP Edition')
+      .setStyle(ButtonStyle.Link)
+      .setURL('https://krims-discord-bot-d57m.onrender.com/gifs/krylo_elite_smp_ind_aura.gif'),
+    new ButtonBuilder()
+      .setLabel('TLB Edition')
+      .setStyle(ButtonStyle.Link)
+      .setURL('https://krims-discord-bot-d57m.onrender.com/gifs/krylo_mc_aura.gif')
+  );
+
+  return message.reply({ embeds: [embed], components: [row] });
+}

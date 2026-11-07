@@ -9,7 +9,8 @@ import {
   handleTriviaCommand,
   handleRoastCommand,
   handleComplimentCommand,
-  handlePartnersCommand
+  handlePartnersCommand,
+  handleAuraCommand
 } from './features/freeCommandsEngine.mjs';
 import { checkAndTriggerGABroadcast } from './features/timeGatedReleaseEngine.mjs';
 /**
@@ -9944,6 +9945,12 @@ client.on('messageCreate', async (message) => {
   if (lowerMsg === '!partners' || lowerMsg === '!partner') {
     await message.channel.sendTyping().catch(() => {});
     return await handlePartnersCommand(message);
+  }
+
+  // ⚡ Command: !aura, !krylo
+  if (lowerMsg === '!aura' || lowerMsg === '!krylo' || lowerMsg === '!godmode') {
+    await message.channel.sendTyping().catch(() => {});
+    return await handleAuraCommand(message);
   }
 
   // Command: !coinflip <amount> [heads|tails]
