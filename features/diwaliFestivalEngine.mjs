@@ -8,6 +8,31 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_FILE = path.join(__dirname, '..', 'diwali_festival.json');
 
+// 5-Day Event Window: Starts Nov 6, 2026, Ends Nov 11, 2026
+const FESTIVAL_START_TIME = 1794017750000;
+const FESTIVAL_DURATION_MS = 5 * 24 * 60 * 60 * 1000; // 5 full days
+const FESTIVAL_END_TIME = FESTIVAL_START_TIME + FESTIVAL_DURATION_MS;
+
+export function getFestivalStatus() {
+  const now = Date.now();
+  const msRemaining = FESTIVAL_END_TIME - now;
+  if (msRemaining <= 0) {
+    return {
+      isEnded: true,
+      timeRemainingStr: 'Concluded',
+      discordTimestamp: `<t:${Math.floor(FESTIVAL_END_TIME / 1000)}:R>`
+    };
+  }
+  const days = Math.floor(msRemaining / (24 * 60 * 60 * 1000));
+  const hours = Math.floor((msRemaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+  const minutes = Math.floor((msRemaining % (60 * 60 * 1000)) / (60 * 1000));
+  return {
+    isEnded: false,
+    timeRemainingStr: `${days}d ${hours}h ${minutes}m left`,
+    discordTimestamp: `<t:${Math.floor(FESTIVAL_END_TIME / 1000)}:R>`
+  };
+}
+
 // In-memory state with persistence
 let diwaliState = {
   totalDiyasLit: 1250,
@@ -59,9 +84,35 @@ const DIWALI_BLESSINGS = [
 // 1. 🪔 Main Diwali Celebration Hub (!diwali / /diwali)
 // ═════════════════════════════════════════════════════════════════════════════
 export async function handleDiwaliCommand(target, isInteraction = false) {
-  const user = isInteraction ? target.user : target.author;
   const currencySymbol = target.guild?.id === '1538225337048236082' ? 'KC' : 'KR';
+  const status = getFestivalStatus();
 
+  // If the 5-day festival has concluded
+  if (status.isEnded) {
+    const concludedEmbed = new EmbedBuilder()
+      .setColor(0xF59E0B)
+      .setTitle('🪔✨ DIWALI 2026 FESTIVAL CONCLUDED ✨🪔')
+      .setDescription(
+        `### 🕯️ Thank You For Celebrating Deepavali!\n\n` +
+        `The 5-day Festival of Lights has officially concluded for this year.\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `🌟 **Final Community Stats:**\n` +
+        `• 🪔 Total Diyas Lit Worldwide: \`${diwaliState.totalDiyasLit.toLocaleString()}\`\n` +
+        `• 🍬 Boxes of Sweets Shared: \`${diwaliState.sweetsSentCount.toLocaleString()}\`\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `*May the radiance and prosperity of Diwali remain in your home, your code, and your community all year long.*`
+      )
+      .setFooter({ text: 'शुभ दीपावली • Krims Code Cultural Legacy' })
+      .setTimestamp();
+
+    if (isInteraction) {
+      return target.reply({ embeds: [concludedEmbed] });
+    } else {
+      return target.reply({ embeds: [concludedEmbed] });
+    }
+  }
+
+  // Active 5-Day Festival Hub
   const embed = new EmbedBuilder()
     .setColor(0xF59E0B)
     .setTitle('🪔✨ शुभ दीपावली • HAPPY DIWALI ✨🪔')
@@ -70,6 +121,7 @@ export async function handleDiwaliCommand(target, isInteraction = false) {
       `Diwali celebrates the **victory of light over darkness, good over evil, and wisdom over ignorance**.\n\n` +
       `Honoring the rich heritage of Indian culture, Krims Code brings the sacred warmth of glowing diyas, festive sweets, and community joy to all players!\n\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `⏳ **Event Window (5 Days Only):** Ends ${status.discordTimestamp} (\`${status.timeRemainingStr}\`)\n` +
       `🪔 **Community Diyas Lit Worldwide:** \`${diwaliState.totalDiyasLit.toLocaleString()}\`\n` +
       `🍬 **Mithai Sweet Boxes Gifted:** \`${diwaliState.sweetsSentCount.toLocaleString()}\`\n` +
       `🎁 **Festival Gift:** Light a diya or claim your daily Lakshmi Blessing below for **+500 ${currencySymbol}**!\n` +
@@ -77,7 +129,7 @@ export async function handleDiwaliCommand(target, isInteraction = false) {
     )
     .addFields(
       {
-        name: '🪔 Commands Available',
+        name: '🪔 Commands Available (5-Day Special)',
         value: 
           '`!diya` — Light a personal sacred diya in this channel\n' +
           '`!mithai @friend` — Gift a festive box of Indian sweets\n' +
@@ -86,7 +138,7 @@ export async function handleDiwaliCommand(target, isInteraction = false) {
         inline: false
       }
     )
-    .setFooter({ text: 'शुभ दीपावली • Wishing you peace, light & boundless prosperity' })
+    .setFooter({ text: `5-Day Event • Ends ${status.timeRemainingStr}` })
     .setTimestamp();
 
   const row = new ActionRowBuilder().addComponents(
@@ -115,6 +167,11 @@ export async function handleDiwaliCommand(target, isInteraction = false) {
 // 2. 🪔 Light a Diya Command (!diya)
 // ═════════════════════════════════════════════════════════════════════════════
 export async function handleDiyaCommand(message) {
+  const status = getFestivalStatus();
+  if (status.isEnded) {
+    return message.reply("🪔 The 5-day Diwali celebration has concluded! May the sacred light stay with you all year long! ✨");
+  }
+
   diwaliState.totalDiyasLit += 1;
   const userCount = (diwaliState.userDiyas[message.author.id] || 0) + 1;
   diwaliState.userDiyas[message.author.id] = userCount;
@@ -123,7 +180,6 @@ export async function handleDiyaCommand(message) {
   const blessing = DIWALI_BLESSINGS[Math.floor(Math.random() * DIWALI_BLESSINGS.length)];
   const currencySymbol = message.guild?.id === '1538225337048236082' ? 'KC' : 'KR';
   
-  // Award 100 coins
   try {
     addCoins(message.author.id, 100);
   } catch (e) {}
@@ -136,7 +192,8 @@ export async function handleDiyaCommand(message) {
       `*"${blessing}"*\n\n` +
       `✨ **Your Personal Diyas Lit:** \`${userCount}\`\n` +
       `🌐 **Global Diyas Lit:** \`${diwaliState.totalDiyasLit.toLocaleString()}\`\n` +
-      `💰 **Festival Reward:** \`+100 ${currencySymbol}\``
+      `💰 **Festival Reward:** \`+100 ${currencySymbol}\`\n\n` +
+      `⏳ *Event ends in ${status.timeRemainingStr}*`
     )
     .setFooter({ text: 'Happy Diwali • May your home shine with light and joy!' });
 
@@ -147,6 +204,11 @@ export async function handleDiyaCommand(message) {
 // 3. 🍬 Share Indian Mithai / Sweets (!mithai @user)
 // ═════════════════════════════════════════════════════════════════════════════
 export async function handleMithaiCommand(message, targetUser) {
+  const status = getFestivalStatus();
+  if (status.isEnded) {
+    return message.reply("🍬 The 5-day Diwali celebration has concluded! Thank you for sharing sweetness this season! ✨");
+  }
+
   const recipient = targetUser || message.mentions.users.first();
   if (!recipient) {
     return message.reply("🍬 **Usage:** `!mithai @friend` — Gift a festive box of delicious Indian sweets to a server friend!");
@@ -171,7 +233,7 @@ export async function handleMithaiCommand(message, targetUser) {
       `> *${sweet.desc}*\n\n` +
       `May this celebration bring supreme sweetness, warmth, and lifelong joy to your friendship! ✨`
     )
-    .setFooter({ text: 'Diwali Mithai Delivery • Krims Code Cultural Hub' });
+    .setFooter({ text: `Diwali Mithai Delivery • Ends in ${status.timeRemainingStr}` });
 
   return message.reply({ content: `🎁 <@${recipient.id}>, you received festive Diwali mithai!`, embeds: [embed] });
 }
@@ -180,6 +242,7 @@ export async function handleMithaiCommand(message, targetUser) {
 // 4. 🎆 Safe Virtual Fireworks (!fireworks / !patakha)
 // ═════════════════════════════════════════════════════════════════════════════
 export async function handleFireworksCommand(message) {
+  const status = getFestivalStatus();
   const sounds = [
     "✨ *PHOOOOSH... KABOOOM!* 🎆✨",
     "💥 *CHAKKAR SPARKLE... RAT-TAT-TAT!* 🎇⚡",
@@ -203,7 +266,8 @@ export async function handleFireworksCommand(message) {
       `       . : * . : * .\n` +
       `\`\`\`\n` +
       `✨ **Eco-Friendly, 100% Smoke-Free Virtual Celebration!**\n` +
-      `Celebrating Indian heritage with dazzling light across the server!`
+      `Celebrating Indian heritage with dazzling light across the server!\n\n` +
+      `⏳ *Event window ends in ${status.timeRemainingStr}*`
     )
     .setFooter({ text: 'Happy Diwali • Safe, Bright & Joyous Celebrations!' });
 
@@ -214,6 +278,14 @@ export async function handleFireworksCommand(message) {
 // 5. 🔘 Button Interactions Router
 // ═════════════════════════════════════════════════════════════════════════════
 export async function handleDiwaliButton(interaction) {
+  const status = getFestivalStatus();
+  if (status.isEnded) {
+    return interaction.reply({
+      content: "🪔 The 5-day Diwali celebration has concluded! May light and peace stay with you all year!",
+      ephemeral: true
+    });
+  }
+
   const userId = interaction.user.id;
   const currencySymbol = interaction.guild?.id === '1538225337048236082' ? 'KC' : 'KR';
 
@@ -234,7 +306,8 @@ export async function handleDiwaliButton(interaction) {
         `🪔 **You lit a sacred Diwali Diya!**\n\n` +
         `*"${blessing}"*\n\n` +
         `✨ **Your Total Diyas:** \`${userCount}\` | 🌐 **Global:** \`${diwaliState.totalDiyasLit.toLocaleString()}\`\n` +
-        `💰 **Reward:** \`+100 ${currencySymbol}\``,
+        `💰 **Reward:** \`+100 ${currencySymbol}\`\n` +
+        `⏳ *Event ends in ${status.timeRemainingStr}*`,
       ephemeral: true
     });
   }
@@ -263,7 +336,8 @@ export async function handleDiwaliButton(interaction) {
       content: 
         `🎁✨ **Shubh Deepavali! You received the Daily Lakshmi Blessing!**\n\n` +
         `💰 **Bonus Added:** \`+500 ${currencySymbol}\`\n` +
-        `🪔 *May the auspicious light of Diwali fill your life with eternal prosperity and peace.*`,
+        `🪔 *May the auspicious light of Diwali fill your life with eternal prosperity and peace.*\n` +
+        `⏳ *Event ends in ${status.timeRemainingStr}*`,
       ephemeral: true
     });
   }
