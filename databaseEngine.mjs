@@ -123,6 +123,39 @@ if (neonUrl && neonUrl.startsWith('postgres')) {
         );
       }
       console.log(`[Neon Postgres Engine] 🚀 Synced ${res.rows.length} custom bots to SQLite memory pool!`);
+
+      // Auto-sync leveling from Neon Postgres into local SQLite memory pool
+      return neonPool.query(`
+        CREATE TABLE IF NOT EXISTS leveling (
+          discord_id VARCHAR(64) PRIMARY KEY,
+          xp BIGINT DEFAULT 0,
+          level INTEGER DEFAULT 1,
+          messages_count INTEGER DEFAULT 0,
+          last_message_at BIGINT DEFAULT 0
+        );
+      `).then(() => {
+        return neonPool.query('SELECT * FROM leveling');
+      }).then(lvlRes => {
+        const upsertLevel = db.prepare(`
+          INSERT INTO leveling (discord_id, xp, level, messages_count, last_message_at)
+          VALUES (?, ?, ?, ?, ?)
+          ON CONFLICT(discord_id) DO UPDATE SET
+            xp = excluded.xp,
+            level = excluded.level,
+            messages_count = excluded.messages_count,
+            last_message_at = excluded.last_message_at
+        `);
+        for (const r of lvlRes.rows) {
+          upsertLevel.run(
+            r.discord_id,
+            Number(r.xp || 0),
+            Number(r.level || 1),
+            Number(r.messages_count || 0),
+            Number(r.last_message_at || 0)
+          );
+        }
+        console.log(`[Neon Postgres Engine] 🚀 Synced ${lvlRes.rows.length} leveling records to SQLite memory pool!`);
+      });
     }).catch(e => console.warn('[Neon Postgres Sync Warning]:', e.message));
   } catch (err) {
     console.warn('[Neon Postgres Engine] Failed to initialize Neon pool:', err.message);
@@ -517,22 +550,111 @@ export function closeTicket(channelId) {
 }
 
 // --- LEVELING ---
-export function addXp(discordId, xpToAdd) {
+/**
+ * Formula: Required XP for Level L = 5 * (L^2) + (50 * L) + 100
+ */
+export function getRequiredXpForLevel(level) {
+  return 5 * (level ** 2) + (50 * level) + 100;
+}
+
+export function getTotalXpForLevel(level) {
+  let total = 0;
+  for (let i = 0; i < level; i++) {
+    total += getRequiredXpForLevel(i);
+  }
+  return total;
+}
+
+export function calculateLevelFromXp(totalXp) {
+  let level = 0;
+  let remaining = Number(totalXp) || 0;
+  while (remaining >= getRequiredXpForLevel(level)) {
+    remaining -= getRequiredXpForLevel(level);
+    level++;
+  }
+  return { level, currentXp: remaining, neededXp: getRequiredXpForLevel(level) };
+}
+
+export function getUserLeveling(discordId) {
+  if (!discordId) return { level: 0, xp: 0, currentXp: 0, neededXp: 100, messagesCount: 0 };
   const current = db.prepare('SELECT * FROM leveling WHERE discord_id = ?').get(discordId);
+  if (!current) return { level: 0, xp: 0, currentXp: 0, neededXp: 100, messagesCount: 0 };
+  const calc = calculateLevelFromXp(current.xp || 0);
+  return {
+    level: calc.level,
+    xp: Number(current.xp || 0),
+    currentXp: calc.currentXp,
+    neededXp: calc.neededXp,
+    messagesCount: Number(current.messages_count || 0)
+  };
+}
+
+export function setUserLeveling(discordId, level, xp) {
+  if (!discordId) return;
+  const calc = calculateLevelFromXp(xp);
+  const actualLevel = level !== undefined && level !== null ? Number(level) : calc.level;
+  const actualXp = Number(xp || 0);
+  
+  db.prepare(`
+    INSERT INTO leveling (discord_id, xp, level, messages_count, last_message_at)
+    VALUES (?, ?, ?, 1, ?)
+    ON CONFLICT(discord_id) DO UPDATE SET
+      xp = excluded.xp,
+      level = excluded.level,
+      last_message_at = excluded.last_message_at
+  `).run(discordId, actualXp, actualLevel, Date.now());
+
+  if (neonPool) {
+    neonPool.query(`
+      INSERT INTO leveling (discord_id, xp, level, messages_count, last_message_at)
+      VALUES ($1, $2, $3, 1, $4)
+      ON CONFLICT (discord_id)
+      DO UPDATE SET xp = $2, level = $3, last_message_at = $4
+    `, [discordId, actualXp, actualLevel, Date.now()]).catch(() => {});
+  }
+}
+
+export function addXp(discordId, xpToAdd, guildId = null) {
+  if (!discordId) return { level: 1, xp: 0, leveledUp: false, oldLevel: 0 };
+
+  const current = db.prepare('SELECT * FROM leveling WHERE discord_id = ?').get(discordId);
+  const oldXp = current ? Number(current.xp || 0) : 0;
+  const oldLevel = current ? Number(current.level || 0) : 0;
+  const messagesCount = current ? Number(current.messages_count || 0) : 0;
+
+  const newXp = oldXp + Number(xpToAdd || 0);
+  const newMessagesCount = messagesCount + 1;
+  const { level: newLevel, currentXp, neededXp } = calculateLevelFromXp(newXp);
+
+  // Leveled up if new calculated level is strictly higher than previous level
+  // and user has reached at least Level 1
+  const leveledUp = newLevel > oldLevel && oldLevel >= 0 && newLevel >= 1;
+
   if (!current) {
-    db.prepare('INSERT INTO leveling (discord_id, xp, level, messages_count, last_message_at) VALUES (?, ?, 1, 1, ?)').run(discordId, xpToAdd, Date.now());
-    return { level: 1, xp: xpToAdd, leveledUp: false };
+    db.prepare(`
+      INSERT INTO leveling (discord_id, xp, level, messages_count, last_message_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(discordId, newXp, newLevel, newMessagesCount, Date.now());
+  } else {
+    db.prepare(`
+      UPDATE leveling SET xp = ?, level = ?, messages_count = ?, last_message_at = ?
+      WHERE discord_id = ?
+    `).run(newXp, newLevel, newMessagesCount, Date.now(), discordId);
   }
 
-  const newXp = current.xp + xpToAdd;
-  const newLevel = Math.floor(Math.sqrt(newXp / 100)) + 1;
-  const leveledUp = newLevel > current.level;
+  // Asynchronously persist to Neon Postgres lakebase so levels survive all container restarts
+  if (neonPool) {
+    neonPool.query(`
+      INSERT INTO leveling (discord_id, xp, level, messages_count, last_message_at)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (discord_id)
+      DO UPDATE SET xp = $2, level = $3, messages_count = $4, last_message_at = $5
+    `, [discordId, newXp, newLevel, newMessagesCount, Date.now()]).catch(e => {
+      console.warn('[Neon Leveling Sync Error]:', e.message);
+    });
+  }
 
-  db.prepare(`
-    UPDATE leveling SET xp = ?, level = ?, messages_count = messages_count + 1, last_message_at = ? WHERE discord_id = ?
-  `).run(newXp, newLevel, Date.now(), discordId);
-
-  return { level: newLevel, xp: newXp, leveledUp };
+  return { level: newLevel, xp: newXp, currentXp, neededXp, leveledUp, oldLevel };
 }
 
 // --- MODERATION LOGS ---

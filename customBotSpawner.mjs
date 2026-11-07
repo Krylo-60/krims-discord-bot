@@ -20,7 +20,8 @@ import {
   getCustomBotByGuild, 
   deleteCustomBot, 
   updateCustomBotStatus,
-  addXp
+  addXp,
+  getUserLeveling
 } from './databaseEngine.mjs';
 
 // We import the AI ask function if available or export a standard connector
@@ -288,6 +289,9 @@ export class MultiBotManager {
       // Only respond to messages in the registered guild (or all if multi-server/global)
       if (guildId && guildId !== 'global' && !guildId.startsWith('global_') && message.guild.id !== guildId) return;
 
+      const cleanText = message.content.trim().toLowerCase();
+      const p = (customPrefix || '!').toLowerCase();
+
       // A. 🧠 1-Mind Krims Leveling XP with Turn-Taking
       if (!processedMessages.has(message.id)) {
         processedMessages.add(message.id);
@@ -295,7 +299,7 @@ export class MultiBotManager {
 
         try {
           const xpEarned = Math.floor(Math.random() * 10) + 15;
-          const xpResult = addXp(message.author.id, xpEarned);
+          const xpResult = addXp(message.author.id, xpEarned, message.guild.id);
           if (xpResult && xpResult.leveledUp) {
             // Find all active Krims bots present in this server
             const eligibleBots = [];
@@ -327,6 +331,32 @@ export class MultiBotManager {
         }
       }
 
+      // Check Rank / Level Command (!rank, !level, !xp)
+      if (cleanText === '!level' || cleanText === '!rank' || cleanText === '!xp' || cleanText === `${p}level` || cleanText === `${p}rank`) {
+        const stats = getUserLeveling(message.author.id);
+        const botFlair = getProceduralBotFlair(client.user);
+        const needed = Math.max(1, stats.neededXp);
+        const percent = Math.min(100, Math.round((stats.currentXp / needed) * 100));
+        const filled = Math.min(10, Math.max(0, Math.floor(percent / 10)));
+        const progressBar = '█'.repeat(filled) + '░'.repeat(10 - filled);
+        
+        const rankEmbed = new EmbedBuilder()
+          .setColor(botFlair.color)
+          .setTitle(`${botFlair.prefix} ${message.author.username}'s Level Stats`)
+          .setDescription(
+            `📊 **Current Level:** \`Level ${stats.level}\`\n` +
+            `⚡ **Total XP:** \`${stats.xp.toLocaleString()} XP\`\n` +
+            `🎯 **Progress to Level ${stats.level + 1}:** \`${stats.currentXp} / ${needed} XP\` (${percent}%)\n` +
+            `\`[${progressBar}]\`\n\n` +
+            `💬 **Total Messages:** \`${stats.messagesCount.toLocaleString()}\``
+          )
+          .setThumbnail(message.author.displayAvatarURL ? message.author.displayAvatarURL({ dynamic: true, size: 256 }) : null)
+          .setFooter({ text: `${client.user.username} • Krims 1-Mind Leveling Engine` })
+          .setTimestamp();
+        
+        return message.reply({ embeds: [rankEmbed] }).catch(() => {});
+      }
+
       // 👋 Universal Welcome & Ticket Configuration Commands
       if (cleanText.startsWith('!setwelcome') || cleanText.startsWith(`${p}setwelcome`)) {
         const args = message.content.trim().split(/\s+/).slice(1);
@@ -338,7 +368,6 @@ export class MultiBotManager {
       }
 
       // Free Community & Casino Commands: !bet, !rps, !trivia, !roast, !compliment, !partners
-      const p = (customPrefix || '!').toLowerCase();
       if (cleanText.startsWith('!bet') || cleanText.startsWith('!gamble') || cleanText.startsWith(`${p}bet`)) {
         const args = message.content.trim().split(/\s+/).slice(1);
         return handleBetCommand(message, args);
@@ -361,7 +390,6 @@ export class MultiBotManager {
       }
 
       // B. Welcome Card Test Trigger (!testwelcome or !welcome)
-      const cleanText = message.content.trim().toLowerCase();
       if (cleanText === '!testwelcome' || cleanText === '!welcome' || cleanText === `${(customPrefix || '!').toLowerCase()}testwelcome`) {
         const isOwnerOrAdmin = message.author.id === '1414143825538191373' || 
           message.member?.permissions?.has(1n << 3n) || // ADMINISTRATOR
