@@ -488,19 +488,38 @@ export class MultiBotManager {
     // 4. Moderation & Audit Logs (Message Delete & Edit Logging)
     client.on('messageDelete', async (message) => {
       try {
-        if (!message.guild || message.author?.bot) return;
-        const logChannel = message.guild.channels.cache.find(c => {
+        if (message.partial) {
+          try { await message.fetch(); } catch (_) {}
+        }
+        const guild = message.guild;
+        if (!guild) return;
+        const author = message.author;
+        if (author?.bot) return;
+
+        let logChannel = guild.channels.cache.find(c => {
           if (!c.isTextBased()) return false;
           const clean = (c.name || '').normalize('NFKD').toLowerCase();
           return clean.includes('mod-log') || clean.includes('mod-logs') || clean.includes('moderation-log') || clean.includes('audit-log');
         });
+
+        if (!logChannel) {
+          try {
+            const fetched = await guild.channels.fetch();
+            logChannel = fetched.find(c => {
+              if (!c || !c.isTextBased()) return false;
+              const clean = (c.name || '').normalize('NFKD').toLowerCase();
+              return clean.includes('mod-log') || clean.includes('mod-logs') || clean.includes('moderation-log') || clean.includes('audit-log');
+            });
+          } catch (_) {}
+        }
+
         if (!logChannel) return;
         const isMiniX = client.user.id === '1565848105277067414';
         const deleteEmbed = new EmbedBuilder()
           .setColor('#FF4747')
           .setTitle('🗑️ Message Deleted')
           .setDescription(
-            `**Author:** <@${message.author?.id || 'Unknown'}> (\`${message.author?.tag || 'Unknown'}\`)\n` +
+            `**Author:** <@${author?.id || 'Unknown'}> (' + (author?.tag || 'Unknown') + ')\n` +
             `**Channel:** <#${message.channel.id}>\n\n` +
             `**Content:**\n${message.content ? message.content.slice(0, 1024) : '*No text content (or embed/attachment)*'}`
           )
@@ -514,7 +533,17 @@ export class MultiBotManager {
           const names = message.attachments.map(a => a.name).join(', ');
           deleteEmbed.addFields({ name: '📎 Attachments', value: names.slice(0, 1024) });
         }
-        await logChannel.send({ embeds: [deleteEmbed] }).catch(() => {});
+        await logChannel.send({ embeds: [deleteEmbed] }).catch(async (err) => {
+          console.warn(`[AuditLogger] Send delete log failed in ${guild.name} (#${logChannel.name}):`, err.message);
+          if (err.message?.includes('Missing Access') || err.status === 403) {
+            const fallback = guild.systemChannel || guild.channels.cache.find(c => c.isTextBased() && (c.name.includes('general') || c.name.includes('chat')));
+            if (fallback) {
+              await fallback.send({
+                content: `⚠️ **[Mod-Log Permission Required]** ${client.user.username} detected a deleted message, but cannot write to <#${logChannel.id}> because it is in a private category. Please edit <#${logChannel.id}> permissions and grant **${client.user.username}** (or staff role) **View Channel** & **Send Messages**!`
+              }).catch(() => {});
+            }
+          }
+        });
       } catch (err) {
         console.error(`[CustomBot ${client.user.tag}] messageDelete log error:`, err.message);
       }
@@ -522,23 +551,50 @@ export class MultiBotManager {
 
     client.on('messageUpdate', async (oldMsg, newMsg) => {
       try {
-        if (!oldMsg.guild || oldMsg.author?.bot) return;
-        if (oldMsg.content === newMsg.content) return;
-        const logChannel = oldMsg.guild.channels.cache.find(c => {
+        if (oldMsg.partial) {
+          try { await oldMsg.fetch(); } catch (_) {}
+        }
+        if (newMsg.partial) {
+          try { await newMsg.fetch(); } catch (_) {}
+        }
+
+        const guild = newMsg.guild || oldMsg.guild;
+        if (!guild) return;
+
+        const author = newMsg.author || oldMsg.author;
+        if (author?.bot) return;
+
+        const oldContent = oldMsg.content || '*Unknown previous text (uncached)*';
+        const newContent = newMsg.content || '*Empty*';
+        if (oldMsg.content && oldMsg.content === newMsg.content) return;
+
+        let logChannel = guild.channels.cache.find(c => {
           if (!c.isTextBased()) return false;
           const clean = (c.name || '').normalize('NFKD').toLowerCase();
           return clean.includes('mod-log') || clean.includes('mod-logs') || clean.includes('moderation-log') || clean.includes('audit-log');
         });
+
+        if (!logChannel) {
+          try {
+            const fetched = await guild.channels.fetch();
+            logChannel = fetched.find(c => {
+              if (!c || !c.isTextBased()) return false;
+              const clean = (c.name || '').normalize('NFKD').toLowerCase();
+              return clean.includes('mod-log') || clean.includes('mod-logs') || clean.includes('moderation-log') || clean.includes('audit-log');
+            });
+          } catch (_) {}
+        }
+
         if (!logChannel) return;
         const isMiniX = client.user.id === '1565848105277067414';
         const editEmbed = new EmbedBuilder()
           .setColor('#FFA500')
           .setTitle('✏️ Message Edited')
           .setDescription(
-            `**Author:** <@${oldMsg.author?.id}> (\`${oldMsg.author?.tag}\`)\n` +
-            `**Channel:** <#${oldMsg.channel.id}>\n\n` +
-            `**Before:**\n${oldMsg.content ? oldMsg.content.slice(0, 500) : '*Empty*'}\n\n` +
-            `**After:**\n${newMsg.content ? newMsg.content.slice(0, 500) : '*Empty*'}`
+            `**Author:** <@${author?.id || 'Unknown'}> (' + (author?.tag || 'Unknown') + ')\n` +
+            `**Channel:** <#${(newMsg.channel || oldMsg.channel).id}>\n\n` +
+            `**Before:**\n${oldContent.slice(0, 1000)}\n\n` +
+            `**After:**\n${newContent.slice(0, 1000)}`
           )
           .setFooter({
             text: isMiniX
@@ -546,7 +602,17 @@ export class MultiBotManager {
               : `${client.user.username} • Krims AutoMod Engine`
           })
           .setTimestamp();
-        await logChannel.send({ embeds: [editEmbed] }).catch(() => {});
+        await logChannel.send({ embeds: [editEmbed] }).catch(async (err) => {
+          console.warn(`[AuditLogger] Send edit log failed in ${guild.name} (#${logChannel.name}):`, err.message);
+          if (err.message?.includes('Missing Access') || err.status === 403) {
+            const fallback = guild.systemChannel || guild.channels.cache.find(c => c.isTextBased() && (c.name.includes('general') || c.name.includes('chat')));
+            if (fallback) {
+              await fallback.send({
+                content: `⚠️ **[Mod-Log Permission Required]** ${client.user.username} detected a message edit, but cannot write to <#${logChannel.id}> because it is in a private category. Please edit <#${logChannel.id}> permissions and grant **${client.user.username}** (or staff role) **View Channel** & **Send Messages**!`
+              }).catch(() => {});
+            }
+          }
+        });
       } catch (err) {
         console.error(`[CustomBot ${client.user.tag}] messageUpdate log error:`, err.message);
       }
