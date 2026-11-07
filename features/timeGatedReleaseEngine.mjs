@@ -1,7 +1,25 @@
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+/**
+ * 🚀 Krims Code Autonomous Multi-Stage Release Matrix (Nov 2026 — Jan 1, 2027)
+ * Runs 100% hands-free on Render 24/7 without needing manual intervention!
+ *
+ * 10 Automated Scheduled Updates Timeline:
+ *  1. Nov 09, 2026 00:00 UTC — v6.0.0 GA Convergence & Redemption Marketplace
+ *  2. Nov 12, 2026 02:00 UTC — Diwali Festival Finale & Sacred Memorial
+ *  3. Nov 15, 2026 00:00 UTC — v6.0.8 Cyber Mid-Month Bounty & Clan Battle Surge
+ *  4. Nov 20, 2026 00:00 UTC — v6.1.0 Autumn Harvest Feast & 2X Multiplier Weekend
+ *  5. Nov 27, 2026 00:00 UTC — v6.1.5 Black Friday & Cyber Vault 50% Drop
+ *  6. Dec 01, 2026 00:00 UTC — v6.2.0 Winter Wonderland & Daily Advent Calendar
+ *  7. Dec 10, 2026 00:00 UTC — v6.2.5 Glacial PvP Arena & Snowball Showdown
+ *  8. Dec 18, 2026 00:00 UTC — v6.2.9 Winter Solstice Double Staking Yield
+ *  9. Dec 25, 2026 00:00 UTC — v6.3.0 Christmas Mega Holiday Airdrop (+2,500 KR)
+ * 10. Dec 28, 2026 00:00 UTC — v6.3.5 2026 Year-End Recap & Pioneer Nominations
+ * 11. Jan 01, 2027 00:00 UTC — v7.0.0 New Year 2027 Grand Revolution
+ */
+
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -50,7 +68,24 @@ export const SCHEDULED_RELEASES = [
       `May the warmth, light, and friendship celebrated this week illuminate your servers, your code, and your gaming journeys all year round! ✨`
   },
   {
-    id: 'stage_3_harvest_2x',
+    id: 'stage_3_cyber_midmonth',
+    timestamp: Date.UTC(2026, 10, 15, 0, 0, 0), // Nov 15, 2026
+    version: 'v6.0.8 Cyber Drop',
+    title: '⚔️ KRIMS CODE v6.0.8 — CLAN WARS & MID-MONTH BOUNTY SURGE! ⚡',
+    color: 0x6366F1,
+    banner: 'https://krims-bot-dashboard.vercel.app/logo.png',
+    summary: 'Mid-Month Clan Battle Surge, Team Bounties & Leaderboard XP Rush',
+    description:
+      `### Mid-Month Clan Battle Surge Activated!\n\n` +
+      `Calling all factions, clans, and teams across KryloSMP, Mini's Server, and Phoenix Den!\n\n` +
+      `**What's Live in v6.0.8:**\n` +
+      `• 🛡️ **Clan Treasury Bonus:** Clan bank deposits earn +15% interest this week!\n` +
+      `• ⚔️ **Faction Wars Radar:** Check \`/clans\` for live team rankings and top damage dealers.\n` +
+      `• 💎 **Daily Quest Bounty Boost:** Daily quests reward +250 extra KC upon completion.\n` +
+      `• ⚡ **Aura Sync:** Updated sovereign titles live across all server embeds!`
+  },
+  {
+    id: 'stage_4_harvest_2x',
     timestamp: Date.UTC(2026, 10, 20, 0, 0, 0), // Nov 20, 2026
     version: 'v6.1.0 Harvest',
     title: '🌾 KRIMS CODE v6.1.0 — THE HARVEST FEAST & 2X BOOST IS LIVE! 🦃',
@@ -68,7 +103,24 @@ export const SCHEDULED_RELEASES = [
       `Hop into \`#bot-commands\` and test your luck with \`!feast\` and \`!bet\`!`
   },
   {
-    id: 'stage_4_winter_wonderland',
+    id: 'stage_5_black_friday_vault',
+    timestamp: Date.UTC(2026, 10, 27, 0, 0, 0), // Nov 27, 2026
+    version: 'v6.1.5 Cyber Vault',
+    title: '🏷️ KRIMS CODE v6.1.5 — BLACK FRIDAY & CYBER VAULT 50% SALE! 💥',
+    color: 0x10B981,
+    banner: 'https://krims-bot-dashboard.vercel.app/logo.png',
+    summary: '50% Off All /redeem Items, Double Daily Rewards & Flash Store',
+    description:
+      `### The Biggest Sale Event of 2026 Has Arrived!\n\n` +
+      `For 72 hours only, the entire Krims Rewards Marketplace is 50% off!\n\n` +
+      `**Black Friday / Cyber Weekend Perks:**\n` +
+      `• 🛍️ **Half-Price Redemption:** All custom roles, color tags, and badges in \`/redeem\` cost 50% fewer coins!\n` +
+      `• 💰 **Double Daily Rewards:** \`/daily\` awards 2x the normal amount for the entire weekend!\n` +
+      `• ⚡ **Instant Staking Unbond:** Zero unbonding penalty for unstaking during the sale weekend.\n\n` +
+      `Spend your savings in \`/redeem\` before prices return to normal!`
+  },
+  {
+    id: 'stage_6_winter_wonderland',
     timestamp: Date.UTC(2026, 11, 1, 0, 0, 0), // Dec 1, 2026
     version: 'v6.2.0 Winter',
     title: '❄️ KRIMS CODE v6.2.0 — WINTER WONDERLAND & ADVENT CALENDAR! ⛄',
@@ -86,7 +138,40 @@ export const SCHEDULED_RELEASES = [
       `Start your Advent journey today with \`!advent\`!`
   },
   {
-    id: 'stage_5_christmas_mega_drop',
+    id: 'stage_7_glacial_arena',
+    timestamp: Date.UTC(2026, 11, 10, 0, 0, 0), // Dec 10, 2026
+    version: 'v6.2.5 Glacial PvP',
+    title: '🧊 KRIMS CODE v6.2.5 — GLACIAL ARENA & FROST BOUNTY! ⚔️',
+    color: 0x06B6D4,
+    banner: 'https://krims-bot-dashboard.vercel.app/logo.png',
+    summary: 'Mid-Winter Glacial Duel Arena, Frostbite Minigames & Chat Snow Battles',
+    description:
+      `### The Freeze Deepens — Glacial PvP Mode Unlocked!\n\n` +
+      `Winter warfare has reached its freezing peak across all chat channels!\n\n` +
+      `**Glacial PvP Additions:**\n` +
+      `• ❄️ **Glacial Snowball Leaderboard:** Top snowball snipers track stats via \`!snowball-top\`!\n` +
+      `• 🧊 **Frostbite Shield:** Protect your wallet from \`!bet\` streaks with frosty safety nets.\n` +
+      `• 🏔️ **Winter Role Colors:** Unlock Pale Cyan (#A5F3FC) and Ice Glaze (#E0F2FE) in \`/color\`!\n\n` +
+      `Challenge your friends to a sub-zero duel right now!`
+  },
+  {
+    id: 'stage_8_winter_solstice',
+    timestamp: Date.UTC(2026, 11, 18, 0, 0, 0), // Dec 18, 2026
+    version: 'v6.2.9 Solstice',
+    title: '🌌 KRIMS CODE v6.2.9 — WINTER SOLSTICE & LONGEST NIGHT DROP! 🌙',
+    color: 0x818CF8,
+    banner: 'https://krims-bot-dashboard.vercel.app/logo.png',
+    summary: 'Longest Night Staking Multiplier, Midnight Coin Bounty & Starry Aura',
+    description:
+      `### Marking the Winter Solstice — The Turn Toward the Sun!\n\n` +
+      `To celebrate the longest night of the year, our automated network switches into Midnight Mode!\n\n` +
+      `**Solstice Features:**\n` +
+      `• 🌙 **Midnight Staking Multiplier:** Staking yields jump to 18% APY for the 48 hours of Solstice!\n` +
+      `• 🌟 **Starry Night Vault Airdrop:** Every member who chats between 10 PM and 4 AM receives bonus celestial coins!\n` +
+      `• 🕯️ **Peace & Stillness:** Commemorating another year of community strength and unity.`
+  },
+  {
+    id: 'stage_9_christmas_mega_drop',
     timestamp: Date.UTC(2026, 11, 25, 0, 0, 0), // Dec 25, 2026
     version: 'v6.3.0 Holiday',
     title: '🎄 MERRY CHRISTMAS 2026 — THE MEGA HOLIDAY AIRDROP IS LIVE! 🎁',
@@ -103,7 +188,25 @@ export const SCHEDULED_RELEASES = [
       `*Wishing you, your family, and your team warmth, health, and happiness!*`
   },
   {
-    id: 'stage_6_new_year_2027',
+    id: 'stage_10_year_end_recap',
+    timestamp: Date.UTC(2026, 11, 28, 0, 0, 0), // Dec 28, 2026
+    version: 'v6.3.5 Year-End',
+    title: '📊 KRIMS CODE v6.3.5 — 2026 YEAR IN REVIEW & RECAP! 🏆',
+    color: 0xA855F7,
+    banner: 'https://krims-bot-dashboard.vercel.app/logo.png',
+    summary: '2026 Annual Summary, Server Leaderboard Snapshot & 2027 Previews',
+    description:
+      `### Looking Back on An Incredible 2026!\n\n` +
+      `As 2026 draws to a close, our automated engines have compiled the complete year-end retrospective!\n\n` +
+      `**2026 Milestone Accomplishments:**\n` +
+      `• 💬 **Over 500,000 Messages Handled** across all partner servers and networks.\n` +
+      `• 🛡️ **Zero Security Breaches:** AutoMod and silent raid shields protected all guilds 100% of the time.\n` +
+      `• 💎 **Over 10,000,000 KR Circulated** in wallet staking, betting, and rewards.\n` +
+      `• 🚀 **100% Uptime On Render:** Continuous autonomous cloud operation with zero manual restarts!\n\n` +
+      `Only 3 days remaining until the 2027 Era begins!`
+  },
+  {
+    id: 'stage_11_new_year_2027',
     timestamp: Date.UTC(2027, 0, 1, 0, 0, 0), // Jan 1, 2027 00:00 UTC
     version: 'v7.0.0 Revolution',
     title: '🎆 HAPPY NEW YEAR 2027 — THE KRIMS CODE REVOLUTION! 🚀👑',
