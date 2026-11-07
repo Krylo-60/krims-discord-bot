@@ -454,3 +454,78 @@ export async function handleAuraCommand(message) {
 
   return message.reply({ embeds: [embed], components: [row] });
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 7. 🗺️ !roadmap / !schedule — Autonomous Release Matrix (2026 -> 2027)
+// ═════════════════════════════════════════════════════════════════════════════
+import { getEcosystemReleaseStatus } from './timeGatedReleaseEngine.mjs';
+
+export async function handleRoadmapCommand(message) {
+  const status = getEcosystemReleaseStatus();
+  
+  const stageLines = status.allStages.map((s, idx) => {
+    const icon = s.isTriggered ? '✅' : '⏳';
+    return `${icon} **Stage ${idx + 1}: ${s.version}**\n` +
+           `> **Date:** \`${s.dateString.substring(0, 16)}\`\n` +
+           `> **Feature:** *${s.summary}*`;
+  }).join('\n\n');
+
+  const embed = new EmbedBuilder()
+    .setColor(0x00F2FF)
+    .setTitle('🚀 KRIMS CODE AUTONOMOUS RELEASE MATRIX (2026 — 2027)')
+    .setDescription(
+      `### 🤖 100% Hands-Free Autopilot Schedule\n` +
+      `The bot self-deploys all updates automatically on Render at exact dates without needing developer intervention.\n\n` +
+      `**Current Status:** \`${status.countdownText}\`\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `${stageLines}\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+    )
+    .setFooter({ text: 'Krims Code Autopilot • Zero Maintenance Required' })
+    .setTimestamp();
+
+  return message.reply({ embeds: [embed] });
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 8. ❄️ !snowball @user — Winter Minigame
+// ═════════════════════════════════════════════════════════════════════════════
+export async function handleSnowballCommand(message, targetUser) {
+  const target = targetUser || message.mentions.users.first();
+  if (!target) {
+    return message.reply("❄️ **Usage:** `!snowball @user` — Throw a snowball at a friend in chat!");
+  }
+
+  const roll = Math.random();
+  if (roll < 0.25) {
+    return message.reply(`💨 **WHOOSH!** <@${target.id}> swiftly ducked into the snow! <@${message.author.id}>'s snowball completely missed! ⛄`);
+  } else if (roll < 0.85) {
+    return message.reply(`❄️ **SPLAT!** <@${message.author.id}> threw a crisp snowball that hit <@${target.id}> right on the shoulder! 🥶`);
+  } else {
+    try { addCoins(message.author.id, 50); } catch (_) {}
+    return message.reply(`🎯 **CRITICAL HIT!** <@${message.author.id}> launched an icy mega-snowball straight at <@${target.id}>! (+50 Coins bonus) 🧊💥`);
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 9. 🥧 !feast / !harvest — Autumn Harvest Bounty
+// ═════════════════════════════════════════════════════════════════════════════
+export async function handleFeastCommand(message) {
+  const currencySymbol = message.guild?.id === '1538225337048236082' ? 'KC' : 'KR';
+  try { addCoins(message.author.id, 100); } catch (_) {}
+
+  const dishes = ['🥧 Warm Pumpkin Pie', '🌽 Roasted Sweet Corn', '🍎 Spiced Apple Cider', '🥖 Fresh Baked Brioche', '🍯 Glazed Honey Ham'];
+  const dish = dishes[Math.floor(Math.random() * dishes.length)];
+
+  const embed = new EmbedBuilder()
+    .setColor(0xEAB308)
+    .setTitle('🌾 Autumn Harvest Feast Shared! 🦃')
+    .setDescription(
+      `<@${message.author.id}> served a delicious **${dish}** for the community!\n\n` +
+      `💰 **Harvest Blessing:** \`+100 ${currencySymbol}\` awarded to your wallet!\n` +
+      `🍂 *May your season be filled with warmth and good fortune.*`
+    )
+    .setFooter({ text: 'Harvest Season • Krims Code Seasonal Engine' });
+
+  return message.reply({ embeds: [embed] });
+}

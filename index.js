@@ -10,7 +10,10 @@ import {
   handleRoastCommand,
   handleComplimentCommand,
   handlePartnersCommand,
-  handleAuraCommand
+  handleAuraCommand,
+  handleRoadmapCommand,
+  handleSnowballCommand,
+  handleFeastCommand
 } from './features/freeCommandsEngine.mjs';
 import {
   handleDiwaliCommand,
@@ -9985,6 +9988,25 @@ client.on('messageCreate', async (message) => {
   if (lowerMsg === '!fireworks' || lowerMsg === '!patakha' || lowerMsg === '!cracker') {
     await message.channel.sendTyping().catch(() => {});
     return await handleFireworksCommand(message);
+  }
+
+  // 🗺️ Command: !roadmap, !schedule, !updates
+  if (lowerMsg === '!roadmap' || lowerMsg === '!schedule' || lowerMsg === '!timeline') {
+    await message.channel.sendTyping().catch(() => {});
+    return await handleRoadmapCommand(message);
+  }
+
+  // ❄️ Command: !snowball
+  if (lowerMsg.startsWith('!snowball')) {
+    const target = message.mentions.users.first();
+    await message.channel.sendTyping().catch(() => {});
+    return await handleSnowballCommand(message, target);
+  }
+
+  // 🌾 Command: !feast, !harvest
+  if (lowerMsg === '!feast' || lowerMsg === '!harvest') {
+    await message.channel.sendTyping().catch(() => {});
+    return await handleFeastCommand(message);
   }
 
   if (lowerMsg === '!aura' || lowerMsg === '!krylo' || lowerMsg === '!godmode') {
