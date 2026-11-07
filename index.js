@@ -12,6 +12,13 @@ import {
   handlePartnersCommand,
   handleAuraCommand
 } from './features/freeCommandsEngine.mjs';
+import {
+  handleDiwaliCommand,
+  handleDiyaCommand,
+  handleMithaiCommand,
+  handleFireworksCommand,
+  handleDiwaliButton
+} from './features/diwaliFestivalEngine.mjs';
 import { checkAndTriggerGABroadcast } from './features/timeGatedReleaseEngine.mjs';
 /**
  * 👑 KRYLOSMP MASTER GOOGLE SHEETS:
@@ -1862,6 +1869,11 @@ async function executeGameBoostOptimization(author) {
 
 
 client.on('interactionCreate', async (interaction) => {
+  // 🪔 Handle Diwali Festival Interactive Buttons
+  if (interaction.isButton() && interaction.customId.startsWith('diwali_')) {
+    return await handleDiwaliButton(interaction);
+  }
+
   // 💎 Handle Krims Code Alpha Sneak Peek Button Interactions (Zero commands needed)
   if (interaction.isButton() && (interaction.customId.startsWith('welcome_') || interaction.customId.startsWith('tickets_'))) {
     const handled = await handleWelcomeTicketInteraction(interaction);
@@ -4844,6 +4856,11 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   if (!interaction.isChatInputCommand()) return;
+
+  // 🪔 Festive Slash Command: /diwali
+  if (interaction.commandName === 'diwali') {
+    return await handleDiwaliCommand(interaction, true);
+  }
 
   // 🔔 Guild-Specific Command: /pingroles for The Half Lifes
   if (interaction.commandName === 'pingroles') {
@@ -9948,6 +9965,28 @@ client.on('messageCreate', async (message) => {
   }
 
   // ⚡ Command: !aura, !krylo
+  // 🪔 Commands: !diwali, !diya, !mithai, !fireworks
+  if (lowerMsg === '!diwali' || lowerMsg === '!deepavali') {
+    await message.channel.sendTyping().catch(() => {});
+    return await handleDiwaliCommand(message);
+  }
+
+  if (lowerMsg === '!diya' || lowerMsg === '!lightdiya') {
+    await message.channel.sendTyping().catch(() => {});
+    return await handleDiyaCommand(message);
+  }
+
+  if (lowerMsg.startsWith('!mithai') || lowerMsg.startsWith('!sweets')) {
+    const target = message.mentions.users.first();
+    await message.channel.sendTyping().catch(() => {});
+    return await handleMithaiCommand(message, target);
+  }
+
+  if (lowerMsg === '!fireworks' || lowerMsg === '!patakha' || lowerMsg === '!cracker') {
+    await message.channel.sendTyping().catch(() => {});
+    return await handleFireworksCommand(message);
+  }
+
   if (lowerMsg === '!aura' || lowerMsg === '!krylo' || lowerMsg === '!godmode') {
     await message.channel.sendTyping().catch(() => {});
     return await handleAuraCommand(message);
@@ -10895,7 +10934,8 @@ client.on('messageCreate', async (message) => {
         { name: '🏆 Progression & Leveling', value: `\`!rank\`, \`!level\`, \`!leaderboard\` — Real-time text & voice XP.` },
         { name: '🛡️ Moderation Tools', value: `\`!mute\`, \`!unmute\`, \`!kick\`, \`!ban\`, \`!lockdown\`, \`!slowmode\`` },
         { name: '🎟️ Support Tickets', value: `\`${botPrefix}ticket\` — Private player support channel creation.` },
-        { name: '📊 Network Telemetry', value: `\`${botPrefix}diagnose\` — System health and API uptime status.` },
+        { name: '📊 Network Telemetry', value: `\`${botPrefix}diagnose\` — System health and API uptime status.` }
+,
         { name: '⚡ Essential Slash Commands (/)', value: '`/help`, `/about`, `/rank`, `/lb`, `/balance`, `/daily`, `/pay`, `/ticket`, `/setupbot`, `/warn`, `/mute`, `/ban`, `/purge`, `/lockdown`, `/stake`, `/redeem`' },
         { name: '🎮 Quick Prefix Commands (!)', value: '`!bet <amount>`, `!rps`, `!trivia`, `!roast`, `!compliment`, `!partners`, `!setwelcome`, `!settickets`, `!daily`, `!balance`, `!roll`, `!8ball`, `!joke`, `!meme`, `!calc`, `!afk`' }
       ],

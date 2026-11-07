@@ -32,6 +32,10 @@ export const masterCommandBuilders = [
     .setName('about')
     .setDescription('Learn about the Krims Code AI Multi-Bot Engine and get your own free bot!'),
 
+  new SlashCommandBuilder()
+    .setName('diwali')
+    .setDescription('🪔 Celebrate Diwali Festival of Lights with glowing diyas, blessings & festival rewards!'),
+
 
   new SlashCommandBuilder()
     .setName('automod')
