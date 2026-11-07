@@ -2,18 +2,10 @@
  * 🚀 Krims Code Autonomous Multi-Stage Release Matrix (Nov 2026 — Jan 1, 2027)
  * Runs 100% hands-free on Render 24/7 without needing manual intervention!
  *
- * 10 Automated Scheduled Updates Timeline:
- *  1. Nov 09, 2026 00:00 UTC — v6.0.0 GA Convergence & Redemption Marketplace
- *  2. Nov 12, 2026 02:00 UTC — Diwali Festival Finale & Sacred Memorial
- *  3. Nov 15, 2026 00:00 UTC — v6.0.8 Cyber Mid-Month Bounty & Clan Battle Surge
- *  4. Nov 20, 2026 00:00 UTC — v6.1.0 Autumn Harvest Feast & 2X Multiplier Weekend
- *  5. Nov 27, 2026 00:00 UTC — v6.1.5 Black Friday & Cyber Vault 50% Drop
- *  6. Dec 01, 2026 00:00 UTC — v6.2.0 Winter Wonderland & Daily Advent Calendar
- *  7. Dec 10, 2026 00:00 UTC — v6.2.5 Glacial PvP Arena & Snowball Showdown
- *  8. Dec 18, 2026 00:00 UTC — v6.2.9 Winter Solstice Double Staking Yield
- *  9. Dec 25, 2026 00:00 UTC — v6.3.0 Christmas Mega Holiday Airdrop (+2,500 KR)
- * 10. Dec 28, 2026 00:00 UTC — v6.3.5 2026 Year-End Recap & Pioneer Nominations
- * 11. Jan 01, 2027 00:00 UTC — v7.0.0 New Year 2027 Grand Revolution
+ * Broadcast Destinations:
+ *  1. #🚀・𝖡ot-𝖴pdates (Main Community Announcements)
+ *  2. #🧪・ai-lab (Krims Alpha & Beta Internal Testing Channel)
+ *  3. Direct Message (DM) to Founder Krylo (1414143825538191373)
  */
 
 import fs from 'fs';
@@ -26,6 +18,8 @@ const __dirname = path.dirname(__filename);
 const STATE_FILE = path.resolve(__dirname, '../data/scheduled_releases_state.json');
 
 export const UPDATES_CHANNEL_ID = '1561175627799994402'; // #🚀・𝖡ot-𝖴pdates
+export const ALPHA_BETA_CHANNEL_ID = '1561175639606693929'; // #🧪・ai-lab (Alpha/Beta Hub)
+export const OWNER_USER_ID = '1414143825538191373'; // Founder Krylo
 
 // Exact Automated Schedule (Month is 0-indexed in JS Date: 10 = Nov, 11 = Dec, 0 = Jan)
 export const SCHEDULED_RELEASES = [
@@ -289,6 +283,44 @@ export function getEcosystemReleaseStatus() {
 }
 
 /**
+ * Sends a full DM overview to Founder Krylo with all scheduled releases
+ */
+export async function sendOwnerScheduleOverviewDM(client) {
+  try {
+    const owner = await client.users.fetch(OWNER_USER_ID).catch(() => null);
+    if (!owner) return false;
+
+    const status = getEcosystemReleaseStatus();
+    const stageLines = status.allStages.map((s, idx) => {
+      const icon = s.isTriggered ? '✅' : '⏳';
+      return `${icon} **Stage ${idx + 1}: ${s.version}** — \`${s.dateString.substring(0, 16)}\`\n> *${s.summary}*`;
+    }).join('\n\n');
+
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('👑 [KRIMS CODE FOUNDER BRIEFING] AUTONOMOUS RELEASE SCHEDULE')
+      .setDescription(
+        `Hey Krylo! Here is your complete **Autonomous Multi-Stage Release Schedule** through **January 1, 2027**.\n\n` +
+        `Every single one of these updates will automatically deploy, post to **#🚀・𝖡ot-𝖴pdates**, sync to **#🧪・ai-lab (Alpha/Beta)**, and **DM you directly** the moment it goes live!\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `${stageLines}\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `Enjoy your 1-month break! The bot will keep your servers active 24/7.`
+      )
+      .setImage('https://krims-discord-bot-d57m.onrender.com/gifs/krylo_aura_all_in_one.gif')
+      .setFooter({ text: 'Krims Code Autopilot • Direct Founder DM' })
+      .setTimestamp();
+
+    await owner.send({ embeds: [embed] });
+    console.log('[ReleaseMatrix] 📬 Sent schedule overview DM to Krylo!');
+    return true;
+  } catch (err) {
+    console.warn('[ReleaseMatrix] Could not send founder DM:', err.message);
+    return false;
+  }
+}
+
+/**
  * Periodically called (every 60s) to check if any automated release has matured
  * and broadcast the update to Discord without human intervention!
  */
@@ -302,10 +334,22 @@ export async function checkAndTriggerGABroadcast(client) {
     if (now >= rel.timestamp && !state.broadcasts[rel.id]) {
       console.log(`[ReleaseMatrix] 🎯 Triggering automated release: ${rel.version} (${rel.id})`);
       
+      const actionRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setLabel('🌐 Web Dashboard')
+          .setStyle(ButtonStyle.Link)
+          .setURL('https://krims-bot-dashboard.vercel.app/updates'),
+        new ButtonBuilder()
+          .setLabel('⚡ Krylo Aura')
+          .setStyle(ButtonStyle.Link)
+          .setURL('https://krims-discord-bot-d57m.onrender.com/gifs/krylo_aura_all_in_one.gif')
+      );
+
+      // 1. 📢 Dispatch to Main Updates Channel (#🚀・𝖡ot-𝖴pdates)
       try {
         const channel = await client.channels.fetch(UPDATES_CHANNEL_ID).catch(() => null);
         if (channel) {
-          const embed = new EmbedBuilder()
+          const mainEmbed = new EmbedBuilder()
             .setColor(rel.color)
             .setTitle(rel.title)
             .setDescription(rel.description)
@@ -313,29 +357,68 @@ export async function checkAndTriggerGABroadcast(client) {
             .setFooter({ text: `Autonomous Scheduled Release • ${rel.version} • Krylo Autopilot` })
             .setTimestamp();
 
-          const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-              .setLabel('🌐 Web Dashboard')
-              .setStyle(ButtonStyle.Link)
-              .setURL('https://krims-bot-dashboard.vercel.app/updates'),
-            new ButtonBuilder()
-              .setLabel('⚡ Krylo Aura')
-              .setStyle(ButtonStyle.Link)
-              .setURL('https://krims-discord-bot-d57m.onrender.com/gifs/krylo_aura_all_in_one.gif')
-          );
-
-          await channel.send({ embeds: [embed], components: [row] });
+          await channel.send({ embeds: [mainEmbed], components: [actionRow] });
           console.log(`[ReleaseMatrix] ✅ Broadcasted ${rel.version} to #${channel.name}!`);
         }
-
-        state.broadcasts[rel.id] = {
-          triggeredAt: new Date().toISOString(),
-          version: rel.version
-        };
-        stateModified = true;
       } catch (err) {
-        console.warn(`[ReleaseMatrix] Notice while broadcasting ${rel.id}:`, err.message);
+        console.warn(`[ReleaseMatrix] Error posting to updates channel:`, err.message);
       }
+
+      // 2. 🧪 Dispatch to Alpha / Beta Testing Lab (#🧪・ai-lab)
+      try {
+        const labChannel = await client.channels.fetch(ALPHA_BETA_CHANNEL_ID).catch(() => null);
+        if (labChannel) {
+          const alphaEmbed = new EmbedBuilder()
+            .setColor(0x8B5CF6)
+            .setTitle(`🧪 [ALPHA / BETA DISPATCH] ${rel.version}: ${rel.title}`)
+            .setDescription(
+              `### ⚡ Internal Staging & Alpha/Beta Synchronization\n\n` +
+              `This update has passed pre-flight QA and is officially live in production across the fleet!\n\n` +
+              `**Release Summary:** ${rel.summary}\n\n` +
+              `${rel.description}`
+            )
+            .setImage(rel.banner)
+            .setFooter({ text: `Krims Code Alpha/Beta Synchronizer • Target Stage: ${rel.id}` })
+            .setTimestamp();
+
+          await labChannel.send({ embeds: [alphaEmbed], components: [actionRow] });
+          console.log(`[ReleaseMatrix] 🧪 Dispatched ${rel.version} to #${labChannel.name}!`);
+        }
+      } catch (err) {
+        console.warn(`[ReleaseMatrix] Error posting to alpha/beta lab:`, err.message);
+      }
+
+      // 3. 📬 Send Direct Message (DM) to Founder Krylo
+      try {
+        const owner = await client.users.fetch(OWNER_USER_ID).catch(() => null);
+        if (owner) {
+          const dmEmbed = new EmbedBuilder()
+            .setColor(rel.color)
+            .setTitle(`👑 [FOUNDER DISPATCH] ${rel.version} Released!`)
+            .setDescription(
+              `Hey Krylo! Your scheduled update **${rel.version}** has officially deployed to the network!\n\n` +
+              `**Title:** ${rel.title}\n` +
+              `**Summary:** ${rel.summary}\n\n` +
+              `${rel.description}`
+            )
+            .setImage(rel.banner)
+            .setFooter({ text: 'Krims Code Cloud Autopilot • Direct Founder DM Alert' })
+            .setTimestamp();
+
+          await owner.send({ embeds: [dmEmbed], components: [actionRow] }).catch((dmErr) => {
+            console.warn(`[ReleaseMatrix] Could not DM owner:`, dmErr.message);
+          });
+          console.log(`[ReleaseMatrix] 📬 Sent founder DM for ${rel.version} to Krylo!`);
+        }
+      } catch (err) {
+        console.warn(`[ReleaseMatrix] Error sending owner DM:`, err.message);
+      }
+
+      state.broadcasts[rel.id] = {
+        triggeredAt: new Date().toISOString(),
+        version: rel.version
+      };
+      stateModified = true;
     }
   }
 

@@ -22,7 +22,7 @@ import {
   handleFireworksCommand,
   handleDiwaliButton
 } from './features/diwaliFestivalEngine.mjs';
-import { checkAndTriggerGABroadcast } from './features/timeGatedReleaseEngine.mjs';
+import { checkAndTriggerGABroadcast, sendOwnerScheduleOverviewDM } from './features/timeGatedReleaseEngine.mjs';
 /**
  * 👑 KRYLOSMP MASTER GOOGLE SHEETS:
  * 1. Support & Ticket Logs Sheet: https://docs.google.com/spreadsheets/d/1F4NRwssxFxJO58uX6CTHvXqSMoEMoLhJGRI2IeghF-g/edit?gid=377764939#gid=377764939
@@ -1200,7 +1200,8 @@ client.once('ready', async () => {
 
   try {
     checkAndTriggerGABroadcast(client);
-    setInterval(() => checkAndTriggerGABroadcast(client), 60 * 1000);
+    setInterval(() => checkAndTriggerGABroadcast(client), 60 * 1000);
+    sendOwnerScheduleOverviewDM(client);
   } catch (gaErr) {
     console.warn('[TimeGatedRelease] Engine notice:', gaErr.message);
   }
