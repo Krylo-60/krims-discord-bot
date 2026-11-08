@@ -7,7 +7,8 @@ import {
   TextInputBuilder,
   TextInputStyle,
   ChannelType, 
-  PermissionFlagsBits 
+  PermissionFlagsBits,
+  OverwriteType 
 } from 'discord.js';
 import { db } from '../databaseEngine.mjs';
 
@@ -174,8 +175,16 @@ export async function handleWelcomeTicketInteraction(interaction) {
   if (!interaction.isButton() && !interaction.isModalSubmit()) return false;
   const customId = interaction.customId;
 
-  // 0. 💻 Show Developer Verification Modal
+  // 0. 💻 Show Developer Verification Modal (Exclusively for Krims Code AI)
   if (customId === 'ticket_create_dev_modal' || customId === 'ticket_create_dev') {
+    // Mini's Roblox Server Guard: Dev applications belong to Krims Code AI
+    if (interaction.guild?.id === '1568083131624460371') {
+      return interaction.reply({
+        content: `ℹ️ **Developer Applications are exclusively for the Krims Code AI ecosystem!**\nTo apply as a Developer and contribute code, please join the official **Krims Code AI** Discord server:\n👉 https://discord.gg/wVbVz9aPcz`,
+        ephemeral: true
+      });
+    }
+
     const modal = new ModalBuilder()
       .setCustomId('modal_dev_ticket')
       .setTitle('💻 Krims Code • Developer Verification');
@@ -285,11 +294,13 @@ export async function handleWelcomeTicketInteraction(interaction) {
 
     const permissionOverwrites = [
       {
-        id: guild.roles.everyone.id,
+        id: guild.roles.everyone?.id || guild.id,
+        type: OverwriteType.Role,
         deny: [PermissionFlagsBits.ViewChannel]
       },
       {
         id: user.id,
+        type: OverwriteType.Member,
         allow: [
           PermissionFlagsBits.ViewChannel,
           PermissionFlagsBits.SendMessages,
@@ -300,6 +311,7 @@ export async function handleWelcomeTicketInteraction(interaction) {
       },
       {
         id: interaction.client.user.id,
+        type: OverwriteType.Member,
         allow: [
           PermissionFlagsBits.ViewChannel,
           PermissionFlagsBits.SendMessages,
@@ -310,6 +322,7 @@ export async function handleWelcomeTicketInteraction(interaction) {
       // Krylo Founder explicit access
       {
         id: '1414143825538191373',
+        type: OverwriteType.Member,
         allow: [
           PermissionFlagsBits.ViewChannel,
           PermissionFlagsBits.SendMessages,
@@ -323,6 +336,7 @@ export async function handleWelcomeTicketInteraction(interaction) {
     staffRoles.forEach(r => {
       permissionOverwrites.push({
         id: r.id,
+        type: OverwriteType.Role,
         allow: [
           PermissionFlagsBits.ViewChannel,
           PermissionFlagsBits.SendMessages,
@@ -334,13 +348,19 @@ export async function handleWelcomeTicketInteraction(interaction) {
     });
 
     try {
-      const ticketChannel = await guild.channels.create({
+      let ticketChannel = await guild.channels.create({
         name: targetChannelName,
         type: ChannelType.GuildText,
         parent: category?.id || null,
         topic: `Verified Developer Ticket for @${user.tag} (ID: ${user.id}) | Portfolio: ${githubLink}`,
         permissionOverwrites
       });
+
+      if (!ticketChannel || typeof ticketChannel.send !== 'function') {
+        if (ticketChannel?.id) {
+          ticketChannel = await interaction.client.channels.fetch(ticketChannel.id).catch(() => null);
+        }
+      }
 
       const devEmbed = new EmbedBuilder()
         .setColor(0x00E5FF)
@@ -527,11 +547,13 @@ export async function handleWelcomeTicketInteraction(interaction) {
 
     const permissionOverwrites = [
       {
-        id: guild.roles.everyone.id,
+        id: guild.roles.everyone?.id || guild.id,
+        type: OverwriteType.Role,
         deny: [PermissionFlagsBits.ViewChannel]
       },
       {
         id: user.id,
+        type: OverwriteType.Member,
         allow: [
           PermissionFlagsBits.ViewChannel,
           PermissionFlagsBits.SendMessages,
@@ -542,6 +564,7 @@ export async function handleWelcomeTicketInteraction(interaction) {
       },
       {
         id: interaction.client.user.id,
+        type: OverwriteType.Member,
         allow: [
           PermissionFlagsBits.ViewChannel,
           PermissionFlagsBits.SendMessages,
@@ -554,6 +577,7 @@ export async function handleWelcomeTicketInteraction(interaction) {
     staffRoles.forEach(r => {
       permissionOverwrites.push({
         id: r.id,
+        type: OverwriteType.Role,
         allow: [
           PermissionFlagsBits.ViewChannel,
           PermissionFlagsBits.SendMessages,
@@ -569,13 +593,19 @@ export async function handleWelcomeTicketInteraction(interaction) {
         ? `Staff & Moderator Application for @${user.tag} (ID: ${user.id})`
         : `Private Support Ticket for @${user.tag} (ID: ${user.id})`;
 
-      const ticketChannel = await guild.channels.create({
+      let ticketChannel = await guild.channels.create({
         name: targetChannelName,
         type: ChannelType.GuildText,
         parent: category?.id || null,
         topic,
         permissionOverwrites
       });
+
+      if (!ticketChannel || typeof ticketChannel.send !== 'function') {
+        if (ticketChannel?.id) {
+          ticketChannel = await interaction.client.channels.fetch(ticketChannel.id).catch(() => null);
+        }
+      }
 
       if (isStaffApp) {
         const appEmbed = new EmbedBuilder()
