@@ -161,6 +161,27 @@ if (neonUrl && neonUrl.startsWith('postgres')) {
           );
         }
         console.log(`[Neon Postgres Engine] 🚀 Synced ${lvlRes.rows.length} leveling records to SQLite memory pool!`);
+      }).then(() => {
+        // Auto-sync verified GitHub users from Neon Postgres into local SQLite memory pool
+        return neonPool.query('SELECT * FROM verified_github_users').then(ghRes => {
+          const upsertGh = db.prepare(`
+            INSERT INTO verified_github_users (discord_id, github_username, verified_at, verification_method)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(discord_id) DO UPDATE SET
+              github_username = excluded.github_username,
+              verified_at = excluded.verified_at,
+              verification_method = excluded.verification_method
+          `);
+          for (const r of ghRes.rows) {
+            upsertGh.run(
+              r.discord_id,
+              r.github_username,
+              Number(r.verified_at || Date.now()),
+              r.verification_method || 'bio_challenge'
+            );
+          }
+          console.log(`[Neon Postgres Engine] 🚀 Synced ${ghRes.rows.length} verified GitHub users to SQLite memory pool!`);
+        }).catch(e => console.warn('[Neon GitHub Sync Warning]:', e.message));
       });
     }).catch(e => console.warn('[Neon Postgres Sync Warning]:', e.message));
   } catch (err) {

@@ -193,7 +193,12 @@ export async function handlePurge(interaction) {
     return interaction.reply({ content: '❌ Please specify between 1 and 100 messages to delete.', ephemeral: true });
   }
 
-  const deleted = await interaction.channel.bulkDelete(count, true);
+  let deleted;
+  try {
+    deleted = await interaction.channel.bulkDelete(count, true);
+  } catch (err) {
+    return interaction.reply({ content: `❌ Could not purge messages: ${err.message}`, ephemeral: true });
+  }
 
   const embed = new EmbedBuilder()
     .setColor(0x00E5FF)

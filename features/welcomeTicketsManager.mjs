@@ -237,7 +237,7 @@ async function verifyGitHubOwnershipBio(ghUsername, verifyCode) {
 
 async function createVerifiedDeveloperTicketChannel(guild, user, applicantData, client) {
   const cleanName = user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20) || 'user';
-  const targetChannelName = `dev-ticket-${cleanName}`;
+  const targetChannelName = applicantData?.targetChannelName || `dev-ticket-${cleanName}`;
 
   // Find ticket category (🎫 ・SUPPORT)
   const category = guild.channels.cache.find(c => 
@@ -524,6 +524,7 @@ export async function handleWelcomeTicketInteraction(interaction) {
           guild,
           user,
           {
+            targetChannelName,
             ghUsername,
             ghProfile,
             repos,
@@ -571,6 +572,7 @@ export async function handleWelcomeTicketInteraction(interaction) {
     // 4. Generate GitHub Ownership Challenge Code
     const verifyCode = `KRIMS-DEV-${Math.floor(10000 + Math.random() * 90000)}`;
     pendingDevVerifications.set(user.id, {
+      targetChannelName,
       ghUsername,
       verifyCode,
       repos,
@@ -658,6 +660,7 @@ export async function handleWelcomeTicketInteraction(interaction) {
         interaction.guild,
         user,
         {
+          targetChannelName: pending.targetChannelName,
           ghUsername,
           ghProfile: verifyResult.profile,
           repos,

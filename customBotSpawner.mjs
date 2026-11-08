@@ -370,10 +370,13 @@ export class MultiBotManager {
       if (!message.guild || message.author.bot) return;
 
       // 🛑 Anti-Scam Guard: Intercept Developer Role Requests in Regular Support Tickets
-      if (message.channel?.name && message.channel.name.startsWith('ticket-')) {
+      if (message.channel?.name && (message.channel.name.startsWith('ticket-') || message.channel.name.startsWith('support-'))) {
         const isAskingForDev = /\b(give me dev|i want dev|make me dev|can i be dev|apply for dev|be a developer|want to code|hire me as dev|dev role|developer role|can i have dev|wanna be dev|give dev|let me code|can i help code)\b/i.test(message.content);
         if (isAskingForDev) {
-          const openTicketCh = message.guild.channels.cache.find(c => c.name.includes('open-a-ticket'));
+          const openTicketCh = message.guild.channels.cache.find(c => {
+            const norm = (c.name || '').normalize('NFKD').toLowerCase();
+            return norm.includes('open') && norm.includes('ticket');
+          });
           const chMention = openTicketCh ? `<#${openTicketCh.id}>` : 'the ticket channel';
           return message.reply({
             content: 

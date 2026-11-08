@@ -4889,13 +4889,15 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   // Master Slash Command Router with crash shield & option normalization
-  return await handleMasterSlashCommand(interaction, client, {
+  const handledInMaster = await handleMasterSlashCommand(interaction, client, {
     xpData,
     clanData,
     getCachedGuildConfig,
     geminiDirectAsk,
-    sanitizeDiscordFormatting
+    sanitizeDiscordFormatting,
+    handleLegacyCommand: () => false
   });
+  if (handledInMaster !== false) return;
 
   const { commandName } = interaction;
   // === MASTER KRYLOSMP SLASH COMMANDS ===
@@ -8435,16 +8437,24 @@ if (commandName === 'lootbox') {
 // Dedup guard to prevent processing the same message twice
 const processedMessages = new Set();
 const userMessageHistory = new Map(); // key: userId -> [{ content, time }]
+setInterval(() => {
+  const now = Date.now();
+  for (const [userId, history] of userMessageHistory.entries()) {
+    if (!history || history.length === 0 || now - history[history.length - 1].time > 10000) {
+      userMessageHistory.delete(userId);
+    }
+  }
+}, 60000);
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   const content = (message.content || '').trim();
   const lowerMsg = content.toLowerCase();
   // 🛑 Anti-Scam Guard: Intercept Developer Role Requests in Regular Support Tickets
-  if (message.guild && message.channel?.name && message.channel.name.startsWith('ticket-')) {
+  if (message.guild && message.channel?.name && (message.channel.name.startsWith('ticket-') || message.channel.name.startsWith('support-'))) {
     const isAskingForDev = /\b(give me dev|i want dev|make me dev|can i be dev|apply for dev|be a developer|want to code|hire me as dev|dev role|developer role|can i have dev|wanna be dev|give dev|let me code|can i help code)\b/i.test(message.content);
     if (isAskingForDev) {
-      const openTicketCh = message.guild.channels.cache.find(c => c.name.includes('open-a-ticket'));
+      const openTicketCh = message.guild.channels.cache.find(c => (c.name || '').normalize('NFKD').toLowerCase().includes('open') && (c.name || '').normalize('NFKD').toLowerCase().includes('ticket'));
       const chMention = openTicketCh ? `<#${openTicketCh.id}>` : 'the ticket station';
       return message.reply({
         content: 
