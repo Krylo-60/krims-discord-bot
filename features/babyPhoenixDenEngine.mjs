@@ -408,12 +408,21 @@ export async function handleBabyPhoenixDenMessage(client, message) {
     }
 
     const args = text.split(/\s+/).slice(1);
-    const durationStr = args[0] || '';
-    const prize = args.slice(1).join(' ') || 'Sacred Phoenix Reward';
+    let durationStr = '';
+    let prize = '';
+
+    if (args[0] && /^\d+$/.test(args[0]) && args[1] && /^(month|months|mo|w|week|weeks|d|day|days|h|hr|hrs|hour|hours|m|min|mins|minute|minutes|s|sec|secs)$/i.test(args[1])) {
+      durationStr = `${args[0]}${args[1]}`;
+      prize = args.slice(2).join(' ') || 'Sacred Phoenix Reward';
+    } else {
+      durationStr = args[0] || '';
+      prize = args.slice(1).join(' ') || 'Sacred Phoenix Reward';
+    }
+
     const durationMs = parseDurationToMs(durationStr);
 
     if (durationMs <= 0) {
-      return message.reply('❌ **Usage:** `!gstart <duration> <prize name>`\nExamples:\n• `!gstart 1month Flame Role`\n• `!gstart 7d 10,000 Flames`\n• `!gstart 60m VIP Perks`');
+      return message.reply('❌ **Usage:** `!gstart <duration> <prize name>`\nExamples:\n• `!gstart 4 days Buddha Fruit`\n• `!gstart 1month Flame Role`\n• `!gstart 7d 10,000 Flames`\n• `!gstart 60m VIP Perks`');
     }
 
     const humanDuration = formatDurationHuman(durationMs);
