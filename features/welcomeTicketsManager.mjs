@@ -264,22 +264,26 @@ export async function handleWelcomeTicketInteraction(interaction) {
     }
   }
 
-  // D. Create Private Support Ticket Channel
+  // D. Create Private Support Ticket or Mod/Admin Application Channel
   if (customId.startsWith('ticket_create') || customId === 'open_ticket') {
     await interaction.deferReply({ ephemeral: true });
 
     const guild = interaction.guild;
     const user = interaction.user;
+    const isStaffApp = customId.includes('staff') || customId.includes('mod') || customId.includes('admin');
+    const channelPrefix = isStaffApp ? 'staff-app-' : 'ticket-';
+    const cleanName = user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20) || 'user';
+    const targetChannelName = `${channelPrefix}${cleanName}`;
 
-    // Check if user already has an active ticket
+    // Check if user already has an active ticket of this type
     const existingTicket = guild.channels.cache.find(c => 
       c.type === ChannelType.GuildText && 
-      (c.name === `ticket-${user.username.toLowerCase().replace(/[^a-z0-9]/g, '')}` || c.topic?.includes(user.id))
+      (c.name === targetChannelName || (c.name.startsWith(channelPrefix) && c.topic?.includes(user.id)))
     );
 
     if (existingTicket) {
       return interaction.followUp({
-        content: `⚠️ You already have an open ticket! Please head over to <#${existingTicket.id}>.`,
+        content: `⚠️ You already have an open ${isStaffApp ? 'staff application' : 'ticket'}! Please head over to <#${existingTicket.id}>.`,
         ephemeral: true
       });
     }
@@ -295,7 +299,7 @@ export async function handleWelcomeTicketInteraction(interaction) {
       const n = r.name.normalize('NFKD').toLowerCase();
       return r.permissions.has(PermissionFlagsBits.Administrator) ||
         r.permissions.has(PermissionFlagsBits.ManageGuild) ||
-        n.includes('founder') || n.includes('moderator') || n.includes('staff') || n.includes('aide');
+        n.includes('founder') || n.includes('moderator') || n.includes('admin') || n.includes('staff') || n.includes('aide') || n.includes('owner');
     });
 
     const permissionOverwrites = [
@@ -338,47 +342,89 @@ export async function handleWelcomeTicketInteraction(interaction) {
     });
 
     try {
-      const cleanName = user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20) || 'user';
+      const topic = isStaffApp
+        ? `Staff & Moderator Application for @${user.tag} (ID: ${user.id})`
+        : `Private Support Ticket for @${user.tag} (ID: ${user.id})`;
+
       const ticketChannel = await guild.channels.create({
-        name: `ticket-${cleanName}`,
+        name: targetChannelName,
         type: ChannelType.GuildText,
         parent: category?.id || null,
-        topic: `Private Support Ticket for @${user.tag} (ID: ${user.id})`,
+        topic,
         permissionOverwrites
       });
 
-      const welcomeEmbed = new EmbedBuilder()
-        .setColor(0x00F2FF)
-        .setTitle(`🎫 ${guild.name} • Support Ticket`)
-        .setDescription(
-          `Hey <@${user.id}>, welcome to your private ticket!\n\n` +
-          `**How can we help you today?**\n` +
-          `• 🚨 **Player Report:** Provide screenshots & username\n` +
-          `• ❓ **Help / Question:** Give details on what you need help with\n` +
-          `• 💡 **Suggestion / Partnership:** Explain your idea\n\n` +
-          `*Our server staff and moderators have been pinged and will assist you shortly!* ⚡`
-        )
-        .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 256 }))
-        .setFooter({ text: 'Click Close Ticket below when your issue is resolved.' })
-        .setTimestamp();
+      if (isStaffApp) {
+        const appEmbed = new EmbedBuilder()
+          .setColor(0xF59E0B)
+          .setTitle(`🛡️ ${guild.name} • Moderator & Admin Application`)
+          .setDescription(
+            `Welcome <@${user.id}> to your Staff Application!\n\n` +
+            `Thank you for wanting to help protect and grow our Roblox community. Please copy and reply with your answers to the questions below:\n\n` +
+            `1️⃣ **Roblox Username & Discord Tag:**\n` +
+            `2️⃣ **Age & Timezone:**\n` +
+            `3️⃣ **Desired Position:** *(Trial Moderator, Moderator, or Admin)*\n` +
+            `4️⃣ **Daily Activity:** *(How many hours per day can you dedicate?)*\n` +
+            `5️⃣ **Past Experience:** *(Have you staffed other Discord servers or Roblox communities?)*\n` +
+            `6️⃣ **Scenario:** *(How would you handle scammers, exploiters, or toxic drama?)*\n` +
+            `7️⃣ **Why should we accept you as Staff?**\n\n` +
+            `*The Founders and Senior Staff will review your application directly in this channel!* ⚔️`
+          )
+          .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 256 }))
+          .setFooter({ text: 'Mini Staff Core • Click Close Application when done.' })
+          .setTimestamp();
 
-      const actionRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId(`ticket_close_${user.id}`)
-          .setLabel('🔒 Close Ticket')
-          .setStyle(ButtonStyle.Danger)
-      );
+        const actionRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`ticket_close_${user.id}`)
+            .setLabel('🔒 Close Application')
+            .setStyle(ButtonStyle.Danger)
+        );
 
-      await ticketChannel.send({
-        content: `👋 Welcome <@${user.id}>! Staff has been notified.`,
-        embeds: [welcomeEmbed],
-        components: [actionRow]
-      });
+        await ticketChannel.send({
+          content: `👋 Staff Application for <@${user.id}>! Senior Staff has been notified.`,
+          embeds: [appEmbed],
+          components: [actionRow]
+        });
 
-      return interaction.followUp({
-        content: `✅ **Ticket Created!** Please go to <#${ticketChannel.id}> to speak with staff.`,
-        ephemeral: true
-      });
+        return interaction.followUp({
+          content: `✅ **Staff Application Created!** Please head over to <#${ticketChannel.id}> to answer the application questions.`,
+          ephemeral: true
+        });
+      } else {
+        const welcomeEmbed = new EmbedBuilder()
+          .setColor(0x00F2FF)
+          .setTitle(`🎫 ${guild.name} • Support Ticket`)
+          .setDescription(
+            `Hey <@${user.id}>, welcome to your private ticket!\n\n` +
+            `**How can we help you today?**\n` +
+            `• 🚨 **Player Report:** Provide screenshots & username\n` +
+            `• ❓ **Help / Question:** Give details on what you need help with\n` +
+            `• 💡 **Suggestion / Partnership:** Explain your idea\n\n` +
+            `*Our server staff and moderators have been pinged and will assist you shortly!* ⚡`
+          )
+          .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 256 }))
+          .setFooter({ text: 'Click Close Ticket below when your issue is resolved.' })
+          .setTimestamp();
+
+        const actionRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`ticket_close_${user.id}`)
+            .setLabel('🔒 Close Ticket')
+            .setStyle(ButtonStyle.Danger)
+        );
+
+        await ticketChannel.send({
+          content: `👋 Welcome <@${user.id}>! Staff has been notified.`,
+          embeds: [welcomeEmbed],
+          components: [actionRow]
+        });
+
+        return interaction.followUp({
+          content: `✅ **Ticket Created!** Please go to <#${ticketChannel.id}> to speak with staff.`,
+          ephemeral: true
+        });
+      }
     } catch (createErr) {
       console.error('[Ticket Create Error]', createErr);
       return interaction.followUp({
@@ -391,28 +437,113 @@ export async function handleWelcomeTicketInteraction(interaction) {
   // E. Close Support Ticket Channel
   if (customId.startsWith('ticket_close')) {
     const isStaffOrOpener = interaction.channel.name.startsWith('ticket-') ||
+      interaction.channel.name.startsWith('staff-app-') ||
+      interaction.channel.name.startsWith('mod-app-') ||
       interaction.channel.topic?.includes(interaction.user.id) ||
       interaction.member.permissions.has(PermissionFlagsBits.ManageChannels);
 
     if (!isStaffOrOpener) {
       return interaction.reply({
-        content: '⛔ Only ticket openers or staff can close this ticket!',
+        content: '⛔ Only ticket openers or staff can close this channel!',
         ephemeral: true
       });
     }
 
     await interaction.reply({
-      content: '🔒 **Closing Ticket...** This channel will be deleted in **5 seconds**. Thank you!'
+      content: '🔒 **Closing Channel...** This channel will be deleted in **5 seconds**. Thank you!'
     });
 
     setTimeout(async () => {
       try {
-        await interaction.channel.delete('Ticket closed by user/staff');
+        await interaction.channel.delete('Ticket/Application closed by user/staff');
       } catch (delErr) {
         console.warn('[Ticket Delete Error]', delErr.message);
       }
     }, 5000);
     return true;
+  }
+
+  // F. 🎭 Role Channel Self-Assignment / Toggle Buttons
+  if (customId.startsWith('role_')) {
+    const member = interaction.member;
+    if (!member) {
+      return interaction.reply({ content: '❌ Could not retrieve member information.', ephemeral: true });
+    }
+
+    const ROLE_MAP = {
+      'role_toggle_members': { name: '👑 Members', keywords: ['members'] },
+      'role_toggle_announcements': { name: '📢 Announcements Ping', keywords: ['announcements ping', 'announcement ping'] },
+      'role_toggle_giveaways': { name: '🎁 Giveaways Ping', keywords: ['giveaways ping', 'giveaway ping'] },
+      'role_toggle_updates': { name: '🔔 Update Ping', keywords: ['update ping'] },
+      'role_toggle_roles': { name: '⚡ Role Ping', keywords: ['role ping'] }
+    };
+
+    // Shortcut: Claim all 5 community & ping roles at once
+    if (customId === 'role_claim_all') {
+      const added = [];
+      for (const key of Object.keys(ROLE_MAP)) {
+        const item = ROLE_MAP[key];
+        const role = interaction.guild.roles.cache.find(r => {
+          const rn = r.name.normalize('NFKD').toLowerCase();
+          return item.keywords.some(kw => rn.includes(kw));
+        });
+        if (role && !member.roles.cache.has(role.id)) {
+          try {
+            await member.roles.add(role.id);
+            added.push(role.name);
+          } catch (_) {}
+        }
+      }
+
+      if (added.length > 0) {
+        return interaction.reply({
+          content: `🎉 **Roles Granted!** Added: ${added.map(r => `\`${r}\``).join(', ')}`,
+          ephemeral: true
+        });
+      } else {
+        return interaction.reply({
+          content: `✅ You already have all the community and ping notification roles!`,
+          ephemeral: true
+        });
+      }
+    }
+
+    const targetInfo = ROLE_MAP[customId];
+    if (targetInfo) {
+      const role = interaction.guild.roles.cache.find(r => {
+        const rn = r.name.normalize('NFKD').toLowerCase();
+        return targetInfo.keywords.some(kw => rn.includes(kw));
+      });
+
+      if (!role) {
+        return interaction.reply({
+          content: `⚠️ Could not find role \`${targetInfo.name}\` in this server. Please contact a Founder.`,
+          ephemeral: true
+        });
+      }
+
+      if (member.roles.cache.has(role.id)) {
+        try {
+          await member.roles.remove(role.id);
+          return interaction.reply({
+            content: `➖ **Role Removed:** You no longer have **${role.name}**.`,
+            ephemeral: true
+          });
+        } catch (err) {
+          return interaction.reply({ content: `❌ Error removing role: ${err.message}`, ephemeral: true });
+        }
+      } else {
+        try {
+          await member.roles.add(role.id);
+          return interaction.reply({
+            content: `➕ **Role Added:** You now have **${role.name}**! 🎉`,
+            ephemeral: true
+          });
+        } catch (err) {
+          return interaction.reply({ content: `❌ Error adding role: ${err.message}`, ephemeral: true });
+        }
+      }
+    }
   }
 
   return false;

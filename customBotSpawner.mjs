@@ -586,7 +586,7 @@ export class MultiBotManager {
 
     // 2. Interaction Event Listener (Commands like /about and /getbot)
     client.on('interactionCreate', async (interaction) => {
-      if (interaction.isButton() && (interaction.customId.startsWith('welcome_') || interaction.customId.startsWith('tickets_') || interaction.customId.startsWith('ticket_') || interaction.customId === 'open_ticket')) {
+      if (interaction.isButton() && (interaction.customId.startsWith('welcome_') || interaction.customId.startsWith('tickets_') || interaction.customId.startsWith('ticket_') || interaction.customId === 'open_ticket' || interaction.customId.startsWith('role_'))) {
         const handled = await handleWelcomeTicketInteraction(interaction);
         if (handled) return;
       }
