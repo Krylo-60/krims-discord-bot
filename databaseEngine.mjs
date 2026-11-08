@@ -186,6 +186,7 @@ if (neonUrl && neonUrl.startsWith('postgres')) {
       }).then(() => {
         // Auto-sync economy records from Neon Postgres into local SQLite memory pool
         return neonPool.query('SELECT * FROM economy').then(ecoRes => {
+          const insertPlayer = db.prepare('INSERT OR IGNORE INTO players (discord_id) VALUES (?)');
           const upsertEco = db.prepare(`
             INSERT INTO economy (discord_id, krylocoins, bank, gems, daily_streak, last_daily, last_work)
             VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -198,6 +199,7 @@ if (neonUrl && neonUrl.startsWith('postgres')) {
               last_work = excluded.last_work
           `);
           for (const r of ecoRes.rows) {
+            insertPlayer.run(r.discord_id);
             upsertEco.run(
               r.discord_id,
               Number(r.krylocoins || 0),

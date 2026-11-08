@@ -50,7 +50,7 @@ import { afkUsers, handleMute, handleUnmute, handleKick, handleBan, handleLockdo
 import { handleDevLogsCommand } from './features/devAuditLogger.mjs';
 import { getFalixStatus, sendFalixPowerSignal, sendFalixCommand } from './falixServerEngine.mjs';
 import { deliverStoreItem, STORE_CATALOG } from './storeDeliveryEngine.mjs';
-import { setPlayerVerification, getPlayer, getPlayerByIgn, addCoins, removeCoins, getBalance, claimDaily, transferCoins, getCustomBotById, setCustomBotPassword, updateCustomBotConfig, db } from './databaseEngine.mjs';
+import { setPlayerVerification, getPlayer, getPlayerByIgn, addCoins, removeCoins, getBalance, claimDaily, transferCoins, getCustomBotById, setCustomBotPassword, updateCustomBotConfig, db, waitForNeonSync } from './databaseEngine.mjs';
 import { hashDashboardPassword, verifyDashboardPassword } from './tokenSecurity.mjs';
 import { aiOperator } from './aiConsoleOperator.mjs';
 import { setupAIConsoleChannel, handleAIConsoleMessage } from './aiConsoleChatHandler.mjs';
@@ -13164,6 +13164,8 @@ const server = http.createServer(async (req, res) => {
         const user = await client.users.fetch(discordId).catch(() => null);
         const username = user ? user.username : (payload.username || 'Guardian');
 
+        await waitForNeonSync().catch(() => {});
+
         let bonusAwarded = 0;
         try {
           db.exec(`
@@ -13240,6 +13242,7 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ ok: false, error: 'discordId is required' }));
     }
+    await waitForNeonSync().catch(() => {});
     const bal = getBalance(discordId);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({
