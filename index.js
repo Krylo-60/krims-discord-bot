@@ -3472,8 +3472,7 @@ client.on('interactionCreate', async (interaction) => {
       await interaction.deferReply({ ephemeral: true });
 
       if (!giveawayEntries.has(giveawayId)) {
-        await interaction.editReply('❌ This giveaway has ended!');
-        return;
+        giveawayEntries.set(giveawayId, new Set());
       }
 
       const entries = giveawayEntries.get(giveawayId);
