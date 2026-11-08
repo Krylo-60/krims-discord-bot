@@ -1201,7 +1201,6 @@ client.once('ready', async () => {
   try {
     checkAndTriggerGABroadcast(client);
     setInterval(() => checkAndTriggerGABroadcast(client), 60 * 1000);
-    sendOwnerScheduleOverviewDM(client);
   } catch (gaErr) {
     console.warn('[TimeGatedRelease] Engine notice:', gaErr.message);
   }

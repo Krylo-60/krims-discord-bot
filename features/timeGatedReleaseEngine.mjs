@@ -285,8 +285,13 @@ export function getEcosystemReleaseStatus() {
 /**
  * Sends a full DM overview to Founder Krylo with all scheduled releases
  */
-export async function sendOwnerScheduleOverviewDM(client) {
+export async function sendOwnerScheduleOverviewDM(client, force = false) {
   try {
+    const state = loadReleaseState();
+    if (state.founderOverviewSent && !force) {
+      console.log('[ReleaseMatrix] Founder overview DM already delivered; skipping duplicate.');
+      return false;
+    }
     const owner = await client.users.fetch(OWNER_USER_ID).catch(() => null);
     if (!owner) return false;
 
@@ -312,6 +317,8 @@ export async function sendOwnerScheduleOverviewDM(client) {
       .setTimestamp();
 
     await owner.send({ embeds: [embed] });
+    state.founderOverviewSent = true;
+    saveReleaseState(state);
     console.log('[ReleaseMatrix] 📬 Sent schedule overview DM to Krylo!');
     return true;
   } catch (err) {
