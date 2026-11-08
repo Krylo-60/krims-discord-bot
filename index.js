@@ -12942,6 +12942,84 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // 1C. POST /api/auth/github/exchange (Secure OAuth Token Exchange for Vercel)
+  if (url.pathname === '/api/auth/github/exchange' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const { code, discord_id, redirect_uri } = payload;
+        const clientId = process.env.GITHUB_CLIENT_ID || 'Ov23liolLppZdQyBwxV4';
+        const clientSecret = process.env.GITHUB_CLIENT_SECRET || 'dc8bcce53dbacc699a545feccd51115c2aa3acd7';
+
+        if (!code) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ ok: false, error: 'Authorization code is required' }));
+        }
+
+        const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            client_id: clientId,
+            client_secret: clientSecret,
+            code,
+            redirect_uri: redirect_uri || 'https://krims-bot-dashboard.vercel.app/api/auth/github/callback'
+          })
+        });
+
+        const tokenData = await tokenRes.json();
+        if (tokenData.error) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ ok: false, error: tokenData.error_description || tokenData.error }));
+        }
+
+        const userRes = await fetch('https://api.github.com/user', {
+          headers: {
+            'Authorization': `Bearer ${tokenData.access_token}`,
+            'User-Agent': 'KrimsCodeBot/6.0 (OAuthBridge)'
+          }
+        });
+
+        if (!userRes.ok) {
+          res.writeHead(userRes.status, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ ok: false, error: 'Failed fetching profile from GitHub' }));
+        }
+
+        const ghUser = await userRes.json();
+        const githubUsername = ghUser.login;
+
+        if (discord_id) {
+          const { saveVerifiedGitHub } = await import('./databaseEngine.mjs');
+          saveVerifiedGitHub(discord_id, githubUsername, 'GitHub OAuth (Vercel Bridge)');
+          console.log(`[GitHub OAuth] 🚀 Successfully verified & locked @${githubUsername} for Discord ${discord_id} via Vercel Bridge!`);
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({
+          ok: true,
+          githubUsername,
+          ghUser: {
+            login: ghUser.login,
+            name: ghUser.name,
+            avatar_url: ghUser.avatar_url,
+            public_repos: ghUser.public_repos,
+            followers: ghUser.followers,
+            created_at: ghUser.created_at
+          }
+        }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ ok: false, error: err.message }));
+      }
+    });
+    return;
+  }
+
   // 2. POST /api/custom-bot/auth (Login & First-time Password Setup)
   if (url.pathname === '/api/custom-bot/auth' && req.method === 'POST') {
     let body = '';
