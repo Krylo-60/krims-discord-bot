@@ -33,6 +33,14 @@ export const masterCommandBuilders = [
     .setDescription('Learn about the Krims Code AI Multi-Bot Engine and get your own free bot!'),
 
   new SlashCommandBuilder()
+    .setName('privacy')
+    .setDescription('📜 View Krims Code AI official Privacy Policy, data usage & security compliance'),
+
+  new SlashCommandBuilder()
+    .setName('terms')
+    .setDescription('⚖️ View Krims Code AI official Terms of Service and acceptable use policy'),
+
+  new SlashCommandBuilder()
     .setName('diwali')
     .setDescription('🪔 Celebrate Diwali Festival of Lights with glowing diyas, blessings & festival rewards!'),
 

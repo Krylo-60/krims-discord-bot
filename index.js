@@ -5045,6 +5045,68 @@ client.on('interactionCreate', async (interaction) => {
     return interaction.reply({ embeds: [aboutEmbed], ephemeral: true });
   }
 
+  // /privacy
+  if (commandName === 'privacy') {
+    const privacyEmbed = new EmbedBuilder()
+      .setColor('#00E5FF')
+      .setTitle('📜 Krims Code AI — Privacy Policy & Data Security')
+      .setDescription(
+        `### 🛡️ PRIVACY & DATA PROTECTION COMMITMENT\n` +
+        `Krims Code AI is committed to maintaining transparent, minimal, and secure data practices in full compliance with the **Discord Developer Terms of Service**, **Developer Policy**, and **GDPR/CCPA** standards.\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `### 📊 WHAT DATA WE STORE:\n` +
+        `• **User Identifiers:** Discord User IDs for leveling XP, daily reward streaks, and vault economy records.\n` +
+        `• **Guild Settings:** Server IDs, configured channel IDs (welcome, ticket categories, mod-logs), and custom prefixes.\n` +
+        `• **Custom Bot Tokens:** Any ByoT (Bring-Your-Own-Token) bot tokens are AES-256 encrypted at rest in high-security vaults.\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `### 🚫 WHAT WE NEVER STORE OR SELL:\n` +
+        `• We **never** sell, share, or monetize user data with third-party advertisers.\n` +
+        `• We **never** store chat logs, private messages, or message history outside temporary processing for command execution.\n` +
+        `• All database connections are protected by encrypted SSL connections (TLS 1.3).\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `### 🗑️ DATA DELETION REQUESTS:\n` +
+        `Any user or server owner may request total data wipeout at any time by opening a ticket with staff or contacting 71krishivpb@gmail.com.`
+      )
+      .addFields(
+        { name: '🌐 Full Policy Online', value: '[Privacy Policy Document](https://krims-bot-dashboard.vercel.app/privacy)', inline: true },
+        { name: '💬 Support & Requests', value: '[Join Support Guild](https://discord.gg/wVbVz9aPcz)', inline: true }
+      )
+      .setFooter({ text: 'Krims Code AI • Privacy, Trust & Security First' })
+      .setTimestamp();
+
+    return interaction.reply({ embeds: [privacyEmbed], ephemeral: true });
+  }
+
+  // /terms
+  if (commandName === 'terms') {
+    const termsEmbed = new EmbedBuilder()
+      .setColor('#00E5FF')
+      .setTitle('⚖️ Krims Code AI — Terms of Service')
+      .setDescription(
+        `### 📜 ACCEPTABLE USE & TERMS OF SERVICE\n` +
+        `By inviting, using, or interacting with **Krims Code AI** or its spawned custom fleet bots, you agree to these Terms of Service and the official Discord Community Guidelines.\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `### 1️⃣ FAIR USAGE & INTEGRITY:\n` +
+        `• You agree not to abuse, spam, or exploit bot commands or automated API endpoints.\n` +
+        `• Rate limits (3 msgs/min per user on custom bots) are automatically enforced to preserve system stability for all guilds.\n\n` +
+        `### 2️⃣ VIRTUAL CURRENCY & VAULTS:\n` +
+        `• KryloCoins (KC), Cyber Shards (⚡), and Krims Rewards (KR) are strictly **virtual entertainment currencies** with no real-world monetary value.\n` +
+        `• Coins cannot be exchanged, cashed out, or redeemed for fiat currency.\n\n` +
+        `### 3️⃣ SERVICE AVAILABILITY:\n` +
+        `• Krims Code AI provides free 24/7 automated tooling monitored by global uptime services.\n` +
+        `• Features, minigames, and commands are provided as-is with ongoing updates and optimizations by our engineering staff.\n\n` +
+        `*For inquiries, feedback, or support, reach out in our official support community.*`
+      )
+      .addFields(
+        { name: '🌐 Full Terms Online', value: '[Terms of Service Document](https://krims-bot-dashboard.vercel.app/terms)', inline: true },
+        { name: '👑 Developer & Creator', value: 'Krylo (Krylo-60) & Krims Code AI Studio', inline: true }
+      )
+      .setFooter({ text: 'Krims Code AI • Fair, Modular & Community-Driven' })
+      .setTimestamp();
+
+    return interaction.reply({ embeds: [termsEmbed], ephemeral: true });
+  }
+
   // /pricin// /pricing
   if (commandName === 'pricing') {
     const pricingEmbed = new EmbedBuilder()

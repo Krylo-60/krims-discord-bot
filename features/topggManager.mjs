@@ -8,11 +8,15 @@ const BOT_ID = '1523794466740371586';
  * Automatically posts live server counts to Top.gg and validates API interactions.
  */
 export class TopggManager {
-  constructor(client) {
+  constructor(client, token = null) {
     this.client = client;
-    this.token = process.env.TOPGG_TOKEN || null;
+    this.token = token || process.env.TOPGG_TOKEN || null;
     this.lastPostedCount = 0;
     this.timer = null;
+  }
+
+  startAutoPoster() {
+    return this.init();
   }
 
   init() {
