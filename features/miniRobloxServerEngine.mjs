@@ -423,6 +423,17 @@ export async function handleMiniRobloxServerMessage(client, message) {
     return message.reply({ embeds: [embed] });
   }
 
+  // Command: !claimroles / !autorole / !roles
+  if (lower === '!claimroles' || lower === '!autorole' || lower === '!roles') {
+    const { assignMiniCommunityAutoRoles } = await import('../customBotSpawner.mjs');
+    const added = await assignMiniCommunityAutoRoles(message.member);
+    if (added && added.length > 0) {
+      return message.reply(`⚡ **Roles Assigned!** Granted: ${added.map(r => `\`${r.name}\``).join(', ')} 🎉`);
+    } else {
+      return message.reply(`✅ You already have all 4 community roles (\`Members\`, \`🔔 𓆩・𝐔𝐏𝐃𝐀𝐓𝐄 𝐏𝐈𝐍𝐆\`, \`📢・𝑨𝒏𝒏𝒐𝒖𝒏𝒄𝒆𝒎𝒆𝒏𝒕𝒔 𝑷𝒊𝒏𝒈\`, \`⚡ 𓆩・𝐑𝐎𝐋𝐄 𝐏𝐈𝐍𝐆\`)!`);
+    }
+  }
+
   // Command: !minihelp (Full features list)
   if (lower === '!minihelp' || lower === '!cyberhelp') {
     const embed = new EmbedBuilder()
