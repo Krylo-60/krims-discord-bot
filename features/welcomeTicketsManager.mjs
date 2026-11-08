@@ -384,7 +384,7 @@ export async function handleWelcomeTicketInteraction(interaction) {
           `🛡️ **ANTI-SCAM PROTOCOL:**\n` +
           `*All submitted code repositories are strictly audited before any developer roles or repository access are granted. Anyone attempting to submit malicious, stolen, or obfuscated code will be permanently banned and blacklisted across the entire Krims ecosystem.*`
         )
-        .setThumbnail(ghProfile?.avatar_url || user.displayAvatarURL({ dynamic: true, size: 256 }))
+        .setThumbnail(ghProfile?.avatar_url || ((typeof user.displayAvatarURL === 'function') ? user.displayAvatarURL({ extension: 'png', size: 256 }) : 'https://cdn.discordapp.com/embed/avatars/0.png'))
         .setFooter({ text: 'Krims Code Engineering Core • Click Close Ticket when reviewed.' })
         .setTimestamp();
 
@@ -605,7 +605,19 @@ export async function handleWelcomeTicketInteraction(interaction) {
         if (ticketChannel?.id) {
           ticketChannel = await interaction.client.channels.fetch(ticketChannel.id).catch(() => null);
         }
+        if (!ticketChannel || typeof ticketChannel.send !== 'function') {
+          ticketChannel = guild.channels.cache.find(c => c.name === targetChannelName) ||
+            await guild.channels.fetch().then(chs => chs.find(c => c && c.name === targetChannelName)).catch(() => null);
+        }
       }
+
+      if (!ticketChannel) {
+        throw new Error('Ticket channel was created but could not be accessed. Please verify bot channel permissions.');
+      }
+
+      const avatarUrl = (typeof user.displayAvatarURL === 'function')
+        ? user.displayAvatarURL({ extension: 'png', size: 256 })
+        : 'https://cdn.discordapp.com/embed/avatars/0.png';
 
       if (isStaffApp) {
         const appEmbed = new EmbedBuilder()
@@ -623,7 +635,7 @@ export async function handleWelcomeTicketInteraction(interaction) {
             `7️⃣ **Why should we accept you as Staff?**\n\n` +
             `*The Founders and Senior Staff will review your application directly in this channel!* ⚔️`
           )
-          .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 256 }))
+          .setThumbnail(avatarUrl)
           .setFooter({ text: 'Mini Staff Core • Click Close Application when done.' })
           .setTimestamp();
 
@@ -634,11 +646,26 @@ export async function handleWelcomeTicketInteraction(interaction) {
             .setStyle(ButtonStyle.Danger)
         );
 
-        await ticketChannel.send({
-          content: `👋 Staff Application for <@${user.id}>! Senior Staff has been notified.`,
-          embeds: [appEmbed],
-          components: [actionRow]
-        });
+        if (typeof ticketChannel.send === 'function') {
+          await ticketChannel.send({
+            content: `👋 Staff Application for <@${user.id}>! Senior Staff has been notified.`,
+            embeds: [appEmbed],
+            components: [actionRow]
+          });
+        } else {
+          await fetch(`https://discord.com/api/v10/channels/${ticketChannel.id}/messages`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bot ${interaction.client.token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              content: `👋 Staff Application for <@${user.id}>! Senior Staff has been notified.`,
+              embeds: [appEmbed.toJSON()],
+              components: [actionRow.toJSON()]
+            })
+          });
+        }
 
         return interaction.followUp({
           content: `✅ **Staff Application Created!** Please head over to <#${ticketChannel.id}> to answer the application questions.`,
@@ -658,7 +685,7 @@ export async function handleWelcomeTicketInteraction(interaction) {
             `*Do NOT ask for developer roles or permissions in this ticket! Developer access is strictly restricted to verified contributors with verifiable portfolios. To apply for Developer, you MUST close this ticket and open a verified **💻 Apply for Developer** ticket in the ticket channel with your GitHub/Vercel/Render profile.*\n\n` +
             `*Our server staff and moderators have been pinged and will assist you shortly!* ⚡`
           )
-          .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 256 }))
+          .setThumbnail(avatarUrl)
           .setFooter({ text: 'Click Close Ticket below when your issue is resolved.' })
           .setTimestamp();
 
@@ -669,11 +696,26 @@ export async function handleWelcomeTicketInteraction(interaction) {
             .setStyle(ButtonStyle.Danger)
         );
 
-        await ticketChannel.send({
-          content: `👋 Welcome <@${user.id}>! Staff has been notified.`,
-          embeds: [welcomeEmbed],
-          components: [actionRow]
-        });
+        if (typeof ticketChannel.send === 'function') {
+          await ticketChannel.send({
+            content: `👋 Welcome <@${user.id}>! Staff has been notified.`,
+            embeds: [welcomeEmbed],
+            components: [actionRow]
+          });
+        } else {
+          await fetch(`https://discord.com/api/v10/channels/${ticketChannel.id}/messages`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bot ${interaction.client.token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              content: `👋 Welcome <@${user.id}>! Staff has been notified.`,
+              embeds: [welcomeEmbed.toJSON()],
+              components: [actionRow.toJSON()]
+            })
+          });
+        }
 
         return interaction.followUp({
           content: `✅ **Ticket Created!** Please go to <#${ticketChannel.id}> to speak with staff.`,
