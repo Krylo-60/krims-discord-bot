@@ -10,7 +10,14 @@ import {
   PermissionFlagsBits,
   OverwriteType 
 } from 'discord.js';
-import { db } from '../databaseEngine.mjs';
+import { db, getVerifiedGitHub, getDiscordUserByGitHub, saveVerifiedGitHub } from '../databaseEngine.mjs';
+
+// Pre-seed Founder Krylo's verified GitHub identity
+try {
+  saveVerifiedGitHub('1414143825538191373', 'Krylo-60', 'founder_preseed');
+} catch (_) {}
+
+export const pendingDevVerifications = new Map(); // Map<userId, Object>
 
 // Ensure schema has welcome_format and tickets_channel columns
 try {
@@ -169,6 +176,198 @@ export async function handleSetTicketsCommand(message, args) {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
+// 🔒 GITHUB VERIFICATION & ANTI-IMPOSTOR PROTOCOL HELPERS
+// ═════════════════════════════════════════════════════════════════════════════
+
+function extractGitHubUsername(input) {
+  if (!input) return null;
+  const trimmed = input.trim();
+  const match = trimmed.match(/github\.com\/([a-zA-Z0-9-_]+)/i);
+  if (match) return match[1];
+  const plain = trimmed.replace(/^@/, '').match(/^([a-zA-Z0-9-_]+)$/);
+  if (plain) return plain[1];
+  return null;
+}
+
+async function verifyGitHubOwnershipBio(ghUsername, verifyCode) {
+  try {
+    const userRes = await fetch(`https://api.github.com/users/${ghUsername}`, {
+      headers: { 'User-Agent': 'KrimsCodeBot/6.0 (DiscordBot)' },
+      signal: AbortSignal.timeout(5000)
+    });
+    if (!userRes.ok) {
+      if (userRes.status === 404) return { success: false, notFound: true, error: `GitHub user @${ghUsername} does not exist.` };
+      return { success: false, error: `GitHub API error (${userRes.status}).` };
+    }
+    const profile = await userRes.json();
+
+    const targetCode = verifyCode.toLowerCase();
+    const bioText = (profile.bio || '').toLowerCase();
+    if (bioText.includes(targetCode)) {
+      return { success: true, method: 'GitHub Bio Challenge', profile };
+    }
+
+    // Secondary check: Public Gists
+    try {
+      const gistsRes = await fetch(`https://api.github.com/users/${ghUsername}/gists?per_page=5`, {
+        headers: { 'User-Agent': 'KrimsCodeBot/6.0 (DiscordBot)' },
+        signal: AbortSignal.timeout(5000)
+      });
+      if (gistsRes.ok) {
+        const gists = await gistsRes.json();
+        for (const g of gists) {
+          const desc = (g.description || '').toLowerCase();
+          if (desc.includes(targetCode)) {
+            return { success: true, method: 'GitHub Gist Challenge', profile };
+          }
+          for (const fn of Object.keys(g.files || {})) {
+            if (fn.toLowerCase().includes(targetCode) || fn.toLowerCase().includes('krims')) {
+              return { success: true, method: 'GitHub Gist File Challenge', profile };
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    return { success: false, error: `Code "${verifyCode}" not found in bio or public gists.`, profile };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+async function createVerifiedDeveloperTicketChannel(guild, user, applicantData, client) {
+  const cleanName = user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20) || 'user';
+  const targetChannelName = `dev-ticket-${cleanName}`;
+
+  // Find ticket category (🎫 ・SUPPORT)
+  const category = guild.channels.cache.find(c => 
+    c.type === ChannelType.GuildCategory && 
+    (c.name.includes('SUPPORT') || c.name.includes('TICKET') || c.name.includes('Support'))
+  ) || null;
+
+  // Identify staff roles
+  const staffRoles = guild.roles.cache.filter(r => {
+    const n = r.name.normalize('NFKD').toLowerCase();
+    return r.permissions.has(PermissionFlagsBits.Administrator) ||
+      r.permissions.has(PermissionFlagsBits.ManageGuild) ||
+      n.includes('founder') || n.includes('lead') || n.includes('developer') || n.includes('admin') || n.includes('staff');
+  });
+
+  const permissionOverwrites = [
+    {
+      id: guild.roles.everyone?.id || guild.id,
+      type: OverwriteType.Role,
+      deny: [PermissionFlagsBits.ViewChannel]
+    },
+    {
+      id: user.id,
+      type: OverwriteType.Member,
+      allow: [
+        PermissionFlagsBits.ViewChannel,
+        PermissionFlagsBits.SendMessages,
+        PermissionFlagsBits.AttachFiles,
+        PermissionFlagsBits.EmbedLinks,
+        PermissionFlagsBits.ReadMessageHistory
+      ]
+    },
+    {
+      id: client.user.id,
+      type: OverwriteType.Member,
+      allow: [
+        PermissionFlagsBits.ViewChannel,
+        PermissionFlagsBits.SendMessages,
+        PermissionFlagsBits.ManageChannels,
+        PermissionFlagsBits.EmbedLinks
+      ]
+    },
+    // Krylo Founder explicit access
+    {
+      id: '1414143825538191373',
+      type: OverwriteType.Member,
+      allow: [
+        PermissionFlagsBits.ViewChannel,
+        PermissionFlagsBits.SendMessages,
+        PermissionFlagsBits.AttachFiles,
+        PermissionFlagsBits.EmbedLinks,
+        PermissionFlagsBits.ReadMessageHistory
+      ]
+    }
+  ];
+
+  staffRoles.forEach(r => {
+    permissionOverwrites.push({
+      id: r.id,
+      type: OverwriteType.Role,
+      allow: [
+        PermissionFlagsBits.ViewChannel,
+        PermissionFlagsBits.SendMessages,
+        PermissionFlagsBits.AttachFiles,
+        PermissionFlagsBits.EmbedLinks,
+        PermissionFlagsBits.ReadMessageHistory
+      ]
+    });
+  });
+
+  let ticketChannel = await guild.channels.create({
+    name: targetChannelName,
+    type: ChannelType.GuildText,
+    parent: category?.id || null,
+    topic: `Verified Developer Ticket for @${user.tag} (ID: ${user.id}) | GitHub: https://github.com/${applicantData.ghUsername}`,
+    permissionOverwrites
+  });
+
+  if (!ticketChannel || typeof ticketChannel.send !== 'function') {
+    if (ticketChannel?.id) {
+      ticketChannel = await client.channels.fetch(ticketChannel.id).catch(() => null);
+    }
+  }
+
+  const { ghUsername, ghProfile, repos, stack, goals, verificationMethod } = applicantData;
+
+  const devEmbed = new EmbedBuilder()
+    .setColor(0x00E5FF)
+    .setTitle('💻 Krims Code AI • Verified Developer Application')
+    .setDescription(
+      `Welcome <@${user.id}> to your **Verified Developer Ticket**!\n\n` +
+      `Your verified GitHub identity and notable repositories have been submitted to **Founder & Lead Developer Krylo** (<@1414143825538191373>) and Senior Engineering Staff.\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `### 🛡️ VERIFIED GITHUB IDENTITY\n` +
+      `• 👤 **Applicant:** <@${user.id}> (\`${user.tag}\`)\n` +
+      `• 🐙 **GitHub Account:** [**@${ghUsername}**](https://github.com/${ghUsername})\n` +
+      `• 🔒 **Ownership Proof:** \`✅ ${verificationMethod || 'Verified Account'}\` (Confirmed)\n` +
+      (ghProfile ? `• 📊 **Public Repos:** \`${ghProfile.public_repos}\` | **Followers:** \`${ghProfile.followers}\`\n• 🗓️ **Account Age:** Created <t:${Math.floor(new Date(ghProfile.created_at).getTime() / 1000)}:R>\n` : '') +
+      `• ⚡ **Primary Tech Stack:** \`${stack}\`\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `### 📦 NOTABLE REPOSITORIES & PROJECTS:\n` +
+      `${repos}\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `### 🎯 DEVELOPMENT INTENT & GOALS:\n` +
+      `${goals}\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `🛡️ **ANTI-IMPOSTOR PROTOCOL:**\n` +
+      `*This ticket was authorized through mandatory GitHub ownership verification. Only the proven owner of the GitHub profile can submit applications to Krims Code.*`
+    )
+    .setThumbnail(ghProfile?.avatar_url || (user.displayAvatarURL ? user.displayAvatarURL({ extension: 'png', size: 256 }) : 'https://cdn.discordapp.com/embed/avatars/0.png'))
+    .setFooter({ text: 'Krims Code Engineering Core • Verified Developer Pipeline' })
+    .setTimestamp();
+
+  const actionRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`ticket_close_${user.id}`)
+      .setLabel('🔒 Close Ticket')
+      .setStyle(ButtonStyle.Danger)
+  );
+
+  await ticketChannel.send({
+    content: `👋 Verified Developer Application from <@${user.id}>! Lead Dev <@1414143825538191373> has been notified.`,
+    embeds: [devEmbed],
+    components: [actionRow]
+  });
+
+  return ticketChannel;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
 // 3. 🚀 Handle Universal Welcome & Ticket Button Interactions
 // ═════════════════════════════════════════════════════════════════════════════
 export async function handleWelcomeTicketInteraction(interaction) {
@@ -185,16 +384,32 @@ export async function handleWelcomeTicketInteraction(interaction) {
       });
     }
 
+    const cleanName = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20) || 'user';
+    const targetChannelName = `dev-ticket-${cleanName}`;
+    const existingTicket = interaction.guild?.channels.cache.find(c => 
+      c.type === ChannelType.GuildText && 
+      (c.name === targetChannelName || (c.name.startsWith('dev-ticket-') && c.topic?.includes(interaction.user.id)))
+    );
+    if (existingTicket) {
+      return interaction.reply({
+        content: `⚠️ You already have an open Developer Ticket! Please head over to <#${existingTicket.id}>.`,
+        ephemeral: true
+      });
+    }
+
+    const verifiedGh = getVerifiedGitHub(interaction.user.id);
+
     const modal = new ModalBuilder()
       .setCustomId('modal_dev_ticket')
       .setTitle('💻 Krims Code • Developer Verification');
 
     const githubInput = new TextInputBuilder()
       .setCustomId('dev_github')
-      .setLabel('GitHub / Vercel / Render Profile Link')
-      .setPlaceholder('https://github.com/your-username or Vercel / Render link')
+      .setLabel(verifiedGh ? `GitHub Username: @${verifiedGh.github_username} (Verified ✅)` : 'GitHub Username or Profile Link')
+      .setPlaceholder(verifiedGh ? `https://github.com/${verifiedGh.github_username}` : 'https://github.com/your-username or your GitHub username')
+      .setValue(verifiedGh ? `https://github.com/${verifiedGh.github_username}` : '')
       .setStyle(TextInputStyle.Short)
-      .setMinLength(4)
+      .setMinLength(2)
       .setMaxLength(150)
       .setRequired(true);
 
@@ -257,158 +472,182 @@ export async function handleWelcomeTicketInteraction(interaction) {
       });
     }
 
-    const githubLink = interaction.fields.getTextInputValue('dev_github').trim();
+    const rawGithub = interaction.fields.getTextInputValue('dev_github').trim();
     const repos = interaction.fields.getTextInputValue('dev_repos').trim();
     const stack = interaction.fields.getTextInputValue('dev_stack').trim();
     const goals = interaction.fields.getTextInputValue('dev_goals').trim();
 
-    // Query GitHub API to verify profile if a GitHub URL/username was provided
-    let ghProfile = null;
-    const ghMatch = githubLink.match(/github\.com\/([a-zA-Z0-9-_]+)/i) || (!githubLink.includes('http') && githubLink.match(/^([a-zA-Z0-9-_]+)$/));
-    if (ghMatch && ghMatch[1]) {
-      const username = ghMatch[1];
+    const ghUsername = extractGitHubUsername(rawGithub);
+    if (!ghUsername) {
+      return interaction.followUp({
+        content: `❌ **Invalid GitHub link or username:** "${rawGithub}". Please provide a valid GitHub username or link (e.g. \`https://github.com/your-username\`).`,
+        ephemeral: true
+      });
+    }
+
+    // 1. Check if user is ALREADY verified for this GitHub account
+    const verifiedRecord = getVerifiedGitHub(user.id);
+    if (verifiedRecord && verifiedRecord.github_username.toLowerCase() === ghUsername.toLowerCase()) {
+      let ghProfile = null;
       try {
-        const ghRes = await fetch(`https://api.github.com/users/${username}`, {
+        const ghRes = await fetch(`https://api.github.com/users/${ghUsername}`, {
           headers: { 'User-Agent': 'KrimsCodeBot/6.0 (DiscordBot)' },
           signal: AbortSignal.timeout(4000)
         });
-        if (ghRes.ok) {
-          ghProfile = await ghRes.json();
-        }
+        if (ghRes.ok) ghProfile = await ghRes.json();
       } catch (_) {}
+
+      try {
+        const ticketChannel = await createVerifiedDeveloperTicketChannel(
+          guild,
+          user,
+          {
+            ghUsername,
+            ghProfile,
+            repos,
+            stack,
+            goals,
+            verificationMethod: verifiedRecord.verification_method || 'Previously Verified Owner'
+          },
+          interaction.client
+        );
+
+        return interaction.followUp({
+          content: `✅ **Developer Verification Ticket Created!** Your verified GitHub account **@${ghUsername}** was automatically recognized.\nPlease head over to <#${ticketChannel.id}>!`,
+          ephemeral: true
+        });
+      } catch (err) {
+        return interaction.followUp({ content: `❌ Failed creating dev ticket: ${err.message}`, ephemeral: true });
+      }
     }
 
-    // Find ticket category (🎫 ・SUPPORT)
-    const category = guild.channels.cache.find(c => 
-      c.type === ChannelType.GuildCategory && 
-      (c.name.includes('SUPPORT') || c.name.includes('TICKET') || c.name.includes('Support'))
-    ) || null;
-
-    // Identify staff roles
-    const staffRoles = guild.roles.cache.filter(r => {
-      const n = r.name.normalize('NFKD').toLowerCase();
-      return r.permissions.has(PermissionFlagsBits.Administrator) ||
-        r.permissions.has(PermissionFlagsBits.ManageGuild) ||
-        n.includes('founder') || n.includes('lead') || n.includes('developer') || n.includes('admin') || n.includes('staff');
-    });
-
-    const permissionOverwrites = [
-      {
-        id: guild.roles.everyone?.id || guild.id,
-        type: OverwriteType.Role,
-        deny: [PermissionFlagsBits.ViewChannel]
-      },
-      {
-        id: user.id,
-        type: OverwriteType.Member,
-        allow: [
-          PermissionFlagsBits.ViewChannel,
-          PermissionFlagsBits.SendMessages,
-          PermissionFlagsBits.AttachFiles,
-          PermissionFlagsBits.EmbedLinks,
-          PermissionFlagsBits.ReadMessageHistory
-        ]
-      },
-      {
-        id: interaction.client.user.id,
-        type: OverwriteType.Member,
-        allow: [
-          PermissionFlagsBits.ViewChannel,
-          PermissionFlagsBits.SendMessages,
-          PermissionFlagsBits.ManageChannels,
-          PermissionFlagsBits.EmbedLinks
-        ]
-      },
-      // Krylo Founder explicit access
-      {
-        id: '1414143825538191373',
-        type: OverwriteType.Member,
-        allow: [
-          PermissionFlagsBits.ViewChannel,
-          PermissionFlagsBits.SendMessages,
-          PermissionFlagsBits.AttachFiles,
-          PermissionFlagsBits.EmbedLinks,
-          PermissionFlagsBits.ReadMessageHistory
-        ]
-      }
-    ];
-
-    staffRoles.forEach(r => {
-      permissionOverwrites.push({
-        id: r.id,
-        type: OverwriteType.Role,
-        allow: [
-          PermissionFlagsBits.ViewChannel,
-          PermissionFlagsBits.SendMessages,
-          PermissionFlagsBits.AttachFiles,
-          PermissionFlagsBits.EmbedLinks,
-          PermissionFlagsBits.ReadMessageHistory
-        ]
-      });
-    });
-
-    try {
-      let ticketChannel = await guild.channels.create({
-        name: targetChannelName,
-        type: ChannelType.GuildText,
-        parent: category?.id || null,
-        topic: `Verified Developer Ticket for @${user.tag} (ID: ${user.id}) | Portfolio: ${githubLink}`,
-        permissionOverwrites
-      });
-
-      if (!ticketChannel || typeof ticketChannel.send !== 'function') {
-        if (ticketChannel?.id) {
-          ticketChannel = await interaction.client.channels.fetch(ticketChannel.id).catch(() => null);
-        }
-      }
-
-      const devEmbed = new EmbedBuilder()
-        .setColor(0x00E5FF)
-        .setTitle('💻 Krims Code AI • Verified Developer Application')
-        .setDescription(
-          `Welcome <@${user.id}> to your **Developer Verification Ticket**!\n\n` +
-          `Your portfolio and notable repositories have been submitted to **Founder & Lead Developer Krylo** (<@1414143825538191373>) and Senior Engineering Staff.\n\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `### 📁 APPLICANT DOSSIER\n` +
-          `• 👤 **Applicant:** <@${user.id}> (\`${user.tag}\`)\n` +
-          `• 🔗 **Portfolio / Profile:** ${githubLink.startsWith('http') ? `[${githubLink}](${githubLink})` : `\`${githubLink}\``}\n` +
-          (ghProfile ? `• 🐙 **GitHub Verification:** ✅ Valid Profile (\`${ghProfile.login}\`)\n  • **Public Repos:** \`${ghProfile.public_repos}\` | **Followers:** \`${ghProfile.followers}\`\n  • **Account Created:** \`${new Date(ghProfile.created_at).toLocaleDateString()}\`\n` : `• 🌐 **Platform:** External Portfolio / Vercel / Render / Git\n`) +
-          `• ⚡ **Primary Tech Stack:** \`${stack}\`\n\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `### 📦 NOTABLE REPOSITORIES & PROJECTS:\n` +
-          `${repos}\n\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `### 🎯 DEVELOPMENT INTENT & GOALS:\n` +
-          `${goals}\n\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `🛡️ **ANTI-SCAM PROTOCOL:**\n` +
-          `*All submitted code repositories are strictly audited before any developer roles or repository access are granted. Anyone attempting to submit malicious, stolen, or obfuscated code will be permanently banned and blacklisted across the entire Krims ecosystem.*`
-        )
-        .setThumbnail(ghProfile?.avatar_url || ((typeof user.displayAvatarURL === 'function') ? user.displayAvatarURL({ extension: 'png', size: 256 }) : 'https://cdn.discordapp.com/embed/avatars/0.png'))
-        .setFooter({ text: 'Krims Code Engineering Core • Click Close Ticket when reviewed.' })
-        .setTimestamp();
-
-      const actionRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId(`ticket_close_${user.id}`)
-          .setLabel('🔒 Close Ticket')
-          .setStyle(ButtonStyle.Danger)
-      );
-
-      await ticketChannel.send({
-        content: `👋 Verified Developer Ticket opened for <@${user.id}>! Lead Dev <@1414143825538191373> has been alerted.`,
-        embeds: [devEmbed],
-        components: [actionRow]
-      });
-
+    // 2. Anti-Impostor Guard: Check if this GitHub username is already claimed by ANOTHER Discord user
+    const claimedByOther = getDiscordUserByGitHub(ghUsername);
+    if (claimedByOther && claimedByOther.discord_id !== user.id) {
       return interaction.followUp({
-        content: `✅ **Developer Verification Ticket Created!** Please go to <#${ticketChannel.id}> — our Lead Devs will review your repositories shortly.`,
+        content: `🛑 **SECURITY ALERT:** The GitHub account **@${ghUsername}** is already verified and linked to another Discord member (<@${claimedByOther.discord_id}>)!\n\nTo prevent identity theft and protect projects, you cannot apply using someone else's GitHub. Please use your own real GitHub account.`,
         ephemeral: true
       });
-    } catch (err) {
-      console.error('[Dev Ticket Create Error]', err);
+    }
+
+    // 3. Check if user exists on GitHub
+    let ghProfile = null;
+    try {
+      const ghRes = await fetch(`https://api.github.com/users/${ghUsername}`, {
+        headers: { 'User-Agent': 'KrimsCodeBot/6.0 (DiscordBot)' },
+        signal: AbortSignal.timeout(4000)
+      });
+      if (ghRes.status === 404) {
+        return interaction.followUp({
+          content: `❌ The GitHub username **@${ghUsername}** does not exist on GitHub! Please check your spelling.`,
+          ephemeral: true
+        });
+      }
+      if (ghRes.ok) ghProfile = await ghRes.json();
+    } catch (_) {}
+
+    // 4. Generate GitHub Ownership Challenge Code
+    const verifyCode = `KRIMS-DEV-${Math.floor(10000 + Math.random() * 90000)}`;
+    pendingDevVerifications.set(user.id, {
+      ghUsername,
+      verifyCode,
+      repos,
+      stack,
+      goals,
+      expiresAt: Date.now() + 15 * 60 * 1000
+    });
+
+    const challengeEmbed = new EmbedBuilder()
+      .setColor(0x00E5FF)
+      .setTitle(`🔒 GITHUB OWNERSHIP AUTHORIZATION REQUIRED`)
+      .setDescription(
+        `Hey <@${user.id}>! To protect the Krims Code ecosystem and ensure **nobody uses another developer's GitHub account**, you must prove you own **[@${ghUsername}](https://github.com/${ghUsername})** before your ticket is opened.\n\n` +
+        `👉 **HOW TO PROVE OWNERSHIP (Takes 15 seconds):**\n` +
+        `1. Open **[GitHub Profile Settings](https://github.com/settings/profile)**\n` +
+        `2. Temporarily paste this verification code into your **GitHub Bio**:\n` +
+        `\`\`\`\n${verifyCode}\n\`\`\`\n` +
+        `*(Or create a public [GitHub Gist](https://gist.github.com) titled \`krims-verify.txt\` containing this code)*\n\n` +
+        `3. Click **[✅ Verify Ownership & Open Ticket]** below!\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `✨ *Once verified, your GitHub is permanently linked to your Discord profile and your ticket will open immediately! You can remove the code from your bio as soon as verification completes.*`
+      )
+      .setThumbnail(ghProfile?.avatar_url || 'https://krims-bot-dashboard.vercel.app/logo.png')
+      .setFooter({ text: 'Krims Code AI • Anti-Impostor Verification Protocol' });
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`dev_github_confirm_${ghUsername}`)
+        .setLabel('✅ Verify Ownership & Open Ticket')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setLabel('⚙️ Edit GitHub Bio')
+        .setStyle(ButtonStyle.Link)
+        .setURL('https://github.com/settings/profile')
+    );
+
+    return interaction.followUp({
+      embeds: [challengeEmbed],
+      components: [row],
+      ephemeral: true
+    });
+  }
+
+  // 0C. 🔒 Confirm GitHub Ownership Button Click
+  if (interaction.isButton() && customId.startsWith('dev_github_confirm_')) {
+    await interaction.deferReply({ ephemeral: true });
+    const user = interaction.user;
+    const pending = pendingDevVerifications.get(user.id);
+    if (!pending) {
       return interaction.followUp({
-        content: `❌ Could not create developer ticket channel: ${err.message}`,
+        content: '⚠️ Your verification session has expired. Please click **[💻 Apply for Developer]** in the ticket channel to try again!',
+        ephemeral: true
+      });
+    }
+
+    const { ghUsername, verifyCode, repos, stack, goals } = pending;
+    const verifyResult = await verifyGitHubOwnershipBio(ghUsername, verifyCode);
+
+    if (!verifyResult.success) {
+      return interaction.followUp({
+        content: 
+          `❌ **VERIFICATION FAILED: Code Not Found on GitHub**\n\n` +
+          `We checked **[@${ghUsername}](https://github.com/${ghUsername})**, but could not find the code:\n` +
+          `\`\`\`\n${verifyCode}\n\`\`\`\n` +
+          `👉 **To fix this:**\n` +
+          `1. Open **[https://github.com/settings/profile](https://github.com/settings/profile)**\n` +
+          `2. Paste \`${verifyCode}\` into your **Bio** and click the green **Update profile** button.\n` +
+          `3. Wait 5-10 seconds for GitHub's cache to update, then click **[✅ Verify Ownership & Open Ticket]** again!`,
+        ephemeral: true
+      });
+    }
+
+    // Success! Save to persistent DB
+    saveVerifiedGitHub(user.id, ghUsername, verifyResult.method || 'bio_challenge');
+    pendingDevVerifications.delete(user.id);
+
+    try {
+      const ticketChannel = await createVerifiedDeveloperTicketChannel(
+        interaction.guild,
+        user,
+        {
+          ghUsername,
+          ghProfile: verifyResult.profile,
+          repos,
+          stack,
+          goals,
+          verificationMethod: verifyResult.method || 'Bio Challenge'
+        },
+        interaction.client
+      );
+
+      return interaction.followUp({
+        content: `🎉 **GitHub Ownership Verified!** You have proven ownership of **[@${ghUsername}](https://github.com/${ghUsername})**.\nYour Developer Ticket has been opened: <#${ticketChannel.id}>!`,
+        ephemeral: true
+      });
+    } catch (createErr) {
+      console.error('[Dev Ticket Creation Error]:', createErr);
+      return interaction.followUp({
+        content: `❌ Could not create developer ticket channel: ${createErr.message}`,
         ephemeral: true
       });
     }

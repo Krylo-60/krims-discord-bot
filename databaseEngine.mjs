@@ -87,6 +87,12 @@ if (neonUrl && neonUrl.startsWith('postgres')) {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+      CREATE TABLE IF NOT EXISTS verified_github_users (
+        discord_id VARCHAR(64) PRIMARY KEY,
+        github_username VARCHAR(128) NOT NULL,
+        verified_at BIGINT NOT NULL,
+        verification_method VARCHAR(64) DEFAULT 'bio_challenge'
+      );
     `).then(() => {
       return neonPool.query('SELECT * FROM custom_bots');
     }).then(res => {
@@ -293,11 +299,27 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_used_at DATETIME
   );
+
+  -- 12. Verified GitHub Profiles (v5.9.6 Anti-Impostor Verification)
+  CREATE TABLE IF NOT EXISTS verified_github_users (
+    discord_id TEXT PRIMARY KEY,
+    github_username TEXT NOT NULL COLLATE NOCASE,
+    verified_at INTEGER NOT NULL,
+    verification_method TEXT DEFAULT 'bio_challenge'
+  );
 `);
 
 
 try {
   db.exec("ALTER TABLE custom_bots ADD COLUMN dashboard_password_hash TEXT;");
+} catch (_) {}
+
+// Pre-seed Founder Krylo's verified GitHub identity
+try {
+  db.prepare(`
+    INSERT OR IGNORE INTO verified_github_users (discord_id, github_username, verified_at, verification_method)
+    VALUES ('1414143825538191373', 'krylo-60', ?, 'founder_preseed')
+  `).run(Date.now());
 } catch (_) {}
 
 console.log(`[Database] ✅ Connected to SQLite database at: ${dbPath}`);
@@ -808,6 +830,12 @@ if (neonPool) {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       last_used_at TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS verified_github_users (
+      discord_id VARCHAR(64) PRIMARY KEY,
+      github_username VARCHAR(128) NOT NULL,
+      verified_at BIGINT NOT NULL,
+      verification_method VARCHAR(64) DEFAULT 'bio_challenge'
+    );
   `).catch(e => console.warn('[Neon Staking/CLI Table Init Warning]:', e.message));
 }
 
@@ -1040,4 +1068,74 @@ export function verifyCliToken(token) {
     };
   }
   return null;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🔒 GITHUB DEVELOPER OWNERSHIP VERIFICATION (v5.9.6)
+// ═══════════════════════════════════════════════════════════
+
+export function getVerifiedGitHub(discordId) {
+  if (!discordId) return null;
+  try {
+    return db.prepare('SELECT * FROM verified_github_users WHERE discord_id = ?').get(discordId) || null;
+  } catch (err) {
+    console.error('[DB] getVerifiedGitHub error:', err.message);
+    return null;
+  }
+}
+
+export function getDiscordUserByGitHub(githubUsername) {
+  if (!githubUsername) return null;
+  try {
+    const clean = githubUsername.trim().toLowerCase();
+    return db.prepare('SELECT * FROM verified_github_users WHERE github_username = ? COLLATE NOCASE').get(clean) || null;
+  } catch (err) {
+    console.error('[DB] getDiscordUserByGitHub error:', err.message);
+    return null;
+  }
+}
+
+export function saveVerifiedGitHub(discordId, githubUsername, method = 'bio_challenge') {
+  if (!discordId || !githubUsername) return false;
+  const clean = githubUsername.trim().toLowerCase();
+  const now = Date.now();
+  try {
+    db.prepare(`
+      INSERT INTO verified_github_users (discord_id, github_username, verified_at, verification_method)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(discord_id) DO UPDATE SET
+        github_username = excluded.github_username,
+        verified_at = excluded.verified_at,
+        verification_method = excluded.verification_method
+    `).run(discordId, clean, now, method);
+
+    if (neonPool) {
+      neonPool.query(`
+        INSERT INTO verified_github_users (discord_id, github_username, verified_at, verification_method)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT(discord_id) DO UPDATE SET
+          github_username = EXCLUDED.github_username,
+          verified_at = EXCLUDED.verified_at,
+          verification_method = EXCLUDED.verification_method
+      `, [discordId, clean, now, method]).catch(e => console.warn('[Neon GitHub Verify Sync Warning]:', e.message));
+    }
+    return true;
+  } catch (err) {
+    console.error('[DB] saveVerifiedGitHub error:', err.message);
+    return false;
+  }
+}
+
+export function unlinkVerifiedGitHub(discordId) {
+  if (!discordId) return false;
+  try {
+    db.prepare('DELETE FROM verified_github_users WHERE discord_id = ?').run(discordId);
+    if (neonPool) {
+      neonPool.query('DELETE FROM verified_github_users WHERE discord_id = $1', [discordId]).catch(() => {});
+    }
+    return true;
+  } catch (err) {
+    console.error('[DB] unlinkVerifiedGitHub error:', err.message);
+    return false;
+  }
 }

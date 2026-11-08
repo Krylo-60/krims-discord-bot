@@ -1885,7 +1885,7 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   // 💎 Handle Krims Code Alpha Sneak Peek Button Interactions (Zero commands needed)
-  if ((interaction.isButton() || interaction.isModalSubmit()) && (interaction.customId.startsWith('welcome_') || interaction.customId.startsWith('tickets_') || interaction.customId.startsWith('ticket_') || interaction.customId === 'open_ticket' || interaction.customId.startsWith('role_') || interaction.customId === 'modal_dev_ticket')) {
+  if ((interaction.isButton() || interaction.isModalSubmit()) && (interaction.customId.startsWith('welcome_') || interaction.customId.startsWith('tickets_') || interaction.customId.startsWith('ticket_') || interaction.customId === 'open_ticket' || interaction.customId.startsWith('role_') || interaction.customId === 'modal_dev_ticket' || interaction.customId.startsWith('dev_') || interaction.customId.startsWith('modal_dev_'))) {
     const handled = await handleWelcomeTicketInteraction(interaction);
     if (handled) return;
   }

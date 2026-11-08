@@ -720,7 +720,8 @@ export class MultiBotManager {
         interaction.customId.startsWith('ticket_') || 
         interaction.customId === 'open_ticket' || 
         interaction.customId.startsWith('role_') ||
-        interaction.customId === 'modal_dev_ticket'
+        interaction.customId.startsWith('dev_') ||
+        interaction.customId.startsWith('modal_dev_')
       )) {
         const handled = await handleWelcomeTicketInteraction(interaction);
         if (handled) return;
