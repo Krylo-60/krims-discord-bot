@@ -166,7 +166,7 @@ export async function setupBotDevApplicationChannel(guild) {
  * Handles all Button and Modal interactions for Bot Developer Applications
  */
 export async function handleBotDevApplicationInteraction(interaction) {
-  // 1. OPEN APPLICATION MODAL POPUP
+  // 1. OPEN APPLICATION MODAL POPUP (Connected to Universal Verified Developer Ticket Engine)
   if (interaction.isButton() && interaction.customId === 'btn_open_dev_app_modal') {
     if (!isBotDevAppOpen()) {
       return await interaction.reply({
@@ -175,59 +175,10 @@ export async function handleBotDevApplicationInteraction(interaction) {
       });
     }
 
-    const modal = new ModalBuilder()
-      .setCustomId('modal_submit_dev_app')
-      .setTitle('Krims Code AI Developer Application');
-
-    const languagesInput = new TextInputBuilder()
-      .setCustomId('dev_app_languages')
-      .setLabel('Programming Languages & Frameworks')
-      .setPlaceholder('e.g. JavaScript, TypeScript, Node.js, discord.js, Python')
-      .setStyle(TextInputStyle.Short)
-      .setMaxLength(100)
-      .setRequired(true);
-
-    const portfolioInput = new TextInputBuilder()
-      .setCustomId('dev_app_portfolio')
-      .setLabel('GitHub / Portfolio / Project Links')
-      .setPlaceholder('e.g. https://github.com/your-username or list notable projects')
-      .setStyle(TextInputStyle.Short)
-      .setMaxLength(120)
-      .setRequired(true);
-
-    const expInput = new TextInputBuilder()
-      .setCustomId('dev_app_experience')
-      .setLabel('Discord Bot & Development Experience')
-      .setPlaceholder('Describe any bots, APIs, or tools you have built or contributed to')
-      .setStyle(TextInputStyle.Paragraph)
-      .setMaxLength(800)
-      .setRequired(true);
-
-    const availabilityInput = new TextInputBuilder()
-      .setCustomId('dev_app_availability')
-      .setLabel('Weekly Availability & Timezone')
-      .setPlaceholder('e.g. 5-10 hours/week, EST / GMT / IST')
-      .setStyle(TextInputStyle.Short)
-      .setMaxLength(50)
-      .setRequired(true);
-
-    const whyInput = new TextInputBuilder()
-      .setCustomId('dev_app_why')
-      .setLabel('What features do you want to build/improve?')
-      .setPlaceholder('Describe what you would love to engineer for Krims Code AI')
-      .setStyle(TextInputStyle.Paragraph)
-      .setMaxLength(800)
-      .setRequired(true);
-
-    modal.addComponents(
-      new ActionRowBuilder().addComponents(languagesInput),
-      new ActionRowBuilder().addComponents(portfolioInput),
-      new ActionRowBuilder().addComponents(expInput),
-      new ActionRowBuilder().addComponents(availabilityInput),
-      new ActionRowBuilder().addComponents(whyInput)
-    );
-
-    return await interaction.showModal(modal);
+    // Seamlessly forward to the verified developer ticket engine!
+    interaction.customId = 'ticket_create_dev_modal';
+    const { handleWelcomeTicketInteraction } = await import('./welcomeTicketsManager.mjs');
+    return await handleWelcomeTicketInteraction(interaction);
   }
 
   // 2. MODAL SUBMISSION HANDLER

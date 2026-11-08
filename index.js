@@ -752,7 +752,8 @@ async function createBulletproofTicketChannel(guild, { name, parentId = null, to
       name,
       type: ChannelType.GuildText,
       parent: parentId || null,
-      topic: (topic || '').slice(0, 1024)
+      topic: (topic || '').slice(0, 1024),
+      permissionOverwrites: (permissionOverwrites && permissionOverwrites.length > 0) ? permissionOverwrites : undefined
     });
   } catch (createErr) {
     console.warn('[Bulletproof Creator] guild.channels.create error:', createErr.message);
@@ -767,7 +768,8 @@ async function createBulletproofTicketChannel(guild, { name, parentId = null, to
           name,
           type: 0,
           parent_id: parentId || null,
-          topic: (topic || '').slice(0, 1024)
+          topic: (topic || '').slice(0, 1024),
+      permissionOverwrites: (permissionOverwrites && permissionOverwrites.length > 0) ? permissionOverwrites : undefined
         }
       });
       if (raw && raw.id) {
@@ -4113,11 +4115,20 @@ client.on('interactionCreate', async (interaction) => {
       const details = interaction.fields.getTextInputValue('ticket_details')?.trim() || 'No additional details provided.';
 
       const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15);
-      const ticketChannelName = `${dept.category}-${cleanUsername}`;
+      let ticketChannelName = `${dept.category}-${cleanUsername}`;
 
       const existing = guild.channels.cache.find(c => c.name.toLowerCase() === ticketChannelName.toLowerCase());
       if (existing) {
-        return await interaction.editReply({ content: `⚠️ You already have an open ticket in <#${existing.id}>!` });
+        const isStaffOrOwner = interaction.user.id === '1414143825538191373' || 
+          interaction.user.id === guild.ownerId ||
+          interaction.member?.permissions?.has(PermissionFlagsBits.Administrator);
+
+        if (isStaffOrOwner) {
+          const tag = Math.floor(100 + Math.random() * 900);
+          ticketChannelName = `${dept.category}-${cleanUsername}-${tag}`;
+        } else {
+          return await interaction.editReply({ content: `⚠️ You already have an open ticket in <#${existing.id}>!\nPlease send your message there, or ask staff to close it when resolved.` });
+        }
       }
 
       let parentCat = guild.channels.cache.get('1561109169526931456') || guild.channels.cache.find(c => c.type === ChannelType.GuildCategory && c.name.includes('ACTIVE CLAN TICKETS'));
@@ -4248,7 +4259,7 @@ client.on('interactionCreate', async (interaction) => {
       const details = interaction.fields.getTextInputValue('ticket_details')?.trim() || 'No additional details provided.';
 
       const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15);
-      const ticketChannelName = `${dept.category}-${cleanUsername}`;
+      let ticketChannelName = `${dept.category}-${cleanUsername}`;
 
       const existing = guild.channels.cache.find(c => c.name.toLowerCase() === ticketChannelName.toLowerCase());
       if (existing) {

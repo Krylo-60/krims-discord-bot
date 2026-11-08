@@ -378,10 +378,11 @@ export async function handleWelcomeTicketInteraction(interaction) {
   if (customId === 'ticket_create_dev_modal' || customId === 'ticket_create_dev') {
     // Mini's Roblox Server Guard: Dev applications belong to Krims Code AI
     if (interaction.guild?.id === '1568083131624460371') {
-      return interaction.reply({
+      await interaction.reply({
         content: `ℹ️ **Developer Applications are exclusively for the Krims Code AI ecosystem!**\nTo apply as a Developer and contribute code, please join the official **Krims Code AI** Discord server:\n👉 https://discord.gg/wVbVz9aPcz`,
         ephemeral: true
       });
+      return true;
     }
 
     const cleanName = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20) || 'user';
@@ -390,22 +391,32 @@ export async function handleWelcomeTicketInteraction(interaction) {
       c.type === ChannelType.GuildText && 
       (c.name === targetChannelName || (c.name.startsWith('dev-ticket-') && c.topic?.includes(interaction.user.id)))
     );
-    if (existingTicket) {
-      return interaction.reply({
+
+    const isBossOrAdmin = interaction.user.id === '1414143825538191373' || 
+      interaction.user.id === interaction.guild?.ownerId ||
+      interaction.member?.permissions?.has(PermissionFlagsBits.Administrator);
+
+    if (existingTicket && !isBossOrAdmin) {
+      await interaction.reply({
         content: `⚠️ You already have an open Developer Ticket! Please head over to <#${existingTicket.id}>.`,
         ephemeral: true
       });
+      return true;
     }
 
     const verifiedGh = getVerifiedGitHub(interaction.user.id);
 
     const modal = new ModalBuilder()
       .setCustomId('modal_dev_ticket')
-      .setTitle('💻 Krims Code • Developer Verification');
+      .setTitle('💻 Krims Code • Developer Verification'.slice(0, 45));
+
+    const githubLabel = verifiedGh 
+      ? `GitHub: @${verifiedGh.github_username} (Verified ✅)`.slice(0, 45) 
+      : 'GitHub Username or Profile Link'.slice(0, 45);
 
     const githubInput = new TextInputBuilder()
       .setCustomId('dev_github')
-      .setLabel(verifiedGh ? `GitHub Username: @${verifiedGh.github_username} (Verified ✅)` : 'GitHub Username or Profile Link')
+      .setLabel(githubLabel)
       .setPlaceholder(verifiedGh ? `https://github.com/${verifiedGh.github_username}` : 'https://github.com/your-username or your GitHub username')
       .setValue(verifiedGh ? `https://github.com/${verifiedGh.github_username}` : '')
       .setStyle(TextInputStyle.Short)
@@ -415,7 +426,7 @@ export async function handleWelcomeTicketInteraction(interaction) {
 
     const reposInput = new TextInputBuilder()
       .setCustomId('dev_repos')
-      .setLabel('Notable Repositories & Real Projects')
+      .setLabel('Notable Repositories & Real Projects'.slice(0, 45))
       .setPlaceholder('List 1-3 repositories or apps you built with links & descriptions...')
       .setStyle(TextInputStyle.Paragraph)
       .setMinLength(10)
@@ -424,7 +435,7 @@ export async function handleWelcomeTicketInteraction(interaction) {
 
     const stackInput = new TextInputBuilder()
       .setCustomId('dev_stack')
-      .setLabel('Primary Tech Stack & Languages')
+      .setLabel('Primary Tech Stack & Languages'.slice(0, 45))
       .setPlaceholder('e.g. Node.js, discord.js, TypeScript, React, Python, Luau')
       .setStyle(TextInputStyle.Short)
       .setMinLength(2)
@@ -433,7 +444,7 @@ export async function handleWelcomeTicketInteraction(interaction) {
 
     const goalsInput = new TextInputBuilder()
       .setCustomId('dev_goals')
-      .setLabel('What do you want to build for Krims Code?')
+      .setLabel('What do you want to build for Krims Code?'.slice(0, 45))
       .setPlaceholder('Describe the features, commands, or systems you want to build...')
       .setStyle(TextInputStyle.Paragraph)
       .setMinLength(10)
@@ -447,7 +458,8 @@ export async function handleWelcomeTicketInteraction(interaction) {
       new ActionRowBuilder().addComponents(goalsInput)
     );
 
-    return await interaction.showModal(modal);
+    await interaction.showModal(modal);
+    return true;
   }
 
   // 0B. 💻 Handle Developer Verification Modal Submission
@@ -457,7 +469,7 @@ export async function handleWelcomeTicketInteraction(interaction) {
     const guild = interaction.guild;
     const user = interaction.user;
     const cleanName = user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20) || 'user';
-    const targetChannelName = `dev-ticket-${cleanName}`;
+    let targetChannelName = `dev-ticket-${cleanName}`;
 
     // Check if user already has an active dev ticket
     const existingTicket = guild.channels.cache.find(c => 
@@ -465,11 +477,21 @@ export async function handleWelcomeTicketInteraction(interaction) {
       (c.name === targetChannelName || (c.name.startsWith('dev-ticket-') && c.topic?.includes(user.id)))
     );
 
+    const isBossOrAdmin = user.id === '1414143825538191373' || 
+      user.id === guild?.ownerId ||
+      interaction.member?.permissions?.has(PermissionFlagsBits.Administrator);
+
     if (existingTicket) {
-      return interaction.followUp({
-        content: `⚠️ You already have an open Developer Ticket! Please head over to <#${existingTicket.id}>.`,
-        ephemeral: true
-      });
+      if (isBossOrAdmin) {
+        const tag = Math.floor(100 + Math.random() * 900);
+        targetChannelName = `dev-ticket-${cleanName}-${tag}`;
+      } else {
+        await interaction.followUp({
+          content: `⚠️ You already have an open Developer Ticket! Please head over to <#${existingTicket.id}>.`,
+          ephemeral: true
+        });
+        return true;
+      }
     }
 
     const rawGithub = interaction.fields.getTextInputValue('dev_github').trim();
@@ -977,28 +999,59 @@ export async function handleWelcomeTicketInteraction(interaction) {
   }
 
   // E. Close Support Ticket Channel
-  if (customId.startsWith('ticket_close')) {
-    const isStaffOrOpener = interaction.channel.name.startsWith('ticket-') ||
-      interaction.channel.name.startsWith('staff-app-') ||
-      interaction.channel.name.startsWith('mod-app-') ||
-      interaction.channel.name.startsWith('dev-ticket-') ||
-      interaction.channel.topic?.includes(interaction.user.id) ||
-      interaction.member.permissions.has(PermissionFlagsBits.ManageChannels);
+  if (customId.startsWith('ticket_close') || customId === 'krims_close_ticket' || customId === 'halflife_close_ticket') {
+    const ch = interaction.channel;
+    if (!ch) return false;
 
-    if (!isStaffOrOpener) {
-      return interaction.reply({
-        content: '⛔ Only ticket openers or staff can close this channel!',
+    const channelName = (ch.name || '').toLowerCase();
+    const isKnownTicketChannel = 
+      channelName.startsWith('ticket-') ||
+      channelName.startsWith('dev-ticket-') ||
+      channelName.startsWith('support-') ||
+      channelName.startsWith('bug-') ||
+      channelName.startsWith('feature-') ||
+      channelName.startsWith('setup-') ||
+      channelName.startsWith('staff-app-') ||
+      channelName.startsWith('mod-app-') ||
+      channelName.startsWith('clan-ticket-') ||
+      ch.parentId === '1561175630194671656' ||
+      ch.parent?.name?.toLowerCase().includes('ticket') ||
+      ch.parent?.name?.toLowerCase().includes('support') ||
+      ch.topic?.toLowerCase().includes('reason:') ||
+      ch.topic?.toLowerCase().includes('member:') ||
+      ch.topic?.toLowerCase().includes('ticket');
+
+    const isStaffOrOpener = 
+      interaction.user.id === '1414143825538191373' ||
+      interaction.user.id === interaction.guild?.ownerId ||
+      ch.topic?.includes(interaction.user.id) ||
+      channelName.includes(interaction.user.username.toLowerCase().slice(0, 10)) ||
+      interaction.member?.permissions?.has(PermissionFlagsBits.ManageChannels) ||
+      interaction.member?.permissions?.has(PermissionFlagsBits.Administrator);
+
+    if (!isKnownTicketChannel) {
+      await interaction.reply({
+        content: '❌ This button can only be used inside ticket channels.',
         ephemeral: true
       });
+      return true;
+    }
+
+    if (!isStaffOrOpener) {
+      await interaction.reply({
+        content: '⛔ Only the ticket opener or staff can close this channel!',
+        ephemeral: true
+      });
+      return true;
     }
 
     await interaction.reply({
-      content: '🔒 **Closing Channel...** This channel will be deleted in **5 seconds**. Thank you!'
+      content: '🔒 **Closing Channel...** This ticket will be safely deleted in **5 seconds**. Thank you!'
     });
 
     setTimeout(async () => {
       try {
-        await interaction.channel.delete('Ticket/Application closed by user/staff');
+        await ch.delete('Ticket closed by user or staff');
       } catch (delErr) {
         console.warn('[Ticket Delete Error]', delErr.message);
       }
