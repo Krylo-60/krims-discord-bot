@@ -1,3 +1,4 @@
+import { handleWelcomeTicketInteraction } from './welcomeTicketsManager.mjs';
 import { 
   EmbedBuilder, 
   ActionRowBuilder, 
@@ -177,7 +178,6 @@ export async function handleBotDevApplicationInteraction(interaction) {
 
     // Seamlessly forward to the verified developer ticket engine!
     interaction.customId = 'ticket_create_dev_modal';
-    const { handleWelcomeTicketInteraction } = await import('./welcomeTicketsManager.mjs');
     return await handleWelcomeTicketInteraction(interaction);
   }
 

@@ -61,6 +61,7 @@ if (mysqlConfig.user && mysqlConfig.password && mysqlConfig.database) {
 // Neon Lakebase Postgres Connection Pool
 const neonUrl = process.env.DATABASE_URL;
 let neonPool = null;
+let neonSyncPromise = null;
 
 if (neonUrl && neonUrl.startsWith('postgres')) {
   try {
@@ -71,7 +72,7 @@ if (neonUrl && neonUrl.startsWith('postgres')) {
     console.log('[Neon Postgres Engine] 🐘 Connected to Neon Lakebase Postgres (Ohio us-east-2)!');
 
     // Auto-sync custom bots from Neon Postgres into local SQLite memory pool
-    neonPool.query(`
+    neonSyncPromise = neonPool.query(`
       CREATE TABLE IF NOT EXISTS custom_bots (
         guild_id VARCHAR(64) PRIMARY KEY,
         owner_id VARCHAR(64) NOT NULL,
@@ -187,6 +188,10 @@ if (neonUrl && neonUrl.startsWith('postgres')) {
   } catch (err) {
     console.warn('[Neon Postgres Engine] Failed to initialize Neon pool:', err.message);
   }
+}
+
+export function waitForNeonSync() {
+  return neonSyncPromise || Promise.resolve();
 }
 
 export { neonPool };

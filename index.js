@@ -1886,8 +1886,21 @@ client.on('interactionCreate', async (interaction) => {
     return await handleDiwaliButton(interaction);
   }
 
-  // 💎 Handle Krims Code Alpha Sneak Peek Button Interactions (Zero commands needed)
-  if ((interaction.isButton() || interaction.isModalSubmit()) && (interaction.customId.startsWith('welcome_') || interaction.customId.startsWith('tickets_') || interaction.customId.startsWith('ticket_') || interaction.customId === 'open_ticket' || interaction.customId.startsWith('role_') || interaction.customId === 'modal_dev_ticket' || interaction.customId.startsWith('dev_') || interaction.customId.startsWith('modal_dev_'))) {
+  // 💎 Handle Universal Ticket & Developer Application Interactions
+  if ((interaction.isButton() || interaction.isModalSubmit()) && (
+    interaction.customId.startsWith('welcome_') || 
+    interaction.customId.startsWith('tickets_') || 
+    interaction.customId.startsWith('ticket_') || 
+    interaction.customId === 'open_ticket' || 
+    interaction.customId.startsWith('role_') || 
+    interaction.customId === 'modal_dev_ticket' || 
+    interaction.customId.startsWith('dev_') || 
+    interaction.customId.startsWith('modal_dev_') ||
+    interaction.customId === 'btn_open_dev_app_modal'
+  )) {
+    if (interaction.customId === 'btn_open_dev_app_modal') {
+      interaction.customId = 'ticket_create_dev_modal';
+    }
     const handled = await handleWelcomeTicketInteraction(interaction);
     if (handled) return;
   }

@@ -34,7 +34,8 @@ import {
   deleteCustomBot, 
   updateCustomBotStatus,
   addXp,
-  getUserLeveling
+  getUserLeveling,
+  waitForNeonSync
 } from './databaseEngine.mjs';
 
 // We import the AI ask function if available or export a standard connector
@@ -216,6 +217,9 @@ export class MultiBotManager {
   async startAllBots() {
     console.log('[MultiBotManager] 🚀 Booting all active custom bots from database...');
     try {
+      if (typeof waitForNeonSync === 'function') {
+        await waitForNeonSync().catch(err => console.warn('[MultiBotManager] Neon sync wait warning:', err.message));
+      }
       const bots = getAllActiveCustomBots();
       console.log(`[MultiBotManager] Found ${bots.length} active custom bots in database.`);
 
