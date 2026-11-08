@@ -9215,33 +9215,49 @@ client.on('messageCreate', async (message) => {
   }
 
   // ══════════════════════════════════════════════════════════
-  // 💬 BOT MENTION AI SPEAK / CHAT HANDLER
+  // 💬 BOT MENTION & REPLY AI SPEAK / CHAT HANDLER
   // ══════════════════════════════════════════════════════════
-  const directMentionRegex = new RegExp(`<@!?${client.user.id}>`);
-  if (message.guild && message.mentions.users.has(client.user.id) && directMentionRegex.test(message.content) && !message.mentions.everyone) {
-    
-    // If the mention came solely from a message reply without explicitly typing the bot's mention, ignore it
-    if (message.reference && !directMentionRegex.test(message.content)) {
+  const masterBotUser = client.user;
+  const masterMeMember = message.guild?.members?.me;
+  const masterBotRoles = masterMeMember ? Array.from(masterMeMember.roles.cache.keys()) : [];
+
+  const masterUserMentionRegex = new RegExp(`<@!?${masterBotUser?.id}>`, 'g');
+  const masterRoleMentionRegex = masterBotRoles.length > 0 ? new RegExp(`<@&(${masterBotRoles.join('|')})>`, 'g') : null;
+
+  const hasMasterUserMention = masterBotUser && (message.mentions.users.has(masterBotUser.id) || masterUserMentionRegex.test(message.content));
+  const hasMasterRoleMention = masterBotRoles.some(rId => message.mentions.roles.has(rId)) || (masterRoleMentionRegex && masterRoleMentionRegex.test(message.content));
+
+  let isReplyToMaster = false;
+  if (message.reference && message.reference.messageId) {
+    const repliedMsg = message.channel.messages.cache.get(message.reference.messageId);
+    if (repliedMsg && masterBotUser && repliedMsg.author.id === masterBotUser.id) {
+      isReplyToMaster = true;
+    }
+  }
+
+  const masterBotNames = [
+    masterBotUser?.username,
+    masterMeMember?.nickname,
+    masterMeMember?.displayName,
+    'krims code ai',
+    'krims code',
+    'krims'
+  ].filter(Boolean);
+
+      const masterTextMentionRegex = new RegExp('@?(' + masterBotNames.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\b', 'i');
+
+  const isMasterMentioned = message.guild && !message.mentions.everyone && (hasMasterUserMention || hasMasterRoleMention || isReplyToMaster || hasMasterTextMention);
+
+  if (isMasterMentioned) {
+    // Exclude logs and tickets from AI banter unless explicitly @mentioned
+    const chName = message.channel.name?.toLowerCase() || '';
+    if (chName.includes('log') || (chName.startsWith('ticket-') && !hasMasterUserMention)) {
       return;
     }
 
-    // Exclude private staff, admin, logs, and ticket channels from AI banter unless explicitly @mentioned
-    const chName = message.channel.name?.toLowerCase() || '';
-    const parentName = message.channel.parent?.name?.toLowerCase() || '';
-    if (
-      chName.includes('admin') ||
-      chName.includes('staff') ||
-      chName.includes('lead') ||
-      chName.includes('ticket') ||
-      chName.includes('log') ||
-      parentName.includes('staff') ||
-      parentName.includes('admin')
-    ) {
-      if (!directMentionRegex.test(message.content)) return;
-    }
-
     let cleanPrompt = message.content
-      .replace(directMentionRegex, '')
+      .replace(masterUserMentionRegex, '')
+      .replace(masterRoleMentionRegex || '', '')
       .trim();
 
     // Check for attached images
@@ -9259,7 +9275,8 @@ client.on('messageCreate', async (message) => {
 
       if (!cleanPrompt && !imageUrl) {
         await message.reply({
-          content: `👋 Hey <@${message.author.id}>! I'm **Krims Code AI**! How can I help you today? Ask me any question or type \`/help\` to explore all features! ⚡`
+          content: `👋 Hey <@${message.author.id}>! I'm **Krims Code AI**! How can I help you today? Ask me any question or type \`/help\` to explore all features! ⚡`,
+          allowedMentions: { repliedUser: false }
         }).catch(() => {});
         return;
       }
@@ -9271,8 +9288,8 @@ client.on('messageCreate', async (message) => {
         aiReply = await geminiDirectAsk(cleanPrompt, '', message.guild.name, message.guild.id, message.author.id, message.member?.displayName || message.author.username);
       }
 
-      if (!aiReply) {
-        aiReply = "👋 I'm here! How can I help you today?";
+      if (!aiReply || !aiReply.trim()) {
+        aiReply = `👋 Hey <@${message.author.id}>! I'm **Krims Code AI**, active and ready on **${message.guild.name}**! How can I assist you?`;
       }
 
       // 💾 Record persistent server AI memory
@@ -9284,7 +9301,7 @@ client.on('messageCreate', async (message) => {
       try {
         const botVoiceChannel = message.guild.members?.me?.voice?.channel;
         if (botVoiceChannel && typeof speakInVoiceChannel === 'function') {
-          const ttsSpeech = aiReply.replace(/[*_~`>#]/g, '').trim().slice(0, 200);
+          const ttsSpeech = aiReply.replace(/[*_~\x60>#]/g, '').trim().slice(0, 200);
           await speakInVoiceChannel(message.guild.id, ttsSpeech);
         }
       } catch (voiceErr) {
@@ -9294,7 +9311,7 @@ client.on('messageCreate', async (message) => {
       await sendSafeMessage(message, aiReply);
     } catch (mentionErr) {
       console.error('[Mention Handler] Error:', mentionErr);
-      await message.reply("⚠️ Sorry, I encountered an issue processing your request. Please try again!").catch(() => {});
+      await message.reply({ content: "⚠️ Sorry, I encountered an issue processing your request. Please try again!", allowedMentions: { repliedUser: false } }).catch(() => {});
     }
     return;
   }

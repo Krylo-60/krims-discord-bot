@@ -526,19 +526,53 @@ export class MultiBotManager {
         }
       }
 
+      // C. Universal MultiBot Mention & AI Chat Recognition Engine
+      const botUser = client.user;
+      const meMember = message.guild?.members?.me;
+      const botRoles = meMember ? Array.from(meMember.roles.cache.keys()) : [];
+
+      const userMentionRegex = new RegExp(`<@!?${botUser.id}>`, 'g');
+      const roleMentionRegex = botRoles.length > 0 ? new RegExp(`<@&(${botRoles.join('|')})>`, 'g') : null;
+
+      const hasUserMention = message.mentions.users.has(botUser.id) || userMentionRegex.test(message.content);
+      const hasRoleMention = botRoles.some(rId => message.mentions.roles.has(rId)) || (roleMentionRegex && roleMentionRegex.test(message.content));
+
+      let isReplyToBot = false;
+      if (message.reference && message.reference.messageId) {
+        const repliedMsg = message.channel.messages.cache.get(message.reference.messageId);
+        if (repliedMsg && repliedMsg.author.id === botUser.id) {
+          isReplyToBot = true;
+        }
+      }
+
+      const botNames = [
+        botUser.username,
+        meMember?.nickname,
+        meMember?.displayName,
+        config.botName,
+        (client.user.id === '1565848105277067414' ? 'mini x' : null),
+        (client.user.id === '1565848105277067414' ? 'mini' : null),
+        (client.user.id === '1565527301444083722' ? 'baby phoenix' : null),
+        (client.user.id === '1565527301444083722' ? 'phoenix' : null)
+      ].filter(Boolean);
+
+      const textMentionRegex = new RegExp('@?(' + botNames.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\b', 'i');
+
+      const isMentioned = !message.mentions.everyone && (hasUserMention || hasRoleMention || isReplyToBot || hasTextMention);
+
       // B2. Community Auto-Role Claim (!claimroles, !autorole, !roles, or "give me a role")
       const isRoleRequest = cleanText === '!claimroles' || 
         cleanText === '!autorole' || 
         cleanText === '!roles' || 
         cleanText === `${p}claimroles` || 
         cleanText === `${p}autorole` ||
-        (message.mentions.users.has(client.user.id) && (cleanText.includes('give me a role') || cleanText.includes('give me role') || cleanText.includes('give role')));
+        (isMentioned && (cleanText.includes('give me a role') || cleanText.includes('give me role') || cleanText.includes('give role')));
 
       if (isRoleRequest && message.member) {
         const added = await assignMiniCommunityAutoRoles(message.member);
         if (added.length > 0) {
           return message.reply({
-            content: `⚡ **Roles Assigned!** Granted: ${added.map(r => `\`${r.name}\``).join(', ')} 🎉`,
+            content: `⚡ **Roles Assigned!** Granted: ${added.map(r => '`' + r.name + '`').join(', ')} 🎉`,
             allowedMentions: { repliedUser: false }
           }).catch(() => {});
         } else {
@@ -549,18 +583,22 @@ export class MultiBotManager {
         }
       }
 
-      // C. Google Gemini AI Chat (Triggered when bot is mentioned or replied to)
-      const directMentionRegex = new RegExp(`<@!?${client.user.id}>`);
-      const isMentioned = (message.mentions.users.has(client.user.id) || directMentionRegex.test(message.content)) && !message.mentions.everyone;
       if (isMentioned) {
         try {
-          await message.channel.sendTyping();
-          const cleanPrompt = message.content.replace(new RegExp(`<@!?${client.user.id}>`, 'g'), '').trim();
-          
+          await message.channel.sendTyping().catch(() => {});
+          let cleanPrompt = message.content
+            .replace(userMentionRegex, '')
+            .replace(roleMentionRegex || '', '')
+            .trim();
+
+          const activeBotName = meMember?.displayName || meMember?.nickname || client.user.username;
+
           if (!cleanPrompt) {
             return message.reply({
-              content: `👋 Hey **${message.author.username}**! I am **${client.user.username}**, powered by the **Krims Code AI Engine**.\nAsk me anything or use \`/about\`!`,
+              content: `👋 Hey **${message.author.username}**! I am **${activeBotName}**, powered by the **Krims Code AI Engine**.\nAsk me anything, or type \`/about\` to explore features! ⚡`,
               allowedMentions: { repliedUser: false }
+            }).catch(async () => {
+              await message.channel.send({ content: `<@${message.author.id}>, 👋 I'm **${activeBotName}**! How can I help you today?` }).catch(() => {});
             });
           }
 
@@ -569,12 +607,12 @@ export class MultiBotManager {
           const isKrylo = message.author.id === '1414143825538191373' || speakerName.toLowerCase().includes('krylo');
 
           let dynamicInstruction = aiPersona || 
-            `You are ${client.user.username}, an intelligent and helpful Discord bot powered by Krims Code AI. Answer clearly, accurately, and politely. Always be friendly and helpful.`;
+            `You are ${activeBotName}, an intelligent and helpful Discord bot powered by Krims Code AI. Answer clearly, accurately, and politely. Always be friendly and helpful.`;
 
           if (isKrylo) {
-            dynamicInstruction += `\n• IMPORTANT: The user talking to you right now is KRYLO (${speakerName}), your Creator, Mastermind, and Supreme Boss of Krims Code! Always address Krylo with supreme respect as your Creator/Boss (never call him Mini or another user's name).`;
+            dynamicInstruction += `\n• IMPORTANT: The user talking to you right now is KRYLO (${speakerName}), your Creator, Mastermind, and Supreme Boss of Krims Code! Always address Krylo with supreme respect as your Creator/Boss.`;
           } else {
-            dynamicInstruction += `\n• IMPORTANT: The user talking to you right now is "${speakerName}". Always address them as "${speakerName}" (never call them Mini unless their username is actually Mini).`;
+            dynamicInstruction += `\n• IMPORTANT: The user talking to you right now is "${speakerName}". Always address them as "${speakerName}".`;
           }
 
           let aiResponse = '';
@@ -582,16 +620,42 @@ export class MultiBotManager {
           if (typeof askFunction === 'function') {
             aiResponse = await askFunction(cleanPrompt, dynamicInstruction, message.guild.name, message.guild.id, message.author.id, speakerName);
           } else {
-            // Direct in-character fallback response
-            aiResponse = `🔥 Hey **${message.author.username}**! I'm **${client.user.username}**, guardian of **${message.guild.name}**! Ask me anything or explore commands with \`/about\`! 🚀`;
+            aiResponse = `🔥 Hey **${message.author.username}**! I'm **${activeBotName}**, guardian of **${message.guild.name}**! Ask me anything or explore commands with \`/about\`! 🚀`;
           }
 
-          const replyEmbed = new EmbedBuilder()
-            .setColor('#5865F2')
-            .setDescription(aiResponse.slice(0, 4000))
-            .setFooter({ text: `⚡ Powered by Krims Code AI • Type /about to get this bot for free!` });
+          if (!aiResponse || !aiResponse.trim()) {
+            aiResponse = `👋 Hey **${message.author.username}**! I'm **${activeBotName}**, active and ready on **${message.guild.name}**! How can I assist you?`;
+          }
 
-          await message.reply({ embeds: [replyEmbed], allowedMentions: { repliedUser: false } });
+          const replyText = aiResponse.trim();
+          if (replyText.length <= 1950) {
+            await message.reply({ 
+              content: replyText, 
+              allowedMentions: { repliedUser: false } 
+            }).catch(async () => {
+              await message.channel.send({ 
+                content: `<@${message.author.id}>, ${replyText.slice(0, 1900)}`,
+                allowedMentions: { users: [message.author.id] }
+              }).catch(() => {});
+            });
+          } else {
+            const chunks = [];
+            let cur = '';
+            for (const line of replyText.split('\n')) {
+              if ((cur + '\n' + line).length > 1900) {
+                if (cur) chunks.push(cur);
+                cur = line;
+              } else {
+                cur = cur ? (cur + '\n' + line) : line;
+              }
+            }
+            if (cur) chunks.push(cur);
+
+            await message.reply({ content: chunks[0], allowedMentions: { repliedUser: false } }).catch(() => {});
+            for (let i = 1; i < chunks.length; i++) {
+              await message.channel.send(chunks[i]).catch(() => {});
+            }
+          }
         } catch (err) {
           console.error('[MultiBot Brain] Gemini error:', err.message);
           message.reply({ 
