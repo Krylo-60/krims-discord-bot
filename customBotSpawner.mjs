@@ -26,6 +26,7 @@ import {
 import { Client, GatewayIntentBits, Partials, ActivityType, EmbedBuilder } from 'discord.js';
 import fetch from 'node-fetch';
 import { encryptToken, decryptToken } from './tokenSecurity.mjs';
+import { recordConversationTurn } from './features/aiMemoryEngine.mjs';
 import { 
   saveCustomBot, 
   getAllActiveCustomBots, 
@@ -655,6 +656,11 @@ export class MultiBotManager {
             for (let i = 1; i < chunks.length; i++) {
               await message.channel.send(chunks[i]).catch(() => {});
             }
+          }
+
+          // 💾 Record persistent server AI memory for custom bots
+          if (message.guild?.id && typeof recordConversationTurn === 'function') {
+            recordConversationTurn(message.guild.id, message.channel.id, message.author.id, message.member?.displayName || message.author.username, cleanPrompt, replyText);
           }
         } catch (err) {
           console.error('[MultiBot Brain] Gemini error:', err.message);

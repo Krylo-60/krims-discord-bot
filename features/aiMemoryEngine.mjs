@@ -52,6 +52,26 @@ try {
 // 🧠 DEFAULT SEED FACTS FOR CORE SERVERS
 // ──────────────────────────────────────────────────────────
 const DEFAULT_SERVER_FACTS = {
+  // Mini's cool roblox server
+  '1568083131624460371': [
+    { key: 'server_identity', value: "Mini's cool roblox server — Premier Roblox & Blox Fruits trading, raids, PVP arena tournaments, and giveaway hub." },
+    { key: 'server_owner', value: "Mini (minisocer, Discord ID: 1541259051801780275) is the Founder & Owner of Mini's cool roblox server." },
+    { key: 'chief_developer', value: "Krylo (krylo_plays / KryloMCYT, Discord ID: 1414143825538191373) is the Chief Developer, Founder Aide, and Supreme Boss of Krims Code AI." },
+    { key: 'official_bot', value: "Mini X (mini_x#6403) is the official server bot co-created by Mini & Krylo, powered by Krims Code AI." },
+    { key: 'economy_system', value: "Cyber Shards economy (!daily, !balance, !pay), daily Blox Fruits challenges, weekly giveaways (!gstart), and PVP tournaments." }
+  ],
+  // Phoenix Den Gaming Server
+  '1534016405693796462': [
+    { key: 'server_identity', value: "👑PHOENIX DEN A GAMING SERVER 👑 — High-energy gaming, anime, and community hub." },
+    { key: 'server_leader', value: "ACE is the Owner and Leader of Phoenix Den." },
+    { key: 'official_bot', value: "Baby PHOENIX (Baby PHOENIX#8301) is the fiery mascot bot powered by Krims Code AI." },
+    { key: 'supreme_creator', value: "Krylo (Discord ID: 1414143825538191373) is the Supreme Boss & Creator of Krims Code AI." }
+  ],
+  // Krims Code AI HQ
+  '1561174283294609479': [
+    { key: 'server_identity', value: "Krims Code AI Official Headquarters — Central hub for AI development, Discord bot fleet, coding, and multi-bot network." },
+    { key: 'founder_and_boss', value: "Krylo (krylo_plays / KryloMCYT, Discord ID: 1414143825538191373) is the Founder, Mastermind, and Supreme Creator of Krims Code AI." }
+  ],
   // The Light Bearers (formerly The Half Life's) Elite SMP Guild Server
   '1557852594242719775': [
     { key: 'team_identity', value: 'The Light Bearers (TLB) — Noble Minecraft SMP guild dedicated to being a light in the dark, building underground sanctuaries, defending members against griefers, and trading resources as a united team.' },

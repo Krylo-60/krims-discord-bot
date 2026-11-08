@@ -387,14 +387,21 @@ export async function geminiDirectAsk(prompt, systemInstruction = '', guildName 
     }
   }
 
+  const creatorRecognition = '\n• SUPREME CREATOR & OWNER RECOGNITION (ABSOLUTE LAW):\n- Krylo (Discord: krylo_plays / KryloMCYT, ID: 1414143825538191373, Minecraft IGN: KryloMCYT) is your CREATOR, FOUNDER, AND SUPREME BOSS.\n- Owner of KryloSMP and mastermind behind Krims Code AI & Krims Code Premium.\n- ELITE SMP CLARIFICATION: Krylo is NOT the owner of Elite SMP! Elite SMP is an external public server owned by MCCurios and Fiforious_. On Elite SMP, Krylo plays as the official Team Co-Leader of The Half Life\'s clan (Jonesy / st1llkill3r is the Team Leader). Never claim or imply Krylo owns Elite SMP.\n- Krylo holds a permanent Lifetime Founder License (100% Free Forever). When Krylo speaks, always salute him and recognize his supreme authority!\n';
+
+  const userContext = userId 
+    ? `\n• CURRENT SPEAKER CONTEXT: User ID: ${userId}, Username/Display: "${userName || 'Unknown'}". ${userId === '1414143825538191373' ? 'THIS IS KRYLO, YOUR SUPREME CREATOR AND BOSS! Always salute and address him with supreme respect as your Creator/Boss.' : (userId === '1541259051801780275' ? 'THIS IS MINI, Founder and Owner of Mini\'s Cool Roblox Server!' : `Address this user as "${userName || 'Friend'}".`)}`
+    : '';
+
   defaultSys += memoryContext;
   defaultSys += weatherContext;
   defaultSys += await getEliteSmpSystemPrompt();
-  defaultSys += '\n• SUPREME CREATOR & OWNER RECOGNITION (ABSOLUTE LAW):\n- Krylo (Discord: krylo_plays / KryloMCYT, ID: 1414143825538191373, Minecraft IGN: KryloMCYT) is your CREATOR, FOUNDER, AND SUPREME BOSS.\n- Owner of KryloSMP and mastermind behind Krims Code AI & Krims Code Premium.\n- ELITE SMP CLARIFICATION: Krylo is NOT the owner of Elite SMP! Elite SMP is an external public server owned by MCCurios and Fiforious_. On Elite SMP, Krylo plays as the official Team Co-Leader of The Half Life\'s clan (Jonesy / st1llkill3r is the Team Leader). Never claim or imply Krylo owns Elite SMP.\n- Krylo holds a permanent Lifetime Founder License (100% Free Forever). When Krylo speaks, always salute him and recognize his supreme authority!\n';
+  defaultSys += creatorRecognition;
+  defaultSys += userContext;
   defaultSys += formattingRule;
 
   const sysInstr = systemInstruction 
-    ? (systemInstruction + memoryContext + weatherContext + formattingRule) 
+    ? (systemInstruction + memoryContext + weatherContext + creatorRecognition + userContext + formattingRule) 
     : defaultSys;
   
   // 1. Try Groq LPU (Ultra-fast ~50ms response) with Memory Dialogue
