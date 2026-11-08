@@ -351,6 +351,24 @@ export class MultiBotManager {
     client.on('messageCreate', async (message) => {
       if (!message.guild || message.author.bot) return;
 
+      // 🛑 Anti-Scam Guard: Intercept Developer Role Requests in Regular Support Tickets
+      if (message.channel?.name && message.channel.name.startsWith('ticket-')) {
+        const isAskingForDev = /\b(give me dev|i want dev|make me dev|can i be dev|apply for dev|be a developer|want to code|hire me as dev|dev role|developer role|can i have dev|wanna be dev|give dev|let me code|can i help code)\b/i.test(message.content);
+        if (isAskingForDev) {
+          const openTicketCh = message.guild.channels.cache.find(c => c.name.includes('open-a-ticket'));
+          const chMention = openTicketCh ? `<#${openTicketCh.id}>` : 'the ticket channel';
+          return message.reply({
+            content: 
+              `🛑 **DEVELOPER INQUIRIES ARE NOT ALLOWED IN SUPPORT TICKETS!**\n\n` +
+              `<@${message.author.id}>, to protect our community and codebase from scams, **developer roles are never granted through general support tickets**.\n\n` +
+              `👉 **To apply for Developer:**\n` +
+              `1. Click **[🔒 Close Ticket]** above to close this ticket.\n` +
+              `2. Head to ${chMention} and click **[💻 Apply for Developer]**.\n` +
+              `3. Link your verified **GitHub / Vercel / Render** profile with your notable repositories so our Lead Developers can inspect your real projects!`
+          });
+        }
+      }
+
       // Only respond to messages in the registered guild (or all if multi-server/global)
       if (guildId && guildId !== 'global' && !guildId.startsWith('global_') && message.guild.id !== guildId) return;
 
@@ -586,7 +604,14 @@ export class MultiBotManager {
 
     // 2. Interaction Event Listener (Commands like /about and /getbot)
     client.on('interactionCreate', async (interaction) => {
-      if (interaction.isButton() && (interaction.customId.startsWith('welcome_') || interaction.customId.startsWith('tickets_') || interaction.customId.startsWith('ticket_') || interaction.customId === 'open_ticket' || interaction.customId.startsWith('role_'))) {
+      if ((interaction.isButton() || interaction.isModalSubmit()) && (
+        interaction.customId.startsWith('welcome_') || 
+        interaction.customId.startsWith('tickets_') || 
+        interaction.customId.startsWith('ticket_') || 
+        interaction.customId === 'open_ticket' || 
+        interaction.customId.startsWith('role_') ||
+        interaction.customId === 'modal_dev_ticket'
+      )) {
         const handled = await handleWelcomeTicketInteraction(interaction);
         if (handled) return;
       }

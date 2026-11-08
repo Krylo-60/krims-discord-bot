@@ -3,6 +3,9 @@ import {
   ActionRowBuilder, 
   ButtonBuilder, 
   ButtonStyle, 
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
   ChannelType, 
   PermissionFlagsBits 
 } from 'discord.js';
@@ -168,8 +171,228 @@ export async function handleSetTicketsCommand(message, args) {
 // 3. 🚀 Handle Universal Welcome & Ticket Button Interactions
 // ═════════════════════════════════════════════════════════════════════════════
 export async function handleWelcomeTicketInteraction(interaction) {
-  if (!interaction.isButton()) return false;
+  if (!interaction.isButton() && !interaction.isModalSubmit()) return false;
   const customId = interaction.customId;
+
+  // 0. 💻 Show Developer Verification Modal
+  if (customId === 'ticket_create_dev_modal' || customId === 'ticket_create_dev') {
+    const modal = new ModalBuilder()
+      .setCustomId('modal_dev_ticket')
+      .setTitle('💻 Krims Code • Developer Verification');
+
+    const githubInput = new TextInputBuilder()
+      .setCustomId('dev_github')
+      .setLabel('GitHub / Vercel / Render Profile Link')
+      .setPlaceholder('https://github.com/your-username or Vercel / Render link')
+      .setStyle(TextInputStyle.Short)
+      .setMinLength(4)
+      .setMaxLength(150)
+      .setRequired(true);
+
+    const reposInput = new TextInputBuilder()
+      .setCustomId('dev_repos')
+      .setLabel('Notable Repositories & Real Projects')
+      .setPlaceholder('List 1-3 repositories or apps you built with links & descriptions...')
+      .setStyle(TextInputStyle.Paragraph)
+      .setMinLength(10)
+      .setMaxLength(1000)
+      .setRequired(true);
+
+    const stackInput = new TextInputBuilder()
+      .setCustomId('dev_stack')
+      .setLabel('Primary Tech Stack & Languages')
+      .setPlaceholder('e.g. Node.js, discord.js, TypeScript, React, Python, Luau')
+      .setStyle(TextInputStyle.Short)
+      .setMinLength(2)
+      .setMaxLength(100)
+      .setRequired(true);
+
+    const goalsInput = new TextInputBuilder()
+      .setCustomId('dev_goals')
+      .setLabel('What do you want to build for Krims Code?')
+      .setPlaceholder('Describe the features, commands, or systems you want to build...')
+      .setStyle(TextInputStyle.Paragraph)
+      .setMinLength(10)
+      .setMaxLength(1000)
+      .setRequired(true);
+
+    modal.addComponents(
+      new ActionRowBuilder().addComponents(githubInput),
+      new ActionRowBuilder().addComponents(reposInput),
+      new ActionRowBuilder().addComponents(stackInput),
+      new ActionRowBuilder().addComponents(goalsInput)
+    );
+
+    return await interaction.showModal(modal);
+  }
+
+  // 0B. 💻 Handle Developer Verification Modal Submission
+  if (interaction.isModalSubmit() && interaction.customId === 'modal_dev_ticket') {
+    await interaction.deferReply({ ephemeral: true });
+
+    const guild = interaction.guild;
+    const user = interaction.user;
+    const cleanName = user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20) || 'user';
+    const targetChannelName = `dev-ticket-${cleanName}`;
+
+    // Check if user already has an active dev ticket
+    const existingTicket = guild.channels.cache.find(c => 
+      c.type === ChannelType.GuildText && 
+      (c.name === targetChannelName || (c.name.startsWith('dev-ticket-') && c.topic?.includes(user.id)))
+    );
+
+    if (existingTicket) {
+      return interaction.followUp({
+        content: `⚠️ You already have an open Developer Ticket! Please head over to <#${existingTicket.id}>.`,
+        ephemeral: true
+      });
+    }
+
+    const githubLink = interaction.fields.getTextInputValue('dev_github').trim();
+    const repos = interaction.fields.getTextInputValue('dev_repos').trim();
+    const stack = interaction.fields.getTextInputValue('dev_stack').trim();
+    const goals = interaction.fields.getTextInputValue('dev_goals').trim();
+
+    // Query GitHub API to verify profile if a GitHub URL/username was provided
+    let ghProfile = null;
+    const ghMatch = githubLink.match(/github\.com\/([a-zA-Z0-9-_]+)/i) || (!githubLink.includes('http') && githubLink.match(/^([a-zA-Z0-9-_]+)$/));
+    if (ghMatch && ghMatch[1]) {
+      const username = ghMatch[1];
+      try {
+        const ghRes = await fetch(`https://api.github.com/users/${username}`, {
+          headers: { 'User-Agent': 'KrimsCodeBot/6.0 (DiscordBot)' },
+          signal: AbortSignal.timeout(4000)
+        });
+        if (ghRes.ok) {
+          ghProfile = await ghRes.json();
+        }
+      } catch (_) {}
+    }
+
+    // Find ticket category (🎫 ・SUPPORT)
+    const category = guild.channels.cache.find(c => 
+      c.type === ChannelType.GuildCategory && 
+      (c.name.includes('SUPPORT') || c.name.includes('TICKET') || c.name.includes('Support'))
+    ) || null;
+
+    // Identify staff roles
+    const staffRoles = guild.roles.cache.filter(r => {
+      const n = r.name.normalize('NFKD').toLowerCase();
+      return r.permissions.has(PermissionFlagsBits.Administrator) ||
+        r.permissions.has(PermissionFlagsBits.ManageGuild) ||
+        n.includes('founder') || n.includes('lead') || n.includes('developer') || n.includes('admin') || n.includes('staff');
+    });
+
+    const permissionOverwrites = [
+      {
+        id: guild.roles.everyone.id,
+        deny: [PermissionFlagsBits.ViewChannel]
+      },
+      {
+        id: user.id,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.AttachFiles,
+          PermissionFlagsBits.EmbedLinks,
+          PermissionFlagsBits.ReadMessageHistory
+        ]
+      },
+      {
+        id: interaction.client.user.id,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.ManageChannels,
+          PermissionFlagsBits.EmbedLinks
+        ]
+      },
+      // Krylo Founder explicit access
+      {
+        id: '1414143825538191373',
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.AttachFiles,
+          PermissionFlagsBits.EmbedLinks,
+          PermissionFlagsBits.ReadMessageHistory
+        ]
+      }
+    ];
+
+    staffRoles.forEach(r => {
+      permissionOverwrites.push({
+        id: r.id,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.AttachFiles,
+          PermissionFlagsBits.EmbedLinks,
+          PermissionFlagsBits.ReadMessageHistory
+        ]
+      });
+    });
+
+    try {
+      const ticketChannel = await guild.channels.create({
+        name: targetChannelName,
+        type: ChannelType.GuildText,
+        parent: category?.id || null,
+        topic: `Verified Developer Ticket for @${user.tag} (ID: ${user.id}) | Portfolio: ${githubLink}`,
+        permissionOverwrites
+      });
+
+      const devEmbed = new EmbedBuilder()
+        .setColor(0x00E5FF)
+        .setTitle('💻 Krims Code AI • Verified Developer Application')
+        .setDescription(
+          `Welcome <@${user.id}> to your **Developer Verification Ticket**!\n\n` +
+          `Your portfolio and notable repositories have been submitted to **Founder & Lead Developer Krylo** (<@1414143825538191373>) and Senior Engineering Staff.\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `### 📁 APPLICANT DOSSIER\n` +
+          `• 👤 **Applicant:** <@${user.id}> (\`${user.tag}\`)\n` +
+          `• 🔗 **Portfolio / Profile:** ${githubLink.startsWith('http') ? `[${githubLink}](${githubLink})` : `\`${githubLink}\``}\n` +
+          (ghProfile ? `• 🐙 **GitHub Verification:** ✅ Valid Profile (\`${ghProfile.login}\`)\n  • **Public Repos:** \`${ghProfile.public_repos}\` | **Followers:** \`${ghProfile.followers}\`\n  • **Account Created:** \`${new Date(ghProfile.created_at).toLocaleDateString()}\`\n` : `• 🌐 **Platform:** External Portfolio / Vercel / Render / Git\n`) +
+          `• ⚡ **Primary Tech Stack:** \`${stack}\`\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `### 📦 NOTABLE REPOSITORIES & PROJECTS:\n` +
+          `${repos}\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `### 🎯 DEVELOPMENT INTENT & GOALS:\n` +
+          `${goals}\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `🛡️ **ANTI-SCAM PROTOCOL:**\n` +
+          `*All submitted code repositories are strictly audited before any developer roles or repository access are granted. Anyone attempting to submit malicious, stolen, or obfuscated code will be permanently banned and blacklisted across the entire Krims ecosystem.*`
+        )
+        .setThumbnail(ghProfile?.avatar_url || user.displayAvatarURL({ dynamic: true, size: 256 }))
+        .setFooter({ text: 'Krims Code Engineering Core • Click Close Ticket when reviewed.' })
+        .setTimestamp();
+
+      const actionRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`ticket_close_${user.id}`)
+          .setLabel('🔒 Close Ticket')
+          .setStyle(ButtonStyle.Danger)
+      );
+
+      await ticketChannel.send({
+        content: `👋 Verified Developer Ticket opened for <@${user.id}>! Lead Dev <@1414143825538191373> has been alerted.`,
+        embeds: [devEmbed],
+        components: [actionRow]
+      });
+
+      return interaction.followUp({
+        content: `✅ **Developer Verification Ticket Created!** Please go to <#${ticketChannel.id}> — our Lead Devs will review your repositories shortly.`,
+        ephemeral: true
+      });
+    } catch (err) {
+      console.error('[Dev Ticket Create Error]', err);
+      return interaction.followUp({
+        content: `❌ Could not create developer ticket channel: ${err.message}`,
+        ephemeral: true
+      });
+    }
+  }
 
   // A. Create #welcome channel
   if (customId.startsWith('welcome_create_')) {
@@ -401,6 +624,8 @@ export async function handleWelcomeTicketInteraction(interaction) {
             `• 🚨 **Player Report:** Provide screenshots & username\n` +
             `• ❓ **Help / Question:** Give details on what you need help with\n` +
             `• 💡 **Suggestion / Partnership:** Explain your idea\n\n` +
+            `⛔ **DEVELOPER & CODING ROLES NOTICE:**\n` +
+            `*Do NOT ask for developer roles or permissions in this ticket! Developer access is strictly restricted to verified contributors with verifiable portfolios. To apply for Developer, you MUST close this ticket and open a verified **💻 Apply for Developer** ticket in the ticket channel with your GitHub/Vercel/Render profile.*\n\n` +
             `*Our server staff and moderators have been pinged and will assist you shortly!* ⚡`
           )
           .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 256 }))
@@ -439,6 +664,7 @@ export async function handleWelcomeTicketInteraction(interaction) {
     const isStaffOrOpener = interaction.channel.name.startsWith('ticket-') ||
       interaction.channel.name.startsWith('staff-app-') ||
       interaction.channel.name.startsWith('mod-app-') ||
+      interaction.channel.name.startsWith('dev-ticket-') ||
       interaction.channel.topic?.includes(interaction.user.id) ||
       interaction.member.permissions.has(PermissionFlagsBits.ManageChannels);
 

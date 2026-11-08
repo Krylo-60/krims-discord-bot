@@ -1878,7 +1878,7 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   // 💎 Handle Krims Code Alpha Sneak Peek Button Interactions (Zero commands needed)
-  if (interaction.isButton() && (interaction.customId.startsWith('welcome_') || interaction.customId.startsWith('tickets_') || interaction.customId.startsWith('ticket_') || interaction.customId === 'open_ticket' || interaction.customId.startsWith('role_'))) {
+  if ((interaction.isButton() || interaction.isModalSubmit()) && (interaction.customId.startsWith('welcome_') || interaction.customId.startsWith('tickets_') || interaction.customId.startsWith('ticket_') || interaction.customId === 'open_ticket' || interaction.customId.startsWith('role_') || interaction.customId === 'modal_dev_ticket')) {
     const handled = await handleWelcomeTicketInteraction(interaction);
     if (handled) return;
   }
@@ -8422,6 +8422,24 @@ client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   const content = (message.content || '').trim();
   const lowerMsg = content.toLowerCase();
+  // 🛑 Anti-Scam Guard: Intercept Developer Role Requests in Regular Support Tickets
+  if (message.guild && message.channel?.name && message.channel.name.startsWith('ticket-')) {
+    const isAskingForDev = /\b(give me dev|i want dev|make me dev|can i be dev|apply for dev|be a developer|want to code|hire me as dev|dev role|developer role|can i have dev|wanna be dev|give dev|let me code|can i help code)\b/i.test(message.content);
+    if (isAskingForDev) {
+      const openTicketCh = message.guild.channels.cache.find(c => c.name.includes('open-a-ticket'));
+      const chMention = openTicketCh ? `<#${openTicketCh.id}>` : 'the ticket station';
+      return message.reply({
+        content: 
+          `🛑 **DEVELOPER INQUIRIES ARE NOT ALLOWED IN SUPPORT TICKETS!**\n\n` +
+          `<@${message.author.id}>, to protect our community and codebase from scams, **developer roles are never granted through general support tickets**.\n\n` +
+          `👉 **To apply for Developer:**\n` +
+          `1. Click **[🔒 Close Ticket]** above to close this ticket.\n` +
+          `2. Head to ${chMention} and click **[💻 Apply for Developer]**.\n` +
+          `3. Link your verified **GitHub / Vercel / Render** profile with your notable repositories so our Lead Developers can inspect your real projects!`
+      });
+    }
+  }
+
 
   // 🛡️ Anti-Spam & Rapid Flood Protection Shield
   if (message.guild && !message.author.bot) {
