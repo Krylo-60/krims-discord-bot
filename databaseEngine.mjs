@@ -221,7 +221,7 @@ export function waitForNeonSync() {
   return neonSyncPromise || Promise.resolve();
 }
 
-export { db, neonPool };
+export { neonPool };
 
 // ═══════════════════════════════════════════════════════════
 // 🏛️ TABLE INITIALIZATION SCHEMA
