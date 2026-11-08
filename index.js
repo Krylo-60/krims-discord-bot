@@ -797,27 +797,73 @@ async function createBulletproofTicketChannel(guild, { name, parentId = null, to
     }
   }
 
-  // 4. Verification: If channel object is incomplete or missing send method, fetch directly
-  if (channel && channel.id && typeof channel.send !== 'function') {
-    channel = await client.channels.fetch(channel.id).catch(() => null);
+  // 4. Verification: If channel was created, preserve reference and enhance send if needed
+  if (channel && channel.id) {
+    if (typeof channel.send !== 'function') {
+      const fetched = await client.channels.fetch(channel.id).catch(() => null);
+      if (fetched && typeof fetched.send === 'function') {
+        channel = fetched;
+      }
+    }
+    // Guarantee overwrites applied
+    if (permissionOverwrites && permissionOverwrites.length > 0 && channel.permissionOverwrites) {
+      await channel.permissionOverwrites.set(permissionOverwrites).catch(() => {});
+    }
+    return channel;
   }
 
   // 5. Final fallback scan: Search guild channels cache
-  if (!channel) {
-    await guild.channels.fetch().catch(() => {});
-    channel = guild.channels.cache.find(c => c && c.name.toLowerCase() === name.toLowerCase());
+  await guild.channels.fetch().catch(() => {});
+  const cachedMatch = guild.channels.cache.find(c => c && c.name && c.name.toLowerCase() === name.toLowerCase());
+  if (cachedMatch && cachedMatch.id) {
+    if (permissionOverwrites && permissionOverwrites.length > 0 && cachedMatch.permissionOverwrites) {
+      await cachedMatch.permissionOverwrites.set(permissionOverwrites).catch(() => {});
+    }
+    return cachedMatch;
   }
 
-  if (!channel) {
-    throw new Error(lastError ? lastError.message : 'Ticket channel creation failed to resolve a valid channel.');
+  const detailedError = (lastError && lastError.message) 
+    ? lastError.message 
+    : (lastError ? String(lastError) : 'Discord channel creation was not confirmed by the API. Please ensure the bot has Manage Channels and Administrator permissions.');
+  throw new Error(detailedError);
+}
+
+/**
+ * 📨 Bulletproof Channel Sender
+ * Delivers messages via channel object, cache, fetch, or direct Discord REST API
+ */
+async function safeSendToTicketChannel(targetChannel, payload) {
+  if (!targetChannel) throw new Error('Target channel is undefined.');
+
+  if (typeof targetChannel.send === 'function') {
+    try {
+      return await targetChannel.send(payload);
+    } catch (sendErr) {
+      console.warn('[safeSend] Primary send failed:', sendErr.message);
+    }
   }
 
-  // 6. Guarantee overwrites applied
-  if (permissionOverwrites && permissionOverwrites.length > 0 && channel.permissionOverwrites) {
-    await channel.permissionOverwrites.set(permissionOverwrites).catch(() => {});
+  const channelId = targetChannel.id || targetChannel;
+  if (!channelId) throw new Error('Channel ID could not be resolved for messaging.');
+
+  // Try fetching from client channels
+  const fetched = await client.channels.fetch(channelId).catch(() => null);
+  if (fetched && typeof fetched.send === 'function') {
+    try {
+      return await fetched.send(payload);
+    } catch (fetchSendErr) {
+      console.warn('[safeSend] Fetched send failed:', fetchSendErr.message);
+    }
   }
 
-  return channel;
+  // Fallback to direct Discord REST API
+  try {
+    const { Routes } = await import('discord.js');
+    return await client.rest.post(Routes.channelMessages(channelId), { body: payload });
+  } catch (restErr) {
+    console.error('[safeSend] REST send failed:', restErr.message);
+    throw restErr;
+  }
 }
 
 /**
@@ -4170,7 +4216,7 @@ client.on('interactionCreate', async (interaction) => {
       );
 
       const permissionOverwrites = [
-        { id: guild.roles.everyone.id, type: OverwriteType.Role, deny: [PermissionFlagsBits.ViewChannel] },
+        { id: (guild.roles.everyone?.id || guild.id), type: OverwriteType.Role, deny: [PermissionFlagsBits.ViewChannel] },
         { id: interaction.user.id, type: OverwriteType.Member, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles] },
         { id: client.user.id, type: OverwriteType.Member, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels] }
       ];
@@ -4230,7 +4276,7 @@ client.on('interactionCreate', async (interaction) => {
           ? `🚨 **URGENT BASE SECURITY ALERT!**\n${pingsToMention}`
           : `📬 **New Clan Ticket Dispatch**\n${pingsToMention}`;
 
-        await readyChannel.send({ content: pingHeader, embeds: [ticketGreeting], components: [closeRow] });
+        await safeSendToTicketChannel(readyChannel, { content: pingHeader, embeds: [ticketGreeting], components: [closeRow] });
         triggerTicketAIInstantResponse(readyChannel, { user: interaction.user, subject, details, guild }).catch(() => {});
 
         return await interaction.editReply({ content: `✅ **Clan ticket created!** Head over to <#${readyChannel.id}>.` });
@@ -4312,7 +4358,7 @@ client.on('interactionCreate', async (interaction) => {
       );
 
       const permissionOverwrites = [
-        { id: guild.roles.everyone.id, type: OverwriteType.Role, deny: [PermissionFlagsBits.ViewChannel] },
+        { id: (guild.roles.everyone?.id || guild.id), type: OverwriteType.Role, deny: [PermissionFlagsBits.ViewChannel] },
         { id: interaction.user.id, type: OverwriteType.Member, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.AttachFiles] },
         { id: client.user.id, type: OverwriteType.Member, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels] }
       ];
@@ -4359,7 +4405,7 @@ client.on('interactionCreate', async (interaction) => {
           .setTimestamp();
 
         const pingMessage = `${staffPings.join(' ')} <@${interaction.user.id}>`;
-        await readyChannel.send({ content: pingMessage, embeds: [ticketGreeting], components: [closeRow] });
+        await safeSendToTicketChannel(readyChannel, { content: pingMessage, embeds: [ticketGreeting], components: [closeRow] });
         triggerTicketAIInstantResponse(readyChannel, { user: interaction.user, subject, details, guild }).catch(() => {});
 
         return await interaction.editReply({ content: `✅ **Ticket created!** Head over to <#${readyChannel.id}>.` });
