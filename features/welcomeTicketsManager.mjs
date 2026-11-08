@@ -562,22 +562,28 @@ export async function handleWelcomeTicketInteraction(interaction) {
       .setTitle(`🔒 GITHUB OWNERSHIP AUTHORIZATION REQUIRED`)
       .setDescription(
         `Hey <@${user.id}>! To protect the Krims Code ecosystem and ensure **nobody uses another developer's GitHub account**, you must prove you own **[@${ghUsername}](https://github.com/${ghUsername})** before your ticket is opened.\n\n` +
-        `👉 **HOW TO PROVE OWNERSHIP (Takes 15 seconds):**\n` +
+        `👉 **METHOD 1 (Fastest — 1-Click Authorize on Vercel):**\n` +
+        `Click **[⚡ 1-Click Authorize with GitHub]** below to authenticate directly via GitHub OAuth!\n\n` +
+        `👉 **METHOD 2 (Bio Challenge — 15 seconds):**\n` +
         `1. Open **[GitHub Profile Settings](https://github.com/settings/profile)**\n` +
-        `2. Temporarily paste this verification code into your **GitHub Bio**:\n` +
+        `2. Paste this code into your **GitHub Bio**:\n` +
         `\`\`\`\n${verifyCode}\n\`\`\`\n` +
-        `*(Or create a public [GitHub Gist](https://gist.github.com) titled \`krims-verify.txt\` containing this code)*\n\n` +
-        `3. Click **[✅ Verify Ownership & Open Ticket]** below!\n\n` +
+        `*(Or create a public [GitHub Gist](https://gist.github.com) titled \`krims-verify.txt\` containing this code)*\n` +
+        `3. Click **[✅ Verify via Bio Code]** below!\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `✨ *Once verified, your GitHub is permanently linked to your Discord profile and your ticket will open immediately! You can remove the code from your bio as soon as verification completes.*`
+        `✨ *Once verified, your GitHub is permanently linked to your Discord profile and your ticket will open immediately!*`
       )
       .setThumbnail(ghProfile?.avatar_url || 'https://krims-bot-dashboard.vercel.app/logo.png')
-      .setFooter({ text: 'Krims Code AI • Anti-Impostor Verification Protocol' });
+      .setFooter({ text: 'Krims Code AI • Vercel OAuth & Anti-Impostor Protocol' });
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
+        .setLabel('⚡ 1-Click Authorize (Vercel)')
+        .setStyle(ButtonStyle.Link)
+        .setURL(`https://krims-bot-dashboard.vercel.app/api/auth/github?discord_id=${user.id}`),
+      new ButtonBuilder()
         .setCustomId(`dev_github_confirm_${ghUsername}`)
-        .setLabel('✅ Verify Ownership & Open Ticket')
+        .setLabel('✅ Verify via Bio Code')
         .setStyle(ButtonStyle.Success),
       new ButtonBuilder()
         .setLabel('⚙️ Edit GitHub Bio')

@@ -12915,6 +12915,33 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // 1B. POST /api/internal/verify-github (Sync from Vercel GitHub OAuth Callback)
+  if (url.pathname === '/api/internal/verify-github' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const { discord_id, github_username, verification_method } = payload;
+        if (!discord_id || !github_username) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ ok: false, error: 'Missing discord_id or github_username' }));
+        }
+
+        const { saveVerifiedGitHub } = await import('./databaseEngine.mjs');
+        saveVerifiedGitHub(discord_id, github_username, verification_method || 'GitHub OAuth (Vercel)');
+        console.log(`[GitHub OAuth] 🚀 Successfully synced verified user @${github_username} for Discord ${discord_id} via Vercel!`);
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ ok: true, github_username, discord_id }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ ok: false, error: err.message }));
+      }
+    });
+    return;
+  }
+
   // 2. POST /api/custom-bot/auth (Login & First-time Password Setup)
   if (url.pathname === '/api/custom-bot/auth' && req.method === 'POST') {
     let body = '';
