@@ -1270,7 +1270,7 @@ client.once('ready', async () => {
 
   try {
     checkAndTriggerGABroadcast(client);
-    setInterval(() => checkAndTriggerGABroadcast(client), 60 * 1000);
+    setInterval(() => checkAndTriggerGABroadcast(client), 60 * 1000);
   } catch (gaErr) {
     console.warn('[TimeGatedRelease] Engine notice:', gaErr.message);
   }
@@ -2891,7 +2891,13 @@ client.on('interactionCreate', async (interaction) => {
     // --- Self-Assign Notification and Community Roles ---
     if (customId.startsWith('selfrole_')) {
       const selfRoleMap = {
-        selfrole_announcement: { name: '📢 Announcements', ping: true },
+        selfrole_bot_dev: { id: '1561181304115044424', name: '💻 Bot Developer', free: true },
+        selfrole_admin: { id: '1561181303078916166', name: '🤖 Community Admin' },
+        selfrole_smp: { id: '1561181301292277791', name: '🎮 SMP / Minecraft Owner' },
+        selfrole_updates: { id: '1561181297899081758', name: '📢 Bot Updates & Drops', ping: true },
+        selfrole_announcement: { id: '1561181297899081758', name: '📢 Bot Updates & Drops', ping: true },
+        selfrole_beta: { id: '1561181299010568194', name: '🚀 Beta Announcements', ping: true },
+        selfrole_uptime: { id: '1561181300109484052', name: '🌐 Uptime & Maintenance Alerts', ping: true },
         selfrole_giveaway: { name: '🎁 Giveaways', ping: true },
         selfrole_event: { name: '🎪 Events', ping: true },
         selfrole_builder: { name: '🏰 Builder', ping: false },
@@ -2899,9 +2905,19 @@ client.on('interactionCreate', async (interaction) => {
       };
       const roleInfo = selfRoleMap[customId];
       if (roleInfo) {
-        let role = interaction.guild.roles.cache.find(r => r.name.toLowerCase().includes(roleInfo.name.toLowerCase().replace(/[^a-z]/gi, '')));
+        let role = null;
+        if (roleInfo.id) {
+          role = interaction.guild.roles.cache.get(roleInfo.id);
+        }
         if (!role) {
-          role = await interaction.guild.roles.create({ name: roleInfo.name, mentionable: roleInfo.ping }).catch(() => null);
+          role = interaction.guild.roles.cache.find(r => 
+            r.name.toLowerCase() === roleInfo.name.toLowerCase() ||
+            r.name.toLowerCase().includes(roleInfo.name.toLowerCase().replace(/[^a-z]/gi, '')) ||
+            (roleInfo.free && r.name.toLowerCase().includes('bot developer'))
+          );
+        }
+        if (!role && !roleInfo.id) {
+          role = await interaction.guild.roles.create({ name: roleInfo.name, mentionable: !!roleInfo.ping }).catch(() => null);
         }
         if (role) {
           if (interaction.member.roles.cache.has(role.id)) {
@@ -2909,7 +2925,57 @@ client.on('interactionCreate', async (interaction) => {
             return interaction.reply({ content: `➖ **Role Removed!** You no longer have the **${role.name}** role.`, flags: 64 });
           } else {
             await interaction.member.roles.add(role).catch(() => {});
-            return interaction.reply({ content: `➕ **Role Added!** You now have the **${role.name}** role!`, flags: 64 });
+            const welcomeExtra = roleInfo.free ? `\n💻 *You now have developer & bot integrator access across the Krims ecosystem for 100% free!*` : '';
+            return interaction.reply({ content: `🎉 **Role Claimed!** You now have the **${role.name}** role!${welcomeExtra}`, flags: 64 });
+          }
+        }
+      }
+    }
+
+    // --- Self-Assign Chat Accent Color Roles ---
+    if (customId.startsWith('colorrole_')) {
+      const colorMap = {
+        colorrole_cyan: { id: '1561181305264410716', name: '⚡ Electric Cyan' },
+        colorrole_purple: { id: '1561181305931178210', name: '🟣 Mystic Purple' },
+        colorrole_gold: { id: '1561181307243991073', name: '🟡 Neon Gold' },
+        colorrole_red: { id: '1561181308292563097', name: '🔴 Crimson Red' },
+        colorrole_green: { id: '1561181309890732163', name: '🟢 Emerald Green' },
+        colorrole_pink: { id: '1561181311044026458', name: '🌸 Hot Pink' },
+        colorrole_white: { id: '1561181312176365701', name: '🤍 Ghost White' }
+      };
+      
+      const allColorIds = [
+        '1561181305264410716', '1561181305931178210', '1561181307243991073',
+        '1561181308292563097', '1561181309890732163', '1561181311044026458',
+        '1561181312176365701',
+        '1559251872080994395', '1559251873515700226', '1559251875054755960',
+        '1559251876283945042', '1559251877466472479', '1559251878469177517',
+        '1559251880096432209', '1559251881023381714', '1559251881577152635'
+      ];
+      
+      if (customId === 'colorrole_reset') {
+        const toRemove = interaction.member.roles.cache.filter(r => allColorIds.includes(r.id));
+        for (const [rId] of toRemove) {
+          await interaction.member.roles.remove(rId).catch(() => {});
+        }
+        return interaction.reply({ content: `⚪ **Color Reset!** Your username color has been reset to default.`, flags: 64 });
+      }
+
+      const colorInfo = colorMap[customId];
+      if (colorInfo) {
+        let role = interaction.guild.roles.cache.get(colorInfo.id) ||
+                   interaction.guild.roles.cache.find(r => r.name.toLowerCase().includes(colorInfo.name.toLowerCase()));
+        if (role) {
+          const toRemove = interaction.member.roles.cache.filter(r => allColorIds.includes(r.id) && r.id !== role.id);
+          for (const [rId] of toRemove) {
+            await interaction.member.roles.remove(rId).catch(() => {});
+          }
+          if (interaction.member.roles.cache.has(role.id)) {
+            await interaction.member.roles.remove(role).catch(() => {});
+            return interaction.reply({ content: `⚪ **Color Removed!** You removed **${role.name}**.`, flags: 64 });
+          } else {
+            await interaction.member.roles.add(role).catch(() => {});
+            return interaction.reply({ content: `🎨 **Color Equipped!** Your username color is now **${role.name}**!`, flags: 64 });
           }
         }
       }
