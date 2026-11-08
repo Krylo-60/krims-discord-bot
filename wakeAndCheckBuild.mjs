@@ -9,7 +9,7 @@ async function wakeAndCheckBuild() {
 
   try {
     // 1. Wake Render Service
-    const pingRes = await fetch('https://krims-discord-bot.onrender.com');
+    const pingRes = await fetch('https://krims-discord-bot-d57m.onrender.com/api/status');
     console.log(`[+] Render Ping Status: ${pingRes.status}`);
 
     // 2. Fetch Channel info via Discord REST API
