@@ -17,6 +17,12 @@ import {
   PHOENIX_DEN_GUILD_ID,
   BABY_PHOENIX_BOT_ID
 } from './features/babyPhoenixDenEngine.mjs';
+import {
+  handleMiniRobloxServerMessage,
+  checkAndApplyMiniLevelRoles,
+  MINI_ROBLOX_GUILD_ID,
+  MINI_X_BOT_ID
+} from './features/miniRobloxServerEngine.mjs';
 import { Client, GatewayIntentBits, Partials, ActivityType, EmbedBuilder } from 'discord.js';
 import fetch from 'node-fetch';
 import { encryptToken, decryptToken } from './tokenSecurity.mjs';
@@ -351,6 +357,12 @@ export class MultiBotManager {
       const cleanText = message.content.trim().toLowerCase();
 
       // Exclusive: Baby Phoenix Den Engine (Only active for Baby Phoenix in Phoenix Den)
+      // Exclusive: Mini's Cool Roblox Server Engine (Only active for Mini X in Mini's server)
+      if (client.user.id === MINI_X_BOT_ID && message.guild.id === MINI_ROBLOX_GUILD_ID) {
+        const isHandled = await handleMiniRobloxServerMessage(client, message);
+        if (isHandled) return;
+      }
+
       if (client.user.id === BABY_PHOENIX_BOT_ID && message.guild.id === PHOENIX_DEN_GUILD_ID) {
         const isHandled = await handleBabyPhoenixDenMessage(client, message);
         if (isHandled) return;
@@ -367,6 +379,9 @@ export class MultiBotManager {
           const xpResult = addXp(message.author.id, xpEarned, message.guild.id);
           if (xpResult && xpResult.leveledUp && message.guild.id === PHOENIX_DEN_GUILD_ID && message.member) {
             checkAndApplyPhoenixLevelRoles(message.guild, message.member, xpResult.level).catch(() => {});
+          }
+          if (xpResult && xpResult.leveledUp && message.guild.id === MINI_ROBLOX_GUILD_ID && message.member) {
+            checkAndApplyMiniLevelRoles(message.guild, message.member, xpResult.level).catch(() => {});
           }
           if (xpResult && xpResult.leveledUp) {
             // Find all active Krims bots present in this server
