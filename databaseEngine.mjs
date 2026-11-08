@@ -183,6 +183,33 @@ if (neonUrl && neonUrl.startsWith('postgres')) {
           }
           console.log(`[Neon Postgres Engine] 🚀 Synced ${ghRes.rows.length} verified GitHub users to SQLite memory pool!`);
         }).catch(e => console.warn('[Neon GitHub Sync Warning]:', e.message));
+      }).then(() => {
+        // Auto-sync economy records from Neon Postgres into local SQLite memory pool
+        return neonPool.query('SELECT * FROM economy').then(ecoRes => {
+          const upsertEco = db.prepare(`
+            INSERT INTO economy (discord_id, krylocoins, bank, gems, daily_streak, last_daily, last_work)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(discord_id) DO UPDATE SET
+              krylocoins = excluded.krylocoins,
+              bank = excluded.bank,
+              gems = excluded.gems,
+              daily_streak = excluded.daily_streak,
+              last_daily = excluded.last_daily,
+              last_work = excluded.last_work
+          `);
+          for (const r of ecoRes.rows) {
+            upsertEco.run(
+              r.discord_id,
+              Number(r.krylocoins || 0),
+              Number(r.bank || 0),
+              Number(r.gems || 0),
+              Number(r.daily_streak || 0),
+              Number(r.last_daily || 0),
+              Number(r.last_work || 0)
+            );
+          }
+          console.log(`[Neon Postgres Engine] 🚀 Synced ${ecoRes.rows.length} economy records to SQLite memory pool!`);
+        }).catch(e => console.warn('[Neon Economy Sync Warning]:', e.message));
       });
     }).catch(e => console.warn('[Neon Postgres Sync Warning]:', e.message));
   } catch (err) {
@@ -194,7 +221,7 @@ export function waitForNeonSync() {
   return neonSyncPromise || Promise.resolve();
 }
 
-export { neonPool };
+export { db, neonPool };
 
 // ═══════════════════════════════════════════════════════════
 // 🏛️ TABLE INITIALIZATION SCHEMA

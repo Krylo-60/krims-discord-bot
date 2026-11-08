@@ -50,7 +50,7 @@ import { afkUsers, handleMute, handleUnmute, handleKick, handleBan, handleLockdo
 import { handleDevLogsCommand } from './features/devAuditLogger.mjs';
 import { getFalixStatus, sendFalixPowerSignal, sendFalixCommand } from './falixServerEngine.mjs';
 import { deliverStoreItem, STORE_CATALOG } from './storeDeliveryEngine.mjs';
-import { setPlayerVerification, getPlayer, getPlayerByIgn, addCoins, removeCoins, getBalance, claimDaily, transferCoins, getCustomBotById, setCustomBotPassword, updateCustomBotConfig } from './databaseEngine.mjs';
+import { setPlayerVerification, getPlayer, getPlayerByIgn, addCoins, removeCoins, getBalance, claimDaily, transferCoins, getCustomBotById, setCustomBotPassword, updateCustomBotConfig, db } from './databaseEngine.mjs';
 import { hashDashboardPassword, verifyDashboardPassword } from './tokenSecurity.mjs';
 import { aiOperator } from './aiConsoleOperator.mjs';
 import { setupAIConsoleChannel, handleAIConsoleMessage } from './aiConsoleChatHandler.mjs';
