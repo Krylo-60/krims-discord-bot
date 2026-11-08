@@ -93,6 +93,59 @@ export function getProceduralBotFlair(botUser) {
   return { color, prefix, title };
 }
 
+/**
+ * Auto-assigns community ping and member roles to new joins or role claimers.
+ * Specifically configured for Mini X & community servers (Members, Update Ping, Announcements Ping, Role Ping)
+ */
+export async function assignMiniCommunityAutoRoles(member) {
+  if (!member || !member.guild) return [];
+  const guild = member.guild;
+  const rolesToAdd = [];
+
+  const roleKeywords = [
+    { key: 'members', matches: (name) => {
+        const n = name.trim().toLowerCase();
+        return n === 'members' || n === 'member' || (n.includes('member') && !n.includes('bot'));
+      } 
+    },
+    { key: 'update_ping', matches: (name) => {
+        const raw = name;
+        const norm = name.normalize('NFKD').toLowerCase();
+        return raw.includes('𝐔𝐏𝐃𝐀𝐓𝐄') || norm.includes('update ping') || (raw.includes('🔔') && norm.includes('update'));
+      }
+    },
+    { key: 'announcements_ping', matches: (name) => {
+        const raw = name;
+        const norm = name.normalize('NFKD').toLowerCase();
+        return raw.includes('𝑨𝒏𝒏𝒐𝒖𝒏𝒄𝒆𝒎𝒆𝒏𝒕𝒔') || norm.includes('announcement') || (raw.includes('📢') && norm.includes('ping'));
+      }
+    },
+    { key: 'role_ping', matches: (name) => {
+        const raw = name;
+        const norm = name.normalize('NFKD').toLowerCase();
+        return raw.includes('𝐑𝐎𝐋𝐄 𝐏𝐈𝐍𝐆') || (norm.includes('role') && norm.includes('ping')) || (raw.includes('⚡') && norm.includes('role'));
+      }
+    }
+  ];
+
+  for (const rk of roleKeywords) {
+    const role = guild.roles.cache.find(r => rk.matches(r.name));
+    if (role && !member.roles.cache.has(role.id) && !rolesToAdd.some(r => r.id === role.id)) {
+      rolesToAdd.push(role);
+    }
+  }
+
+  if (rolesToAdd.length > 0) {
+    try {
+      await member.roles.add(rolesToAdd);
+      console.log(`[Mini AutoRole] ✅ Auto-assigned ${rolesToAdd.length} roles to ${member.user.username} in ${guild.name}: ${rolesToAdd.map(r => r.name).join(', ')}`);
+    } catch (err) {
+      console.warn(`[Mini AutoRole] ⚠️ Failed adding roles to ${member.user.username}:`, err.message);
+    }
+  }
+  return rolesToAdd;
+}
+
 export class MultiBotManager {
   constructor() {
     /** @type {Map<string, Client>} Map<guildId, Client> */
@@ -425,6 +478,29 @@ export class MultiBotManager {
         }
       }
 
+      // B2. Community Auto-Role Claim (!claimroles, !autorole, !roles, or "give me a role")
+      const isRoleRequest = cleanText === '!claimroles' || 
+        cleanText === '!autorole' || 
+        cleanText === '!roles' || 
+        cleanText === `${p}claimroles` || 
+        cleanText === `${p}autorole` ||
+        (message.mentions.users.has(client.user.id) && (cleanText.includes('give me a role') || cleanText.includes('give me role') || cleanText.includes('give role')));
+
+      if (isRoleRequest && message.member) {
+        const added = await assignMiniCommunityAutoRoles(message.member);
+        if (added.length > 0) {
+          return message.reply({
+            content: `⚡ **Roles Assigned!** Granted: ${added.map(r => `\`${r.name}\``).join(', ')} 🎉`,
+            allowedMentions: { repliedUser: false }
+          }).catch(() => {});
+        } else {
+          return message.reply({
+            content: `✅ You already have the community roles (\`Members\`, \`🔔 𓆩・𝐔𝐏𝐃𝐀𝐓𝐄 𝐏𝐈𝐍𝐆\`, \`📢・𝑨𝒏𝒏𝒐𝒖𝒏𝒄𝒆𝒎𝒆𝒏𝒕𝒔 𝑷𝒊𝒏𝒈\`, \`⚡ 𓆩・𝐑𝐎𝐋𝐄 𝐏𝐈𝐍𝐆\`)!`,
+            allowedMentions: { repliedUser: false }
+          }).catch(() => {});
+        }
+      }
+
       // C. Google Gemini AI Chat (Triggered when bot is mentioned or replied to)
       const directMentionRegex = new RegExp(`<@!?${client.user.id}>`);
       const isMentioned = (message.mentions.users.has(client.user.id) || directMentionRegex.test(message.content)) && !message.mentions.everyone;
@@ -527,6 +603,10 @@ export class MultiBotManager {
       try {
         if (!member.guild) return;
         const guild = member.guild;
+
+        // Auto-assign community roles on join (Members, Update Ping, Announcements Ping, Role Ping)
+        const assignedRoles = await assignMiniCommunityAutoRoles(member);
+
         const welcomeChannel = guild.channels.cache.find(c => {
           if (!c.isTextBased()) return false;
           const cleanName = (c.name || '').normalize('NFKD').toLowerCase();
@@ -535,13 +615,19 @@ export class MultiBotManager {
         if (!welcomeChannel) return;
         const isMiniX = client.user.id === '1565848105277067414';
         const botFlair = getProceduralBotFlair(client.user);
+
+        let rolesText = '';
+        if (assignedRoles.length > 0) {
+          rolesText = `\n• 🏷️ **Auto-Roles Assigned:** ${assignedRoles.map(r => `\`${r.name}\``).join(', ')}`;
+        }
+
         const welcomeEmbed = new EmbedBuilder()
           .setColor(isMiniX ? '#00F2FF' : botFlair.color)
           .setTitle(isMiniX ? `⚡ WELCOME TO ${guild.name.toUpperCase()}!` : `👋 Welcome to ${guild.name}!`)
           .setDescription(
             `Hey <@${member.id}>, welcome to **${guild.name}**! 🎮🌊\n\n` +
             `• 📜 **Rules & Trading:** Follow chat rules and trade safely!\n` +
-            `• 📢 **Announcements:** Check announcements for updates & drops!\n` +
+            `• 📢 **Announcements:** Check announcements for updates & drops!${rolesText}\n` +
             `• ⚡ **Member #${guild.memberCount}**\n\n` +
             `*Have fun and enjoy your stay!* ⚔️✨`
           )

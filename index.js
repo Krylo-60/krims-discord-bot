@@ -10120,7 +10120,9 @@ client.on('messageCreate', async (message) => {
       new ButtonBuilder().setLabel("💬 Main Discord").setStyle(ButtonStyle.Link).setURL("https://discord.gg/2hSXQKHvvX")
     );
 
-    const targetCh = message.guild.channels.cache.find(c => c.name.includes('youtube') || c.name.includes('social')) || message.channel;
+    const targetCh = message.guild.channels.cache.find(c => (c.name.includes('memes') || c.name.includes('meme')) && c.isTextBased())
+      || message.guild.channels.cache.find(c => (c.name.includes('youtube') || c.name.includes('social') || c.name.includes('media') || c.name.includes('clips')) && c.isTextBased())
+      || message.channel;
 
     try {
       await message.delete().catch(() => {});
@@ -11295,6 +11297,27 @@ client.on('guildMemberAdd', async (member) => {
       console.warn('[Support Welcome Error]:', err.message);
     }
     return;
+  }
+
+    // Auto-assign requested Community Roles (Members, Update Ping, Announcements Ping, Role Ping)
+  try {
+    const roleKeywords = [
+      (name) => { const n = name.trim().toLowerCase(); return n === 'members' || n === 'member' || (n.includes('member') && !n.includes('bot')); },
+      (name) => { const raw = name; const norm = name.normalize('NFKD').toLowerCase(); return raw.includes('𝐔𝐏𝐃𝐀𝐓𝐄') || norm.includes('update ping') || (raw.includes('🔔') && norm.includes('update')); },
+      (name) => { const raw = name; const norm = name.normalize('NFKD').toLowerCase(); return raw.includes('𝑨𝒏𝒏𝒐𝒖𝒏𝒄𝒆𝒎𝒆𝒏𝒕𝒔') || norm.includes('announcement') || (raw.includes('📢') && norm.includes('ping')); },
+      (name) => { const raw = name; const norm = name.normalize('NFKD').toLowerCase(); return raw.includes('𝐑𝐎𝐋𝐄 𝐏𝐈𝐍𝐆') || (norm.includes('role') && norm.includes('ping')) || (raw.includes('⚡') && norm.includes('role')); }
+    ];
+    const commRoles = [];
+    for (const matchFn of roleKeywords) {
+      const r = member.guild.roles.cache.find(r => matchFn(r.name));
+      if (r && !member.roles.cache.has(r.id) && !commRoles.some(x => x.id === r.id)) commRoles.push(r);
+    }
+    if (commRoles.length > 0) {
+      await member.roles.add(commRoles);
+      console.log(`[AutoRole] Auto-assigned ${commRoles.length} community roles to ${member.user.username} in ${member.guild.name}`);
+    }
+  } catch (err) {
+    console.warn('[AutoRole] Error assigning community roles:', err.message);
   }
 
   // Works across ALL Krylo guilds
@@ -13188,7 +13211,8 @@ async function checkKryloYouTubeUploads() {
               const guild = client.guilds.cache.get(gId);
               if (!guild) continue;
 
-              const targetCh = guild.channels.cache.find(c => c && c.name && (c.name.includes('announcement') || c.name.includes('youtube')) && c.isTextBased());
+              const targetCh = guild.channels.cache.find(c => c && c.name && (c.name.includes('memes') || c.name.includes('meme')) && c.isTextBased())
+                || guild.channels.cache.find(c => c && c.name && (c.name.includes('announcement') || c.name.includes('youtube') || c.name.includes('media') || c.name.includes('clips')) && c.isTextBased());
               if (!targetCh) continue;
 
               const thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
