@@ -11,6 +11,12 @@ import {
   handleComplimentCommand,
   handlePartnersCommand
 } from './features/freeCommandsEngine.mjs';
+import { 
+  handleBabyPhoenixDenMessage, 
+  checkAndApplyPhoenixLevelRoles,
+  PHOENIX_DEN_GUILD_ID,
+  BABY_PHOENIX_BOT_ID
+} from './features/babyPhoenixDenEngine.mjs';
 import { Client, GatewayIntentBits, Partials, ActivityType, EmbedBuilder } from 'discord.js';
 import fetch from 'node-fetch';
 import { encryptToken, decryptToken } from './tokenSecurity.mjs';
@@ -343,6 +349,12 @@ export class MultiBotManager {
       if (guildId && guildId !== 'global' && !guildId.startsWith('global_') && message.guild.id !== guildId) return;
 
       const cleanText = message.content.trim().toLowerCase();
+
+      // Exclusive: Baby Phoenix Den Engine (Only active for Baby Phoenix in Phoenix Den)
+      if (client.user.id === BABY_PHOENIX_BOT_ID && message.guild.id === PHOENIX_DEN_GUILD_ID) {
+        const isHandled = await handleBabyPhoenixDenMessage(client, message);
+        if (isHandled) return;
+      }
       const p = (customPrefix || '!').toLowerCase();
 
       // A. 🧠 1-Mind Krims Leveling XP with Turn-Taking
@@ -353,6 +365,9 @@ export class MultiBotManager {
         try {
           const xpEarned = Math.floor(Math.random() * 10) + 15;
           const xpResult = addXp(message.author.id, xpEarned, message.guild.id);
+          if (xpResult && xpResult.leveledUp && message.guild.id === PHOENIX_DEN_GUILD_ID && message.member) {
+            checkAndApplyPhoenixLevelRoles(message.guild, message.member, xpResult.level).catch(() => {});
+          }
           if (xpResult && xpResult.leveledUp) {
             // Find all active Krims bots present in this server
             const eligibleBots = [];
