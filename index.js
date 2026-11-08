@@ -4274,9 +4274,18 @@ client.on('interactionCreate', async (interaction) => {
       const cleanUsername = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15);
       let ticketChannelName = `${dept.category}-${cleanUsername}`;
 
+      const isBossOrAdmin = interaction.user.id === '1414143825538191373' || 
+        interaction.user.id === guild?.ownerId ||
+        interaction.member?.permissions?.has(PermissionFlagsBits.Administrator);
+
       const existing = guild.channels.cache.find(c => c.name.toLowerCase() === ticketChannelName.toLowerCase());
       if (existing) {
-        return await interaction.editReply({ content: `⚠️ You already have an open ticket in <#${existing.id}>!` });
+        if (isBossOrAdmin) {
+          const tag = Math.floor(100 + Math.random() * 900);
+          ticketChannelName = `${dept.category}-${cleanUsername}-${tag}`;
+        } else {
+          return await interaction.editReply({ content: `⚠️ You already have an open ticket in <#${existing.id}>!` });
+        }
       }
 
       let parentCat = guild.channels.cache.find(c => c.type === ChannelType.GuildCategory && (c.name.includes('SUPPORT') || c.name.includes('TICKETS')));
