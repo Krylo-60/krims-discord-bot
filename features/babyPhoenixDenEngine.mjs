@@ -39,7 +39,7 @@ export function formatDurationHuman(ms) {
  * 6. 🎁 Weekly Giveaways & Monthly Tournaments Helpers
  */
 
-import sqlite3 from 'sqlite3';
+import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } from 'discord.js';
@@ -73,22 +73,21 @@ export const PHOENIX_LEVEL_ROLES = [
 let db;
 function getDb() {
   if (!db) {
-    db = new sqlite3.Database(DB_PATH);
-    db.run(`
+    db = new Database(DB_PATH);
+    db.pragma('journal_mode = WAL');
+    db.exec(`
       CREATE TABLE IF NOT EXISTS phoenix_den_economy (
         user_id TEXT PRIMARY KEY,
         flames INTEGER DEFAULT 0,
         last_daily INTEGER DEFAULT 0,
         streak INTEGER DEFAULT 0
-      )
-    `);
-    db.run(`
+      );
       CREATE TABLE IF NOT EXISTS phoenix_den_activity (
         user_id TEXT,
         week_key TEXT,
         message_count INTEGER DEFAULT 0,
         PRIMARY KEY (user_id, week_key)
-      )
+      );
     `);
   }
   return db;
@@ -103,15 +102,17 @@ function getWeekKey() {
 
 // 1. Record Message Activity for Member of the Week
 export function trackPhoenixDenActivity(userId) {
-  const database = getDb();
-  const weekKey = getWeekKey();
-  database.run(
-    `INSERT INTO phoenix_den_activity (user_id, week_key, message_count) 
-     VALUES (?, ?, 1) 
-     ON CONFLICT(user_id, week_key) DO UPDATE SET message_count = message_count + 1`,
-    [userId, weekKey],
-    () => {}
-  );
+  try {
+    const database = getDb();
+    const weekKey = getWeekKey();
+    database.prepare(`
+      INSERT INTO phoenix_den_activity (user_id, week_key, message_count) 
+      VALUES (?, ?, 1) 
+      ON CONFLICT(user_id, week_key) DO UPDATE SET message_count = message_count + 1
+    `).run(userId, weekKey);
+  } catch (err) {
+    console.error('[PhoenixDen] Error tracking activity:', err.message);
+  }
 }
 
 // 2. Auto-Assign Phoenix Level Role upon level up
@@ -171,81 +172,75 @@ export async function handleBabyPhoenixDenMessage(client, message) {
 
   // Command: !daily (Claim Phoenix Flames)
   if (lower === '!daily' || lower === '!claim') {
-    database.get(`SELECT flames, last_daily, streak FROM phoenix_den_economy WHERE user_id = ?`, [message.author.id], async (err, row) => {
-      const now = Date.now();
-      const oneDay = 24 * 60 * 60 * 1000;
-      const twoDays = 48 * 60 * 60 * 1000;
+    const now = Date.now();
+    const oneDay = 24 * 60 * 60 * 1000;
+    const twoDays = 48 * 60 * 60 * 1000;
 
-      let flames = row ? row.flames : 0;
-      let lastDaily = row ? row.last_daily : 0;
-      let streak = row ? row.streak : 0;
+    let row = database.prepare(`SELECT flames, last_daily, streak FROM phoenix_den_economy WHERE user_id = ?`).get(message.author.id);
+    let flames = row ? row.flames : 0;
+    let lastDaily = row ? row.last_daily : 0;
+    let streak = row ? row.streak : 0;
 
-      if (now - lastDaily < oneDay) {
-        const timeLeft = oneDay - (now - lastDaily);
-        const hours = Math.floor(timeLeft / (60 * 60 * 1000));
-        const mins = Math.floor((timeLeft % (60 * 60 * 1000)) / (60 * 1000));
-        return message.reply(`⏳ You already claimed your daily flames! Come back in **${hours}h ${mins}m**.`);
-      }
+    if (now - lastDaily < oneDay) {
+      const timeLeft = oneDay - (now - lastDaily);
+      const hours = Math.floor(timeLeft / (60 * 60 * 1000));
+      const mins = Math.floor((timeLeft % (60 * 60 * 1000)) / (60 * 1000));
+      return message.reply(`⏳ You already claimed your daily flames! Come back in **${hours}h ${mins}m**.`);
+    }
 
-      // Calculate streak
-      if (now - lastDaily < twoDays) {
-        streak += 1;
-      } else {
-        streak = 1;
-      }
+    // Calculate streak
+    if (now - lastDaily < twoDays) {
+      streak += 1;
+    } else {
+      streak = 1;
+    }
 
-      const baseReward = 500;
-      const streakBonus = Math.min((streak - 1) * 50, 500);
-      const totalReward = baseReward + streakBonus;
-      flames += totalReward;
+    const baseReward = 500;
+    const streakBonus = Math.min((streak - 1) * 50, 500);
+    const totalReward = baseReward + streakBonus;
+    flames += totalReward;
 
-      database.run(
-        `INSERT INTO phoenix_den_economy (user_id, flames, last_daily, streak) 
-         VALUES (?, ?, ?, ?) 
-         ON CONFLICT(user_id) DO UPDATE SET flames = flames + ?, last_daily = ?, streak = ?`,
-        [message.author.id, totalReward, now, streak, totalReward, now, streak],
-        () => {}
-      );
+    database.prepare(`
+      INSERT INTO phoenix_den_economy (user_id, flames, last_daily, streak) 
+      VALUES (?, ?, ?, ?) 
+      ON CONFLICT(user_id) DO UPDATE SET flames = flames + ?, last_daily = ?, streak = ?
+    `).run(message.author.id, totalReward, now, streak, totalReward, now, streak);
 
-      const embed = new EmbedBuilder()
-        .setColor(0xFF6B00)
-        .setTitle('🔥 DAILY PHOENIX FLAMES CLAIMED! 🔥')
-        .setDescription(
-          `You claimed your daily flame shards!\n\n` +
-          `• 🪙 **Base Reward:** +${baseReward} 🔥\n` +
-          `• ⚡ **Streak Bonus (Day ${streak}):** +${streakBonus} 🔥\n` +
-          `• 💰 **Total Earned:** **+${totalReward} 🔥**\n` +
-          `• 💎 **Current Balance:** **${flames.toLocaleString()} 🔥 Flames**`
-        )
-        .setFooter({ text: 'Baby PHOENIX • Phoenix Den Economy' })
-        .setTimestamp();
+    const embed = new EmbedBuilder()
+      .setColor(0xFF6B00)
+      .setTitle('🔥 DAILY PHOENIX FLAMES CLAIMED! 🔥')
+      .setDescription(
+        `You claimed your daily flame shards!\n\n` +
+        `• 🪙 **Base Reward:** +${baseReward} 🔥\n` +
+        `• ⚡ **Streak Bonus (Day ${streak}):** +${streakBonus} 🔥\n` +
+        `• 💰 **Total Earned:** **+${totalReward} 🔥**\n` +
+        `• 💎 **Current Balance:** **${flames.toLocaleString()} 🔥 Flames**`
+      )
+      .setFooter({ text: 'Baby PHOENIX • Phoenix Den Economy' })
+      .setTimestamp();
 
-      return message.reply({ embeds: [embed] });
-    });
-    return true;
+    return message.reply({ embeds: [embed] });
   }
 
   // Command: !balance / !flames / !coins
   if (lower === '!balance' || lower === '!flames' || lower === '!coins') {
     const targetUser = message.mentions.users.first() || message.author;
-    database.get(`SELECT flames, streak FROM phoenix_den_economy WHERE user_id = ?`, [targetUser.id], (err, row) => {
-      const flames = row ? row.flames : 0;
-      const streak = row ? row.streak : 0;
+    const row = database.prepare(`SELECT flames, streak FROM phoenix_den_economy WHERE user_id = ?`).get(targetUser.id);
+    const flames = row ? row.flames : 0;
+    const streak = row ? row.streak : 0;
 
-      const embed = new EmbedBuilder()
-        .setColor(0xFF6B00)
-        .setAuthor({ name: targetUser.username, iconURL: targetUser.displayAvatarURL() })
-        .setTitle(`🔥 PHOENIX VAULT BALANCE`)
-        .setDescription(
-          `**Flames:** \`${flames.toLocaleString()}\` 🔥\n` +
-          `**Daily Streak:** \`${streak} Days\` ⚡\n` +
-          `**Server:** 👑 Phoenix Den A Gaming Server`
-        )
-        .setFooter({ text: 'Use !daily to collect more flames every 24 hours!' });
+    const embed = new EmbedBuilder()
+      .setColor(0xFF6B00)
+      .setAuthor({ name: targetUser.username, iconURL: targetUser.displayAvatarURL() })
+      .setTitle(`🔥 PHOENIX VAULT BALANCE`)
+      .setDescription(
+        `**Flames:** \`${flames.toLocaleString()}\` 🔥\n` +
+        `**Daily Streak:** \`${streak} Days\` ⚡\n` +
+        `**Server:** 👑 Phoenix Den A Gaming Server`
+      )
+      .setFooter({ text: 'Use !daily to collect more flames every 24 hours!' });
 
-      return message.reply({ embeds: [embed] });
-    });
-    return true;
+    return message.reply({ embeds: [embed] });
   }
 
   // Command: !pay @user <amount>
@@ -258,55 +253,50 @@ export async function handleBabyPhoenixDenMessage(client, message) {
       return message.reply('❌ **Usage:** `!pay @user <amount>` (Must be a valid flame amount).');
     }
 
-    database.get(`SELECT flames FROM phoenix_den_economy WHERE user_id = ?`, [message.author.id], (err, row) => {
-      const senderFlames = row ? row.flames : 0;
-      if (senderFlames < amount) {
-        return message.reply(`❌ You only have **${senderFlames.toLocaleString()} 🔥**! You need **${amount.toLocaleString()} 🔥**.`);
-      }
+    const row = database.prepare(`SELECT flames FROM phoenix_den_economy WHERE user_id = ?`).get(message.author.id);
+    const senderFlames = row ? row.flames : 0;
+    if (senderFlames < amount) {
+      return message.reply(`❌ You only have **${senderFlames.toLocaleString()} 🔥**! You need **${amount.toLocaleString()} 🔥**.`);
+    }
 
-      database.serialize(() => {
-        database.run(`UPDATE phoenix_den_economy SET flames = flames - ? WHERE user_id = ?`, [amount, message.author.id]);
-        database.run(
-          `INSERT INTO phoenix_den_economy (user_id, flames) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET flames = flames + ?`,
-          [recipient.id, amount, amount]
-        );
-      });
-
-      return message.reply(`🔥 **Transfer Successful!** Sent **${amount.toLocaleString()} 🔥 Flames** to <@${recipient.id}>!`);
+    const transfer = database.transaction(() => {
+      database.prepare(`UPDATE phoenix_den_economy SET flames = flames - ? WHERE user_id = ?`).run(amount, message.author.id);
+      database.prepare(
+        `INSERT INTO phoenix_den_economy (user_id, flames) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET flames = flames + ?`
+      ).run(recipient.id, amount, amount);
     });
-    return true;
+    transfer();
+
+    return message.reply(`🔥 **Transfer Successful!** Sent **${amount.toLocaleString()} 🔥 Flames** to <@${recipient.id}>!`);
   }
 
   // Command: !topmessages / !weekly / !motw (Member of the Week / Most Active)
   if (lower === '!topmessages' || lower === '!weekly' || lower === '!motw' || lower === '!active') {
     const weekKey = getWeekKey();
-    database.all(
-      `SELECT user_id, message_count FROM phoenix_den_activity WHERE week_key = ? ORDER BY message_count DESC LIMIT 10`,
-      [weekKey],
-      async (err, rows) => {
-        if (!rows || rows.length === 0) {
-          return message.reply('📊 No message activity recorded for this week yet! Start chatting to top the charts!');
-        }
+    const rows = database.prepare(
+      `SELECT user_id, message_count FROM phoenix_den_activity WHERE week_key = ? ORDER BY message_count DESC LIMIT 10`
+    ).all(weekKey);
 
-        let desc = '👑 **Top Active Message Senders This Week:**\n\n';
-        for (let i = 0; i < rows.length; i++) {
-          const r = rows[i];
-          const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '🔹';
-          desc += `${medal} **#${i + 1}** <@${r.user_id}> — **${r.message_count.toLocaleString()} messages**\n`;
-        }
-        desc += `\n*The #1 member at the end of the week earns the **🥇 Top Message Sender** role & weekly rewards!* 🏆`;
+    if (!rows || rows.length === 0) {
+      return message.reply('📊 No message activity recorded for this week yet! Start chatting to top the charts!');
+    }
 
-        const embed = new EmbedBuilder()
-          .setColor(0xF59E0B)
-          .setTitle('⭐ MEMBER OF THE WEEK • ACTIVITY LEADERBOARD')
-          .setDescription(desc)
-          .setFooter({ text: 'Baby PHOENIX • Activity Tracker' })
-          .setTimestamp();
+    let desc = '👑 **Top Active Message Senders This Week:**\n\n';
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '🔹';
+      desc += `${medal} **#${i + 1}** <@${r.user_id}> — **${r.message_count.toLocaleString()} messages**\n`;
+    }
+    desc += `\n*The #1 member at the end of the week earns the **🥇 Top Message Sender** role & weekly rewards!* 🏆`;
 
-        return message.reply({ embeds: [embed] });
-      }
-    );
-    return true;
+    const embed = new EmbedBuilder()
+      .setColor(0xF59E0B)
+      .setTitle('⭐ MEMBER OF THE WEEK • ACTIVITY LEADERBOARD')
+      .setDescription(desc)
+      .setFooter({ text: 'Baby PHOENIX • Activity Tracker' })
+      .setTimestamp();
+
+    return message.reply({ embeds: [embed] });
   }
 
   // Command: !challenges / !challenge (Daily Challenges)

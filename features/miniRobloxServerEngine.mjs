@@ -40,7 +40,7 @@ export function formatDurationHuman(ms) {
  * 7. 🏆 Blox Fruits Tournaments Helper (!tournament)
  */
 
-import sqlite3 from 'sqlite3';
+import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } from 'discord.js';
@@ -63,22 +63,21 @@ export const TOURNAMENT_CHAMP_ROLE_ID = '1568426763120541857'; // 🏆𓆪・�
 let db;
 function getDb() {
   if (!db) {
-    db = new sqlite3.Database(DB_PATH);
-    db.run(`
+    db = new Database(DB_PATH);
+    db.pragma('journal_mode = WAL');
+    db.exec(`
       CREATE TABLE IF NOT EXISTS mini_roblox_economy (
         user_id TEXT PRIMARY KEY,
         shards INTEGER DEFAULT 0,
         last_daily INTEGER DEFAULT 0,
         streak INTEGER DEFAULT 0
-      )
-    `);
-    db.run(`
+      );
       CREATE TABLE IF NOT EXISTS mini_roblox_activity (
         user_id TEXT,
         week_key TEXT,
         message_count INTEGER DEFAULT 0,
         PRIMARY KEY (user_id, week_key)
-      )
+      );
     `);
   }
   return db;
@@ -93,15 +92,17 @@ function getWeekKey() {
 
 // 1. Track Weekly Messages for Member of the Week
 export function trackMiniServerActivity(userId) {
-  const database = getDb();
-  const weekKey = getWeekKey();
-  database.run(
-    `INSERT INTO mini_roblox_activity (user_id, week_key, message_count) 
-     VALUES (?, ?, 1) 
-     ON CONFLICT(user_id, week_key) DO UPDATE SET message_count = message_count + 1`,
-    [userId, weekKey],
-    () => {}
-  );
+  try {
+    const database = getDb();
+    const weekKey = getWeekKey();
+    database.prepare(`
+      INSERT INTO mini_roblox_activity (user_id, week_key, message_count) 
+      VALUES (?, ?, 1) 
+      ON CONFLICT(user_id, week_key) DO UPDATE SET message_count = message_count + 1
+    `).run(userId, weekKey);
+  } catch (err) {
+    console.error('[MiniEngine] Error tracking activity:', err.message);
+  }
 }
 
 // 2. Auto-Assign Role Rewards on Level Up in Mini's Server
@@ -156,80 +157,74 @@ export async function handleMiniRobloxServerMessage(client, message) {
 
   // Command: !daily (Claim Cyber Shards)
   if (lower === '!daily' || lower === '!claim') {
-    database.get(`SELECT shards, last_daily, streak FROM mini_roblox_economy WHERE user_id = ?`, [message.author.id], async (err, row) => {
-      const now = Date.now();
-      const oneDay = 24 * 60 * 60 * 1000;
-      const twoDays = 48 * 60 * 60 * 1000;
+    const now = Date.now();
+    const oneDay = 24 * 60 * 60 * 1000;
+    const twoDays = 48 * 60 * 60 * 1000;
 
-      let shards = row ? row.shards : 0;
-      let lastDaily = row ? row.last_daily : 0;
-      let streak = row ? row.streak : 0;
+    let row = database.prepare(`SELECT shards, last_daily, streak FROM mini_roblox_economy WHERE user_id = ?`).get(message.author.id);
+    let shards = row ? row.shards : 0;
+    let lastDaily = row ? row.last_daily : 0;
+    let streak = row ? row.streak : 0;
 
-      if (now - lastDaily < oneDay) {
-        const timeLeft = oneDay - (now - lastDaily);
-        const hours = Math.floor(timeLeft / (60 * 60 * 1000));
-        const mins = Math.floor((timeLeft % (60 * 60 * 1000)) / (60 * 1000));
-        return message.reply(`⏳ You already claimed your daily Cyber Shards! Come back in **${hours}h ${mins}m**.`);
-      }
+    if (now - lastDaily < oneDay) {
+      const timeLeft = oneDay - (now - lastDaily);
+      const hours = Math.floor(timeLeft / (60 * 60 * 1000));
+      const mins = Math.floor((timeLeft % (60 * 60 * 1000)) / (60 * 1000));
+      return message.reply(`⏳ You already claimed your daily Cyber Shards! Come back in **${hours}h ${mins}m**.`);
+    }
 
-      if (now - lastDaily < twoDays) {
-        streak += 1;
-      } else {
-        streak = 1;
-      }
+    if (now - lastDaily < twoDays) {
+      streak += 1;
+    } else {
+      streak = 1;
+    }
 
-      const baseReward = 500;
-      const streakBonus = Math.min((streak - 1) * 50, 500);
-      const totalReward = baseReward + streakBonus;
-      shards += totalReward;
+    const baseReward = 500;
+    const streakBonus = Math.min((streak - 1) * 50, 500);
+    const totalReward = baseReward + streakBonus;
+    shards += totalReward;
 
-      database.run(
-        `INSERT INTO mini_roblox_economy (user_id, shards, last_daily, streak) 
-         VALUES (?, ?, ?, ?) 
-         ON CONFLICT(user_id) DO UPDATE SET shards = shards + ?, last_daily = ?, streak = ?`,
-        [message.author.id, totalReward, now, streak, totalReward, now, streak],
-        () => {}
-      );
+    database.prepare(`
+      INSERT INTO mini_roblox_economy (user_id, shards, last_daily, streak) 
+      VALUES (?, ?, ?, ?) 
+      ON CONFLICT(user_id) DO UPDATE SET shards = shards + ?, last_daily = ?, streak = ?
+    `).run(message.author.id, totalReward, now, streak, totalReward, now, streak);
 
-      const embed = new EmbedBuilder()
-        .setColor(0x00F2FF)
-        .setTitle('⚡ DAILY CYBER SHARDS CLAIMED! ⚡')
-        .setDescription(
-          `You claimed your daily energy shards!\n\n` +
-          `• 🪙 **Base Reward:** +${baseReward} ⚡\n` +
-          `• ⚡ **Streak Bonus (Day ${streak}):** +${streakBonus} ⚡\n` +
-          `• 💰 **Total Earned:** **+${totalReward} ⚡ Shards**\n` +
-          `• 💎 **Current Balance:** **${shards.toLocaleString()} ⚡ Shards**`
-        )
-        .setFooter({ text: 'Mini X • Mini\'s Cool Roblox Server' })
-        .setTimestamp();
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('⚡ DAILY CYBER SHARDS CLAIMED! ⚡')
+      .setDescription(
+        `You claimed your daily energy shards!\n\n` +
+        `• 🪙 **Base Reward:** +${baseReward} ⚡\n` +
+        `• ⚡ **Streak Bonus (Day ${streak}):** +${streakBonus} ⚡\n` +
+        `• 💰 **Total Earned:** **+${totalReward} ⚡ Shards**\n` +
+        `• 💎 **Current Balance:** **${shards.toLocaleString()} ⚡ Shards**`
+      )
+      .setFooter({ text: 'Mini X • Mini\'s Cool Roblox Server' })
+      .setTimestamp();
 
-      return message.reply({ embeds: [embed] });
-    });
-    return true;
+    return message.reply({ embeds: [embed] });
   }
 
   // Command: !balance / !shards / !coins
   if (lower === '!balance' || lower === '!shards' || lower === '!coins') {
     const targetUser = message.mentions.users.first() || message.author;
-    database.get(`SELECT shards, streak FROM mini_roblox_economy WHERE user_id = ?`, [targetUser.id], (err, row) => {
-      const shards = row ? row.shards : 0;
-      const streak = row ? row.streak : 0;
+    const row = database.prepare(`SELECT shards, streak FROM mini_roblox_economy WHERE user_id = ?`).get(targetUser.id);
+    const shards = row ? row.shards : 0;
+    const streak = row ? row.streak : 0;
 
-      const embed = new EmbedBuilder()
-        .setColor(0x00F2FF)
-        .setAuthor({ name: targetUser.username, iconURL: targetUser.displayAvatarURL() })
-        .setTitle(`⚡ CYBER VAULT BALANCE`)
-        .setDescription(
-          `**Cyber Shards:** \`${shards.toLocaleString()}\` ⚡\n` +
-          `**Daily Streak:** \`${streak} Days\` 🔥\n` +
-          `**Server:** Mini's cool roblox server 🎮`
-        )
-        .setFooter({ text: 'Use !daily to collect more shards every 24 hours!' });
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setAuthor({ name: targetUser.username, iconURL: targetUser.displayAvatarURL() })
+      .setTitle(`⚡ CYBER VAULT BALANCE`)
+      .setDescription(
+        `**Cyber Shards:** \`${shards.toLocaleString()}\` ⚡\n` +
+        `**Daily Streak:** \`${streak} Days\` 🔥\n` +
+        `**Server:** Mini's cool roblox server 🎮`
+      )
+      .setFooter({ text: 'Use !daily to collect more shards every 24 hours!' });
 
-      return message.reply({ embeds: [embed] });
-    });
-    return true;
+    return message.reply({ embeds: [embed] });
   }
 
   // Command: !pay @user <amount>
@@ -242,55 +237,50 @@ export async function handleMiniRobloxServerMessage(client, message) {
       return message.reply('❌ **Usage:** `!pay @user <amount>` (Must be a valid shard amount).');
     }
 
-    database.get(`SELECT shards FROM mini_roblox_economy WHERE user_id = ?`, [message.author.id], (err, row) => {
-      const senderShards = row ? row.shards : 0;
-      if (senderShards < amount) {
-        return message.reply(`❌ You only have **${senderShards.toLocaleString()} ⚡**! You need **${amount.toLocaleString()} ⚡**.`);
-      }
+    const row = database.prepare(`SELECT shards FROM mini_roblox_economy WHERE user_id = ?`).get(message.author.id);
+    const senderShards = row ? row.shards : 0;
+    if (senderShards < amount) {
+      return message.reply(`❌ You only have **${senderShards.toLocaleString()} ⚡**! You need **${amount.toLocaleString()} ⚡**.`);
+    }
 
-      database.serialize(() => {
-        database.run(`UPDATE mini_roblox_economy SET shards = shards - ? WHERE user_id = ?`, [amount, message.author.id]);
-        database.run(
-          `INSERT INTO mini_roblox_economy (user_id, shards) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET shards = shards + ?`,
-          [recipient.id, amount, amount]
-        );
-      });
-
-      return message.reply(`⚡ **Transfer Successful!** Sent **${amount.toLocaleString()} ⚡ Cyber Shards** to <@${recipient.id}>!`);
+    const transfer = database.transaction(() => {
+      database.prepare(`UPDATE mini_roblox_economy SET shards = shards - ? WHERE user_id = ?`).run(amount, message.author.id);
+      database.prepare(
+        `INSERT INTO mini_roblox_economy (user_id, shards) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET shards = shards + ?`
+      ).run(recipient.id, amount, amount);
     });
-    return true;
+    transfer();
+
+    return message.reply(`⚡ **Transfer Successful!** Sent **${amount.toLocaleString()} ⚡ Cyber Shards** to <@${recipient.id}>!`);
   }
 
   // Command: !topmessages / !weekly / !motw (Member of the Week)
   if (lower === '!topmessages' || lower === '!weekly' || lower === '!motw' || lower === '!active') {
     const weekKey = getWeekKey();
-    database.all(
-      `SELECT user_id, message_count FROM mini_roblox_activity WHERE week_key = ? ORDER BY message_count DESC LIMIT 10`,
-      [weekKey],
-      async (err, rows) => {
-        if (!rows || rows.length === 0) {
-          return message.reply('📊 No message activity recorded for this week yet! Start chatting in #general-chat to top the charts!');
-        }
+    const rows = database.prepare(
+      `SELECT user_id, message_count FROM mini_roblox_activity WHERE week_key = ? ORDER BY message_count DESC LIMIT 10`
+    ).all(weekKey);
 
-        let desc = '👑 **Top Active Chatters This Week:**\n\n';
-        for (let i = 0; i < rows.length; i++) {
-          const r = rows[i];
-          const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '🔹';
-          desc += `${medal} **#${i + 1}** <@${r.user_id}> — **${r.message_count.toLocaleString()} messages**\n`;
-        }
-        desc += `\n*The top member at the end of the week earns **Member of the Week** status & 2,500 bonus ⚡ Shards!* 🏆`;
+    if (!rows || rows.length === 0) {
+      return message.reply('📊 No message activity recorded for this week yet! Start chatting in #general-chat to top the charts!');
+    }
 
-        const embed = new EmbedBuilder()
-          .setColor(0x00F2FF)
-          .setTitle('⭐ MEMBER OF THE WEEK • ACTIVITY LEADERBOARD')
-          .setDescription(desc)
-          .setFooter({ text: 'Mini X • Activity Tracker' })
-          .setTimestamp();
+    let desc = '👑 **Top Active Chatters This Week:**\n\n';
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '🔹';
+      desc += `${medal} **#${i + 1}** <@${r.user_id}> — **${r.message_count.toLocaleString()} messages**\n`;
+    }
+    desc += `\n*The top member at the end of the week earns **Member of the Week** status & 2,500 bonus ⚡ Shards!* 🏆`;
 
-        return message.reply({ embeds: [embed] });
-      }
-    );
-    return true;
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('⭐ MEMBER OF THE WEEK • ACTIVITY LEADERBOARD')
+      .setDescription(desc)
+      .setFooter({ text: 'Mini X • Activity Tracker' })
+      .setTimestamp();
+
+    return message.reply({ embeds: [embed] });
   }
 
   // Command: !challenges / !challenge (Blox Fruits & Server Quests)
