@@ -44,6 +44,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } from 'discord.js';
+import { handleChatModeration } from './chatModEngine.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -147,6 +148,10 @@ export async function handleMiniRobloxServerMessage(client, message) {
   if (!message.guild || message.guild.id !== MINI_ROBLOX_GUILD_ID) return false;
   if (client.user.id !== MINI_X_BOT_ID) return false;
   if (message.author.bot) return false;
+
+  // 🛡️ Admin Moderation Actions (ban, kick, mute, unmute, purge, lock, slowmode)
+  const isModHandled = await handleChatModeration(client, message);
+  if (isModHandled) return true;
 
   // Track activity
   trackMiniServerActivity(message.author.id);
@@ -460,7 +465,16 @@ export async function handleMiniRobloxServerMessage(client, message) {
         `• \`!weekly\` / \`!topmessages\` — Member of the Week activity leaderboard\n` +
         `• \`!color #HEX\` — Set your custom role color (Cyber VIP or Staff)\n` +
         `• \`!tournament\` — Info on Blox Fruits PVP tournaments\n` +
-        `• \`!gstart <mins> <prize>\` — Staff giveaway launcher`
+        `• \`!gstart <mins> <prize>\` — Staff giveaway launcher\n\n` +
+        `🛡️ **Admin & Founder Moderation (Admin Only):**\n` +
+        `• \`ban <@user/name> [reason]\` — Instant server ban\n` +
+        `• \`kick <@user/name> [reason]\` — Kick member from server\n` +
+        `• \`mute <@user/name> <10m/1h/24h> [reason]\` — Timeout member\n` +
+        `• \`unmute <@user/name>\` — Remove member timeout\n` +
+        `• \`purge <1-100>\` / \`clear <1-100>\` — Bulk delete messages\n` +
+        `• \`warn <@user/name> [reason]\` — Issue official warning\n` +
+        `• \`lock\` / \`unlock\` — Lock/unlock channel for members\n` +
+        `• \`slowmode <5s/off>\` — Adjust channel rate limit`
       )
       .setFooter({ text: 'Mini X #6403 • Co-Created by Mini & Krylo' });
 

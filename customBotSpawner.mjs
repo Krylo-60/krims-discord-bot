@@ -23,6 +23,7 @@ import {
   MINI_ROBLOX_GUILD_ID,
   MINI_X_BOT_ID
 } from './features/miniRobloxServerEngine.mjs';
+import { handleChatModeration } from './features/chatModEngine.mjs';
 import { Client, GatewayIntentBits, Partials, ActivityType, EmbedBuilder } from 'discord.js';
 import fetch from 'node-fetch';
 import { encryptToken, decryptToken } from './tokenSecurity.mjs';
@@ -482,6 +483,10 @@ export class MultiBotManager {
         
         return message.reply({ embeds: [rankEmbed] }).catch(() => {});
       }
+
+      // 🛡️ Admin Moderation Actions (Natural voice or prefixed: ban, kick, mute, purge, lock, slowmode)
+      const isModHandled = await handleChatModeration(client, message);
+      if (isModHandled) return;
 
       // 👋 Universal Welcome & Ticket Configuration Commands
       if (cleanText.startsWith('!setwelcome') || cleanText.startsWith(`${p}setwelcome`)) {
