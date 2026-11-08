@@ -1,3 +1,31 @@
+
+export function parseDurationToMs(str) {
+  if (!str) return 0;
+  const s = str.trim().toLowerCase();
+  if (/^\d+$/.test(s)) return parseInt(s, 10) * 60 * 1000;
+  const match = s.match(/^(\d+)\s*(month|months|mo|w|week|weeks|d|day|days|h|hr|hrs|hour|hours|m|min|mins|minute|minutes|s|sec|secs)?$/);
+  if (!match) return 0;
+  const val = parseInt(match[1], 10);
+  const unit = match[2] || 'm';
+  if (unit.startsWith('mo')) return val * 30 * 24 * 60 * 60 * 1000;
+  if (unit.startsWith('w')) return val * 7 * 24 * 60 * 60 * 1000;
+  if (unit.startsWith('d')) return val * 24 * 60 * 60 * 1000;
+  if (unit.startsWith('h')) return val * 60 * 60 * 1000;
+  if (unit.startsWith('s')) return val * 1000;
+  return val * 60 * 1000;
+}
+
+export function formatDurationHuman(ms) {
+  const seconds = Math.floor(ms / 1000);
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  if (days >= 30) return `${Math.round(days / 30)} Month(s)`;
+  if (days > 0) return `${days} Day(s)${hours > 0 ? ` ${hours}h` : ''}`;
+  if (hours > 0) return `${hours} Hour(s)${mins > 0 ? ` ${mins}m` : ''}`;
+  return `${mins} Minute(s)`;
+}
+
 /**
  * 👑 PHOENIX DEN EXCLUSIVE SYSTEM ENGINE (Baby PHOENIX #8301)
  * Strictly active ONLY for Baby Phoenix (1565527301444083722) in Phoenix Den (1534016405693796462)
@@ -376,22 +404,34 @@ export async function handleBabyPhoenixDenMessage(client, message) {
 
   // Command: !gstart <time_minutes> <prize> (Quick Giveaway Starter)
   if (lower.startsWith('!gstart') || lower.startsWith('!giveaway')) {
-    const isStaff = message.member.permissions.has(PermissionFlagsBits.ManageGuild) ||
-      message.member.roles.cache.some(r => r.name.includes('Announcements Maker') || r.name.includes('FOUNDER') || r.name.includes('COMMANDER'));
+    const isStaff = message.author.id === '1414143825538191373' ||
+      message.guild.ownerId === message.author.id ||
+      message.member.permissions.has(PermissionFlagsBits.ManageGuild) ||
+      message.member.permissions.has(PermissionFlagsBits.Administrator) ||
+      message.member.roles.cache.some(r => {
+        const norm = r.name.normalize('NFKD').toLowerCase();
+        return norm.includes('founder') || norm.includes('commander') || norm.includes('maker') || r.name.includes('𝐅𝐎𝐔𝐍𝐃𝐄𝐑');
+      });
 
     if (!isStaff) {
       return message.reply('❌ Only Staff and Announcement Makers can start giveaways!');
     }
 
     const args = text.split(/\s+/).slice(1);
-    const mins = parseInt(args[0], 10);
-    const prize = args.slice(1).join(' ');
+    const durationStr = args[0] || '';
+    const prize = args.slice(1).join(' ') || 'Sacred Phoenix Reward';
+    const durationMs = parseDurationToMs(durationStr);
 
-    if (isNaN(mins) || mins <= 0 || !prize) {
-      return message.reply('❌ **Usage:** `!gstart <minutes> <prize name>`\nExample: `!gstart 60 Custom VIP Color Role`');
+    if (durationMs <= 0) {
+      return message.reply('❌ **Usage:** `!gstart <duration> <prize name>`\nExamples:\n• `!gstart 1month Flame Role`\n• `!gstart 7d 10,000 Flames`\n• `!gstart 60m VIP Perks`');
     }
 
-    const targetChannel = message.guild.channels.cache.get(GIVEAWAYS_CHANNEL_ID) || message.channel;
+    const humanDuration = formatDurationHuman(durationMs);
+    const endTime = Date.now() + durationMs;
+
+    const targetChannel = message.guild.channels.cache.get(GIVEAWAYS_CHANNEL_ID) || 
+      message.guild.channels.cache.find(c => c.name.includes('giveaway')) || 
+      message.channel;
 
     const gEmbed = new EmbedBuilder()
       .setColor(0xFF0077)
@@ -399,11 +439,11 @@ export async function handleBabyPhoenixDenMessage(client, message) {
       .setDescription(
         `**Prize:** 🎁 **${prize}**\n` +
         `**Hosted By:** <@${message.author.id}>\n` +
-        `**Duration:** \`${mins} Minutes\`\n\n` +
+        `**Duration:** \`${humanDuration}\` (Ends: <t:${Math.floor(endTime / 1000)}:R>)\n\n` +
         `React with 🎉 below to enter!`
       )
       .setFooter({ text: 'Baby PHOENIX • Weekly Giveaways Engine' })
-      .setTimestamp(Date.now() + (mins * 60 * 1000));
+      .setTimestamp(endTime);
 
     const gMsg = await targetChannel.send({
       content: '🚨 <@&1567952922791256227> **A NEW GIVEAWAY HAS DROPPED!** 🚨',
@@ -412,7 +452,9 @@ export async function handleBabyPhoenixDenMessage(client, message) {
     await gMsg.react('🎉').catch(() => {});
 
     if (targetChannel.id !== message.channel.id) {
-      message.reply(`✅ Giveaway launched in <#${targetChannel.id}>!`);
+      message.reply(`✅ **Giveaway Launched!** Prize: **${prize}** for **${humanDuration}** in <#${targetChannel.id}>!`);
+    } else {
+      message.reply(`✅ **Giveaway Launched!** React with 🎉 to enter!`);
     }
     return true;
   }

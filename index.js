@@ -10075,6 +10075,97 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
+  // Command: !gstart <duration> <prize>
+  if (lowerMsg.startsWith('!gstart') || lowerMsg.startsWith('!giveaway')) {
+    if (!message.guild) {
+      await message.reply("❌ This command can only be used inside servers!");
+      return;
+    }
+
+    const isStaff = message.author.id === '1414143825538191373' ||
+      message.guild.ownerId === message.author.id ||
+      message.member?.permissions.has(PermissionFlagsBits.ManageGuild) ||
+      message.member?.permissions.has(PermissionFlagsBits.Administrator) ||
+      message.member?.roles.cache.some(r => {
+        const norm = r.name.normalize('NFKD').toLowerCase();
+        return norm.includes('founder') || norm.includes('moderator') || norm.includes('admin') || norm.includes('maker') || r.name.includes('𝐅𝐎𝐔𝐍𝐃𝐄𝐑');
+      });
+
+    if (!isStaff) {
+      await message.reply("❌ Only Staff and Announcement/Role Makers can start giveaways!");
+      return;
+    }
+
+    const args = content.split(/\s+/).slice(1);
+    const durationStr = args[0] || '';
+    const prize = args.slice(1).join(' ') || 'Community Reward';
+
+    function parseDuration(str) {
+      if (!str) return 0;
+      const s = str.trim().toLowerCase();
+      if (/^\d+$/.test(s)) return parseInt(s, 10) * 60 * 1000;
+      const match = s.match(/^(\d+)\s*(month|months|mo|w|week|weeks|d|day|days|h|hr|hrs|hour|hours|m|min|mins|minute|minutes|s|sec|secs)?$/);
+      if (!match) return 0;
+      const val = parseInt(match[1], 10);
+      const unit = match[2] || 'm';
+      if (unit.startsWith('mo')) return val * 30 * 24 * 60 * 60 * 1000;
+      if (unit.startsWith('w')) return val * 7 * 24 * 60 * 60 * 1000;
+      if (unit.startsWith('d')) return val * 24 * 60 * 60 * 1000;
+      if (unit.startsWith('h')) return val * 60 * 60 * 1000;
+      if (unit.startsWith('s')) return val * 1000;
+      return val * 60 * 1000;
+    }
+
+    function formatDuration(ms) {
+      const seconds = Math.floor(ms / 1000);
+      const days = Math.floor(seconds / 86400);
+      const hours = Math.floor((seconds % 86400) / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      if (days >= 30) return `${Math.round(days / 30)} Month(s)`;
+      if (days > 0) return `${days} Day(s)${hours > 0 ? ` ${hours}h` : ''}`;
+      if (hours > 0) return `${hours} Hour(s)${mins > 0 ? ` ${mins}m` : ''}`;
+      return `${mins} Minute(s)`;
+    }
+
+    const durationMs = parseDuration(durationStr);
+    if (durationMs <= 0) {
+      await message.reply("❌ **Usage:** `!gstart <duration> <prize name>`\nExamples:\n• `!gstart 1month idk`\n• `!gstart 7d 10,000 Coins`\n• `!gstart 60m VIP Role`");
+      return;
+    }
+
+    const humanDuration = formatDuration(durationMs);
+    const endTime = Date.now() + durationMs;
+
+    const targetCh = message.guild.channels.cache.find(c => c.name.includes('giveaway')) || message.channel;
+    const pingRole = message.guild.roles.cache.find(r => r.name.toLowerCase().includes('giveaway'));
+    const pingText = pingRole ? `<@&${pingRole.id}>` : '@everyone';
+
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle("🎉 COMMUNITY GIVEAWAY! 🎉")
+      .setDescription(
+        `**Prize:** 🎁 **${prize}**\n` +
+        `**Hosted By:** <@${message.author.id}>\n` +
+        `**Duration:** \`${humanDuration}\` (Ends: <t:${Math.floor(endTime / 1000)}:R>)\n\n` +
+        `React with 🎉 below to enter!`
+      )
+      .setFooter({ text: 'Community Giveaways • Powered by Krims Fleet' })
+      .setTimestamp(endTime);
+
+    const postedMsg = await targetCh.send({
+      content: `🚨 ${pingText} **A NEW GIVEAWAY HAS DROPPED!** 🚨`,
+      embeds: [embed]
+    });
+    await postedMsg.react('🎉').catch(() => {});
+
+    if (targetCh.id !== message.channel.id) {
+      await message.reply(`✅ **Giveaway Launched!** Prize: **${prize}** for **${humanDuration}** in <#${targetCh.id}>!`);
+    } else {
+      await message.reply(`✅ **Giveaway Launched!** React with 🎉 below to enter!`);
+    }
+    return;
+  }
+
   // Command: !postvideo <youtube_url> [title]
   if (lowerMsg.startsWith('!postvideo')) {
     if (!message.guild) {
