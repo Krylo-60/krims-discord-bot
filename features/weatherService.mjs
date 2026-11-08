@@ -62,10 +62,81 @@ export function extractWeatherQueryCity(text) {
   return null;
 }
 
+const BOT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) KrimsCodeBot/6.0 (Discord; +https://krims-bot-dashboard.vercel.app; support@krimscode.org)';
+
+/**
+ * Fallback to wttr.in JSON API.
+ * Highly reliable, works for any city/country globally without requiring explicit geocoding coordinates.
+ */
+async function fetchWttrInWeather(city) {
+  try {
+    const url = `https://wttr.in/${encodeURIComponent(city)}?format=j1`;
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': BOT_USER_AGENT,
+        'Accept': 'application/json'
+      },
+      signal: AbortSignal.timeout(6000)
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const curr = data.current_condition?.[0];
+    if (!curr) return null;
+
+    const area = data.nearest_area?.[0];
+    const placeName = [
+      area?.areaName?.[0]?.value,
+      area?.region?.[0]?.value,
+      area?.country?.[0]?.value
+    ].filter(Boolean).join(', ') || city;
+
+    const tempC = parseFloat(curr.temp_C);
+    const tempF = parseFloat(curr.temp_F) || Math.round(((tempC * 9/5) + 32) * 10) / 10;
+    const feelsC = parseFloat(curr.FeelsLikeC);
+    const feelsF = parseFloat(curr.FeelsLikeF) || Math.round(((feelsC * 9/5) + 32) * 10) / 10;
+    const humidity = parseInt(curr.humidity, 10);
+    const windKm = parseFloat(curr.windspeedKmph);
+    const windMph = parseFloat(curr.windspeedMiles) || Math.round(windKm * 0.621371 * 10) / 10;
+    const cond = curr.weatherDesc?.[0]?.value || 'Clear';
+
+    let icon = '🌤️';
+    const cLower = cond.toLowerCase();
+    if (cLower.includes('thunder') || cLower.includes('storm')) icon = '⛈️';
+    else if (cLower.includes('snow') || cLower.includes('blizzard') || cLower.includes('ice')) icon = '🌨️';
+    else if (cLower.includes('heavy rain') || cLower.includes('torrential')) icon = '🌧️';
+    else if (cLower.includes('rain') || cLower.includes('drizzle') || cLower.includes('shower')) icon = '🌦️';
+    else if (cLower.includes('fog') || cLower.includes('mist') || cLower.includes('haze')) icon = '🌫️';
+    else if (cLower.includes('cloud') || cLower.includes('overcast')) icon = '☁️';
+    else if (cLower.includes('sunny') || cLower.includes('clear')) icon = '☀️';
+
+    const todayWeather = data.weather?.[0];
+    const highC = todayWeather?.maxtempC ? `${todayWeather.maxtempC}°C` : 'N/A';
+    const lowC = todayWeather?.mintempC ? `${todayWeather.mintempC}°C` : 'N/A';
+
+    return {
+      placeName,
+      condition: cond.trim(),
+      icon,
+      tempC,
+      tempF,
+      feelsC,
+      feelsF,
+      humidity,
+      windKm,
+      windMph,
+      highC,
+      lowC,
+      time: curr.localObsDateTime || new Date().toISOString()
+    };
+  } catch (err) {
+    return null;
+  }
+}
+
 /**
  * High-resilience real-time weather query function.
  * Cascades from Open-Meteo exact geocoding to Photon OpenStreetMap fuzzy geocoding,
- * then retrieves live weather conditions from Open-Meteo.
+ * then retrieves live weather conditions from Open-Meteo, with wttr.in as fail-safe fallback.
  */
 export async function fetchLiveWeather(city) {
   if (!city || typeof city !== 'string') return null;
@@ -79,7 +150,13 @@ export async function fetchLiveWeather(city) {
   // 1. Primary: Open-Meteo Geocoding
   try {
     const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanCity)}&count=1&language=en&format=json`;
-    const geoRes = await fetch(geoUrl, { signal: AbortSignal.timeout(3500) });
+    const geoRes = await fetch(geoUrl, {
+      headers: {
+        'User-Agent': BOT_USER_AGENT,
+        'Accept': 'application/json'
+      },
+      signal: AbortSignal.timeout(5000)
+    });
     if (geoRes.ok) {
       const geoData = await geoRes.json();
       if (geoData.results && geoData.results.length > 0) {
@@ -98,7 +175,13 @@ export async function fetchLiveWeather(city) {
   if (lat === null || lon === null) {
     try {
       const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(cleanCity)}&limit=1`;
-      const pRes = await fetch(photonUrl, { signal: AbortSignal.timeout(3500) });
+      const pRes = await fetch(photonUrl, {
+        headers: {
+          'User-Agent': BOT_USER_AGENT,
+          'Accept': 'application/json'
+        },
+        signal: AbortSignal.timeout(5000)
+      });
       if (pRes.ok) {
         const pData = await pRes.json();
         const feat = pData.features?.[0];
@@ -118,8 +201,8 @@ export async function fetchLiveWeather(city) {
     try {
       const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cleanCity)}&format=json&limit=1`;
       const nRes = await fetch(nomUrl, { 
-        headers: { 'User-Agent': 'KrimsCodeBot/5.3 (+https://krims-bot-dashboard.vercel.app)' },
-        signal: AbortSignal.timeout(3500) 
+        headers: { 'User-Agent': BOT_USER_AGENT, 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(5000) 
       });
       if (nRes.ok) {
         const nData = await nRes.json();
@@ -132,45 +215,55 @@ export async function fetchLiveWeather(city) {
     } catch (e) {}
   }
 
-  if (lat === null || lon === null) return null;
+  // If coordinates resolved, try Open-Meteo forecast
+  if (lat !== null && lon !== null) {
+    try {
+      const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
+      const wRes = await fetch(forecastUrl, {
+        headers: {
+          'User-Agent': BOT_USER_AGENT,
+          'Accept': 'application/json'
+        },
+        signal: AbortSignal.timeout(5000)
+      });
+      if (wRes.ok) {
+        const wData = await wRes.json();
+        const curr = wData.current;
+        if (curr) {
+          const wmo = WMO_WEATHER_CODES[curr.weather_code] || { desc: 'Clear/Variable', icon: '🌤️' };
+          const tempC = Math.round(curr.temperature_2m * 10) / 10;
+          const tempF = Math.round(((tempC * 9/5) + 32) * 10) / 10;
+          const feelsC = Math.round(curr.apparent_temperature * 10) / 10;
+          const feelsF = Math.round(((feelsC * 9/5) + 32) * 10) / 10;
+          const humidity = curr.relative_humidity_2m;
+          const windKm = Math.round(curr.wind_speed_10m * 10) / 10;
+          const windMph = Math.round(windKm * 0.621371 * 10) / 10;
 
-  // 4. Fetch Real-time Atmospheric Metrics from Open-Meteo
-  try {
-    const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
-    const wRes = await fetch(forecastUrl, { signal: AbortSignal.timeout(4000) });
-    if (!wRes.ok) return null;
-    const wData = await wRes.json();
-    const curr = wData.current;
-    if (!curr) return null;
+          const highC = wData.daily?.temperature_2m_max?.[0] !== undefined ? `${wData.daily.temperature_2m_max[0]}°C` : 'N/A';
+          const lowC = wData.daily?.temperature_2m_min?.[0] !== undefined ? `${wData.daily.temperature_2m_min[0]}°C` : 'N/A';
 
-    const wmo = WMO_WEATHER_CODES[curr.weather_code] || { desc: 'Clear/Variable', icon: '🌤️' };
-    const tempC = Math.round(curr.temperature_2m * 10) / 10;
-    const tempF = Math.round(((tempC * 9/5) + 32) * 10) / 10;
-    const feelsC = Math.round(curr.apparent_temperature * 10) / 10;
-    const feelsF = Math.round(((feelsC * 9/5) + 32) * 10) / 10;
-    const humidity = curr.relative_humidity_2m;
-    const windKm = Math.round(curr.wind_speed_10m * 10) / 10;
-    const windMph = Math.round(windKm * 0.621371 * 10) / 10;
-
-    const highC = wData.daily?.temperature_2m_max?.[0] !== undefined ? `${wData.daily.temperature_2m_max[0]}°C` : 'N/A';
-    const lowC = wData.daily?.temperature_2m_min?.[0] !== undefined ? `${wData.daily.temperature_2m_min[0]}°C` : 'N/A';
-
-    return {
-      placeName,
-      condition: wmo.desc,
-      icon: wmo.icon,
-      tempC,
-      tempF,
-      feelsC,
-      feelsF,
-      humidity,
-      windKm,
-      windMph,
-      highC,
-      lowC,
-      time: curr.time
-    };
-  } catch (err) {
-    return null;
+          return {
+            placeName,
+            condition: wmo.desc,
+            icon: wmo.icon,
+            tempC,
+            tempF,
+            feelsC,
+            feelsF,
+            humidity,
+            windKm,
+            windMph,
+            highC,
+            lowC,
+            time: curr.time
+          };
+        }
+      }
+    } catch (err) {
+      // Fall through to wttr.in fallback
+    }
   }
+
+  // 4. Guaranteed Fail-Safe Fallback: wttr.in
+  return await fetchWttrInWeather(cleanCity);
 }
