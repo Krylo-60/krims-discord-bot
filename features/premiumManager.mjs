@@ -507,7 +507,8 @@ export async function askPremiumAi(prompt, guildName = '', userName = 'Member', 
     } catch (e) {}
   }
 
-  const eliteIntel = await getEliteSmpSystemPrompt();
+  const isTLB = guildId === '1557852594242719775';
+  const eliteIntel = isTLB ? await getEliteSmpSystemPrompt() : '';
   const vipSystemPrompt = `${eliteIntel}
 ${serverFactsContext}
 ${weatherDirective}
@@ -711,7 +712,7 @@ export function initPremiumBotInstance() {
             .setTitle('💎 Krims Code Premium • Full Master Suite')
             .setDescription('Krims Code Premium features all 100 enterprise commands with dedicated zero-latency compute!\n\n' +
               '👑 **VIP AI Intelligence:** `@Krims Code Premium <question>`, `/ask`, `/memory`\n' +
-              '⚔️ **Elite SMP & Minecraft:** `/elitesmp`, `/mcstatus`, `/skin`\n' +
+              '⚔️ **Minecraft & Gaming:** `/mcstatus`, `/skin`, `/activity`\n' +
               '🛡️ **Moderation Powerhouse:** `/ban`, `/kick`, `/mute`, `/unmute`, `/warn`, `/purge`, `/lockdown`\n' +
               '💰 **Economy & Store:** `/balance`, `/daily`, `/pay`, `/store`, `/givecoins`\n' +
               '⚡ **VIP Progression & Leveling (2x XP):** `/rank`, `/leaderboard`, `/rewards`\n' +

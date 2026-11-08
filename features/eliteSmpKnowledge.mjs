@@ -212,6 +212,15 @@ export const ELITE_SMP_COMMAND_DEFINITION = {
 };
 
 export async function handleEliteSmpCommand(interaction) {
+  const TLB_GUILD_ID = '1557852594242719775';
+  if (interaction.guildId && interaction.guildId !== TLB_GUILD_ID) {
+    const payload = {
+      content: '🔒 **Custom Integration Notice:** The `/elitesmp` command is a dedicated custom module built exclusively for **The Light Bearers** (TLB).\n\n💡 *Want a dedicated Minecraft SMP or custom bot integration for your server? Open a Custom Bot ticket in our Support Server!*',
+      flags: 64
+    };
+    if (interaction.reply) return interaction.reply(payload);
+    return;
+  }
   const sub = interaction.options?.getSubcommand() || 'teams';
 
   if (sub === 'teams') {

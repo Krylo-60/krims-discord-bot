@@ -387,15 +387,21 @@ export async function geminiDirectAsk(prompt, systemInstruction = '', guildName 
     }
   }
 
-  const creatorRecognition = '\n• SUPREME CREATOR & OWNER RECOGNITION (ABSOLUTE LAW):\n- Krylo (Discord: krylo_plays / KryloMCYT, ID: 1414143825538191373, Minecraft IGN: KryloMCYT) is your CREATOR, FOUNDER, AND SUPREME BOSS.\n- Owner of KryloSMP and mastermind behind Krims Code AI & Krims Code Premium.\n- ELITE SMP CLARIFICATION: Krylo is NOT the owner of Elite SMP! Elite SMP is an external public server owned by MCCurios and Fiforious_. On Elite SMP, Krylo plays as the official Team Co-Leader of The Half Life\'s clan (Jonesy / st1llkill3r is the Team Leader). Never claim or imply Krylo owns Elite SMP.\n- Krylo holds a permanent Lifetime Founder License (100% Free Forever). When Krylo speaks, always salute him and recognize his supreme authority!\n';
+  const creatorRecognition = (guildId === '1557852594242719775')
+    ? '\n• SUPREME CREATOR & OWNER RECOGNITION (ABSOLUTE LAW):\n- Krylo (Discord: krylo_plays / KryloMCYT, ID: 1414143825538191373, Minecraft IGN: KryloMCYT) is your CREATOR, FOUNDER, AND SUPREME BOSS.\n- Owner of KryloSMP and mastermind behind Krims Code AI & Krims Code Premium.\n- ELITE SMP CLARIFICATION: Krylo is NOT the owner of Elite SMP! Elite SMP is an external public server owned by MCCurios and Fiforious_. On Elite SMP, Krylo plays as the official Team Co-Leader of The Light Bearers clan (Jonesy / st1llkill3r is the Team Leader). Never claim or imply Krylo owns Elite SMP.\n- Krylo holds a permanent Lifetime Founder License (100% Free Forever). When Krylo speaks, always salute him and recognize his supreme authority!\n'
+    : '\n• SUPREME CREATOR & OWNER RECOGNITION (ABSOLUTE LAW):\n- Krylo (Discord: krylo_plays / KryloMCYT, ID: 1414143825538191373, Minecraft IGN: KryloMCYT) is your CREATOR, FOUNDER, AND SUPREME BOSS.\n- Mastermind behind Krims Code AI, the Krims Bot Network, and Krims Code Premium.\n- Krylo holds a permanent Lifetime Founder License (100% Free Forever). When Krylo speaks, always salute him and recognize his supreme authority!\n';
 
   const userContext = userId 
     ? `\n• CURRENT SPEAKER CONTEXT: User ID: ${userId}, Username/Display: "${userName || 'Unknown'}". ${userId === '1414143825538191373' ? 'THIS IS KRYLO, YOUR SUPREME CREATOR AND BOSS! Always salute and address him with supreme respect as your Creator/Boss.' : (userId === '1541259051801780275' ? 'THIS IS MINI, Founder and Owner of Mini\'s Cool Roblox Server!' : `Address this user as "${userName || 'Friend'}".`)}`
     : '';
 
+  const isTLB = guildId === '1557852594242719775';
+
   defaultSys += memoryContext;
   defaultSys += weatherContext;
-  defaultSys += await getEliteSmpSystemPrompt();
+  if (isTLB) {
+    defaultSys += await getEliteSmpSystemPrompt();
+  }
   defaultSys += creatorRecognition;
   defaultSys += userContext;
   defaultSys += formattingRule;
@@ -1355,11 +1361,12 @@ client.once('ready', async () => {
       console.log('[+] Instant Guild commands synced to Krylo\'s Skybase!');
     }
 
-    // Sync Guild-Specific Command Suite for The Half Lifes
+    // Sync Guild-Specific Command Suite for The Light Bearers (TLB)
     const halfLifesGuild = client.guilds.cache.get(HALF_LIFES_GUILD_ID);
     if (halfLifesGuild) {
       await halfLifesGuild.commands.create(HALF_LIFES_PING_COMMAND_DEF).catch(e => console.warn('[HalfLifes Cmd] Register notice:', e.message));
-      console.log('[+] Guild-specific /pingroles synced exclusively to The Half Lifes!');
+      await halfLifesGuild.commands.create(ELITE_SMP_COMMAND_DEFINITION).catch(e => console.warn('[TLB Cmd] Register notice:', e.message));
+      console.log('[+] Guild-specific /pingroles and /elitesmp synced exclusively to The Light Bearers (TLB)!');
     }
     console.log('[+] Slash commands registered globally & locally in Skybase and The Half Lifes!');
 
@@ -10661,7 +10668,7 @@ client.on('messageCreate', async (message) => {
         }
 
         // 2. Anti-Server Advertisement & Invite Link Filter
-        const isWhitelistedServer = msgContent.includes('elitesmp.gg') || msgContent.includes('xbgjqxbwpb');
+        const isWhitelistedServer = message.guild?.id === '1557852594242719775' && (msgContent.includes('elitesmp.gg') || msgContent.includes('xbgjqxbwpb'));
         const serverAdRegex = /(discord\.(gg|io|me|li)\/.+|discord(app)?\.com\/invite\/.+|join\s+(?:my|this|another|our|new)\s+server|\.aternos\.me|\.minehut\.gg|\.falix\.gg|insanityz)/i;
         if (!isWhitelistedServer && serverAdRegex.test(msgContent)) {
           await handleViolation(message, 'mentioning or advertising other servers is strictly prohibited', `Content: \`${message.content}\``);

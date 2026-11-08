@@ -610,6 +610,13 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     }
 
     if (commandName === 'elitesmp') {
+      const TLB_GUILD_ID = '1557852594242719775';
+      if (interaction.guildId !== TLB_GUILD_ID) {
+        return await interaction.reply({
+          content: '🔒 **Custom Integration Notice:** The `/elitesmp` command is a dedicated custom module built exclusively for **The Light Bearers** (TLB).\n\n💡 *Want a dedicated Minecraft SMP or custom bot integration for your server? Open a Custom Bot ticket in our Support Server!*',
+          flags: 64
+        });
+      }
       return await handleEliteSmpCommand(interaction);
     }
 

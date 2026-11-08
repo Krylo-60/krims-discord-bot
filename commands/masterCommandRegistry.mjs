@@ -610,8 +610,6 @@ export const masterCommandBuilders = [
         { name: '⚡ XP & Levels', value: 'xp' }
       )),
 
-  ELITE_SMP_COMMAND_DEFINITION,
-
   new SlashCommandBuilder()
     .setName('clan')
     .setDescription('🏰 SMP Clan & Faction System')
@@ -781,3 +779,6 @@ export const PREFIX_ONLY_COMMANDS = new Set([
 export const masterCommandJson = masterCommandBuilders
   .map(cmd => typeof cmd?.toJSON === 'function' ? cmd.toJSON() : cmd)
   .filter(cmd => !PREFIX_ONLY_COMMANDS.has(cmd.name));
+
+
+export { ELITE_SMP_COMMAND_DEFINITION };
