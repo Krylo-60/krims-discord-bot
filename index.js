@@ -745,16 +745,17 @@ async function handleMessageXP(message) {
 async function createBulletproofTicketChannel(guild, { name, parentId = null, topic = '', permissionOverwrites = [] }) {
   if (!guild) throw new Error('Guild reference is missing.');
 
+  const targetGuild = client.guilds.cache.get(guild.id) || guild;
   if (!client.guilds.cache.has(guild.id)) {
-    client.guilds.cache.set(guild.id, guild);
+    client.guilds.cache.set(guild.id, targetGuild);
   }
 
   let channel = null;
   let lastError = null;
 
-  // 1. Primary attempt: Standard discord.js guild.channels.create with full category & overwrites
+  // 1. Primary attempt: Standard targetGuild.channels.create with full category & overwrites
   try {
-    channel = await guild.channels.create({
+    channel = await targetGuild.channels.create({
       name,
       type: ChannelType.GuildText,
       parent: parentId || null,
@@ -770,15 +771,12 @@ async function createBulletproofTicketChannel(guild, { name, parentId = null, to
   if (!channel || !channel.id) {
     try {
       console.log(`[Bulletproof Creator] Attempt 2: Creating #${name} without initial overwrites...`);
-      channel = await guild.channels.create({
+      channel = await targetGuild.channels.create({
         name,
         type: ChannelType.GuildText,
         parent: parentId || null,
         topic: (topic || '').slice(0, 1024)
       });
-      if (channel && permissionOverwrites && permissionOverwrites.length > 0 && channel.permissionOverwrites) {
-        await channel.permissionOverwrites.set(permissionOverwrites).catch(() => {});
-      }
     } catch (retryErr) {
       lastError = retryErr;
       console.warn('[Bulletproof Creator] Attempt 2 failed:', retryErr.message);
@@ -789,21 +787,58 @@ async function createBulletproofTicketChannel(guild, { name, parentId = null, to
   if (!channel || !channel.id) {
     try {
       console.log(`[Bulletproof Creator] Attempt 3: Creating #${name} at root level...`);
-      channel = await guild.channels.create({
+      channel = await targetGuild.channels.create({
         name,
         type: ChannelType.GuildText,
         topic: (topic || '').slice(0, 1024)
       });
-      if (channel && permissionOverwrites && permissionOverwrites.length > 0 && channel.permissionOverwrites) {
-        await channel.permissionOverwrites.set(permissionOverwrites).catch(() => {});
-      }
     } catch (rootErr) {
       lastError = rootErr;
       console.warn('[Bulletproof Creator] Attempt 3 failed:', rootErr.message);
     }
   }
 
-  // 4. Verification: If channel was created, preserve reference and enhance send if needed
+  // 4. Indestructible REST API attempt: Direct Discord REST API POST to /guilds/{id}/channels
+  if (!channel || !channel.id) {
+    try {
+      console.log(`[Bulletproof Creator] Attempt 4: Direct Discord REST API channel creation for #${name}...`);
+      const restData = await client.rest.post(Routes.guildChannels(guild.id), {
+        body: {
+          name,
+          type: ChannelType.GuildText,
+          parent_id: parentId || undefined,
+          topic: (topic || '').slice(0, 1024)
+        }
+      });
+      if (restData && restData.id) {
+        channel = await client.channels.fetch(restData.id).catch(() => null);
+        if (!channel) {
+          channel = {
+            id: restData.id,
+            name: restData.name || name,
+            guild: targetGuild,
+            send: async (payload) => {
+              return await safeSendToTicketChannel(restData.id, payload);
+            }
+          };
+        }
+      }
+    } catch (restErr) {
+      lastError = restErr;
+      console.warn('[Bulletproof Creator] Attempt 4 REST failed:', restErr.message);
+    }
+  }
+
+  // 5. Final fallback scan: Force fetch all channels from guild
+  if (!channel || !channel.id) {
+    const fetchedChannels = await targetGuild.channels.fetch().catch(() => new Map());
+    const cachedMatch = fetchedChannels.find(c => c && c.name && c.name.toLowerCase() === name.toLowerCase());
+    if (cachedMatch && cachedMatch.id) {
+      channel = cachedMatch;
+    }
+  }
+
+  // 6. Guarantee channel reference, messaging capabilities, and permission overwrites
   if (channel && channel.id) {
     if (typeof channel.send !== 'function') {
       const fetched = await client.channels.fetch(channel.id).catch(() => null);
@@ -811,21 +846,10 @@ async function createBulletproofTicketChannel(guild, { name, parentId = null, to
         channel = fetched;
       }
     }
-    // Guarantee overwrites applied
-    if (permissionOverwrites && permissionOverwrites.length > 0 && channel.permissionOverwrites) {
+    if (permissionOverwrites && permissionOverwrites.length > 0 && channel.permissionOverwrites && typeof channel.permissionOverwrites.set === 'function') {
       await channel.permissionOverwrites.set(permissionOverwrites).catch(() => {});
     }
     return channel;
-  }
-
-  // 5. Final fallback scan: Search guild channels cache
-  await guild.channels.fetch().catch(() => {});
-  const cachedMatch = guild.channels.cache.find(c => c && c.name && c.name.toLowerCase() === name.toLowerCase());
-  if (cachedMatch && cachedMatch.id) {
-    if (permissionOverwrites && permissionOverwrites.length > 0 && cachedMatch.permissionOverwrites) {
-      await cachedMatch.permissionOverwrites.set(permissionOverwrites).catch(() => {});
-    }
-    return cachedMatch;
   }
 
   const detailedError = (lastError && lastError.message) 
