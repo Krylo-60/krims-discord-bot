@@ -739,14 +739,14 @@ async function handleMessageXP(message) {
 async function createBulletproofTicketChannel(guild, { name, parentId = null, topic = '', permissionOverwrites = [] }) {
   if (!guild) throw new Error('Guild reference is missing.');
 
-  // 1. Ensure guild is registered in client cache
   if (!client.guilds.cache.has(guild.id)) {
     client.guilds.cache.set(guild.id, guild);
   }
 
   let channel = null;
+  let lastError = null;
 
-  // 2. Primary attempt: Standard discord.js guild.channels.create
+  // 1. Primary attempt: Standard discord.js guild.channels.create with full category & overwrites
   try {
     channel = await guild.channels.create({
       name,
@@ -756,27 +756,44 @@ async function createBulletproofTicketChannel(guild, { name, parentId = null, to
       permissionOverwrites: (permissionOverwrites && permissionOverwrites.length > 0) ? permissionOverwrites : undefined
     });
   } catch (createErr) {
-    console.warn('[Bulletproof Creator] guild.channels.create error:', createErr.message);
+    lastError = createErr;
+    console.warn('[Bulletproof Creator] Attempt 1 failed:', createErr.message);
   }
 
-  // 3. Fallback attempt: Direct Discord REST API POST if discord.js returned null or threw
+  // 2. Fallback attempt: Create without initial overwrites in payload (in case an overwrite role/member ID was invalid)
   if (!channel || !channel.id) {
     try {
-      console.log(`[Bulletproof Creator] Falling back to direct REST creation for #${name}...`);
-      const raw = await client.rest.post(`/guilds/${guild.id}/channels`, {
-        body: {
-          name,
-          type: 0,
-          parent_id: parentId || null,
-          topic: (topic || '').slice(0, 1024),
-      permissionOverwrites: (permissionOverwrites && permissionOverwrites.length > 0) ? permissionOverwrites : undefined
-        }
+      console.log(`[Bulletproof Creator] Attempt 2: Creating #${name} without initial overwrites...`);
+      channel = await guild.channels.create({
+        name,
+        type: ChannelType.GuildText,
+        parent: parentId || null,
+        topic: (topic || '').slice(0, 1024)
       });
-      if (raw && raw.id) {
-        channel = await client.channels.fetch(raw.id).catch(() => null);
+      if (channel && permissionOverwrites && permissionOverwrites.length > 0 && channel.permissionOverwrites) {
+        await channel.permissionOverwrites.set(permissionOverwrites).catch(() => {});
       }
-    } catch (restErr) {
-      console.error('[Bulletproof Creator] REST fallback failed:', restErr.message);
+    } catch (retryErr) {
+      lastError = retryErr;
+      console.warn('[Bulletproof Creator] Attempt 2 failed:', retryErr.message);
+    }
+  }
+
+  // 3. Fallback attempt: Create at root level without parent category (in case category is full or has locked permissions)
+  if (!channel || !channel.id) {
+    try {
+      console.log(`[Bulletproof Creator] Attempt 3: Creating #${name} at root level...`);
+      channel = await guild.channels.create({
+        name,
+        type: ChannelType.GuildText,
+        topic: (topic || '').slice(0, 1024)
+      });
+      if (channel && permissionOverwrites && permissionOverwrites.length > 0 && channel.permissionOverwrites) {
+        await channel.permissionOverwrites.set(permissionOverwrites).catch(() => {});
+      }
+    } catch (rootErr) {
+      lastError = rootErr;
+      console.warn('[Bulletproof Creator] Attempt 3 failed:', rootErr.message);
     }
   }
 
@@ -792,14 +809,12 @@ async function createBulletproofTicketChannel(guild, { name, parentId = null, to
   }
 
   if (!channel) {
-    throw new Error('Ticket channel creation failed to resolve a valid channel.');
+    throw new Error(lastError ? lastError.message : 'Ticket channel creation failed to resolve a valid channel.');
   }
 
-  // 6. Atomically apply private permission overwrites if present
+  // 6. Guarantee overwrites applied
   if (permissionOverwrites && permissionOverwrites.length > 0 && channel.permissionOverwrites) {
-    await channel.permissionOverwrites.set(permissionOverwrites).catch(permErr => {
-      console.warn('[Bulletproof Creator] Overwrite set warning:', permErr.message);
-    });
+    await channel.permissionOverwrites.set(permissionOverwrites).catch(() => {});
   }
 
   return channel;
