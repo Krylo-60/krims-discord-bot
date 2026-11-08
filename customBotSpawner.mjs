@@ -55,6 +55,23 @@ try {
 const processedMessages = new Set();
 const guildLevelingTurns = new Map();
 
+// ═════════════════════════════════════════════════════════════════════════════
+// ⏱️ CUSTOM BOT AI RATE LIMITER (3 messages per minute per user)
+// Protects servers & AI engines from spam while exempting Krylo & Server Owners
+// ═════════════════════════════════════════════════════════════════════════════
+const customBotAiRateLimits = new Map(); // Map<`${botId}:${userId}`, number[]>
+const RATE_LIMIT_MAX_MESSAGES = 3;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 60 seconds
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, timestamps] of customBotAiRateLimits.entries()) {
+    const valid = timestamps.filter(t => now - t < RATE_LIMIT_WINDOW_MS);
+    if (valid.length === 0) customBotAiRateLimits.delete(key);
+    else customBotAiRateLimits.set(key, valid);
+  }
+}, 5 * 60 * 1000);
+
 const BOT_LEVEL_FLAIRS = {
   '1565527301444083722': { // Baby Phoenix
     color: '#FF6B00',
@@ -585,14 +602,37 @@ export class MultiBotManager {
       }
 
       if (isMentioned) {
+        const activeBotName = meMember?.displayName || meMember?.nickname || client.user.username;
+
+        // ⏱️ Rate Limiter: 3 messages per minute per user on Custom Bots
+        const isExempt = message.author.id === '1414143825538191373' || // Krylo (Supreme Boss & Creator)
+          message.guild.ownerId === message.author.id ||               // Server Owner (e.g. Mini)
+          message.member?.permissions?.has(1n << 3n);                 // Server Administrator
+
+        if (!isExempt) {
+          const now = Date.now();
+          const rateKey = `${client.user.id}:${message.author.id}`;
+          const timestamps = (customBotAiRateLimits.get(rateKey) || []).filter(t => now - t < RATE_LIMIT_WINDOW_MS);
+
+          if (timestamps.length >= RATE_LIMIT_MAX_MESSAGES) {
+            const oldest = timestamps[0];
+            const waitSec = Math.max(1, Math.ceil((oldest + RATE_LIMIT_WINDOW_MS - now) / 1000));
+            return message.reply({
+              content: `⏳ Whoa there, **${message.author.username}**! To prevent chat spam, there is a rate limit of **3 messages per minute** with **${activeBotName}**.\nPlease wait **${waitSec}s** before asking another question! ⚡`,
+              allowedMentions: { repliedUser: false }
+            }).catch(() => {});
+          }
+
+          timestamps.push(now);
+          customBotAiRateLimits.set(rateKey, timestamps);
+        }
+
         try {
           await message.channel.sendTyping().catch(() => {});
           let cleanPrompt = message.content
             .replace(userMentionRegex, '')
             .replace(roleMentionRegex || '', '')
             .trim();
-
-          const activeBotName = meMember?.displayName || meMember?.nickname || client.user.username;
 
           if (!cleanPrompt) {
             return message.reply({
