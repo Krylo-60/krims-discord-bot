@@ -1878,7 +1878,7 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   // 💎 Handle Krims Code Alpha Sneak Peek Button Interactions (Zero commands needed)
-  if (interaction.isButton() && (interaction.customId.startsWith('welcome_') || interaction.customId.startsWith('tickets_'))) {
+  if (interaction.isButton() && (interaction.customId.startsWith('welcome_') || interaction.customId.startsWith('tickets_') || interaction.customId.startsWith('ticket_') || interaction.customId === 'open_ticket')) {
     const handled = await handleWelcomeTicketInteraction(interaction);
     if (handled) return;
   }

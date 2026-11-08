@@ -264,5 +264,156 @@ export async function handleWelcomeTicketInteraction(interaction) {
     }
   }
 
+  // D. Create Private Support Ticket Channel
+  if (customId.startsWith('ticket_create') || customId === 'open_ticket') {
+    await interaction.deferReply({ ephemeral: true });
+
+    const guild = interaction.guild;
+    const user = interaction.user;
+
+    // Check if user already has an active ticket
+    const existingTicket = guild.channels.cache.find(c => 
+      c.type === ChannelType.GuildText && 
+      (c.name === `ticket-${user.username.toLowerCase().replace(/[^a-z0-9]/g, '')}` || c.topic?.includes(user.id))
+    );
+
+    if (existingTicket) {
+      return interaction.followUp({
+        content: `⚠️ You already have an open ticket! Please head over to <#${existingTicket.id}>.`,
+        ephemeral: true
+      });
+    }
+
+    // Find ticket category (e.g. 🎫 ・SUPPORT or 🎫 ・SUPPORT TICKETS)
+    const category = guild.channels.cache.find(c => 
+      c.type === ChannelType.GuildCategory && 
+      (c.name.includes('SUPPORT') || c.name.includes('TICKET') || c.name.includes('Support'))
+    ) || null;
+
+    // Identify staff roles that should have access
+    const staffRoles = guild.roles.cache.filter(r => {
+      const n = r.name.normalize('NFKD').toLowerCase();
+      return r.permissions.has(PermissionFlagsBits.Administrator) ||
+        r.permissions.has(PermissionFlagsBits.ManageGuild) ||
+        n.includes('founder') || n.includes('moderator') || n.includes('staff') || n.includes('aide');
+    });
+
+    const permissionOverwrites = [
+      {
+        id: guild.roles.everyone.id,
+        deny: [PermissionFlagsBits.ViewChannel]
+      },
+      {
+        id: user.id,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.AttachFiles,
+          PermissionFlagsBits.EmbedLinks,
+          PermissionFlagsBits.ReadMessageHistory
+        ]
+      },
+      {
+        id: interaction.client.user.id,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.ManageChannels,
+          PermissionFlagsBits.EmbedLinks
+        ]
+      }
+    ];
+
+    staffRoles.forEach(r => {
+      permissionOverwrites.push({
+        id: r.id,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.AttachFiles,
+          PermissionFlagsBits.EmbedLinks,
+          PermissionFlagsBits.ReadMessageHistory
+        ]
+      });
+    });
+
+    try {
+      const cleanName = user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20) || 'user';
+      const ticketChannel = await guild.channels.create({
+        name: `ticket-${cleanName}`,
+        type: ChannelType.GuildText,
+        parent: category?.id || null,
+        topic: `Private Support Ticket for @${user.tag} (ID: ${user.id})`,
+        permissionOverwrites
+      });
+
+      const welcomeEmbed = new EmbedBuilder()
+        .setColor(0x00F2FF)
+        .setTitle(`🎫 ${guild.name} • Support Ticket`)
+        .setDescription(
+          `Hey <@${user.id}>, welcome to your private ticket!\n\n` +
+          `**How can we help you today?**\n` +
+          `• 🚨 **Player Report:** Provide screenshots & username\n` +
+          `• ❓ **Help / Question:** Give details on what you need help with\n` +
+          `• 💡 **Suggestion / Partnership:** Explain your idea\n\n` +
+          `*Our server staff and moderators have been pinged and will assist you shortly!* ⚡`
+        )
+        .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 256 }))
+        .setFooter({ text: 'Click Close Ticket below when your issue is resolved.' })
+        .setTimestamp();
+
+      const actionRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`ticket_close_${user.id}`)
+          .setLabel('🔒 Close Ticket')
+          .setStyle(ButtonStyle.Danger)
+      );
+
+      await ticketChannel.send({
+        content: `👋 Welcome <@${user.id}>! Staff has been notified.`,
+        embeds: [welcomeEmbed],
+        components: [actionRow]
+      });
+
+      return interaction.followUp({
+        content: `✅ **Ticket Created!** Please go to <#${ticketChannel.id}> to speak with staff.`,
+        ephemeral: true
+      });
+    } catch (createErr) {
+      console.error('[Ticket Create Error]', createErr);
+      return interaction.followUp({
+        content: `❌ Could not create ticket channel: ${createErr.message}`,
+        ephemeral: true
+      });
+    }
+  }
+
+  // E. Close Support Ticket Channel
+  if (customId.startsWith('ticket_close')) {
+    const isStaffOrOpener = interaction.channel.name.startsWith('ticket-') ||
+      interaction.channel.topic?.includes(interaction.user.id) ||
+      interaction.member.permissions.has(PermissionFlagsBits.ManageChannels);
+
+    if (!isStaffOrOpener) {
+      return interaction.reply({
+        content: '⛔ Only ticket openers or staff can close this ticket!',
+        ephemeral: true
+      });
+    }
+
+    await interaction.reply({
+      content: '🔒 **Closing Ticket...** This channel will be deleted in **5 seconds**. Thank you!'
+    });
+
+    setTimeout(async () => {
+      try {
+        await interaction.channel.delete('Ticket closed by user/staff');
+      } catch (delErr) {
+        console.warn('[Ticket Delete Error]', delErr.message);
+      }
+    }, 5000);
+    return true;
+  }
+
   return false;
 }
