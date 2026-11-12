@@ -29,11 +29,15 @@ try {
     )
   `).run();
 
-  // Guarantee stage_1_v6_ga is marked in SQLite immediately
+  // Guarantee stage_1_v6_ga and stage_2_diwali_finale are marked in SQLite immediately
   db.prepare(`
     INSERT OR IGNORE INTO scheduled_releases_executed (stage_id, version, executed_at, executed_iso)
     VALUES (?, ?, ?, ?)
   `).run('stage_1_v6_ga', 'v6.0.0 GA', Date.UTC(2026, 10, 9, 0, 0, 0), '2026-11-08T19:00:00.000Z');
+  db.prepare(`
+    INSERT OR IGNORE INTO scheduled_releases_executed (stage_id, version, executed_at, executed_iso)
+    VALUES (?, ?, ?, ?)
+  `).run('stage_2_diwali_finale', 'v6.0.5 Event Finale', Date.UTC(2026, 10, 12, 2, 0, 0), '2026-11-12T02:00:00.000Z');
 } catch (e) {
   console.warn('[ReleaseMatrix SQLite Init Warning]:', e.message);
 }
@@ -46,12 +50,17 @@ if (neonPool) {
       executed_at BIGINT,
       executed_iso VARCHAR(64)
     )
-  `).then(() => {
-    return neonPool.query(`
+  `).then(async () => {
+    await neonPool.query(`
       INSERT INTO scheduled_releases_executed (stage_id, version, executed_at, executed_iso)
       VALUES ($1, $2, $3, $4)
       ON CONFLICT (stage_id) DO NOTHING
     `, ['stage_1_v6_ga', 'v6.0.0 GA', Date.UTC(2026, 10, 9, 0, 0, 0), '2026-11-08T19:00:00.000Z']);
+    return neonPool.query(`
+      INSERT INTO scheduled_releases_executed (stage_id, version, executed_at, executed_iso)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (stage_id) DO NOTHING
+    `, ['stage_2_diwali_finale', 'v6.0.5 Event Finale', Date.UTC(2026, 10, 12, 2, 0, 0), '2026-11-12T02:00:00.000Z']);
   }).catch(e => console.warn('[ReleaseMatrix Neon Init Warning]:', e.message));
 }
 
@@ -269,10 +278,14 @@ export const REDEEMABLE_PERKS = [
 function loadReleaseState() {
   let state = {
     broadcasts: {
-      // Hardcode stage_1_v6_ga as executed so even on fresh containers it NEVER re-triggers!
+      // Hardcode already-concluded stages so even on fresh containers they NEVER re-trigger!
       stage_1_v6_ga: {
         triggeredAt: '2026-11-08T19:00:00.000Z',
         version: 'v6.0.0 GA'
+      },
+      stage_2_diwali_finale: {
+        triggeredAt: '2026-11-12T02:00:00.000Z',
+        version: 'v6.0.5 Event Finale'
       }
     },
     founderOverviewSent: true
@@ -430,6 +443,24 @@ export async function sendOwnerScheduleOverviewDM(client, force = false) {
 export async function checkAndTriggerGABroadcast(client) {
   const now = Date.now();
   const state = loadReleaseState();
+
+  // Async hydrate from Neon Postgres if available so fresh containers NEVER repeat a past release
+  if (neonPool) {
+    try {
+      const res = await neonPool.query('SELECT stage_id, version, executed_iso, executed_at FROM scheduled_releases_executed');
+      if (res && res.rows) {
+        for (const r of res.rows) {
+          state.broadcasts[r.stage_id] = {
+            triggeredAt: r.executed_iso || new Date(Number(r.executed_at || Date.now())).toISOString(),
+            version: r.version
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('[ReleaseMatrix] Neon hydration warning:', e.message);
+    }
+  }
+
   let stateModified = false;
 
   for (const rel of SCHEDULED_RELEASES) {
