@@ -24,7 +24,16 @@ import {
   MINI_X_BOT_ID
 } from './features/miniRobloxServerEngine.mjs';
 import { handleChatModeration } from './features/chatModEngine.mjs';
-import { Client, GatewayIntentBits, Partials, ActivityType, EmbedBuilder } from 'discord.js';
+import { 
+  handleJtcVoiceStateUpdate, 
+  handleJtcInteraction, 
+  handleJtcSetup, 
+  getJtcConfig, 
+  deleteJtcConfig, 
+  buildJtcControlPanel,
+  activeTempVoiceChannels
+} from './features/joinToCreateManager.mjs';
+import { Client, GatewayIntentBits, Partials, ActivityType, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import fetch from 'node-fetch';
 import { encryptToken, decryptToken } from './tokenSecurity.mjs';
 import { recordConversationTurn } from './features/aiMemoryEngine.mjs';
@@ -301,7 +310,8 @@ export class MultiBotManager {
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildMembers
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildVoiceStates
       ],
       partials: [Partials.Message, Partials.Channel]
     });
@@ -320,7 +330,8 @@ export class MultiBotManager {
         const basicClient = new Client({
           intents: [
             GatewayIntentBits.Guilds,
-            GatewayIntentBits.GuildMessages
+            GatewayIntentBits.GuildMessages,
+            GatewayIntentBits.GuildVoiceStates
           ],
           partials: [Partials.Message, Partials.Channel]
         });
@@ -367,6 +378,15 @@ export class MultiBotManager {
     client.on('guildCreate', async (guild) => {
       if (client.user.id === '1565848105277067414') {
         try { await guild.members.me?.setNickname('Mini X'); } catch (_) {}
+      }
+    });
+
+    // 🔊 Dynamic Join-to-Create (JTC) Voice State Handler
+    client.on('voiceStateUpdate', async (oldState, newState) => {
+      try {
+        await handleJtcVoiceStateUpdate(oldState, newState, client);
+      } catch (err) {
+        console.warn(`[${config.botName || 'CustomBot'} JTC Voice Error]:`, err.message);
       }
     });
 
@@ -496,6 +516,47 @@ export class MultiBotManager {
       if (cleanText.startsWith('!settickets') || cleanText.startsWith(`${p}settickets`)) {
         const args = message.content.trim().split(/\s+/).slice(1);
         return handleSetTicketsCommand(message, args);
+      }
+
+      // 🔊 Join-to-Create (JTC) Dynamic Voice Commands (!setupjtc, !setjtc, !jtc setup, !jtc panel, !jtc reset)
+      if (
+        cleanText === '!setjtc' ||
+        cleanText === '!setupjtc' ||
+        cleanText === '!jtc setup' ||
+        cleanText === '!jtc' ||
+        cleanText === `${p}setjtc` ||
+        cleanText === `${p}setupjtc` ||
+        cleanText === `${p}jtc setup` ||
+        cleanText === `${p}jtc`
+      ) {
+        if (!message.guild) return message.reply('❌ This command can only be used inside servers!');
+        if (!message.member?.permissions?.has(PermissionFlagsBits.ManageChannels) && !message.member?.permissions?.has(PermissionFlagsBits.Administrator)) {
+          return message.reply('❌ **Missing Permissions:** You need the `Manage Channels` permission to set up Join to Create.');
+        }
+        const statusMsg = await message.reply('🔄 **Deploying Join-to-Create Voice Hub...**');
+        try {
+          const { embed } = await handleJtcSetup(message.guild, message.author);
+          return statusMsg.edit({ content: null, embeds: [embed] });
+        } catch (err) {
+          return statusMsg.edit(`❌ Failed to deploy Join-to-Create: ${err.message}`);
+        }
+      }
+
+      if (cleanText === '!jtc panel' || cleanText === `${p}jtc panel`) {
+        if (!message.member?.permissions?.has(PermissionFlagsBits.ManageChannels) && !message.member?.permissions?.has(PermissionFlagsBits.Administrator)) {
+          return message.reply('❌ **Missing Permissions:** You need the `Manage Channels` permission to send the control panel.');
+        }
+        const jtcConfig = getJtcConfig(message.guild.id);
+        const panelPayload = buildJtcControlPanel(message.author.id, "🔊・Voice Controls", false, false, jtcConfig?.default_limit || 0);
+        return message.reply({ ...panelPayload });
+      }
+
+      if (cleanText === '!jtc reset' || cleanText === `${p}jtc reset`) {
+        if (!message.member?.permissions?.has(PermissionFlagsBits.ManageChannels) && !message.member?.permissions?.has(PermissionFlagsBits.Administrator)) {
+          return message.reply('❌ **Missing Permissions:** You need the `Manage Channels` permission to reset Join to Create.');
+        }
+        deleteJtcConfig(message.guild.id);
+        return message.reply('✅ Join-to-Create configuration has been reset and disabled for this server.');
       }
 
       // Free Community & Casino Commands: !bet, !rps, !trivia, !roast, !compliment, !partners
@@ -726,6 +787,15 @@ export class MultiBotManager {
 
     // 2. Interaction Event Listener (Commands like /about and /getbot)
     client.on('interactionCreate', async (interaction) => {
+      // 🔊 Handle Join-to-Create (JTC) Dynamic Voice Channel Controls
+      if ((interaction.isButton() || interaction.isModalSubmit()) && (
+        interaction.customId.startsWith('jtc_') ||
+        interaction.customId.startsWith('modal_jtc_')
+      )) {
+        const handled = await handleJtcInteraction(interaction);
+        if (handled) return;
+      }
+
       if ((interaction.isButton() || interaction.isModalSubmit()) && (
         interaction.customId.startsWith('welcome_') || 
         interaction.customId.startsWith('tickets_') || 
@@ -739,6 +809,63 @@ export class MultiBotManager {
         if (handled) return;
       }
       if (!interaction.isChatInputCommand()) return;
+
+      if (interaction.commandName === 'jtc' || interaction.commandName === 'setupjtc') {
+        if (!interaction.guild) {
+          return interaction.reply({ content: '❌ Join-to-Create commands can only be used inside servers!', ephemeral: true });
+        }
+        const sub = interaction.options?.getSubcommand ? (interaction.options.getSubcommand(false) || 'status') : 'setup';
+
+        if (sub === 'setup' || interaction.commandName === 'setupjtc') {
+          if (!interaction.member?.permissions?.has(PermissionFlagsBits.ManageChannels) && !interaction.member?.permissions?.has(PermissionFlagsBits.Administrator)) {
+            return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Channels` permission to set up Join to Create.', ephemeral: true });
+          }
+          await interaction.deferReply();
+          try {
+            const { embed } = await handleJtcSetup(interaction.guild, interaction.user);
+            return interaction.editReply({ embeds: [embed] });
+          } catch (err) {
+            return interaction.editReply({ content: `❌ Failed to setup Join-to-Create: ${err.message}` });
+          }
+        }
+
+        if (sub === 'panel') {
+          if (!interaction.member?.permissions?.has(PermissionFlagsBits.ManageChannels) && !interaction.member?.permissions?.has(PermissionFlagsBits.Administrator)) {
+            return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Channels` permission to send the control panel.', ephemeral: true });
+          }
+          const jtcConfig = getJtcConfig(interaction.guild.id);
+          const panelPayload = buildJtcControlPanel(interaction.user.id, "🔊・Voice Controls", false, false, jtcConfig?.default_limit || 0);
+          return interaction.reply({ ...panelPayload });
+        }
+
+        if (sub === 'reset') {
+          if (!interaction.member?.permissions?.has(PermissionFlagsBits.ManageChannels) && !interaction.member?.permissions?.has(PermissionFlagsBits.Administrator)) {
+            return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Channels` permission to reset Join to Create.', ephemeral: true });
+          }
+          deleteJtcConfig(interaction.guild.id);
+          return interaction.reply({ content: '✅ Join-to-Create configuration has been reset and disabled for this server.' });
+        }
+
+        const jtcCfg = getJtcConfig(interaction.guild.id);
+        const activeCount = Array.from(activeTempVoiceChannels.values()).filter(v => v.guild_id === interaction.guild.id).length;
+
+        const statusEmbed = new EmbedBuilder()
+          .setColor(0x00F2FF)
+          .setTitle('🔊 Join-to-Create System Status')
+          .setDescription(
+            jtcCfg && jtcCfg.hub_channel_id
+              ? `Dynamic voice channels are active on **${interaction.guild.name}**!\n\n` +
+                `• 🎙️ **Hub Channel:** <#${jtcCfg.hub_channel_id}>\n` +
+                `• 📁 **Category:** <#${jtcCfg.category_id}>\n` +
+                `• ⚡ **Active Dynamic Channels:** \`${activeCount}\`\n\n` +
+                `*Join <#${jtcCfg.hub_channel_id}> to automatically spawn a private voice room!*`
+              : `Join-to-Create is **NOT configured** on this server yet!\n\nUse \`/jtc setup\` or \`!setjtc\` to automatically deploy the category and hub channel!`
+          )
+          .setFooter({ text: `${client.user.username} • Dynamic Voice Architecture` })
+          .setTimestamp();
+
+        return interaction.reply({ embeds: [statusEmbed] });
+      }
 
       if (interaction.commandName === 'about' || interaction.commandName === 'getbot') {
         const aboutEmbed = new EmbedBuilder()

@@ -169,6 +169,8 @@ export function buildJtcControlPanel(ownerId, channelName, isLocked = false, isH
 // ═════════════════════════════════════════════════════════════════════════════
 // 3. 🎙️ VOICE STATE UPDATE HANDLER (Event: voiceStateUpdate)
 // ═════════════════════════════════════════════════════════════════════════════
+const activeJtcCreations = new Set();
+
 export async function handleJtcVoiceStateUpdate(oldState, newState, client) {
   try {
     const guild = newState.guild || oldState.guild;
@@ -180,6 +182,12 @@ export async function handleJtcVoiceStateUpdate(oldState, newState, client) {
     if (config && config.hub_channel_id && newState.channelId === config.hub_channel_id) {
       const member = newState.member;
       if (!member) return;
+
+      // Prevent race conditions / duplicate channels across 1-Mind fleet bots
+      const creationLockKey = `${guild.id}:${member.id}`;
+      if (activeJtcCreations.has(creationLockKey)) return;
+      activeJtcCreations.add(creationLockKey);
+      setTimeout(() => activeJtcCreations.delete(creationLockKey), 6000);
 
       const userName = (member.displayName || member.user.username).replace(/[^a-zA-Z0-9 _-]/g, '').trim() || member.user.username;
       const targetName = (config.name_format || "🔊・{user}'s VC").replace('{user}', userName).slice(0, 95);
