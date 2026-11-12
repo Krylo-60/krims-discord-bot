@@ -464,6 +464,8 @@ export async function getCrossServerCountingLeaderboardEmbed(client) {
 /**
  * Handles Counting Logic in linked channels or channels named 'counting'
  */
+const processedCountingMessages = new Set();
+
 export async function handleCountingMessage(message) {
   if (message.author.bot || !message.guild) return false;
 
@@ -506,6 +508,11 @@ export async function handleCountingMessage(message) {
 
   const num = parseInt(content, 10);
   if (isNaN(num)) return false;
+
+  // Prevent race conditions / double counting across multiple bot instances
+  if (processedCountingMessages.has(message.id)) return true;
+  processedCountingMessages.add(message.id);
+  setTimeout(() => processedCountingMessages.delete(message.id), 30000);
 
   if (!state) {
     state = { current_number: 0, last_user_id: null, high_score: 0 };

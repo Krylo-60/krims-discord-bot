@@ -428,6 +428,13 @@ export class MultiBotManager {
       // Only respond to messages in the registered guild (or all if multi-server/global)
       if (guildId && guildId !== 'global' && !guildId.startsWith('global_') && message.guild.id !== guildId) return;
 
+      // 🔢 Counting Game Engine Support for Custom Bots
+      try {
+        const { handleCountingMessage } = await import('./countingAndStickyEngine.mjs');
+        const isCounting = await handleCountingMessage(message);
+        if (isCounting) return;
+      } catch (_) {}
+
       const cleanText = message.content.trim().toLowerCase();
       const p = (customPrefix || '!').toLowerCase();
 
