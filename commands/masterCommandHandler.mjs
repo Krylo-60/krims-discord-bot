@@ -103,6 +103,13 @@ import { handleActivityCommand } from '../features/discordActivityEngine.mjs';
 import { handleGifCommand } from '../features/klipyGifEngine.mjs';
 import { STORE_CATALOG } from '../storeDeliveryEngine.mjs';
 import { generateVerificationCode, buildVerificationResponse, getPendingCodesList, loadSupporters } from '../features/twitchVerificationEngine.mjs';
+import { 
+  handleJtcSetup, 
+  getJtcConfig, 
+  deleteJtcConfig, 
+  buildJtcControlPanel, 
+  activeTempVoiceChannels 
+} from '../features/joinToCreateManager.mjs';
 
 const KRYLO_USER_ID = '1414143825538191373';
 
@@ -278,11 +285,85 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     }
 
     // ──────────────────────────────────────────────────────────
+    // 🔊 JOIN-TO-CREATE (JTC) VOICE ENGINE
+    // ──────────────────────────────────────────────────────────
+    if (commandName === 'jtc' || commandName === 'setupjtc') {
+      if (!interaction.guild) {
+        return interaction.reply({ content: '❌ Join-to-Create commands can only be used inside servers!', ephemeral: true });
+      }
+      let sub = 'setup';
+      try {
+        sub = interaction.options?.getSubcommand ? (interaction.options.getSubcommand(false) || 'status') : 'setup';
+      } catch (_) {}
+
+      const isStaff = interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels) ||
+                      interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ||
+                      interaction.user.id === '1414143825538191373';
+
+      if (sub === 'setup' || commandName === 'setupjtc') {
+        if (!isStaff) {
+          return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Channels` permission to set up Join to Create.', ephemeral: true });
+        }
+        await interaction.deferReply();
+        try {
+          const { embed } = await handleJtcSetup(interaction.guild, interaction.user);
+          return interaction.editReply({ embeds: [embed] });
+        } catch (err) {
+          return interaction.editReply({ content: `❌ Failed to setup Join-to-Create: ${err.message}` });
+        }
+      }
+
+      if (sub === 'panel') {
+        if (!isStaff) {
+          return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Channels` permission to send the control panel.', ephemeral: true });
+        }
+        const jtcConfig = getJtcConfig(interaction.guild.id);
+        const panelPayload = buildJtcControlPanel(interaction.user.id, "🔊・Voice Controls", false, false, jtcConfig?.default_limit || 0);
+        return interaction.reply({ ...panelPayload });
+      }
+
+      if (sub === 'reset') {
+        if (!isStaff) {
+          return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Channels` permission to reset Join to Create.', ephemeral: true });
+        }
+        deleteJtcConfig(interaction.guild.id);
+        return interaction.reply({ content: '✅ Join-to-Create configuration has been reset and disabled for this server.' });
+      }
+
+      const jtcCfg = getJtcConfig(interaction.guild.id);
+      const activeCount = Array.from(activeTempVoiceChannels.values()).filter(v => v.guild_id === interaction.guild.id).length;
+
+      const statusEmbed = new EmbedBuilder()
+        .setColor(0x00F2FF)
+        .setTitle('🔊 Join-to-Create System Status')
+        .setDescription(
+          jtcCfg && jtcCfg.hub_channel_id
+            ? `Dynamic voice channels are active on **${interaction.guild.name}**!\n\n` +
+              `• 🎙️ **Hub Channel:** <#${jtcCfg.hub_channel_id}>\n` +
+              `• 📁 **Category:** <#${jtcCfg.category_id}>\n` +
+              `• ⚡ **Active Dynamic Channels:** \`${activeCount}\`\n\n` +
+              `*Join <#${jtcCfg.hub_channel_id}> to automatically spawn a private voice room!*`
+            : `Join-to-Create is **NOT configured** on this server yet!\n\nUse \`/jtc setup\` or \`!setjtc\` to automatically deploy the category and hub channel!`
+        )
+        .setFooter({ text: `${interaction.client.user.username} • Dynamic Voice Architecture` })
+        .setTimestamp();
+
+      return interaction.reply({ embeds: [statusEmbed] });
+    }
+
+    // ──────────────────────────────────────────────────────────
     // 🔢 COUNTING ENGINE COMMAND
     // ──────────────────────────────────────────────────────────
     if (commandName === 'counting' || commandName === 'setupcounting') {
       const targetChannel = interaction.options.getChannel('channel') || interaction.channel;
-      const action = commandName === 'setupcounting' ? 'setup' : (interaction.options.getString('action') || (interaction.options.getChannel('channel') ? 'setup' : 'status'));
+      let sub = null;
+      try {
+        sub = interaction.options?.getSubcommand ? interaction.options.getSubcommand(false) : null;
+      } catch (_) {}
+
+      const action = commandName === 'setupcounting'
+        ? 'setup'
+        : (sub || interaction.options.getString('action') || (interaction.options.getChannel('channel') ? 'setup' : 'status'));
 
       const isStaff = interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels) ||
                       interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ||

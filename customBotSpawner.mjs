@@ -378,7 +378,17 @@ export class MultiBotManager {
           const { customBotCommandJson } = await import('./commands/masterCommandRegistry.mjs');
           const rest = new REST({ version: '10' }).setToken(config.token);
           await rest.put(Routes.applicationCommands(client.user.id), { body: customBotCommandJson });
-          console.log(`[MultiBotManager] 🚀 Synced ${customBotCommandJson.length} curated slash commands for ${client.user.tag} (${client.user.id})`);
+          console.log(`[MultiBotManager] 🚀 Synced ${customBotCommandJson.length} curated global slash commands for ${client.user.tag} (${client.user.id})`);
+
+          // ⚡ Immediate Guild Deployment for Zero-Delay Discovery
+          for (const g of client.guilds.cache.values()) {
+            try {
+              await rest.put(Routes.applicationGuildCommands(client.user.id, g.id), { body: customBotCommandJson });
+              console.log(`[MultiBotManager] ⚡ Instantly deployed ${customBotCommandJson.length} guild slash commands to ${g.name} (${g.id})!`);
+            } catch (gErr) {
+              console.warn(`[MultiBotManager] Guild command deploy notice for ${g.name}:`, gErr.message);
+            }
+          }
         } catch (syncErr) {
           console.warn(`[MultiBotManager] ⚠️ Slash command sync notice for ${client.user.tag}:`, syncErr.message);
         }

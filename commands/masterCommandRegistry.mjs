@@ -537,18 +537,36 @@ export const masterCommandBuilders = [
 
   new SlashCommandBuilder()
     .setName('counting')
-    .setDescription('🔢 Configure and manage the server counting game channel')
-    .addChannelOption(opt => opt.setName('channel').setDescription('Channel to link as official counting room').setRequired(false))
-    .addStringOption(opt => opt.setName('action').setDescription('Action to perform (setup, status, reset, unlink, ai)').setRequired(false)
-      .addChoices(
-        { name: '⚙️ Setup / Link Channel (setup)', value: 'setup' },
-        { name: '🔗 Link Channel (set)', value: 'set' },
-        { name: '🤖 AI Counting Mode (Count with Krims AI)', value: 'ai' },
-        { name: '🏆 Cross-Server Leaderboard', value: 'leaderboard' },
-        { name: '📊 Check Status & High Score', value: 'status' },
-        { name: '🔄 Reset Count to 1', value: 'reset' },
-        { name: '❌ Unlink Channel', value: 'unlink' }
-      )),
+    .setDescription('🔢 Configure and play the server counting game')
+    .addSubcommand(sub =>
+      sub.setName('setup')
+        .setDescription('⚙️ Setup and link the official counting channel for this server')
+        .addChannelOption(opt => opt.setName('channel').setDescription('Channel to link as counting room (defaults to current)').setRequired(false))
+    )
+    .addSubcommand(sub =>
+      sub.setName('status')
+        .setDescription('📊 View current counting chain streak, record high score and counter')
+        .addChannelOption(opt => opt.setName('channel').setDescription('Channel to check status for (defaults to current)').setRequired(false))
+    )
+    .addSubcommand(sub =>
+      sub.setName('reset')
+        .setDescription('🔄 Reset the counting chain back to 1 (Staff Only)')
+        .addChannelOption(opt => opt.setName('channel').setDescription('Channel to reset (defaults to current)').setRequired(false))
+    )
+    .addSubcommand(sub =>
+      sub.setName('ai')
+        .setDescription('🤖 Start a 15-minute AI Counting Partner session')
+        .addChannelOption(opt => opt.setName('channel').setDescription('Channel for AI counting (defaults to current)').setRequired(false))
+    )
+    .addSubcommand(sub =>
+      sub.setName('leaderboard')
+        .setDescription('🏆 View global cross-server counting leaderboard')
+    )
+    .addSubcommand(sub =>
+      sub.setName('unlink')
+        .setDescription('❌ Unlink the official counting channel (Staff Only)')
+        .addChannelOption(opt => opt.setName('channel').setDescription('Channel to unlink (defaults to current)').setRequired(false))
+    ),
 
   new SlashCommandBuilder()
     .setName('setupcounting')
