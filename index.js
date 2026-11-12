@@ -12095,7 +12095,81 @@ client.on('guildMemberAdd', async (member) => {
     console.warn('[AutoRole] Error assigning community roles:', err.message);
   }
 
-  // Works across ALL Krylo guilds
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 🌟 UNIVERSAL WELCOME ENGINE 2.0 (Powered by Dashboard Config & High-Tech HUD)
+  // ═══════════════════════════════════════════════════════════════════════════
+  try {
+    const cfg = await getCachedGuildConfig(member.guild.id);
+    const welcomeEnabled = cfg ? cfg.welcomeEnabled !== false : true;
+
+    if (welcomeEnabled) {
+      let welcomeCh = null;
+      if (cfg?.welcomeChannel && cfg.welcomeChannel !== 'none') {
+        welcomeCh = member.guild.channels.cache.get(cfg.welcomeChannel);
+      }
+      if (!welcomeCh) {
+        welcomeCh = member.guild.channels.cache.find(c => 
+          c.name.includes('welcome') || 
+          c.name.includes('joins') || 
+          c.name.includes('arrival') ||
+          c.name.includes('gate')
+        );
+      }
+
+      if (welcomeCh) {
+        const memberCount = member.guild.memberCount;
+        const avatarUrl = member.user.displayAvatarURL({ extension: 'png', size: 256 });
+        const headingText = (cfg?.welcomeCardHeading || `WELCOME TO ${member.guild.name.toUpperCase()}`).slice(0, 40);
+        const subText = (cfg?.welcomeCardSub || 'MEMBER #{count}').replace('{count}', String(memberCount));
+        const theme = cfg?.welcomeCardTheme || 'cyber-cyan';
+
+        let cardBuffer = null;
+        try {
+          cardBuffer = await renderWelcomeCard({
+            avatarUrl,
+            username: member.user.username,
+            memberCount,
+            serverName: member.guild.name,
+            heading: headingText,
+            subtext: subText,
+            theme
+          });
+        } catch (cardErr) {
+          console.warn('[Welcome Card Render Warning]:', cardErr.message);
+        }
+
+        const rawWelcomeMsg = cfg?.welcomeMessage || 'Welcome to the server, {user}! We are glad to have you here!';
+        const formattedMsg = rawWelcomeMsg
+          .replace(/{user}/g, `<@${member.id}>`)
+          .replace(/{server}/g, member.guild.name)
+          .replace(/{count}/g, String(memberCount));
+
+        if (cardBuffer) {
+          const attachment = new AttachmentBuilder(cardBuffer, { name: 'welcome-hud-card.png' });
+          await welcomeCh.send({
+            content: formattedMsg,
+            files: [attachment]
+          }).catch(() => {});
+        } else {
+          await welcomeCh.send({ content: formattedMsg }).catch(() => {});
+        }
+      }
+
+      // Check if Welcome DM is requested
+      if (cfg?.welcomeDm) {
+        const dmMsg = `👋 Hey **${member.user.username}**! Welcome to **${member.guild.name}**!\n\n` +
+          `• 📜 Please read the community guidelines and rules.\n` +
+          `• 💬 Jump into the general chat to say hello!\n` +
+          `• 🎫 Need support? Check the tickets channel.\n\n` +
+          `*We are excited to have you with us!*`;
+        await member.send({ content: dmMsg }).catch(() => {});
+      }
+    }
+  } catch (genWelcomeErr) {
+    console.warn('[Universal Welcome Engine Error]:', genWelcomeErr.message);
+  }
+
+  // Krylo Guilds Specific Operations (Player Roles, Skybase, YouTube Sync)
   if (!member.guild.name.toLowerCase().includes('krylo')) return;
 
   // Auto-assign 🎮 Player role immediately on join

@@ -50,8 +50,11 @@ export async function renderWelcomeCard({
   mcHeadUrl = '',
   username,
   memberCount = 1,
-  serverName = "THE LIGHT BEARERS",
-  phase = 1
+  serverName = "KRIMS CODE",
+  phase = 1,
+  heading = null,
+  subtext = null,
+  theme = 'cyber-cyan'
 }) {
   const scriptPath = path.join(rootDir, 'scripts', 'generate_welcome_card.py');
   const tempOut = path.join(rootDir, 'data', `welcome_card_${Date.now()}_${Math.floor(Math.random() * 10000)}.png`);
@@ -68,8 +71,16 @@ export async function renderWelcomeCard({
     '--member_count', String(memberCount),
     '--server_name', serverName,
     '--phase', String(phase),
+    '--theme', theme || 'cyber-cyan',
     '--out', tempOut
   ];
+
+  if (heading) {
+    args.push('--heading', heading);
+  }
+  if (subtext) {
+    args.push('--subtext', subtext);
+  }
 
   if (mcHeadUrl) {
     args.push('--mc_head', mcHeadUrl);
