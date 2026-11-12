@@ -144,7 +144,7 @@ export async function checkAndApplyMiniLevelRoles(guild, member, newLevel) {
 }
 
 // 3. Main Message Handler for Mini X in Mini's Server
-export async function handleMiniRobloxServerMessage(client, message) {
+export async function handleMiniRobloxServerMessage(client, message, customPrefix = '!') {
   if (!message.guild || message.guild.id !== MINI_ROBLOX_GUILD_ID) return false;
   if (client.user.id !== MINI_X_BOT_ID) return false;
   if (message.author.bot) return false;
@@ -158,10 +158,11 @@ export async function handleMiniRobloxServerMessage(client, message) {
 
   const text = message.content.trim();
   const lower = text.toLowerCase();
+  const p = (customPrefix || '!').toLowerCase();
   const database = getDb();
 
   // Command: !daily (Claim Cyber Shards)
-  if (lower === '!daily' || lower === '!claim') {
+  if (lower === '!daily' || lower === '!claim' || lower === `${p}daily` || lower === `${p}claim`) {
     const now = Date.now();
     const oneDay = 24 * 60 * 60 * 1000;
     const twoDays = 48 * 60 * 60 * 1000;
@@ -212,7 +213,7 @@ export async function handleMiniRobloxServerMessage(client, message) {
   }
 
   // Command: !balance / !shards / !coins
-  if (lower === '!balance' || lower === '!shards' || lower === '!coins') {
+  if (lower === '!balance' || lower === '!shards' || lower === '!coins' || lower === `${p}balance` || lower === `${p}shards` || lower === `${p}coins`) {
     const targetUser = message.mentions.users.first() || message.author;
     const row = database.prepare(`SELECT shards, streak FROM mini_roblox_economy WHERE user_id = ?`).get(targetUser.id);
     const shards = row ? row.shards : 0;
@@ -233,13 +234,13 @@ export async function handleMiniRobloxServerMessage(client, message) {
   }
 
   // Command: !pay @user <amount>
-  if (lower.startsWith('!pay')) {
+  if (lower.startsWith('!pay') || lower.startsWith(`${p}pay`)) {
     const args = text.split(/\s+/).slice(1);
     const recipient = message.mentions.users.first();
     const amount = parseInt(args[1], 10);
 
     if (!recipient || recipient.bot || recipient.id === message.author.id || isNaN(amount) || amount <= 0) {
-      return message.reply('❌ **Usage:** `!pay @user <amount>` (Must be a valid shard amount).');
+      return message.reply(`❌ **Usage:** \`${p}pay @user <amount>\` (Must be a valid shard amount).`);
     }
 
     const row = database.prepare(`SELECT shards FROM mini_roblox_economy WHERE user_id = ?`).get(message.author.id);
@@ -260,7 +261,10 @@ export async function handleMiniRobloxServerMessage(client, message) {
   }
 
   // Command: !topmessages / !weekly / !motw (Member of the Week)
-  if (lower === '!topmessages' || lower === '!weekly' || lower === '!motw' || lower === '!active') {
+  if (
+    lower === '!topmessages' || lower === '!weekly' || lower === '!motw' || lower === '!active' ||
+    lower === `${p}topmessages` || lower === `${p}weekly` || lower === `${p}motw` || lower === `${p}active`
+  ) {
     const weekKey = getWeekKey();
     const rows = database.prepare(
       `SELECT user_id, message_count FROM mini_roblox_activity WHERE week_key = ? ORDER BY message_count DESC LIMIT 10`
@@ -289,7 +293,7 @@ export async function handleMiniRobloxServerMessage(client, message) {
   }
 
   // Command: !challenges / !challenge (Blox Fruits & Server Quests)
-  if (lower === '!challenges' || lower === '!challenge') {
+  if (lower === '!challenges' || lower === '!challenge' || lower === `${p}challenges` || lower === `${p}challenge`) {
     const embed = new EmbedBuilder()
       .setColor(0x10B981)
       .setTitle('⚡ MINI\'S SERVER DAILY & WEEKLY QUESTS')
@@ -308,12 +312,12 @@ export async function handleMiniRobloxServerMessage(client, message) {
   }
 
   // Command: !color <hex> (Custom Role Color for Cyber VIP / Level 15+ / Boosters)
-  if (lower.startsWith('!color')) {
+  if (lower.startsWith('!color') || lower.startsWith(`${p}color`)) {
     const args = text.split(/\s+/).slice(1);
     const hex = args[0];
 
     if (!hex || !/^#?([a-fA-F0-9]{6})$/.test(hex)) {
-      return message.reply('❌ **Usage:** `!color #00F2FF` (Provide a valid 6-digit hex color code).');
+      return message.reply(`❌ **Usage:** \`${p}color #00F2FF\` (Provide a valid 6-digit hex color code).`);
     }
 
     const cleanHex = hex.startsWith('#') ? hex : `#${hex}`;
@@ -355,7 +359,7 @@ export async function handleMiniRobloxServerMessage(client, message) {
   }
 
   // Command: !gstart <time_minutes> <prize> (Giveaways in #🎉・giveaways)
-  if (lower.startsWith('!gstart') || lower.startsWith('!giveaway')) {
+  if (lower.startsWith('!gstart') || lower.startsWith('!giveaway') || lower.startsWith(`${p}gstart`) || lower.startsWith(`${p}giveaway`)) {
     const isStaff = message.author.id === '1414143825538191373' ||
       message.guild.ownerId === message.author.id ||
       message.member.permissions.has(PermissionFlagsBits.ManageGuild) ||
@@ -384,7 +388,7 @@ export async function handleMiniRobloxServerMessage(client, message) {
     const durationMs = parseDurationToMs(durationStr);
 
     if (durationMs <= 0) {
-      return message.reply('❌ **Usage:** `!gstart <duration> <prize name>`\nExamples:\n• `!gstart 4 days Buddha Fruit`\n• `!gstart 1month Permanent Buddha Fruit`\n• `!gstart 7d VIP Color Role`\n• `!gstart 60m 5,000 Cyber Shards`');
+      return message.reply(`❌ **Usage:** \`${p}gstart <duration> <prize name>\`\nExamples:\n• \`${p}gstart 4 days Buddha Fruit\`\n• \`${p}gstart 1month Permanent Buddha Fruit\`\n• \`${p}gstart 7d VIP Color Role\`\n• \`${p}gstart 60m 5,000 Cyber Shards\``);
     }
 
     const humanDuration = formatDurationHuman(durationMs);
@@ -421,7 +425,7 @@ export async function handleMiniRobloxServerMessage(client, message) {
   }
 
   // Command: !tournament
-  if (lower === '!tournament' || lower === '!tournaments') {
+  if (lower === '!tournament' || lower === '!tournaments' || lower === `${p}tournament` || lower === `${p}tournaments`) {
     const embed = new EmbedBuilder()
       .setColor(0x00F2FF)
       .setTitle('🏆 BLOX FRUITS PVP TOURNAMENTS')
@@ -438,7 +442,10 @@ export async function handleMiniRobloxServerMessage(client, message) {
   }
 
   // Command: !claimroles / !autorole / !roles
-  if (lower === '!claimroles' || lower === '!autorole' || lower === '!roles') {
+  if (
+    lower === '!claimroles' || lower === '!autorole' || lower === '!roles' ||
+    lower === `${p}claimroles` || lower === `${p}autorole` || lower === `${p}roles`
+  ) {
     const { assignMiniCommunityAutoRoles } = await import('../customBotSpawner.mjs');
     const added = await assignMiniCommunityAutoRoles(message.member);
     if (added && added.length > 0) {
@@ -448,35 +455,49 @@ export async function handleMiniRobloxServerMessage(client, message) {
     }
   }
 
-  // Command: !minihelp (Full features list)
-  if (lower === '!minihelp' || lower === '!cyberhelp') {
+  // Command: !minihelp / !help / !commands
+  if (
+    lower === '!minihelp' || lower === '!cyberhelp' || lower === '!help' || lower === '!commands' ||
+    lower === `${p}minihelp` || lower === `${p}cyberhelp` || lower === `${p}help` || lower === `${p}commands`
+  ) {
     const embed = new EmbedBuilder()
       .setColor(0x00F2FF)
       .setTitle('⚡ MINI X • SERVER FEATURES & COMMANDS')
       .setDescription(
-        `Welcome to Mini's Cool Roblox Server feature suite!\n\n` +
+        `Welcome to Mini's Cool Roblox Server feature suite! Built by **Mini & Krylo**.\n\n` +
         `🪙 **Economy & Daily:**\n` +
-        `• \`!daily\` — Claim daily Cyber Shards ⚡ + streak bonus\n` +
-        `• \`!balance\` — Check your shard balance & streak\n` +
-        `• \`!pay @user <amount>\` — Send shards to a friend\n` +
-        `• \`!challenges\` — View daily Blox Fruits & server quests\n\n` +
+        `• \`${p}daily\` — Claim daily Cyber Shards ⚡ + streak bonus\n` +
+        `• \`${p}balance\` — Check your shard balance & streak\n` +
+        `• \`${p}pay @user <amount>\` — Send shards to a friend\n` +
+        `• \`${p}challenges\` — View daily Blox Fruits & server quests\n\n` +
+        `🎙️ **Dynamic Voice Channels (Join to Create):**\n` +
+        `• \`${p}setupjtc\` or \`${p}jtc setup\` — Auto-deploy dynamic voice category & hub\n` +
+        `• \`${p}jtc panel\` — Drop room controller in current voice channel\n\n` +
         `⭐ **Community & Roles:**\n` +
-        `• \`!claimroles\` — Auto-claim all 4 ping and member roles\n` +
-        `• \`!weekly\` / \`!topmessages\` — Member of the Week activity leaderboard\n` +
-        `• \`!color #HEX\` — Set your custom role color (Cyber VIP or Staff)\n` +
-        `• \`!tournament\` — Info on Blox Fruits PVP tournaments\n` +
-        `• \`!gstart <mins> <prize>\` — Staff giveaway launcher\n\n` +
-        `🛡️ **Admin & Founder Moderation (Admin Only):**\n` +
+        `• \`${p}claimroles\` — Auto-claim all 4 ping and member roles\n` +
+        `• \`${p}rank\` — View your chat level and XP card\n` +
+        `• \`${p}weekly\` / \`${p}topmessages\` — Member of the Week activity leaderboard\n` +
+        `• \`${p}color #HEX\` — Set your custom role color (Cyber VIP or Staff)\n` +
+        `• \`${p}tournament\` — Info on Blox Fruits PVP tournaments\n` +
+        `• \`${p}gstart <mins> <prize>\` — Staff giveaway launcher\n\n` +
+        `🎲 **Games & Fun:**\n` +
+        `• \`${p}bet <amount>\` — Coin gamble\n` +
+        `• \`${p}rps <choice>\` — Rock paper scissors\n` +
+        `• \`${p}trivia\` — Test your knowledge\n` +
+        `• \`${p}roast @user\` / \`${p}compliment @user\`\n\n` +
+        `🛡️ **Admin & Founder Moderation (Staff Only):**\n` +
         `• \`ban <@user/name> [reason]\` — Instant server ban\n` +
         `• \`kick <@user/name> [reason]\` — Kick member from server\n` +
-        `• \`mute <@user/name> <10m/1h/24h> [reason]\` — Timeout member\n` +
+        `• \`mute <@user/name> <duration> [reason]\` — Timeout member\n` +
         `• \`unmute <@user/name>\` — Remove member timeout\n` +
         `• \`purge <1-100>\` / \`clear <1-100>\` — Bulk delete messages\n` +
         `• \`warn <@user/name> [reason]\` — Issue official warning\n` +
         `• \`lock\` / \`unlock\` — Lock/unlock channel for members\n` +
-        `• \`slowmode <5s/off>\` — Adjust channel rate limit`
+        `• \`slowmode <5s/off>\` — Adjust channel rate limit\n\n` +
+        `🧠 **Autonomous AI Chat:**\n` +
+        `• Mention <@1565848105277067414> or reply to any of my messages to chat with me!`
       )
-      .setFooter({ text: 'Mini X #6403 • Co-Created by Mini & Krylo' });
+      .setFooter({ text: 'Mini X #6403 • Co-Created by Mini & Krylo • Powered by Krims Code AI' });
 
     return message.reply({ embeds: [embed] });
   }

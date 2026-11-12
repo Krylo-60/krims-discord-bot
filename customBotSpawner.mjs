@@ -419,11 +419,12 @@ export class MultiBotManager {
       if (guildId && guildId !== 'global' && !guildId.startsWith('global_') && message.guild.id !== guildId) return;
 
       const cleanText = message.content.trim().toLowerCase();
+      const p = (customPrefix || '!').toLowerCase();
 
       // Exclusive: Baby Phoenix Den Engine (Only active for Baby Phoenix in Phoenix Den)
       // Exclusive: Mini's Cool Roblox Server Engine (Only active for Mini X in Mini's server)
       if (client.user.id === MINI_X_BOT_ID && message.guild.id === MINI_ROBLOX_GUILD_ID) {
-        const isHandled = await handleMiniRobloxServerMessage(client, message);
+        const isHandled = await handleMiniRobloxServerMessage(client, message, p);
         if (isHandled) return;
       }
 
@@ -431,7 +432,6 @@ export class MultiBotManager {
         const isHandled = await handleBabyPhoenixDenMessage(client, message);
         if (isHandled) return;
       }
-      const p = (customPrefix || '!').toLowerCase();
 
       // A. 🧠 1-Mind Krims Leveling XP with Turn-Taking
       if (!processedMessages.has(message.id)) {
@@ -579,6 +579,46 @@ export class MultiBotManager {
       }
       if (cleanText === '!partners' || cleanText === '!partner' || cleanText === `${p}partners`) {
         return handlePartnersCommand(message);
+      }
+
+      // 📖 Universal Custom Bot Help Menu (!help, !commands)
+      if (cleanText === '!help' || cleanText === '!commands' || cleanText === `${p}help` || cleanText === `${p}commands`) {
+        const isMiniX = client.user.id === '1565848105277067414';
+        const botFlair = getProceduralBotFlair(client.user);
+
+        const helpEmbed = new EmbedBuilder()
+          .setColor(isMiniX ? '#00F2FF' : botFlair.color)
+          .setTitle(`⚡ ${client.user.username} • COMMAND & FEATURE DIRECTORY`)
+          .setDescription(
+            `Welcome! **${client.user.username}** is an autonomous custom bot running on the **Krims Code 1-Mind Fleet**.\n\n` +
+            `**🎙️ Join-to-Create Dynamic Voice:**\n` +
+            `• \`${p}setupjtc\` or \`${p}jtc setup\` — Auto-create voice category & dynamic hub channel\n` +
+            `• \`${p}jtc panel\` — Drop the interactive in-room voice control panel\n` +
+            `• \`${p}jtc reset\` — Disable dynamic voice system\n\n` +
+            `**⭐ Leveling & Community:**\n` +
+            `• \`${p}rank\` — View your chat level and XP card\n` +
+            `• \`${p}claimroles\` — Auto-claim notification and member roles\n` +
+            `• \`${p}testwelcome\` — Preview high-tech server welcome card\n\n` +
+            `**🎲 Games & Fun:**\n` +
+            `• \`${p}bet <amount>\` — Test your luck in the coin vault\n` +
+            `• \`${p}rps <rock|paper|scissors>\` — Duel the bot in RPS\n` +
+            `• \`${p}trivia\` — Test your community knowledge\n` +
+            `• \`${p}roast @user\` / \`${p}compliment @user\` — Fun member interactions\n\n` +
+            `**🛡️ Moderation Actions (Staff Only):**\n` +
+            `• \`${p}ban\`, \`${p}kick\`, \`${p}mute\`, \`${p}unmute\`, \`${p}warn\`, \`${p}purge\`, \`${p}lock\`, \`${p}slowmode\`\n\n` +
+            `**🧠 Autonomous AI Chat:**\n` +
+            `• Mention <@${client.user.id}> or reply to any of my messages to talk with me!\n\n` +
+            `**🚀 Slash Commands:**\n` +
+            `• Use \`/about\` or \`/jtc\` for rich interactive controls!`
+          )
+          .setFooter({ 
+            text: isMiniX 
+              ? 'Mini X #6403 • Co-Created by Mini & Krylo • Powered by Krims Code AI' 
+              : `${client.user.username} • Powered by Krims Code AI` 
+          })
+          .setTimestamp();
+
+        return message.reply({ embeds: [helpEmbed] });
       }
 
       // B. Welcome Card Test Trigger (!testwelcome or !welcome)
