@@ -539,15 +539,21 @@ export const masterCommandBuilders = [
     .setName('counting')
     .setDescription('🔢 Configure and manage the server counting game channel')
     .addChannelOption(opt => opt.setName('channel').setDescription('Channel to link as official counting room').setRequired(false))
-    .addStringOption(opt => opt.setName('action').setDescription('Action to perform (link, status, reset, unlink, ai)').setRequired(false)
+    .addStringOption(opt => opt.setName('action').setDescription('Action to perform (setup, status, reset, unlink, ai)').setRequired(false)
       .addChoices(
+        { name: '⚙️ Setup / Link Channel (setup)', value: 'setup' },
+        { name: '🔗 Link Channel (set)', value: 'set' },
         { name: '🤖 AI Counting Mode (Count with Krims AI)', value: 'ai' },
-        { name: '🔗 Link Channel', value: 'set' },
         { name: '🏆 Cross-Server Leaderboard', value: 'leaderboard' },
         { name: '📊 Check Status & High Score', value: 'status' },
         { name: '🔄 Reset Count to 1', value: 'reset' },
         { name: '❌ Unlink Channel', value: 'unlink' }
       )),
+
+  new SlashCommandBuilder()
+    .setName('setupcounting')
+    .setDescription('🔢 1-Click Setup: Link the official counting room for your server')
+    .addChannelOption(opt => opt.setName('channel').setDescription('Channel to link as counting room (defaults to current)').setRequired(false)),
 
   new SlashCommandBuilder()
     .setName('balance')
@@ -823,8 +829,8 @@ export const CUSTOM_BOT_SLASH_COMMANDS = new Set([
   'serverinfo', 'userinfo', 'avatar', 'ping', 'remind',
   // Economy & Progression
   'daily', 'balance', 'pay', 'work', 'rank', 'profile', 'leaderboard', 'store', 'redeem',
-  // Games & Tournaments
-  'tournament', 'challenge', 'duel', 'pvp', 'slots', 'spin', 'chest', 'jackpot'
+  // Games, Counting & Tournaments
+  'counting', 'setupcounting', 'tournament', 'challenge', 'duel', 'pvp', 'slots', 'spin', 'chest', 'jackpot'
 ]);
 
 export const customBotCommandJson = masterCommandBuilders

@@ -280,15 +280,15 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     // ──────────────────────────────────────────────────────────
     // 🔢 COUNTING ENGINE COMMAND
     // ──────────────────────────────────────────────────────────
-    if (commandName === 'counting') {
+    if (commandName === 'counting' || commandName === 'setupcounting') {
       const targetChannel = interaction.options.getChannel('channel') || interaction.channel;
-      const action = interaction.options.getString('action') || (interaction.options.getChannel('channel') ? 'set' : 'status');
+      const action = commandName === 'setupcounting' ? 'setup' : (interaction.options.getString('action') || (interaction.options.getChannel('channel') ? 'setup' : 'status'));
 
       const isStaff = interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels) ||
                       interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ||
                       interaction.user.id === '1414143825538191373';
 
-      if (action === 'set') {
+      if (action === 'set' || action === 'setup' || action === 'link') {
         if (!isStaff) {
           return await interaction.reply({ content: '❌ You need `Manage Channels` or `Administrator` permission to link a counting channel.', ephemeral: true });
         }

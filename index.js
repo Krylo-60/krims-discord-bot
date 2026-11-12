@@ -5713,17 +5713,17 @@ client.on('interactionCreate', async (interaction) => {
     return interaction.reply({ embeds: [embed] });
   }
 
-  if (commandName === 'counting') {
+  if (commandName === 'counting' || commandName === 'setupcounting') {
     if (!interaction.guild) {
       return interaction.reply({ content: '❌ Counting commands can only be used inside servers!', ephemeral: true });
     }
-    const action = interaction.options.getString('action') || 'status';
+    const action = commandName === 'setupcounting' ? 'setup' : (interaction.options.getString('action') || (interaction.options.getChannel('channel') ? 'setup' : 'status'));
     const targetChannel = interaction.options.getChannel('channel') || interaction.channel;
     const hasManage = interaction.member?.permissions?.has(PermissionFlagsBits.ManageChannels) ||
                       interaction.member?.permissions?.has(PermissionFlagsBits.Administrator) ||
                       interaction.user.id === '1414143825538191373';
 
-    if (action === 'set') {
+    if (action === 'set' || action === 'setup' || action === 'link') {
       if (!hasManage) {
         return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Channels` permission to link a counting channel.', ephemeral: true });
       }
