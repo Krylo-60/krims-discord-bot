@@ -10,10 +10,10 @@ import {
   PermissionFlagsBits,
   OverwriteType 
 } from 'discord.js';
-import { db } from '../databaseEngine.mjs';
+import { db, neonPool } from '../databaseEngine.mjs';
 
 // ═════════════════════════════════════════════════════════════════════════════
-// 1. 🗄️ DATABASE INITIALIZATION & IN-MEMORY CACHE
+// 1. 🗄️ DATABASE INITIALIZATION, IN-MEMORY CACHE & NEON POSTGRES CLOUD SYNC
 // ═════════════════════════════════════════════════════════════════════════════
 try {
   db.prepare(`
@@ -62,11 +62,66 @@ try {
   }
 } catch (_) {}
 
+/**
+ * Sync JTC configuration from Neon Cloud Postgres
+ */
+async function syncJtcFromCloud() {
+  if (!neonPool) return;
+  try {
+    const client = await neonPool.connect();
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS jtc_config (
+        guild_id TEXT PRIMARY KEY,
+        hub_channel_id TEXT NOT NULL,
+        category_id TEXT,
+        name_format TEXT DEFAULT '🔊・{user}''s VC',
+        default_limit INTEGER DEFAULT 0,
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    const res = await client.query('SELECT * FROM jtc_config');
+    for (const r of res.rows) {
+      db.prepare(`
+        INSERT OR REPLACE INTO jtc_config (guild_id, hub_channel_id, category_id, name_format, default_limit, updated_at)
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `).run(r.guild_id, r.hub_channel_id, r.category_id, r.name_format, r.default_limit);
+      guildJtcConfigCache.set(r.guild_id, r);
+    }
+    client.release();
+  } catch (err) {
+    console.warn('[JTC Cloud Sync Notice]:', err.message);
+  }
+}
+syncJtcFromCloud().catch(() => {});
+
+async function pushJtcToCloud(guildId, hubChannelId, categoryId, nameFormat, defaultLimit) {
+  if (!neonPool) return;
+  try {
+    const client = await neonPool.connect();
+    await client.query(`
+      INSERT INTO jtc_config (guild_id, hub_channel_id, category_id, name_format, default_limit, updated_at)
+      VALUES ($1, $2, $3, $4, $5, NOW())
+      ON CONFLICT (guild_id) DO UPDATE SET
+        hub_channel_id = EXCLUDED.hub_channel_id,
+        category_id = EXCLUDED.category_id,
+        name_format = EXCLUDED.name_format,
+        default_limit = EXCLUDED.default_limit,
+        updated_at = NOW();
+    `, [guildId, hubChannelId, categoryId, nameFormat, defaultLimit]);
+    client.release();
+  } catch (err) {
+    console.warn('[JTC Cloud Push Notice]:', err.message);
+  }
+}
+
 export function getJtcConfig(guildId) {
   if (guildJtcConfigCache.has(guildId)) {
     return guildJtcConfigCache.get(guildId);
   }
-  const row = db.prepare('SELECT * FROM jtc_config WHERE guild_id = ?').get(guildId);
+  let row = null;
+  try {
+    row = db.prepare('SELECT * FROM jtc_config WHERE guild_id = ?').get(guildId);
+  } catch (_) {}
   if (row) {
     guildJtcConfigCache.set(guildId, row);
     return row;
@@ -75,16 +130,18 @@ export function getJtcConfig(guildId) {
 }
 
 export function saveJtcConfig(guildId, hubChannelId, categoryId, nameFormat = "🔊・{user}'s VC", defaultLimit = 0) {
-  db.prepare(`
-    INSERT INTO jtc_config (guild_id, hub_channel_id, category_id, name_format, default_limit, updated_at)
-    VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    ON CONFLICT(guild_id) DO UPDATE SET
-      hub_channel_id = excluded.hub_channel_id,
-      category_id = excluded.category_id,
-      name_format = excluded.name_format,
-      default_limit = excluded.default_limit,
-      updated_at = CURRENT_TIMESTAMP
-  `).run(guildId, hubChannelId, categoryId, nameFormat, defaultLimit);
+  try {
+    db.prepare(`
+      INSERT INTO jtc_config (guild_id, hub_channel_id, category_id, name_format, default_limit, updated_at)
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(guild_id) DO UPDATE SET
+        hub_channel_id = excluded.hub_channel_id,
+        category_id = excluded.category_id,
+        name_format = excluded.name_format,
+        default_limit = excluded.default_limit,
+        updated_at = CURRENT_TIMESTAMP
+    `).run(guildId, hubChannelId, categoryId, nameFormat, defaultLimit);
+  } catch (_) {}
 
   const updated = {
     guild_id: guildId,
@@ -94,12 +151,20 @@ export function saveJtcConfig(guildId, hubChannelId, categoryId, nameFormat = "�
     default_limit: defaultLimit
   };
   guildJtcConfigCache.set(guildId, updated);
+  pushJtcToCloud(guildId, hubChannelId, categoryId, nameFormat, defaultLimit).catch(() => {});
   return updated;
 }
 
 export function deleteJtcConfig(guildId) {
-  db.prepare('DELETE FROM jtc_config WHERE guild_id = ?').run(guildId);
+  try {
+    db.prepare('DELETE FROM jtc_config WHERE guild_id = ?').run(guildId);
+  } catch (_) {}
   guildJtcConfigCache.delete(guildId);
+  if (neonPool) {
+    neonPool.connect().then(client => {
+      client.query('DELETE FROM jtc_config WHERE guild_id = $1', [guildId]).then(() => client.release()).catch(() => {});
+    }).catch(() => {});
+  }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -176,27 +241,40 @@ export async function handleJtcVoiceStateUpdate(oldState, newState, client) {
     const guild = newState.guild || oldState.guild;
     if (!guild) return;
 
-    const config = getJtcConfig(guild.id);
+    let config = getJtcConfig(guild.id);
 
-    // ─── PART A: User Joins The Hub Channel (Create Dynamic VC) ───
-    if (config && config.hub_channel_id && newState.channelId === config.hub_channel_id) {
-      const member = newState.member;
-      if (!member) return;
+    // ─── PART A: User Joins A Voice Channel (Create Dynamic VC) ───
+    if (newState.channelId && newState.channelId !== oldState.channelId) {
+      const joinedChannel = newState.channel || guild.channels.cache.get(newState.channelId) || await guild.channels.fetch(newState.channelId).catch(() => null);
+      const normName = (joinedChannel?.name || '').normalize('NFKD').toLowerCase();
 
-      // Prevent race conditions / duplicate channels across 1-Mind fleet bots
-      const creationLockKey = `${guild.id}:${member.id}`;
-      if (activeJtcCreations.has(creationLockKey)) return;
-      activeJtcCreations.add(creationLockKey);
-      setTimeout(() => activeJtcCreations.delete(creationLockKey), 6000);
+      const isConfiguredHub = Boolean(config && config.hub_channel_id && newState.channelId === config.hub_channel_id);
+      const isNamedHub = normName.includes('join to create') || normName.includes('join-to-create');
 
-      const userName = (member.displayName || member.user.username).replace(/[^a-zA-Z0-9 _-]/g, '').trim() || member.user.username;
-      const targetName = (config.name_format || "🔊・{user}'s VC").replace('{user}', userName).slice(0, 95);
+      if (isConfiguredHub || isNamedHub) {
+        const member = newState.member;
+        if (!member) return;
 
-      // Verify category exists
-      let parentCategory = config.category_id ? guild.channels.cache.get(config.category_id) : null;
-      if (!parentCategory && config.category_id) {
-        parentCategory = await guild.channels.fetch(config.category_id).catch(() => null);
-      }
+        // Auto-register/sync this hub channel and category if not yet configured!
+        if (!config || config.hub_channel_id !== newState.channelId) {
+          const categoryId = joinedChannel?.parentId || config?.category_id || null;
+          config = saveJtcConfig(guild.id, newState.channelId, categoryId);
+        }
+
+        // Prevent race conditions / duplicate channels across 1-Mind fleet bots
+        const creationLockKey = `${guild.id}:${member.id}`;
+        if (activeJtcCreations.has(creationLockKey)) return;
+        activeJtcCreations.add(creationLockKey);
+        setTimeout(() => activeJtcCreations.delete(creationLockKey), 6000);
+
+        const userName = (member.displayName || member.user.username).replace(/[^a-zA-Z0-9 _-]/g, '').trim() || member.user.username;
+        const targetName = (config.name_format || "🔊・{user}'s VC").replace('{user}', userName).slice(0, 95);
+
+        // Verify category exists: prefer joined channel's parent category!
+        let parentCategory = joinedChannel?.parent || (config.category_id ? guild.channels.cache.get(config.category_id) : null);
+        if (!parentCategory && config.category_id) {
+          parentCategory = await guild.channels.fetch(config.category_id).catch(() => null);
+        }
 
       // Overwrites: Member gets full manager permissions over their dynamic room!
       const permissionOverwrites = [
@@ -278,6 +356,7 @@ export async function handleJtcVoiceStateUpdate(oldState, newState, client) {
           content: `👋 Hey <@${member.id}>! Your dynamic voice channel has been established! Use the controls below to manage it:`,
           ...panelPayload
         }).catch(() => {});
+      }
       }
     }
 
@@ -551,39 +630,50 @@ export async function handleJtcInteraction(interaction) {
 // 5. 🚀 AUTO-SETUP & COMMAND HANDLER (/jtc setup, !setjtc)
 // ═════════════════════════════════════════════════════════════════════════════
 export async function handleJtcSetup(guild, initiatorUser) {
-  // 1. Create or find the Category
+  // 1. Create or find the Category (prefer dedicated CUSTOM VOICE or JTC)
   let category = guild.channels.cache.find(c => 
     c.type === ChannelType.GuildCategory && 
-    (c.name.includes('VOICE') || c.name.includes('Voice') || c.name.includes('DYNAMIC'))
+    (c.name.includes('CUSTOM VOICE') || c.name.includes('JTC'))
+  ) || guild.channels.cache.find(c => 
+    c.type === ChannelType.GuildCategory && 
+    (c.name.includes('VOICE') || c.name.includes('DYNAMIC'))
   );
 
   if (!category) {
     category = await guild.channels.create({
-      name: '🔊・VOICE CHANNELS',
+      name: '🎧・CUSTOM VOICE (JTC)',
       type: ChannelType.GuildCategory
     });
   }
 
-  // 2. Create the Hub channel
-  const hubChannel = await guild.channels.create({
-    name: '➕・Join to Create',
-    type: ChannelType.GuildVoice,
-    parent: category.id,
-    userLimit: 1, // Hub is limited to 1 so members enter and get moved immediately!
-    permissionOverwrites: [
-      {
-        id: guild.roles.everyone.id,
-        type: OverwriteType.Role,
-        allow: [
-          PermissionFlagsBits.ViewChannel,
-          PermissionFlagsBits.Connect
-        ],
-        deny: [
-          PermissionFlagsBits.Speak
-        ]
-      }
-    ]
-  });
+  // 2. Check if a Hub channel already exists in that category
+  let hubChannel = guild.channels.cache.find(c =>
+    c.type === ChannelType.GuildVoice &&
+    c.parentId === category.id &&
+    ((c.name || '').toLowerCase().includes('join to create') || (c.name || '').toLowerCase().includes('join-to-create'))
+  );
+
+  if (!hubChannel) {
+    hubChannel = await guild.channels.create({
+      name: '➕・Join to Create',
+      type: ChannelType.GuildVoice,
+      parent: category.id,
+      userLimit: 1, // Hub is limited to 1 so members enter and get moved immediately!
+      permissionOverwrites: [
+        {
+          id: guild.roles.everyone.id,
+          type: OverwriteType.Role,
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.Connect
+          ],
+          deny: [
+            PermissionFlagsBits.Speak
+          ]
+        }
+      ]
+    });
+  }
 
   // 3. Save configuration
   saveJtcConfig(guild.id, hubChannel.id, category.id);
