@@ -811,12 +811,14 @@ export async function handleWelcomeTicketInteraction(interaction) {
       });
     }
 
-    // Find ticket category (e.g. 🤖 ・KRIMS CUSTOM BOTS, 🎫 ・SUPPORT or 🎫 ・SUPPORT TICKETS)
+    // Find ticket category (e.g. 🤖 ・KRIMS CUSTOM BOTS, 📝 ─── CREW APPLICATIONS ───, 🎫 ・SUPPORT)
     const category = guild.channels.cache.find(c => 
       c.type === ChannelType.GuildCategory && (
         isBotReq
           ? (c.name.includes('CUSTOM BOT') || c.name.includes('BOT') || c.name.includes('SUPPORT') || c.name.includes('TICKET'))
-          : (c.name.includes('SUPPORT') || c.name.includes('TICKET') || c.name.includes('Support'))
+          : (isStaffApp
+            ? (c.name.includes('APPLICATION') || c.name.includes('CREW') || c.name.includes('STAFF') || c.name.includes('SUPPORT'))
+            : (c.name.includes('SUPPORT') || c.name.includes('TICKET') || c.name.includes('Support')))
       )
     ) || null;
 
@@ -959,19 +961,31 @@ export async function handleWelcomeTicketInteraction(interaction) {
         const isMiniGuild = guild.id === '1565848529241505963' || 
           interaction.client?.user?.id === '1565848105277067414' || 
           guild.name.toLowerCase().includes('mini');
+        const isPhoenixDen = guild.id === '1534016405693796462';
 
-        const questionsText =
-          `1️⃣ **Roblox Username & Discord Tag:**\n` +
-          `2️⃣ **Age & Timezone:**\n` +
-          `3️⃣ **Desired Position:** *(Trial Moderator, Moderator, or Admin)*\n` +
-          `4️⃣ **Daily Activity & Availability:** *(How many hours can you help the server each day?)*\n` +
-          `5️⃣ **Past Experience:** *(Have you staffed other Discord servers or Roblox communities?)*\n` +
-          `6️⃣ **Why do you want to become a moderator in this server?**\n` +
-          `7️⃣ **What would you do if two members started arguing or fighting?**\n` +
-          `8️⃣ **What would you do if you caught another staff member abusing their permissions?**\n` +
-          `9️⃣ **Scenario:** *(How would you handle scammers, exploiters, or toxic drama?)*\n` +
-          `🔟 **How would you help the server grow and become a better community?**\n` +
-          `1️⃣1️⃣ **Why should we accept and trust you with moderator permissions over other members?**\n\n`;
+        const questionsText = isPhoenixDen
+          ? `📋 **APPLICANT INFORMATION:**\n` +
+            `• **Roblox Username & Discord Tag:**\n` +
+            `• **Age & Timezone:**\n` +
+            `• **Desired Role:** *(Trial Moderator, Moderator, Administrator)*\n\n` +
+            `⚖️ **OFFICIAL MODERATOR EVALUATION QUESTIONS:**\n` +
+            `1️⃣ **Why do you want to become a moderator in this server?**\n` +
+            `2️⃣ **How active are you, and how many hours can you help the server each day?**\n` +
+            `3️⃣ **What would you do if two members started arguing or fighting?**\n` +
+            `4️⃣ **What would you do if you caught another staff member abusing their permissions?**\n` +
+            `5️⃣ **How would you help the server grow and become a better community?**\n` +
+            `6️⃣ **Why should we trust you with moderator permissions over other members?**\n\n`
+          : `1️⃣ **Roblox Username & Discord Tag:**\n` +
+            `2️⃣ **Age & Timezone:**\n` +
+            `3️⃣ **Desired Position:** *(Trial Moderator, Moderator, or Admin)*\n` +
+            `4️⃣ **Daily Activity & Availability:** *(How many hours can you help the server each day?)*\n` +
+            `5️⃣ **Past Experience:** *(Have you staffed other Discord servers or Roblox communities?)*\n` +
+            `6️⃣ **Why do you want to become a moderator in this server?**\n` +
+            `7️⃣ **What would you do if two members started arguing or fighting?**\n` +
+            `8️⃣ **What would you do if you caught another staff member abusing their permissions?**\n` +
+            `9️⃣ **Scenario:** *(How would you handle scammers, exploiters, or toxic drama?)*\n` +
+            `🔟 **How would you help the server grow and become a better community?**\n` +
+            `1️⃣1️⃣ **Why should we accept and trust you with moderator permissions over other members?**\n\n`;
 
         const appEmbed = new EmbedBuilder()
           .setColor(0xF59E0B)

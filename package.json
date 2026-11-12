@@ -1,6 +1,6 @@
 {
   "name": "krims-discord-bot",
-  "version": "6.1.2",
+  "version": "6.1.3",
   "description": "Discord Bot for the Krims Code ecosystem, integrating user SDK commands",
   "main": "index.js",
   "type": "module",
