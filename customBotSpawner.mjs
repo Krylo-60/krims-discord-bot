@@ -145,26 +145,23 @@ export async function assignMiniCommunityAutoRoles(member) {
 
   const roleKeywords = [
     { key: 'members', matches: (name) => {
-        const n = name.trim().toLowerCase();
-        return n === 'members' || n === 'member' || (n.includes('member') && !n.includes('bot'));
+        const norm = name.normalize('NFKD').toLowerCase();
+        return norm.includes('member') && !norm.includes('bot') && !norm.includes('staff') && !norm.includes('admin') && !norm.includes('mod');
       } 
     },
     { key: 'update_ping', matches: (name) => {
-        const raw = name;
         const norm = name.normalize('NFKD').toLowerCase();
-        return raw.includes('𝐔𝐏𝐃𝐀𝐓𝐄') || norm.includes('update ping') || (raw.includes('🔔') && norm.includes('update'));
+        return (norm.includes('update') && norm.includes('ping')) || (name.includes('𝐔𝐏𝐃𝐀𝐓𝐄') && name.includes('𝐏𝐈𝐍𝐆'));
       }
     },
     { key: 'announcements_ping', matches: (name) => {
-        const raw = name;
         const norm = name.normalize('NFKD').toLowerCase();
-        return raw.includes('𝑨𝒏𝒏𝒐𝒖𝒏𝒄𝒆𝒎𝒆𝒏𝒕𝒔') || norm.includes('announcement') || (raw.includes('📢') && norm.includes('ping'));
+        return norm.includes('announcement') && norm.includes('ping') && !norm.includes('team') && !norm.includes('maker') && !norm.includes('staff');
       }
     },
     { key: 'role_ping', matches: (name) => {
-        const raw = name;
         const norm = name.normalize('NFKD').toLowerCase();
-        return raw.includes('𝐑𝐎𝐋𝐄 𝐏𝐈𝐍𝐆') || (norm.includes('role') && norm.includes('ping')) || (raw.includes('⚡') && norm.includes('role'));
+        return norm.includes('role') && norm.includes('ping') && !norm.includes('maker') && !norm.includes('team') && !norm.includes('staff');
       }
     }
   ];
