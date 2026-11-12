@@ -778,13 +778,14 @@ export async function handleWelcomeTicketInteraction(interaction) {
   }
 
   // D. Create Private Support Ticket or Mod/Admin Application Channel
-  if (customId.startsWith('ticket_create') || customId === 'open_ticket') {
+  if (customId.startsWith('ticket_create') || customId === 'open_ticket' || customId === 'ticket_open_botreq' || customId.includes('botreq')) {
     await interaction.deferReply({ ephemeral: true });
 
     const guild = interaction.guild;
     const user = interaction.user;
-    const isStaffApp = customId.includes('staff') || customId.includes('mod') || customId.includes('admin');
-    const channelPrefix = isStaffApp ? 'staff-app-' : 'ticket-';
+    const isBotReq = customId.includes('botreq') || customId.includes('bot_req');
+    const isStaffApp = !isBotReq && (customId.includes('staff') || customId.includes('mod') || customId.includes('admin'));
+    const channelPrefix = isBotReq ? 'bot-req-' : (isStaffApp ? 'staff-app-' : 'ticket-');
     const cleanName = user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20) || 'user';
     const targetChannelName = `${channelPrefix}${cleanName}`;
 
@@ -796,7 +797,7 @@ export async function handleWelcomeTicketInteraction(interaction) {
 
     if (existingTicket) {
       return interaction.followUp({
-        content: `⚠️ You already have an open ${isStaffApp ? 'staff application' : 'ticket'}! Please head over to <#${existingTicket.id}>.`,
+        content: `⚠️ You already have an open ${isBotReq ? 'bot request ticket' : (isStaffApp ? 'staff application' : 'ticket')}! Please head over to <#${existingTicket.id}>.`,
         ephemeral: true
       });
     }
@@ -810,10 +811,13 @@ export async function handleWelcomeTicketInteraction(interaction) {
       });
     }
 
-    // Find ticket category (e.g. 🎫 ・SUPPORT or 🎫 ・SUPPORT TICKETS)
+    // Find ticket category (e.g. 🤖 ・KRIMS CUSTOM BOTS, 🎫 ・SUPPORT or 🎫 ・SUPPORT TICKETS)
     const category = guild.channels.cache.find(c => 
-      c.type === ChannelType.GuildCategory && 
-      (c.name.includes('SUPPORT') || c.name.includes('TICKET') || c.name.includes('Support'))
+      c.type === ChannelType.GuildCategory && (
+        isBotReq
+          ? (c.name.includes('CUSTOM BOT') || c.name.includes('BOT') || c.name.includes('SUPPORT') || c.name.includes('TICKET'))
+          : (c.name.includes('SUPPORT') || c.name.includes('TICKET') || c.name.includes('Support'))
+      )
     ) || null;
 
     let parentCategory = null;
@@ -888,9 +892,11 @@ export async function handleWelcomeTicketInteraction(interaction) {
     });
 
     try {
-      const topic = isStaffApp
-        ? `Staff & Moderator Application for @${user.tag} (ID: ${user.id})`
-        : `Private Support Ticket for @${user.tag} (ID: ${user.id})`;
+      const topic = isBotReq
+        ? `Custom Bot Setup Request for @${user.tag} (ID: ${user.id})`
+        : (isStaffApp
+          ? `Staff & Moderator Application for @${user.tag} (ID: ${user.id})`
+          : `Private Support Ticket for @${user.tag} (ID: ${user.id})`);
 
       const ticketChannel = await guild.channels.create({
         name: targetChannelName,
@@ -908,7 +914,48 @@ export async function handleWelcomeTicketInteraction(interaction) {
         ? user.displayAvatarURL({ extension: 'png', size: 256 })
         : 'https://cdn.discordapp.com/embed/avatars/0.png';
 
-      if (isStaffApp) {
+      if (isBotReq) {
+        const botReqEmbed = new EmbedBuilder()
+          .setColor(0x00F2FF)
+          .setTitle('🤖 Custom Discord Bot Setup • Private Request Hub')
+          .setDescription(
+            `Welcome <@${user.id}> to your private **Custom Bot Setup Ticket**!\n\n` +
+            `This private channel allows you to safely provide your bot details and secret token to <@1414143825538191373> (Krylo) and Senior Leadership without anyone else in the server seeing it.\n\n` +
+            `### 📋 Please reply with your Bot Details:\n` +
+            `1️⃣ **Bot Name:**\n` +
+            `2️⃣ **Server Purpose / Theme:** *(e.g. Roblox Clan, Gaming Community)*\n` +
+            `3️⃣ **Desired Bot Personality:** *(e.g. Energetic & fun, Serious protector)*\n` +
+            `4️⃣ **Desired Prefix:** *(e.g. !, ?, .)*\n` +
+            `5️⃣ **Special Features Wanted:** *(Voice JTC, Counting Game, Roblox Roles, Tickets, Economy)*\n` +
+            `6️⃣ **Bot Token:** *(From Discord Developer Portal ➔ Bot tab ➔ Reset Token)*\n` +
+            `7️⃣ **Bot Invite Link:** *(From OAuth2 ➔ URL Generator)*\n\n` +
+            `⚡ **Developer Fast-Track:** If you already have your bot token and want to spin it up immediately without waiting for staff review, you can run \`/setupbot\` right now!\n\n` +
+            `*<@1414143825538191373> (Krylo) and our team will configure and activate your bot within 24 hours!* 🚀`
+          )
+          .setThumbnail(avatarUrl)
+          .setFooter({ text: 'Krims Code AI Multi-Bot Engine • End-to-End Encrypted' })
+          .setTimestamp();
+
+        const actionRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`ticket_close_${user.id}`)
+            .setLabel('🔒 Close Ticket')
+            .setStyle(ButtonStyle.Danger)
+        );
+
+        if (typeof ticketChannel.send === 'function') {
+          await ticketChannel.send({
+            content: `👋 Hey <@${user.id}>! <@1414143825538191373> (Krylo) has been notified of your custom bot request.`,
+            embeds: [botReqEmbed],
+            components: [actionRow]
+          });
+        }
+
+        return interaction.followUp({
+          content: `✅ **Custom Bot Request Ticket Created!** Please head over to <#${ticketChannel.id}> to provide your details and token safely.`,
+          ephemeral: true
+        });
+      } else if (isStaffApp) {
         const isMiniGuild = guild.id === '1565848529241505963' || 
           interaction.client?.user?.id === '1565848105277067414' || 
           guild.name.toLowerCase().includes('mini');
