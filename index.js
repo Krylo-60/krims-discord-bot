@@ -7219,40 +7219,18 @@ client.on('interactionCreate', async (interaction) => {
     return;
   }
 
-  // Command: /leaderboard
-  if (commandName === 'leaderboard') {
-    await interaction.deferReply();
-    try {
-      const sortedUsers = Object.entries(xpData)
-        .sort((a, b) => b[1].xp - a[1].xp)
-        .slice(0, 10);
-
-      if (sortedUsers.length === 0) {
-        await interaction.editReply({ content: '❌ No chat activity or leveling stats recorded yet!' });
-        return;
-      }
-
-      let leaderboardText = '';
-      const medals = ['🥇', '🥈', '🥉'];
-
-      for (let i = 0; i < sortedUsers.length; i++) {
-        const [uId, stats] = sortedUsers[i];
-        const medal = medals[i] || `**${i + 1}.**`;
-        leaderboardText += `${medal} <@${uId}> — **Level ${stats.level}** (XP: \`${stats.xp}\`)\n`;
-      }
-
-      const embed = new EmbedBuilder()
-        .setColor(0x00F2FF)
-        .setTitle('🏆 Krims Code Chat Activity Leaderboard')
-        .setDescription(leaderboardText)
-        .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'Community'} Chat Leveling ⚡` })
-        .setTimestamp();
-
-      await interaction.editReply({ embeds: [embed] });
-    } catch (err) {
-      await interaction.editReply(`❌ Failed to fetch leaderboard: ${err.message}`);
+  // Command: /leaderboard and /levels
+  if (commandName === 'leaderboard' || commandName === 'levels' || commandName === 'xpleaderboard') {
+    if (!interaction.guild) {
+      return interaction.reply({ content: '❌ Leaderboard can only be viewed inside servers!', ephemeral: true });
     }
-    return;
+    const type = interaction.options.getString('type') || (commandName === 'xpleaderboard' ? 'xp' : 'messages');
+    const payload = buildLeaderboardPayload({ 
+      guild: interaction.guild, 
+      type, 
+      currentUserId: interaction.user.id 
+    });
+    return interaction.reply(payload);
   }
 
   // Command: /serverinfo
@@ -9120,6 +9098,15 @@ client.on('messageCreate', async (message) => {
     }
   }
 
+  // ⚡ Krims Chat Leveling & Message Tracking Engine (MEE6 / Krims Levels)
+  if (message.guild && !message.author.bot) {
+    try {
+      await handleMessageXp(message, client);
+    } catch (xpErr) {
+      console.warn('[MessageXP Engine Error]:', xpErr.message);
+    }
+  }
+
   // Handle #🤖┃ai-console-chat natural language server admin messages
   if (message.guild && message.channel.name && message.channel.name.includes('ai-console-chat')) {
     await handleAIConsoleMessage(message);
@@ -9910,7 +9897,8 @@ client.on('messageCreate', async (message) => {
     'krims'
   ].filter(Boolean);
 
-      const masterTextMentionRegex = new RegExp('@?(' + masterBotNames.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\b', 'i');
+  const masterTextMentionRegex = new RegExp('@?(' + masterBotNames.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\b', 'i');
+  const hasMasterTextMention = masterTextMentionRegex.test(message.content);
 
   const isMasterMentioned = message.guild && !message.mentions.everyone && (hasMasterUserMention || hasMasterRoleMention || isReplyToMaster || hasMasterTextMention);
 
@@ -10001,10 +9989,8 @@ client.on('messageCreate', async (message) => {
     });
   }
 
-  // C. Krims Leveling & XP Gain
-  if (!message.author.bot) {
-    await handleMessageXp(message, client);
-  }
+  // C. Krims Leveling & XP Gain (Processed at top of messageCreate for 100% reliable execution)
+  // Message XP and message counts are tracked safely for all messages above.
 
   // Auto-reaction voting for suggestions
   if (message.channel.name && message.channel.name.includes('suggestion') && !message.author.bot) {

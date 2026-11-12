@@ -5,6 +5,7 @@ import { EmbedBuilder, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, Butto
 import { generateRankCardBuffer } from './rankCardGenerator.mjs';
 import { getVoteMultiplier, getVoteBoosterInfo } from './voteBoosterManager.mjs';
 import { getGuildPremiumStatus } from './premiumManager.mjs';
+import { db, neonPool, addXp } from '../databaseEngine.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,7 +17,27 @@ export const KRIMS_CODE_GUILD_ID = '1561174283294609479';
 let xpData = {};
 const xpCooldowns = new Set();
 
-// Load XP database
+// 1. Initialize SQLite guild_leveling table for 100% persistence
+try {
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS guild_leveling (
+      guild_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      xp INTEGER DEFAULT 0,
+      level INTEGER DEFAULT 0,
+      messages INTEGER DEFAULT 0,
+      username TEXT,
+      discriminator TEXT DEFAULT '0',
+      announced_level INTEGER DEFAULT 0,
+      updated_at INTEGER DEFAULT 0,
+      PRIMARY KEY (guild_id, user_id)
+    )
+  `).run();
+} catch (e) {
+  console.warn('[Guild Leveling DB Table Init Warning]:', e.message);
+}
+
+// 2. Load XP database from mee6_xp.json
 try {
   if (fs.existsSync(XP_DB_PATH)) {
     xpData = JSON.parse(fs.readFileSync(XP_DB_PATH, 'utf8'));
@@ -25,10 +46,119 @@ try {
   xpData = {};
 }
 
-function saveXpData() {
+// 3. Hydrate & merge from SQLite guild_leveling table
+try {
+  const rows = db.prepare('SELECT * FROM guild_leveling').all();
+  for (const r of rows) {
+    if (!xpData[r.guild_id]) xpData[r.guild_id] = {};
+    const existing = xpData[r.guild_id][r.user_id];
+    if (!existing || Number(r.xp || 0) > Number(existing.xp || 0)) {
+      xpData[r.guild_id][r.user_id] = {
+        xp: Number(r.xp || 0),
+        level: Number(r.level || 0),
+        messages: Number(r.messages || 0),
+        username: r.username || existing?.username || 'User',
+        discriminator: r.discriminator || existing?.discriminator || '0',
+        announced_level: Number(r.announced_level || 0)
+      };
+    }
+  }
+} catch (e) {
+  console.warn('[Guild Leveling SQLite Hydration Notice]:', e.message);
+}
+
+// 4. Asynchronously sync with Neon Postgres Lakebase if connected
+if (neonPool) {
+  neonPool.query(`
+    CREATE TABLE IF NOT EXISTS guild_leveling (
+      guild_id VARCHAR(64) NOT NULL,
+      user_id VARCHAR(64) NOT NULL,
+      xp BIGINT DEFAULT 0,
+      level INTEGER DEFAULT 0,
+      messages INTEGER DEFAULT 0,
+      username VARCHAR(128),
+      discriminator VARCHAR(32),
+      announced_level INTEGER DEFAULT 0,
+      updated_at BIGINT DEFAULT 0,
+      PRIMARY KEY (guild_id, user_id)
+    );
+  `).then(() => {
+    return neonPool.query('SELECT * FROM guild_leveling');
+  }).then(res => {
+    for (const r of res.rows) {
+      if (!xpData[r.guild_id]) xpData[r.guild_id] = {};
+      const existing = xpData[r.guild_id][r.user_id];
+      if (!existing || Number(r.xp || 0) > Number(existing.xp || 0)) {
+        xpData[r.guild_id][r.user_id] = {
+          xp: Number(r.xp || 0),
+          level: Number(r.level || 0),
+          messages: Number(r.messages || 0),
+          username: r.username || existing?.username || 'User',
+          discriminator: r.discriminator || existing?.discriminator || '0',
+          announced_level: Number(r.announced_level || 0)
+        };
+      }
+    }
+  }).catch(e => console.warn('[Neon Guild Leveling Init Notice]:', e.message));
+}
+
+export function saveXpData(guildId = null, userId = null) {
   try {
     fs.writeFileSync(XP_DB_PATH, JSON.stringify(xpData, null, 2));
   } catch (e) {}
+
+  if (guildId && userId && xpData[guildId]?.[userId]) {
+    try {
+      const u = xpData[guildId][userId];
+      db.prepare(`
+        INSERT INTO guild_leveling (guild_id, user_id, xp, level, messages, username, discriminator, announced_level, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(guild_id, user_id) DO UPDATE SET
+          xp = excluded.xp,
+          level = excluded.level,
+          messages = excluded.messages,
+          username = excluded.username,
+          discriminator = excluded.discriminator,
+          announced_level = excluded.announced_level,
+          updated_at = excluded.updated_at
+      `).run(
+        guildId,
+        userId,
+        Number(u.xp || 0),
+        Number(u.level || 0),
+        Number(u.messages || 0),
+        u.username || 'User',
+        u.discriminator || '0',
+        Number(u.announced_level || 0),
+        Date.now()
+      );
+
+      if (neonPool) {
+        neonPool.query(`
+          INSERT INTO guild_leveling (guild_id, user_id, xp, level, messages, username, discriminator, announced_level, updated_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          ON CONFLICT(guild_id, user_id) DO UPDATE SET
+            xp = EXCLUDED.xp,
+            level = EXCLUDED.level,
+            messages = EXCLUDED.messages,
+            username = EXCLUDED.username,
+            discriminator = EXCLUDED.discriminator,
+            announced_level = EXCLUDED.announced_level,
+            updated_at = EXCLUDED.updated_at
+        `, [
+          guildId,
+          userId,
+          Number(u.xp || 0),
+          Number(u.level || 0),
+          Number(u.messages || 0),
+          u.username || 'User',
+          u.discriminator || '0',
+          Number(u.announced_level || 0),
+          Date.now()
+        ]).catch(() => {});
+      }
+    } catch (_) {}
+  }
 }
 
 /**
@@ -58,7 +188,7 @@ export function calculateLevelFromXp(totalXp) {
 /**
  * General helper to award XP to a user and handle level-ups / role rewards
  */
-export async function awardUserXp({ guild, user, xpGain = 20, source = 'chat', client, channel }) {
+export async function awardUserXp({ guild, user, xpGain = 20, source = 'chat', client, channel, skipMessageIncrement = false }) {
   if (!guild || !user || user.bot) return;
 
   const userId = user.id;
@@ -77,10 +207,12 @@ export async function awardUserXp({ guild, user, xpGain = 20, source = 'chat', c
   }
 
   // Track total chat messages count
-  if (source === 'chat') {
-    xpData[guildId][userId].messages = (xpData[guildId][userId].messages || 0) + 1;
-  } else if (!xpData[guildId][userId].messages && xpData[guildId][userId].xp) {
-    xpData[guildId][userId].messages = Math.max(1, Math.floor(xpData[guildId][userId].xp / 20));
+  if (!skipMessageIncrement) {
+    if (source === 'chat') {
+      xpData[guildId][userId].messages = (xpData[guildId][userId].messages || 0) + 1;
+    } else if (!xpData[guildId][userId].messages && xpData[guildId][userId].xp) {
+      xpData[guildId][userId].messages = Math.max(1, Math.floor(xpData[guildId][userId].xp / 20));
+    }
   }
 
   const voteMult = getVoteMultiplier(userId);
@@ -99,11 +231,16 @@ export async function awardUserXp({ guild, user, xpGain = 20, source = 'chat', c
   const lvl = newLevelInfo.level;
   xpData[guildId][userId].level = lvl;
 
+  // Sync to global SQLite / Neon leveling database
+  try {
+    addXp(userId, actualXpGain, guildId);
+  } catch (_) {}
+
   // Level Up Trigger — only announce if this level has NEVER been announced before!
   const announcedLevel = xpData[guildId][userId].announced_level || 0;
   if (lvl > announcedLevel) {
     xpData[guildId][userId].announced_level = lvl;
-    saveXpData();
+    saveXpData(guildId, userId);
 
     // 📢 ANNOUNCEMENT POLICY: Announce ONLY in Krims Code official server!
     // Silent leveling in all other servers to preserve tranquility and prevent unwanted cross-server spam.
@@ -157,7 +294,7 @@ export async function awardUserXp({ guild, user, xpGain = 20, source = 'chat', c
     } catch (e) {}
   } else {
     // Regular XP periodic save
-    saveXpData();
+    saveXpData(guildId, userId);
   }
 }
 
@@ -169,8 +306,25 @@ export async function handleMessageXp(message, client) {
 
   const userId = message.author.id;
   const guildId = message.guild.id;
-  const key = `${guildId}_${userId}`;
 
+  if (!xpData[guildId]) xpData[guildId] = {};
+  if (!xpData[guildId][userId]) {
+    xpData[guildId][userId] = {
+      xp: 0,
+      level: 0,
+      username: message.author.username,
+      discriminator: message.author.discriminator || '0',
+      announced_level: 0,
+      messages: 0
+    };
+  }
+
+  // 💬 Always track message count on EVERY message sent
+  xpData[guildId][userId].messages = (xpData[guildId][userId].messages || 0) + 1;
+  xpData[guildId][userId].username = message.author.username;
+  saveXpData(guildId, userId);
+
+  const key = `${guildId}_${userId}`;
   if (xpCooldowns.has(key)) return;
 
   // Add 1-minute cooldown for chat XP gain
@@ -186,7 +340,8 @@ export async function handleMessageXp(message, client) {
     xpGain,
     source: 'chat',
     client,
-    channel: message.channel
+    channel: message.channel,
+    skipMessageIncrement: true
   });
 }
 

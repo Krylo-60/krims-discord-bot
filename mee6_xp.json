@@ -68,5 +68,15 @@
       "announced_level": 0,
       "messages": 1
     }
+  },
+  "test_guild_123": {
+    "test_user_456": {
+      "xp": 69,
+      "level": 0,
+      "username": "TestUser",
+      "discriminator": "0001",
+      "announced_level": 0,
+      "messages": 1
+    }
   }
 }
