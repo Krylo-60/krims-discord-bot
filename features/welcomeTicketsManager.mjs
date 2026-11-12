@@ -73,7 +73,7 @@ export async function handleSetWelcomeCommand(message, args) {
     message.member?.permissions?.has(PermissionFlagsBits.Administrator) ||
     message.member?.permissions?.has(PermissionFlagsBits.ManageGuild);
 
-  if (!isStaff) return message.reply("⛔ **Admin Required:** You need `Manage Server` or `Administrator` permissions to configure the Welcome System!");
+  if (!isStaff) return message.reply("❌ **Missing Permissions:** You need the `Manage Server` permission to configure the Welcome System!");
 
   const config = getGuildServerConfig(message.guild.id);
 
@@ -143,7 +143,7 @@ export async function handleSetTicketsCommand(message, args) {
     message.member?.permissions?.has(PermissionFlagsBits.Administrator) ||
     message.member?.permissions?.has(PermissionFlagsBits.ManageGuild);
 
-  if (!isStaff) return message.reply("⛔ **Admin Required:** You need `Manage Server` or `Administrator` permissions to configure the Ticket System!");
+  if (!isStaff) return message.reply("❌ **Missing Permissions:** You need the `Manage Server` permission to configure the Ticket System!");
 
   const config = getGuildServerConfig(message.guild.id);
   const currentCat = config.tickets_category ? `<#${config.tickets_category}>` : '*Not Configured*';
@@ -687,7 +687,7 @@ export async function handleWelcomeTicketInteraction(interaction) {
   // A. Create #welcome channel
   if (customId.startsWith('welcome_create_')) {
     if (!interaction.member?.permissions?.has(PermissionFlagsBits.ManageChannels)) {
-      return interaction.reply({ content: '⛔ You need `Manage Channels` permissions to create channels!', ephemeral: true });
+      return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Channels` permission to create channels.', ephemeral: true });
     }
     await interaction.deferUpdate();
     try {
@@ -717,7 +717,7 @@ export async function handleWelcomeTicketInteraction(interaction) {
   // C. Auto-deploy Tickets 2.0 Hub
   if (customId.startsWith('tickets_deploy_')) {
     if (!interaction.member?.permissions?.has(PermissionFlagsBits.ManageChannels)) {
-      return interaction.reply({ content: '⛔ You need `Manage Channels` permissions!', ephemeral: true });
+      return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Channels` permission to deploy the ticket system.', ephemeral: true });
     }
     await interaction.deferUpdate();
     try {
@@ -1042,7 +1042,7 @@ export async function handleWelcomeTicketInteraction(interaction) {
 
     if (!isStaffOrOpener) {
       await interaction.reply({
-        content: '⛔ Only the ticket opener or staff can close this channel!',
+        content: '❌ **Missing Permissions:** Only the ticket creator or members with the `Manage Channels` permission can close this channel.',
         ephemeral: true
       });
       return true;

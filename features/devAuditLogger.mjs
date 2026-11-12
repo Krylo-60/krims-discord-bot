@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import pg from 'pg';
 import Database from 'better-sqlite3';
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -259,12 +259,14 @@ export async function getDevLogs({ category = null, limit = 20, days = 3 } = {})
  */
 export async function handleDevLogsCommand(interaction) {
   const userId = interaction.user?.id || interaction.author?.id;
-  const isDev = userId === '1414143825538191373' || (interaction.guild && interaction.guild.ownerId === userId);
+  const isAuthorized = userId === '1414143825538191373' || 
+    (interaction.guild && interaction.guild.ownerId === userId) ||
+    interaction.member?.permissions?.has(PermissionFlagsBits.Administrator);
 
-  if (!isDev) {
+  if (!isAuthorized) {
     if (interaction.reply) {
       return interaction.reply({
-        content: '🔒 **Developer Diagnostics Restricted:** These audit telemetry logs are strictly reserved for internal bot developers.',
+        content: '❌ **Missing Permissions:** You need the `Administrator` permission to view audit telemetry logs.',
         ephemeral: true
       });
     }

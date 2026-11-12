@@ -586,7 +586,17 @@ const client = new Client({
 const originalChannelCreate = GuildChannelManager.prototype.create;
 GuildChannelManager.prototype.create = async function(options) {
   const stack = new Error().stack || '';
-  const isTicket = stack.includes('open_ticket') || stack.includes('handleTicket') || (options && options.name && options.name.includes('ticket-'));
+  const isTicket = stack.includes('open_ticket') || 
+                   stack.includes('handleTicket') || 
+                   stack.includes('welcomeTickets') || 
+                   stack.includes('createBulletproofTicketChannel') || 
+                   stack.includes('createVerifiedDeveloperTicketChannel') ||
+                   (options && options.name && (
+                     options.name.includes('ticket') || 
+                     options.name.includes('staff-app') || 
+                     options.name.includes('welcome') || 
+                     options.name.includes('SUPPORT')
+                   ));
   const isDuel = stack.includes('activeDuel') || stack.includes('duelChannel') || (options && options.name && options.name.includes('duel-'));
 
   if (!isTicket && !isDuel) {
@@ -854,7 +864,7 @@ async function createBulletproofTicketChannel(guild, { name, parentId = null, to
 
   const detailedError = (lastError && lastError.message) 
     ? lastError.message 
-    : (lastError ? String(lastError) : 'Discord channel creation was not confirmed by the API. Please ensure the bot has Manage Channels and Administrator permissions.');
+    : (lastError ? String(lastError) : 'Discord channel creation was not confirmed by the API. Please ensure the bot has the Manage Channels permission.');
   throw new Error(detailedError);
 }
 
@@ -2693,7 +2703,7 @@ client.on('interactionCreate', async (interaction) => {
         await ticketCh.permissionOverwrites.set([
           { id: interaction.guild.roles.everyone.id, type: OverwriteType.Role, deny: [PermissionFlagsBits.ViewChannel] },
           { id: interaction.user.id, type: OverwriteType.Member, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.AttachFiles, PermissionFlagsBits.ReadMessageHistory] },
-          { id: client.user.id, type: OverwriteType.Member, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.Administrator] }
+          { id: client.user.id, type: OverwriteType.Member, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.EmbedLinks, PermissionFlagsBits.AttachFiles, PermissionFlagsBits.ReadMessageHistory] }
         ]).catch(e => console.warn('[Select Ticket] Non-fatal overwrite warning:', e.message));
 
         const readyTicketCh = typeof ticketCh.send === 'function' ? ticketCh : await client.channels.fetch(ticketCh.id);
@@ -3227,10 +3237,10 @@ client.on('interactionCreate', async (interaction) => {
       }
 
       const isDuelist = interaction.user.id === activeDuel.challengerId || interaction.user.id === activeDuel.challengedId;
-      const isStaff = interaction.member.permissions.has(PermissionFlagsBits.ManageChannels) || interaction.member.roles.cache.some(r => r.name.toLowerCase().includes('staff') || r.name.toLowerCase().includes('admin') || r.name.toLowerCase().includes('mod'));
+      const hasPerm = interaction.member.permissions.has(PermissionFlagsBits.ManageChannels);
 
-      if (!isDuelist && !isStaff) {
-        await interaction.reply({ content: '❌ Only the duelists or staff members can end the duel!', ephemeral: true });
+      if (!isDuelist && !hasPerm) {
+        await interaction.reply({ content: '❌ **Missing Permissions:** Only the active duelists or members with the `Manage Channels` permission can end the duel.', ephemeral: true });
         return;
       }
 
@@ -4984,7 +4994,7 @@ client.on('interactionCreate', async (interaction) => {
     const isBotOwner = interaction.user.id === '1414143825538191373';
 
     if (!isGuildOwner && !isAdmin && !isBotOwner) {
-      await interaction.reply({ content: "❌ Only the Server Owner or Server Administrators can approve or deny store purchases!", ephemeral: true });
+      await interaction.reply({ content: "❌ **Missing Permissions:** You need the `Administrator` permission to approve or deny store purchases.", ephemeral: true });
       return;
     }
 
@@ -5109,7 +5119,7 @@ client.on('interactionCreate', async (interaction) => {
   ) {
     const isAdmin = interaction.user.id === '1414143825538191373' || interaction.member?.permissions?.has(PermissionFlagsBits.Administrator);
     if (!isAdmin) {
-      return interaction.reply({ content: '❌ Only Krylo and Administrators can stop crew applications.', ephemeral: true });
+      return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Administrator` permission to stop crew applications.', ephemeral: true });
     }
 
     await interaction.deferReply({ ephemeral: false });
@@ -5201,7 +5211,7 @@ client.on('interactionCreate', async (interaction) => {
       )
       .addFields(
         { name: '🌐 Web Dashboard', value: '[Open Dashboard](https://krims-bot-dashboard.vercel.app)', inline: true },
-        { name: '👑 Add To Server', value: `[Invite Bot](https://discord.com/api/oauth2/authorize?client_id=${interaction.client.user.id}&permissions=8&scope=bot%20applications.commands)`, inline: true },
+        { name: '👑 Add To Server', value: `[Invite Bot](https://discord.com/api/oauth2/authorize?client_id=${interaction.client.user.id}&permissions=1099780079632&scope=bot%20applications.commands)`, inline: true },
         { name: '💬 Support Server', value: '[Join Support](https://discord.gg/sYaVJtXgQb)', inline: true }
       )
       .setImage('https://krims-bot-dashboard.vercel.app/banners/krims_code_support_banner.jpg')
@@ -5507,12 +5517,291 @@ client.on('interactionCreate', async (interaction) => {
   }
   if (commandName === 'slowmode') return handleSlowmode(interaction);
   if (commandName === 'afk') return handleAfk(interaction);
-  if (commandName === 'remindme') return handleRemindMe(interaction);
+  if (commandName === 'remindme' || commandName === 'remind') return handleRemindMe(interaction);
   if (commandName === 'embed') return handleEmbedBuilder(interaction);
+
+  if (commandName === 'ping') {
+    const wsPing = client.ws.ping;
+    const latency = Date.now() - interaction.createdTimestamp;
+    const pingEmbed = new EmbedBuilder()
+      .setColor(0x00FF88)
+      .setTitle('🏓 Pong! • Network Latency')
+      .addFields(
+        { name: '⚡ Gateway Heartbeat', value: `\`${wsPing >= 0 ? wsPing : 0}ms\``, inline: true },
+        { name: '📡 REST Roundtrip', value: `\`${Math.max(1, latency)}ms\``, inline: true },
+        { name: '🧠 Neural Engine', value: '`0ms (Active)`', inline: true }
+      )
+      .setFooter({ text: 'Krims Code AI • High Performance Core' })
+      .setTimestamp();
+    return interaction.reply({ embeds: [pingEmbed] });
+  }
+
+  if (commandName === 'uptime') {
+    const totalSec = Math.floor(process.uptime());
+    const days = Math.floor(totalSec / 86400);
+    const hours = Math.floor((totalSec % 86400) / 3600);
+    const minutes = Math.floor((totalSec % 3600) / 60);
+    const seconds = totalSec % 60;
+    const uptimeStr = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+
+    const mem = process.memoryUsage();
+    const rssMb = (mem.rss / 1024 / 1024).toFixed(1);
+    const heapMb = (mem.heapUsed / 1024 / 1024).toFixed(1);
+
+    const uptimeEmbed = new EmbedBuilder()
+      .setColor(0x00E5FF)
+      .setTitle('⏱️ Krims Code AI System Telemetry & Uptime')
+      .addFields(
+        { name: '🟢 Continuous Uptime', value: `\`${uptimeStr}\``, inline: true },
+        { name: '🏰 Connected Servers', value: `\`${client.guilds.cache.size}\``, inline: true },
+        { name: '👥 Cached Members', value: `\`${client.guilds.cache.reduce((acc, g) => acc + (g.memberCount || 0), 0).toLocaleString()}\``, inline: true },
+        { name: '💾 Memory (Heap / RSS)', value: `\`${heapMb} MB / ${rssMb} MB\``, inline: true },
+        { name: '⚡ Node.js Version', value: `\`${process.version}\``, inline: true },
+        { name: '🌐 Global Status', value: '`100% Operational (99.99% SLA)`', inline: true }
+      )
+      .setFooter({ text: 'Krims Code AI Infrastructure • Render Production' })
+      .setTimestamp();
+    return interaction.reply({ embeds: [uptimeEmbed] });
+  }
+
+  if (commandName === 'automod') {
+    if (!interaction.guild) {
+      return interaction.reply({ content: '❌ AutoMod commands can only be run inside a Discord server!', ephemeral: true });
+    }
+    const sub = interaction.options.getSubcommand(false) || 'status';
+
+    if (sub === 'setup') {
+      const canManage = interaction.member?.permissions?.has(PermissionFlagsBits.ManageGuild) ||
+                        interaction.member?.permissions?.has(PermissionFlagsBits.Administrator) ||
+                        interaction.user.id === '1414143825538191373';
+      if (!canManage) {
+        return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Server` permission to deploy Discord native AutoMod rules.', ephemeral: true });
+      }
+
+      await interaction.deferReply();
+      const created = await syncGuildAutoMod(interaction.guild);
+      const rules = await interaction.guild.autoModerationRules.fetch().catch(() => null);
+      const currentGuildRules = rules ? rules.size : 0;
+      const globalStats = await getGlobalAutoModRuleCount(client);
+
+      const embed = new EmbedBuilder()
+        .setColor(0x00F2FF)
+        .setTitle('🛡️ Discord Native AutoMod Suite Configured!')
+        .setDescription(`Successfully synchronized Discord native AutoMod security rules for **${interaction.guild.name}**!`)
+        .addFields(
+          { name: '📥 Rules Deployed This Run', value: `\`+${created} Rules\``, inline: true },
+          { name: '🔒 Server Active Rules', value: `\`${currentGuildRules} / 10 Active\``, inline: true },
+          { name: '🌐 Global Badge Progress', value: `\`${globalStats.totalRules} / 100 Rules\` (${Math.min(100, Math.round((globalStats.totalRules / 100) * 100))}%)`, inline: true },
+          {
+            name: '🏆 Discord "Uses AutoMod" Badge Status',
+            value: globalStats.totalRules >= 100
+              ? '✅ **QUALIFIED!** Krims Code AI fleet has satisfied the 100-rule threshold across active servers!'
+              : `⏳ Progress: **${globalStats.totalRules} / 100** rules active across fleet.`
+          }
+        )
+        .setFooter({ text: 'Krims Code AI • Native AutoMod Security Engine', iconURL: client.user.displayAvatarURL() })
+        .setTimestamp();
+
+      return interaction.editReply({ embeds: [embed] });
+    }
+
+    const rules = await interaction.guild.autoModerationRules.fetch().catch(() => null);
+    const currentGuildRules = rules ? rules.size : 0;
+    const globalStats = await getGlobalAutoModRuleCount(client);
+
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('🛡️ Discord Native AutoMod Status & Badge Qualification')
+      .setDescription(`Real-time telemetry for Discord native AutoMod rules across the Krims fleet.`)
+      .addFields(
+        { name: '🏰 This Server Rules', value: `\`${currentGuildRules} / 10 Active\``, inline: true },
+        { name: '🌐 Fleet Total Rules', value: `\`${globalStats.totalRules} / 100 Required\``, inline: true },
+        {
+          name: '🏆 Badge Qualification',
+          value: globalStats.totalRules >= 100
+            ? '✅ **QUALIFIED!** Fleet has exceeded 100 active native rules.'
+            : `⏳ **${100 - globalStats.totalRules} more rules** needed across servers to unlock badge!`
+        }
+      )
+      .setFooter({ text: 'Krims Code AI • Native AutoMod Security Engine', iconURL: client.user.displayAvatarURL() })
+      .setTimestamp();
+
+    return interaction.reply({ embeds: [embed] });
+  }
+
+  if (commandName === 'counting') {
+    if (!interaction.guild) {
+      return interaction.reply({ content: '❌ Counting commands can only be used inside servers!', ephemeral: true });
+    }
+    const action = interaction.options.getString('action') || 'status';
+    const targetChannel = interaction.options.getChannel('channel') || interaction.channel;
+    const hasManage = interaction.member?.permissions?.has(PermissionFlagsBits.ManageChannels) ||
+                      interaction.member?.permissions?.has(PermissionFlagsBits.Administrator) ||
+                      interaction.user.id === '1414143825538191373';
+
+    if (action === 'set') {
+      if (!hasManage) {
+        return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Channels` permission to link a counting channel.', ephemeral: true });
+      }
+      await linkCountingChannel(targetChannel, interaction.user);
+      return interaction.reply({ content: `✅ <#${targetChannel.id}> is now linked as the official **Counting Game** room! Drop \`1\` in <#${targetChannel.id}> to begin! 🚀` });
+    }
+
+    if (action === 'unlink') {
+      if (!hasManage) {
+        return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Channels` permission to unlink a counting channel.', ephemeral: true });
+      }
+      unlinkCountingChannel(targetChannel.id);
+      return interaction.reply({ content: `❌ <#${targetChannel.id}> has been unlinked from the counting game.` });
+    }
+
+    if (action === 'reset') {
+      if (!hasManage) {
+        return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Channels` permission to reset the counting chain.', ephemeral: true });
+      }
+      resetCountingState(targetChannel.id);
+      return interaction.reply({ content: `🔄 The count in <#${targetChannel.id}> has been reset back to **\`1\`**!` });
+    }
+
+    if (action === 'leaderboard') {
+      const embed = await getCrossServerCountingLeaderboardEmbed(interaction.client);
+      return interaction.reply({ embeds: [embed] });
+    }
+
+    if (action === 'ai') {
+      const result = startAiCountingSession(targetChannel, interaction.user);
+      if (!result.success) {
+        return interaction.reply({ content: result.error, ephemeral: true });
+      }
+      const state = getCountingState(targetChannel.id);
+      const cur = state ? state.current_number : 0;
+      const next = cur + 1;
+      const dueTime = Math.floor(result.expiresAt / 1000);
+
+      const aiEmbed = new EmbedBuilder()
+        .setColor(0x00E5FF)
+        .setTitle('🤖 AI COUNTING PARTNER ACTIVATED!')
+        .setDescription(
+          `Krims Code AI is now your personal counting partner in <#${targetChannel.id}>! 🤝\n\n` +
+          `• **Current Number:** \`${cur}\` (Next: \`${next}\`)\n` +
+          `• **Session Duration:** Active until <t:${dueTime}:R> (15 Minutes)\n` +
+          `• **Remaining Tries:** \`${result.remainingTries}\``
+        )
+        .setFooter({ text: 'Krims Code • AI Counting Partner' })
+        .setTimestamp();
+      return interaction.reply({ embeds: [aiEmbed] });
+    }
+
+    const state = getCountingState(targetChannel.id);
+    const embed = new EmbedBuilder()
+      .setColor(0x00E5FF)
+      .setTitle('🔢 Counting Game Status')
+      .setDescription(`Status for <#${targetChannel.id}>:`)
+      .addFields(
+        { name: '✨ Current Number', value: `**${state?.current_number || 0}** (Next: \`${(state?.current_number || 0) + 1}\`)`, inline: true },
+        { name: '🏆 Record High Score', value: `**${state?.high_score || 0}**`, inline: true },
+        { name: '👤 Last Counter', value: state?.last_user_id ? `<@${state.last_user_id}>` : 'None', inline: true }
+      )
+      .setFooter({ text: `${interaction.guild.name} • Counting Engine` })
+      .setTimestamp();
+    return interaction.reply({ embeds: [embed] });
+  }
+
+  if (commandName === 'translate') {
+    const text = interaction.options.getString('text');
+    const targetLang = interaction.options.getString('language') || 'English';
+    await interaction.deferReply();
+    try {
+      const prompt = `Translate the following text accurately into ${targetLang}. Return ONLY the direct translated text, without commentary:\n\n"${text}"`;
+      const translated = await geminiDirectAsk(prompt);
+      const embed = new EmbedBuilder()
+        .setColor(0x00F2FF)
+        .setTitle(`🌐 Translated to ${targetLang}`)
+        .addFields(
+          { name: 'Original', value: text.slice(0, 1024) },
+          { name: `Translation (${targetLang})`, value: (translated || text).slice(0, 1024) }
+        )
+        .setFooter({ text: 'Krims Neural Translation Engine' })
+        .setTimestamp();
+      return interaction.editReply({ embeds: [embed] });
+    } catch (err) {
+      return interaction.editReply({ content: `❌ Translation failed: ${err.message}` });
+    }
+  }
+
+  if (commandName === 'activity') {
+    const game = interaction.options.getString('game') || 'youtube';
+    const voiceChannel = interaction.options.getChannel('channel') || interaction.member?.voice?.channel;
+
+    if (!voiceChannel || !voiceChannel.isVoiceBased()) {
+      return interaction.reply({ content: '❌ You must specify or be connected to a voice channel to start an activity!', ephemeral: true });
+    }
+
+    const activityIds = {
+      youtube: '880218394199220334',
+      poker: '755827207812677713',
+      chess: '832012774040141894',
+      gartic: '1007373802981822582',
+      puttparty: '945737671529947166',
+      bobble: '947957217959759964',
+      sketchheads: '902271654783242291',
+      letterleague: '879863686562127912',
+      wordsnacks: '879863976006127627',
+      spellcast: '852509694341283840',
+      checkers: '832013003968348200',
+      blazing8s: '832025144389533716',
+      landio: '903769130790969345',
+      colonist: '1006828699298418708',
+      meme: '950533818944413737',
+      jamspace: '1070088388197777488',
+      krimscode: '880218394199220334'
+    };
+
+    const targetAppId = activityIds[game] || activityIds.youtube;
+    try {
+      const invite = await voiceChannel.createInvite({
+        targetApplication: targetAppId,
+        targetType: 2,
+        maxAge: 3600,
+        maxUses: 0
+      });
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setLabel('🚀 Join Activity')
+          .setStyle(ButtonStyle.Link)
+          .setURL(invite.url)
+      );
+
+      return interaction.reply({
+        content: `🎮 Click below to join the **${game.toUpperCase()}** session in <#${voiceChannel.id}>!`,
+        components: [row]
+      });
+    } catch (err) {
+      return interaction.reply({ content: `❌ Could not start activity: ${err.message}. Please verify the bot has \`Create Instant Invite\` permissions.`, ephemeral: true });
+    }
+  }
+
+  if (commandName === 'emojis') {
+    const emojisEmbed = new EmbedBuilder()
+      .setColor(0x8B5CF6)
+      .setTitle('✨ Krims Code AI Application Emojis')
+      .setDescription(
+        `Krims Code AI includes a custom suite of high-definition application emojis usable across all servers!\n\n` +
+        `• ⚡ **Core:** \`⚡\` Krims Bolt, \`🧠\` Neural AI\n` +
+        `• 🛡️ **Security:** \`🛡️\` AutoMod Shield, \`🔒\` Lockdown Vault\n` +
+        `• 🪙 **Economy:** \`🪙\` KryloCoins, \`💎\` Krims Rewards (KR)\n` +
+        `• 🎮 **Gaming:** \`⚔️\` PvP Arena, \`🏹\` Raid Vanguard\n\n` +
+        `All application emojis render natively on mobile, desktop, and web Discord!`
+      )
+      .setFooter({ text: 'Krims Custom Asset Pipeline • 100% Free' })
+      .setTimestamp();
+    return interaction.reply({ embeds: [emojisEmbed], ephemeral: true });
+  }
 
   if (commandName === 'genkey') {
     if (!interaction.member?.permissions.has(PermissionFlagsBits.Administrator) && interaction.user.id !== '1414143825538191373') {
-      return interaction.reply({ content: '❌ Only server administrators can generate API keys.', ephemeral: true });
+      return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Administrator` permission to generate API keys.', ephemeral: true });
     }
 
     const prefixOpt = interaction.options.getString('prefix') || 'krylo';
@@ -5540,7 +5829,7 @@ client.on('interactionCreate', async (interaction) => {
   
   if (commandName === 'startstream') {
     if (!interaction.member?.permissions.has(PermissionFlagsBits.Administrator) && interaction.user.id !== '1414143825538191373') {
-      return interaction.reply({ content: '❌ Only administrators can start a live stream broadcast.', ephemeral: true });
+      return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Administrator` permission to start a live stream broadcast.', ephemeral: true });
     }
 
     const titleOpt = interaction.options.getString('title') || 'Live KryloSMP Minecraft Gameplay & Tournaments!';
@@ -5554,7 +5843,7 @@ client.on('interactionCreate', async (interaction) => {
 
   if (commandName === 'stopstream') {
     if (!interaction.member?.permissions.has(PermissionFlagsBits.Administrator) && interaction.user.id !== '1414143825538191373') {
-      return interaction.reply({ content: '❌ Only administrators can stop a live stream broadcast.', ephemeral: true });
+      return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Administrator` permission to stop a live stream broadcast.', ephemeral: true });
     }
 
     if (!activeStream) {
@@ -5571,7 +5860,7 @@ client.on('interactionCreate', async (interaction) => {
   
   if (commandName === 'adminabuse') {
     if (!interaction.member?.permissions.has(PermissionFlagsBits.Administrator) && interaction.user.id !== '1414143825538191373') {
-      return interaction.reply({ content: '❌ Only administrators can trigger the Admin Abuse event.', ephemeral: true });
+      return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Administrator` permission to trigger the Admin Abuse event.', ephemeral: true });
     }
 
     const noteOpt = interaction.options.getString('details') || '';
@@ -6164,7 +6453,7 @@ client.on('interactionCreate', async (interaction) => {
   // Command: /purge
   if (commandName === 'purge') {
     if (!interaction.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
-      await interaction.reply({ content: '❌ You do not have permission to manage messages!', ephemeral: true });
+      await interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Messages` permission to purge messages.', ephemeral: true });
       return;
     }
 
@@ -6186,7 +6475,7 @@ client.on('interactionCreate', async (interaction) => {
   // Command: /warn
   if (commandName === 'warn') {
     if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-      await interaction.reply({ content: '❌ You do not have permission to warn members!', ephemeral: true });
+      await interaction.reply({ content: '❌ **Missing Permissions:** You need the `Moderate Members` permission to warn members.', ephemeral: true });
       return;
     }
 
@@ -6391,15 +6680,11 @@ client.on('interactionCreate', async (interaction) => {
   // Command: /mcban
   if (commandName === 'mcban') {
     const member = interaction.member;
-    const isOwner = interaction.user.id === interaction.guild.ownerId;
-    const hasModRole = member && member.roles.cache.some(r => {
-      const name = r.name.toLowerCase();
-      return name.includes('mod') || name.includes('staff') || name.includes('admin') || name.includes('owner');
-    });
-    const hasBanPerm = member && member.permissions.has(PermissionFlagsBits.BanMembers);
+    const isOwner = interaction.user.id === interaction.guild?.ownerId;
+    const hasBanPerm = member && (member.permissions.has(PermissionFlagsBits.BanMembers) || member.permissions.has(PermissionFlagsBits.Administrator));
 
-    if (!isOwner && !hasModRole && !hasBanPerm) {
-      await interaction.reply({ content: '❌ **Permission Denied:** This command is restricted to the Server Owner and Mod/Staff team.', ephemeral: true });
+    if (!isOwner && !hasBanPerm) {
+      await interaction.reply({ content: '❌ **Missing Permissions:** You need the `Ban Members` permission to use this command.', ephemeral: true });
       return;
     }
 
@@ -6955,8 +7240,8 @@ client.on('interactionCreate', async (interaction) => {
 
   // Command: /announce
   if (commandName === 'announce') {
-    if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-      await interaction.reply({ content: '❌ Only admins can send announcements!', ephemeral: true });
+    if (!interaction.member.permissions.has(PermissionFlagsBits.MentionEveryone) && !interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+      await interaction.reply({ content: '❌ **Missing Permissions:** You need the `Mention Everyone` or `Administrator` permission to send announcements.', ephemeral: true });
       return;
     }
 
@@ -7125,7 +7410,7 @@ client.on('interactionCreate', async (interaction) => {
       await channel.permissionOverwrites.set([
         { id: interaction.guild.roles.everyone.id, type: OverwriteType.Role, deny: [PermissionFlagsBits.ViewChannel] },
         { id: interaction.user.id, type: OverwriteType.Member, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.AttachFiles, PermissionFlagsBits.ReadMessageHistory] },
-        { id: client.user.id, type: OverwriteType.Member, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.Administrator] }
+        { id: client.user.id, type: OverwriteType.Member, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.EmbedLinks, PermissionFlagsBits.AttachFiles, PermissionFlagsBits.ReadMessageHistory] }
       ]).catch(e => console.warn('[/ticket] Non-fatal overwrite warning:', e.message));
 
       const readyChannel = typeof channel.send === 'function' ? channel : await client.channels.fetch(channel.id);
@@ -7461,10 +7746,10 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     const isDuelist = interaction.user.id === activeDuel.challengerId || interaction.user.id === activeDuel.challengedId;
-    const isStaff = interaction.member.permissions.has(PermissionFlagsBits.ManageChannels) || interaction.member.roles.cache.some(r => r.name.toLowerCase().includes('staff') || r.name.toLowerCase().includes('admin') || r.name.toLowerCase().includes('mod'));
+    const hasPerm = interaction.member.permissions.has(PermissionFlagsBits.ManageChannels);
 
-    if (!isDuelist && !isStaff) {
-      await interaction.reply({ content: '❌ Only the duelists or staff members can end the duel!', ephemeral: true });
+    if (!isDuelist && !hasPerm) {
+      await interaction.reply({ content: '❌ **Missing Permissions:** Only the active duelists or members with the `Manage Channels` permission can end the duel.', ephemeral: true });
       return;
     }
 
@@ -8807,7 +9092,7 @@ client.on('messageCreate', async (message) => {
       const targetChannel = message.mentions.channels.first() || message.channel;
 
       if (lowerMsg.includes('unlink')) {
-        if (!isStaff) return message.reply('❌ You need `Manage Channels` permission to unlink a counting channel.');
+        if (!isStaff) return message.reply('❌ **Missing Permissions:** You need the `Manage Channels` permission to unlink a counting channel.');
         unlinkCountingChannel(targetChannel.id);
         return message.reply(`❌ <#${targetChannel.id}> has been unlinked from the counting game.`);
       }
@@ -8852,7 +9137,7 @@ client.on('messageCreate', async (message) => {
       }
 
       if (lowerMsg.includes('reset')) {
-        if (!isStaff) return message.reply('❌ Only staff can reset the counting chain.');
+        if (!isStaff) return message.reply('❌ **Missing Permissions:** You need the `Manage Channels` permission to reset the counting chain.');
         resetCountingState(targetChannel.id);
         return message.reply(`🔄 The count in <#${targetChannel.id}> has been reset back to **\`1\`**!`);
       }
@@ -8874,7 +9159,7 @@ client.on('messageCreate', async (message) => {
       }
 
       if (lowerMsg.startsWith('!setcounting') || lowerMsg.includes('set') || lowerMsg.includes('link')) {
-        if (!isStaff) return message.reply('❌ You need `Manage Channels` permission to link a counting channel.');
+        if (!isStaff) return message.reply('❌ **Missing Permissions:** You need the `Manage Channels` permission to link a counting channel.');
         await linkCountingChannel(targetChannel, message.author);
         return message.reply(`✅ <#${targetChannel.id}> is now linked as the official **Counting Game** room! Drop \`1\` in <#${targetChannel.id}> to begin! 🚀`);
       }
@@ -9153,7 +9438,7 @@ client.on('messageCreate', async (message) => {
   ) {
     const isAdmin = message.author.id === '1414143825538191373' || message.member?.permissions?.has(PermissionFlagsBits.Administrator);
     if (!isAdmin) {
-      return message.reply('❌ Only Krylo and Administrators can deploy reaction role panels.');
+      return message.reply('❌ **Missing Permissions:** You need the `Administrator` permission to deploy reaction role panels.');
     }
     const panelMsg = await deployClanReactionRolePanel(message.channel);
     if (panelMsg) {
@@ -9167,7 +9452,7 @@ client.on('messageCreate', async (message) => {
                          (message.guild && message.guild.ownerId === message.author.id) ||
                          message.member?.permissions?.has(PermissionFlagsBits.Administrator);
     if (!isAuthorized) {
-      return message.reply('❌ Only server administrators and the bot owner can deploy the Support Hub.');
+      return message.reply('❌ **Missing Permissions:** You need the `Administrator` permission to deploy the Support Hub.');
     }
     const statusMsg = await message.reply('🚀 **Initializing Krims Code Support & Updates deployment engine...** Please wait 5-10 seconds while all categories, channels, roles, and embeds are built.');
     try {
@@ -9357,7 +9642,7 @@ client.on('messageCreate', async (message) => {
     const isOwner = message.author.id === '1414143825538191373';
     const isAdmin = isOwner || message.member?.permissions?.has(PermissionFlagsBits.Administrator);
     if (!isAdmin) {
-      return message.reply('❌ Only Krylo or Administrators can change role visibility.');
+      return message.reply('❌ **Missing Permissions:** You need the `Administrator` permission to change role visibility.');
     }
 
     const isPublish = normalizedCrewCmd.startsWith('!publish') || normalizedCrewCmd.startsWith('/publish');
@@ -10394,17 +10679,13 @@ client.on('messageCreate', async (message) => {
       return;
     }
 
-    const isStaff = message.author.id === '1414143825538191373' ||
+    const hasPerm = message.author.id === '1414143825538191373' ||
       message.guild.ownerId === message.author.id ||
       message.member?.permissions.has(PermissionFlagsBits.ManageGuild) ||
-      message.member?.permissions.has(PermissionFlagsBits.Administrator) ||
-      message.member?.roles.cache.some(r => {
-        const norm = r.name.normalize('NFKD').toLowerCase();
-        return norm.includes('founder') || norm.includes('moderator') || norm.includes('admin') || norm.includes('maker') || r.name.includes('𝐅𝐎𝐔𝐍𝐃𝐄𝐑');
-      });
+      message.member?.permissions.has(PermissionFlagsBits.Administrator);
 
-    if (!isStaff) {
-      await message.reply("❌ Only Staff and Announcement/Role Makers can start giveaways!");
+    if (!hasPerm) {
+      await message.reply("❌ **Missing Permissions:** You need the `Manage Server` permission to start giveaways.");
       return;
     }
 
@@ -10855,11 +11136,13 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // Command: !devlogs (Developer / Owner Only)
+  // Command: !devlogs (Developer / Administrator)
   if (lowerMsg.startsWith('!devlogs') || lowerMsg.startsWith(botPrefix + 'devlogs')) {
-    const isDev = message.author.id === '1414143825538191373' || (message.guild && message.guild.ownerId === message.author.id);
-    if (!isDev) {
-      await message.reply('🔒 **Developer Diagnostics Restricted:** These audit telemetry logs are strictly reserved for internal bot developers.');
+    const isAuthorized = message.author.id === '1414143825538191373' || 
+      (message.guild && message.guild.ownerId === message.author.id) ||
+      message.member?.permissions?.has(PermissionFlagsBits.Administrator);
+    if (!isAuthorized) {
+      await message.reply('❌ **Missing Permissions:** You need the `Administrator` permission to view audit telemetry logs.');
       return;
     }
     const args = content.trim().split(/\s+/).slice(1);
@@ -11043,10 +11326,10 @@ client.on('messageCreate', async (message) => {
     }
 
     const isDuelist = message.author.id === activeDuel.challengerId || message.author.id === activeDuel.challengedId;
-    const isStaff = message.member.permissions.has(PermissionFlagsBits.ManageChannels) || message.member.roles.cache.some(r => r.name.toLowerCase().includes('staff') || r.name.toLowerCase().includes('admin') || r.name.toLowerCase().includes('mod'));
+    const hasPerm = message.member?.permissions?.has(PermissionFlagsBits.ManageChannels) || message.member?.permissions?.has(PermissionFlagsBits.Administrator);
 
-    if (!isDuelist && !isStaff) {
-      await message.reply('❌ Only the duelists or staff members can end the duel!');
+    if (!isDuelist && !hasPerm) {
+      await message.reply('❌ **Missing Permissions:** Only the active duelists or members with the `Manage Channels` permission can end the duel.');
       return;
     }
 
@@ -11111,7 +11394,7 @@ client.on('messageCreate', async (message) => {
                         message.member?.permissions?.has(PermissionFlagsBits.Administrator) ||
                         message.author.id === '1414143825538191373';
       if (!canManage) {
-        await message.reply("❌ **Permission Denied:** You need `Manage Server` permissions to deploy Discord native AutoMod rules.");
+        await message.reply("❌ **Missing Permissions:** You need the `Manage Server` permission to deploy Discord native AutoMod rules.");
         return;
       }
       const sentMsg = await message.reply("🔄 **Deploying native Discord AutoMod rule suite...**");

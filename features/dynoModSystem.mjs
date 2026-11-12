@@ -31,7 +31,7 @@ export async function sendModLog(guild, embed) {
  */
 export async function handleWarn(interaction) {
   if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-    return interaction.reply({ content: '🚫 You do not have permission to warn members!', ephemeral: true });
+    return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Moderate Members` permission to warn members.', ephemeral: true });
   }
 
   const targetUser = interaction.options.getUser('user');
@@ -66,7 +66,7 @@ export async function handleWarn(interaction) {
  */
 export async function handleMute(interaction) {
   if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-    return interaction.reply({ content: '🚫 You do not have permission to mute members!', ephemeral: true });
+    return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Moderate Members` permission to timeout/mute members.', ephemeral: true });
   }
 
   const targetMember = interaction.options.getMember('user');
@@ -100,7 +100,7 @@ export async function handleMute(interaction) {
  */
 export async function handleUnmute(interaction) {
   if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-    return interaction.reply({ content: '🚫 You do not have permission to unmute members!', ephemeral: true });
+    return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Moderate Members` permission to unmute members.', ephemeral: true });
   }
 
   const targetMember = interaction.options.getMember('user');
@@ -123,7 +123,7 @@ export async function handleUnmute(interaction) {
  */
 export async function handleKick(interaction) {
   if (!interaction.member.permissions.has(PermissionFlagsBits.KickMembers)) {
-    return interaction.reply({ content: '🚫 You do not have permission to kick members!', ephemeral: true });
+    return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Kick Members` permission to kick members.', ephemeral: true });
   }
 
   const targetMember = interaction.options.getMember('user');
@@ -154,7 +154,7 @@ export async function handleKick(interaction) {
  */
 export async function handleBan(interaction) {
   if (!interaction.member.permissions.has(PermissionFlagsBits.BanMembers)) {
-    return interaction.reply({ content: '🚫 You do not have permission to ban members!', ephemeral: true });
+    return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Ban Members` permission to ban members.', ephemeral: true });
   }
 
   const targetUser = interaction.options.getUser('user');
@@ -185,7 +185,7 @@ export async function handleBan(interaction) {
  */
 export async function handlePurge(interaction) {
   if (!interaction.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
-    return interaction.reply({ content: '🚫 You do not have permission to purge messages!', ephemeral: true });
+    return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Messages` permission to purge messages.', ephemeral: true });
   }
 
   const count = interaction.options.getInteger('count');
@@ -218,7 +218,7 @@ export async function handlePurge(interaction) {
 export async function handleLockdown(interaction, isLock) {
   const startTime = Date.now();
   if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-    return interaction.reply({ content: '🚫 You need **Administrator** permission to use lockdown!', ephemeral: true });
+    return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Administrator` permission to use lockdown.', ephemeral: true });
   }
 
   // Detect "all" flag from slash option or prefix injection (strictly boolean true)
@@ -378,7 +378,7 @@ export async function handleLockdown(interaction, isLock) {
  */
 export async function handleSlowmode(interaction) {
   if (!interaction.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
-    return interaction.reply({ content: '🚫 Permission denied.', ephemeral: true });
+    return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Channels` permission to configure slowmode.', ephemeral: true });
   }
 
   const seconds = interaction.options.getInteger('seconds');
@@ -444,7 +444,7 @@ export function handleRemindMe(interaction) {
  */
 export async function handleEmbedBuilder(interaction) {
   if (!interaction.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
-    return interaction.reply({ content: '🚫 You need Manage Messages permission to build embeds!', ephemeral: true });
+    return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Messages` permission to build embeds.', ephemeral: true });
   }
 
   const title = interaction.options.getString('title');
