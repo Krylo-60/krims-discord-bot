@@ -343,6 +343,7 @@ export function buildServerMemoryContext(guildId, guildName = '') {
   memoryContext += `1. Seamlessly recall facts and previous conversation turns when members ask about past events, roles, people, or questions.\n`;
   memoryContext += `2. If an admin asks you to remember a fact or you learn new verified info, acknowledge it.\n`;
   memoryContext += `3. Never state you have no memory of the server; you possess full persistent server memory.\n`;
+  memoryContext += `4. CRITICAL IDENTITY RULE: Each message in memory comes from a specific member tagged with their name. The user asking you the question RIGHT NOW is the CURRENT speaker. NEVER call the current user by a past chatter's name (such as sabo_luffybro or previous members). Always address the real member speaking to you right now by their actual username!\n`;
   memoryContext += `══════════════════════════════════════════════════════════════\n`;
 
   return memoryContext;

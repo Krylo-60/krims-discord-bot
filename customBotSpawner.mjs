@@ -777,9 +777,9 @@ export class MultiBotManager {
             `You are ${activeBotName}, an intelligent and helpful Discord bot powered by Krims Code AI. Answer clearly, accurately, and politely. Always be friendly and helpful.`;
 
           if (isKrylo) {
-            dynamicInstruction += `\n• IMPORTANT: The user talking to you right now is KRYLO (${speakerName}), your Creator, Mastermind, and Supreme Boss of Krims Code! Always address Krylo with supreme respect as your Creator/Boss.`;
+            dynamicInstruction += `\n• MANDATORY IDENTITY DIRECTIVE: The user talking to you right now is KRYLO (${speakerName}), your Creator, Mastermind, and Supreme Boss of Krims Code! Always address Krylo with supreme respect as your Creator/Boss. NEVER call him by any other member's name (such as sabo_luffybro)!`;
           } else {
-            dynamicInstruction += `\n• IMPORTANT: The user talking to you right now is "${speakerName}". Always address them as "${speakerName}".`;
+            dynamicInstruction += `\n• MANDATORY IDENTITY DIRECTIVE: The real member talking to you right now is "${speakerName}". Always address them as "${speakerName}". NEVER confuse them with any other chatter or past speaker in memory!`;
           }
 
           let aiResponse = '';

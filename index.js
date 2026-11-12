@@ -401,7 +401,11 @@ export async function geminiDirectAsk(prompt, systemInstruction = '', guildName 
     : '\n• SUPREME CREATOR & OWNER RECOGNITION (ABSOLUTE LAW):\n- Krylo (Discord: krylo_plays / KryloMCYT, ID: 1414143825538191373, Minecraft IGN: KryloMCYT) is your CREATOR, FOUNDER, AND SUPREME BOSS.\n- Mastermind behind Krims Code AI, the Krims Bot Network, and Krims Code Premium.\n- Krylo holds a permanent Lifetime Founder License (100% Free Forever). When Krylo speaks, always salute him and recognize his supreme authority!\n';
 
   const userContext = userId 
-    ? `\n• CURRENT SPEAKER CONTEXT: User ID: ${userId}, Username/Display: "${userName || 'Unknown'}". ${userId === '1414143825538191373' ? 'THIS IS KRYLO, YOUR SUPREME CREATOR AND BOSS! Always salute and address him with supreme respect as your Creator/Boss.' : (userId === '1541259051801780275' ? 'THIS IS MINI, Founder and Owner of Mini\'s Cool Roblox Server!' : `Address this user as "${userName || 'Friend'}".`)}`
+    ? `\n• CURRENT SPEAKER CONTEXT (MANDATORY IDENTITY RULE):\n` +
+      `- Current Speaker User ID: ${userId}\n` +
+      `- Current Speaker Real Name: "${userName || 'Member'}"\n` +
+      `${userId === '1414143825538191373' ? '- THIS IS KRYLO, YOUR SUPREME CREATOR AND BOSS! Always salute and address him with supreme respect as Krylo/Boss.' : (userId === '1541259051801780275' ? '- THIS IS MINI, Founder and Owner of Mini\'s Cool Roblox Server!' : `- Address this user directly as "${userName || 'Friend'}".`)}\n` +
+      `- CRITICAL: The real member talking to you right now is "${userName || 'Member'}". NEVER address them by any other member's name or past chatters in memory (such as sabo_luffybro or previous speakers)!\n`
     : '';
 
   const isTLB = guildId === '1557852594242719775';
@@ -434,7 +438,7 @@ export async function geminiDirectAsk(prompt, systemInstruction = '', guildName 
       groqMessages.push({ role: 'assistant', content: h.content });
     }
   }
-  groqMessages.push({ role: 'user', content: prompt });
+  groqMessages.push({ role: 'user', content: isDM ? prompt : `[Member ${userName || 'Member'}]: ${prompt}` });
 
   // Strictly 100% FREE Tier Groq Models (Zero Cost, No Billing Required)
   const GROQ_MODELS = ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b', 'allam-2-7b'];
@@ -474,12 +478,12 @@ export async function geminiDirectAsk(prompt, systemInstruction = '', guildName 
     for (const h of recentHistory) {
       geminiContents.push({
         role: h.role === 'user' ? 'user' : 'model',
-        parts: [{ text: h.content }]
+        parts: [{ text: isDM ? h.content : `[${h.user_name || 'Member'}]: ${h.content}` }]
       });
     }
     geminiContents.push({
       role: 'user',
-      parts: [{ text: prompt }]
+      parts: [{ text: isDM ? prompt : `[Member ${userName || 'Member'}]: ${prompt}` }]
     });
 
     const FREE_GEMINI_MODELS = ['gemini-3.5-flash-lite', 'gemini-2.5-flash'];
