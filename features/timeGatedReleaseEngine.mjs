@@ -12,7 +12,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { db, neonPool } from '../databaseEngine.mjs';
+import { db, neonPool, getMongoDb } from '../databaseEngine.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -320,7 +320,7 @@ function loadReleaseState() {
   return state;
 }
 
-function saveReleaseState(state) {
+async function saveReleaseState(state) {
   // 1. Save to JSON file
   try {
     fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true });
@@ -345,13 +345,33 @@ function saveReleaseState(state) {
   // 3. Persist to Neon Postgres
   if (neonPool) {
     for (const [stageId, data] of Object.entries(state.broadcasts || {})) {
-      neonPool.query(`
-        INSERT INTO scheduled_releases_executed (stage_id, version, executed_at, executed_iso)
-        VALUES ($1, $2, $3, $4)
-        ON CONFLICT (stage_id) DO NOTHING
-      `, [stageId, data.version || '', Date.now(), data.triggeredAt || new Date().toISOString()])
-      .catch(e => console.warn('[ReleaseMatrix Neon Sync Error]:', e.message));
+      try {
+        await neonPool.query(`
+          INSERT INTO scheduled_releases_executed (stage_id, version, executed_at, executed_iso)
+          VALUES ($1, $2, $3, $4)
+          ON CONFLICT (stage_id) DO NOTHING
+        `, [stageId, data.version || '', Date.now(), data.triggeredAt || new Date().toISOString()]);
+      } catch (e) {
+        console.warn('[ReleaseMatrix Neon Sync Error]:', e.message);
+      }
     }
+  }
+
+  // 4. Persist to MongoDB Atlas (Cluster krims-codebrain1)
+  try {
+    const mongo = getMongoDb();
+    if (mongo) {
+      const col = mongo.collection('scheduled_releases_executed');
+      for (const [stageId, data] of Object.entries(state.broadcasts || {})) {
+        await col.updateOne(
+          { stage_id: stageId },
+          { $set: { stage_id: stageId, version: data.version || '', triggeredAt: data.triggeredAt || new Date().toISOString() } },
+          { upsert: true }
+        );
+      }
+    }
+  } catch (mErr) {
+    console.warn('[ReleaseMatrix MongoDB Sync Error]:', mErr.message);
   }
 }
 
@@ -444,7 +464,7 @@ export async function checkAndTriggerGABroadcast(client) {
   const now = Date.now();
   const state = loadReleaseState();
 
-  // Async hydrate from Neon Postgres if available so fresh containers NEVER repeat a past release
+  // 1. Async hydrate from Neon Postgres
   if (neonPool) {
     try {
       const res = await neonPool.query('SELECT stage_id, version, executed_iso, executed_at FROM scheduled_releases_executed');
@@ -461,11 +481,69 @@ export async function checkAndTriggerGABroadcast(client) {
     }
   }
 
+  // 2. Async hydrate from MongoDB Atlas (Cluster krims-codebrain1)
+  try {
+    const mongo = getMongoDb();
+    if (mongo) {
+      const col = mongo.collection('scheduled_releases_executed');
+      const docs = await col.find({}).toArray();
+      for (const d of docs) {
+        state.broadcasts[d.stage_id] = {
+          triggeredAt: d.triggeredAt || new Date().toISOString(),
+          version: d.version
+        };
+      }
+    }
+  } catch (mErr) {
+    console.warn('[ReleaseMatrix] MongoDB hydration warning:', mErr.message);
+  }
+
+  // 3. 🛡️ PHYSICAL DISCORD CHANNEL AUDIT (The Ultimate Single-Broadcast Shield):
+  // Check the actual Discord announcement channel directly. If ANY message with the release title
+  // or version is already sitting in the channel, it is 100% DONE — NEVER post it again on container restart!
+  try {
+    const channel = await client.channels.fetch(UPDATES_CHANNEL_ID).catch(() => null);
+    if (channel && channel.messages) {
+      const recentMsgs = await channel.messages.fetch({ limit: 50 }).catch(() => null);
+      if (recentMsgs && recentMsgs.size > 0) {
+        for (const [, msg] of recentMsgs) {
+          const firstEmbed = msg.embeds && msg.embeds[0];
+          if (!firstEmbed) continue;
+          const title = firstEmbed.title || '';
+          const footer = firstEmbed.footer?.text || '';
+          const desc = firstEmbed.description || '';
+
+          for (const rel of SCHEDULED_RELEASES) {
+            if (
+              title === rel.title ||
+              footer.includes(rel.version) ||
+              title.includes(rel.version) ||
+              desc.includes(rel.version)
+            ) {
+              if (!state.broadcasts[rel.id]) {
+                console.log(`[ReleaseMatrix Guard] 🛡️ Found live Discord announcement for ${rel.version} (${rel.id}). Marking permanently executed.`);
+                state.broadcasts[rel.id] = {
+                  triggeredAt: new Date(msg.createdTimestamp).toISOString(),
+                  version: rel.version
+                };
+              }
+            }
+          }
+        }
+      }
+    }
+  } catch (discAuditErr) {
+    console.warn('[ReleaseMatrix] Discord channel audit notice:', discAuditErr.message);
+  }
+
   let stateModified = false;
 
   for (const rel of SCHEDULED_RELEASES) {
-    // Has the release time arrived and hasn't been broadcasted yet?
-    if (now >= rel.timestamp && !state.broadcasts[rel.id]) {
+    // If it's already recorded in memory, DB, or found in Discord, SKIP IMMEDIATELY!
+    if (state.broadcasts[rel.id]) continue;
+
+    // Has the release time arrived?
+    if (now >= rel.timestamp) {
       console.log(`[ReleaseMatrix] 🎯 Triggering automated release: ${rel.version} (${rel.id})`);
       
       const actionRow = new ActionRowBuilder().addComponents(
@@ -557,6 +635,6 @@ export async function checkAndTriggerGABroadcast(client) {
   }
 
   if (stateModified) {
-    saveReleaseState(state);
+    await saveReleaseState(state);
   }
 }
