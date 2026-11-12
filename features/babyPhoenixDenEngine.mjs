@@ -43,6 +43,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } from 'discord.js';
+import { handleChatModeration } from './chatModEngine.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -158,20 +159,25 @@ export async function checkAndApplyPhoenixLevelRoles(guild, member, newLevel) {
 }
 
 // 3. Main Message Handler for Baby Phoenix in Phoenix Den
-export async function handleBabyPhoenixDenMessage(client, message) {
+export async function handleBabyPhoenixDenMessage(client, message, customPrefix = '!') {
   if (!message.guild || message.guild.id !== PHOENIX_DEN_GUILD_ID) return false;
   if (client.user.id !== BABY_PHOENIX_BOT_ID) return false;
   if (message.author.bot) return false;
+
+  // 🛡️ Admin Moderation Actions (ban, kick, mute, unmute, purge, lock, slowmode)
+  const isModHandled = await handleChatModeration(client, message);
+  if (isModHandled) return true;
 
   // Track activity count
   trackPhoenixDenActivity(message.author.id);
 
   const text = message.content.trim();
   const lower = text.toLowerCase();
+  const p = (customPrefix || '!').toLowerCase();
   const database = getDb();
 
   // Command: !daily (Claim Phoenix Flames)
-  if (lower === '!daily' || lower === '!claim') {
+  if (lower === '!daily' || lower === '!claim' || lower === `${p}daily` || lower === `${p}claim`) {
     const now = Date.now();
     const oneDay = 24 * 60 * 60 * 1000;
     const twoDays = 48 * 60 * 60 * 1000;
@@ -223,7 +229,7 @@ export async function handleBabyPhoenixDenMessage(client, message) {
   }
 
   // Command: !balance / !flames / !coins
-  if (lower === '!balance' || lower === '!flames' || lower === '!coins') {
+  if (lower === '!balance' || lower === '!flames' || lower === '!coins' || lower === `${p}balance` || lower === `${p}flames` || lower === `${p}coins`) {
     const targetUser = message.mentions.users.first() || message.author;
     const row = database.prepare(`SELECT flames, streak FROM phoenix_den_economy WHERE user_id = ?`).get(targetUser.id);
     const flames = row ? row.flames : 0;
@@ -244,13 +250,13 @@ export async function handleBabyPhoenixDenMessage(client, message) {
   }
 
   // Command: !pay @user <amount>
-  if (lower.startsWith('!pay')) {
+  if (lower.startsWith('!pay') || lower.startsWith(`${p}pay`)) {
     const args = text.split(/\s+/).slice(1);
     const recipient = message.mentions.users.first();
     const amount = parseInt(args[1], 10);
 
     if (!recipient || recipient.bot || recipient.id === message.author.id || isNaN(amount) || amount <= 0) {
-      return message.reply('❌ **Usage:** `!pay @user <amount>` (Must be a valid flame amount).');
+      return message.reply(`❌ **Usage:** \`${p}pay @user <amount>\` (Must be a valid flame amount).`);
     }
 
     const row = database.prepare(`SELECT flames FROM phoenix_den_economy WHERE user_id = ?`).get(message.author.id);
@@ -271,7 +277,10 @@ export async function handleBabyPhoenixDenMessage(client, message) {
   }
 
   // Command: !topmessages / !weekly / !motw (Member of the Week / Most Active)
-  if (lower === '!topmessages' || lower === '!weekly' || lower === '!motw' || lower === '!active') {
+  if (
+    lower === '!topmessages' || lower === '!weekly' || lower === '!motw' || lower === '!active' ||
+    lower === `${p}topmessages` || lower === `${p}weekly` || lower === `${p}motw` || lower === `${p}active`
+  ) {
     const weekKey = getWeekKey();
     const rows = database.prepare(
       `SELECT user_id, message_count FROM phoenix_den_activity WHERE week_key = ? ORDER BY message_count DESC LIMIT 10`
@@ -300,7 +309,7 @@ export async function handleBabyPhoenixDenMessage(client, message) {
   }
 
   // Command: !challenges / !challenge (Daily Challenges)
-  if (lower === '!challenges' || lower === '!challenge') {
+  if (lower === '!challenges' || lower === '!challenge' || lower === `${p}challenges` || lower === `${p}challenge`) {
     const embed = new EmbedBuilder()
       .setColor(0x00F2FF)
       .setTitle('⚡ PHOENIX DEN DAILY & WEEKLY CHALLENGES')
@@ -319,7 +328,7 @@ export async function handleBabyPhoenixDenMessage(client, message) {
   }
 
   // Command: !elite or !og (OG Member & Elite explanation)
-  if (lower === '!elite' || lower === '!og') {
+  if (lower === '!elite' || lower === '!og' || lower === `${p}elite` || lower === `${p}og`) {
     const embed = new EmbedBuilder()
       .setColor(0xF59E0B)
       .setTitle('🔒 𓆩🛡️𓆪 𝐄𝐋𝐈𝐓𝐄 亗 • THE OG FAMILY STATUS')
@@ -340,12 +349,12 @@ export async function handleBabyPhoenixDenMessage(client, message) {
   }
 
   // Command: !color <hex> (Custom Role Color for Level 30+ / Flare or Booster)
-  if (lower.startsWith('!color')) {
+  if (lower.startsWith('!color') || lower.startsWith(`${p}color`)) {
     const args = text.split(/\s+/).slice(1);
     const hex = args[0];
 
     if (!hex || !/^#?([a-fA-F0-9]{6})$/.test(hex)) {
-      return message.reply('❌ **Usage:** `!color #FF0077` (Provide a valid 6-digit hex color code).');
+      return message.reply(`❌ **Usage:** \`${p}color #FF0077\` (Provide a valid 6-digit hex color code).`);
     }
 
     const cleanHex = hex.startsWith('#') ? hex : `#${hex}`;
@@ -393,7 +402,7 @@ export async function handleBabyPhoenixDenMessage(client, message) {
   }
 
   // Command: !gstart <time_minutes> <prize> (Quick Giveaway Starter)
-  if (lower.startsWith('!gstart') || lower.startsWith('!giveaway')) {
+  if (lower.startsWith('!gstart') || lower.startsWith('!giveaway') || lower.startsWith(`${p}gstart`) || lower.startsWith(`${p}giveaway`)) {
     const isStaff = message.author.id === '1414143825538191373' ||
       message.guild.ownerId === message.author.id ||
       message.member.permissions.has(PermissionFlagsBits.ManageGuild) ||
@@ -422,7 +431,7 @@ export async function handleBabyPhoenixDenMessage(client, message) {
     const durationMs = parseDurationToMs(durationStr);
 
     if (durationMs <= 0) {
-      return message.reply('❌ **Usage:** `!gstart <duration> <prize name>`\nExamples:\n• `!gstart 4 days Buddha Fruit`\n• `!gstart 1month Flame Role`\n• `!gstart 7d 10,000 Flames`\n• `!gstart 60m VIP Perks`');
+      return message.reply(`❌ **Usage:** \`${p}gstart <duration> <prize name>\`\nExamples:\n• \`${p}gstart 4 days Buddha Fruit\`\n• \`${p}gstart 1month Flame Role\`\n• \`${p}gstart 7d 10,000 Flames\`\n• \`${p}gstart 60m VIP Perks\``);
     }
 
     const humanDuration = formatDurationHuman(durationMs);
@@ -459,7 +468,7 @@ export async function handleBabyPhoenixDenMessage(client, message) {
   }
 
   // Command: !tournament
-  if (lower === '!tournament' || lower === '!tournaments') {
+  if (lower === '!tournament' || lower === '!tournaments' || lower === `${p}tournament` || lower === `${p}tournaments`) {
     const embed = new EmbedBuilder()
       .setColor(0x10B981)
       .setTitle('🏆 PHOENIX DEN MONTHLY TOURNAMENTS')
@@ -475,26 +484,49 @@ export async function handleBabyPhoenixDenMessage(client, message) {
     return message.reply({ embeds: [embed] });
   }
 
-  // Command: !phoenixhelp (Menu of all Baby Phoenix features)
-  if (lower === '!phoenixhelp' || lower === '!flamehelp') {
+  // Command: !phoenixhelp / !help / !commands
+  if (
+    lower === '!phoenixhelp' || lower === '!flamehelp' || lower === '!help' || lower === '!commands' ||
+    lower === `${p}phoenixhelp` || lower === `${p}flamehelp` || lower === `${p}help` || lower === `${p}commands`
+  ) {
     const embed = new EmbedBuilder()
       .setColor(0xFF6B00)
-      .setTitle('🔥 BABY PHOENIX • SERVER FEATURES MENU')
+      .setTitle('🔥 BABY PHOENIX • PHOENIX DEN COMMAND DIRECTORY')
       .setDescription(
-        `Welcome to the Phoenix Den feature suite powered by Baby PHOENIX!\n\n` +
+        `Welcome to the Phoenix Den feature suite powered by **Baby PHOENIX**!\n\n` +
         `🪙 **Economy & Daily:**\n` +
-        `• \`!daily\` — Claim daily Phoenix Flames 🔥 + streak bonus\n` +
-        `• \`!balance\` — Check your flame balance & rank\n` +
-        `• \`!pay @user <amount>\` — Send flames to a friend\n` +
-        `• \`!challenges\` — View daily & weekly flame quests\n\n` +
-        `⭐ **Community & Rewards:**\n` +
-        `• \`!weekly\` / \`!topmessages\` — View Member of the Week leaderboard\n` +
-        `• \`!color #HEX\` — Set your custom role color (Level 30+ or Booster)\n` +
-        `• \`!elite\` / \`!og\` — Read the sacred OG Elite doctrine\n` +
-        `• \`!tournament\` — Info on monthly tournaments\n` +
-        `• \`!gstart <mins> <prize>\` — Staff giveaway launcher`
+        `• \`${p}daily\` — Claim daily Phoenix Flames 🔥 + streak bonus\n` +
+        `• \`${p}balance\` — Check your flame balance & streak\n` +
+        `• \`${p}pay @user <amount>\` — Send flames to a friend\n` +
+        `• \`${p}challenges\` — View daily & weekly flame quests\n\n` +
+        `🎙️ **Dynamic Voice Channels (Join to Create):**\n` +
+        `• \`${p}setupjtc\` or \`${p}jtc setup\` — Auto-deploy dynamic voice category & hub\n` +
+        `• \`${p}jtc panel\` — Drop room controller in current voice channel\n\n` +
+        `⭐ **Community & Roles:**\n` +
+        `• \`${p}rank\` — View your chat level and flame progression\n` +
+        `• \`${p}color #HEX\` — Set your custom role color (Level 30+ or Booster)\n` +
+        `• \`${p}elite\` / \`${p}og\` — Read the sacred OG Elite doctrine\n` +
+        `• \`${p}weekly\` / \`${p}topmessages\` — View Member of the Week leaderboard\n` +
+        `• \`${p}tournament\` — Info on monthly tournaments\n` +
+        `• \`${p}gstart <mins> <prize>\` — Staff giveaway launcher\n\n` +
+        `🎲 **Games & Fun:**\n` +
+        `• \`${p}bet <amount>\` — Coin gamble\n` +
+        `• \`${p}rps <choice>\` — Rock paper scissors\n` +
+        `• \`${p}trivia\` — Test your knowledge\n` +
+        `• \`${p}roast @user\` / \`${p}compliment @user\`\n\n` +
+        `🛡️ **Admin & Founder Moderation (Staff Only):**\n` +
+        `• \`ban <@user/name> [reason]\` — Instant server ban\n` +
+        `• \`kick <@user/name> [reason]\` — Kick member from server\n` +
+        `• \`mute <@user/name> <duration> [reason]\` — Timeout member\n` +
+        `• \`unmute <@user/name>\` — Remove member timeout\n` +
+        `• \`purge <1-100>\` / \`clear <1-100>\` — Bulk delete messages\n` +
+        `• \`warn <@user/name> [reason]\` — Issue official warning\n` +
+        `• \`lock\` / \`unlock\` — Lock/unlock channel for members\n` +
+        `• \`slowmode <5s/off>\` — Adjust channel rate limit\n\n` +
+        `🧠 **Autonomous AI Chat:**\n` +
+        `• Mention <@1565527301444083722> or reply to any of my messages to chat with me!`
       )
-      .setFooter({ text: 'Baby PHOENIX #8301 • Exclusive to Phoenix Den' });
+      .setFooter({ text: 'Baby PHOENIX #8301 • Powered by Krims Code AI' });
 
     return message.reply({ embeds: [embed] });
   }

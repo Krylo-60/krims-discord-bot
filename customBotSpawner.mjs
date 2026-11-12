@@ -429,7 +429,7 @@ export class MultiBotManager {
       }
 
       if (client.user.id === BABY_PHOENIX_BOT_ID && message.guild.id === PHOENIX_DEN_GUILD_ID) {
-        const isHandled = await handleBabyPhoenixDenMessage(client, message);
+        const isHandled = await handleBabyPhoenixDenMessage(client, message, p);
         if (isHandled) return;
       }
 
