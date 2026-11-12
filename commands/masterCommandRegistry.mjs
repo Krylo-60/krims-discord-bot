@@ -459,6 +459,27 @@ export const masterCommandBuilders = [
         { name: 'status', value: 'status' }
       )),
 
+  new SlashCommandBuilder()
+    .setName('jtc')
+    .setDescription('🔊 Join-to-Create Dynamic Voice Channel System')
+    .addSubcommand(sub =>
+      sub.setName('setup')
+        .setDescription('Automatically create the Category and "➕ Join to Create" voice channel')
+    )
+    .addSubcommand(sub =>
+      sub.setName('panel')
+        .setDescription('Send an interactive Voice Channel Controller Panel into this channel')
+    )
+    .addSubcommand(sub =>
+      sub.setName('status')
+        .setDescription('View current Join-to-Create hub status and active voice channels')
+    )
+    .addSubcommand(sub =>
+      sub.setName('reset')
+        .setDescription('Reset and disable Join-to-Create system')
+    )
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
+
   // ──────────────────────────────────────────────────────────
   // 6. ⚔️ PVP & DUELS SUITE
   // ──────────────────────────────────────────────────────────

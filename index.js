@@ -63,6 +63,15 @@ import { handleTopggWebhook, getVoteBoosterInfo, handleVoteCommand, handleVoteMe
 import { getLiveStatusData, renderLiveStatusHtml } from './features/liveStatusDashboard.mjs';
 import { renderKrimsWikiHtml, handleWikiCommand, handleWikiMessage } from './features/krimsWiki.mjs';
 import { handlePlatformRoleInteraction, setPlatformPublicStatus, getPlatformRoleStatus } from './features/platformRolePublisher.mjs';
+import { 
+  handleJtcVoiceStateUpdate, 
+  handleJtcInteraction, 
+  handleJtcSetup, 
+  getJtcConfig, 
+  deleteJtcConfig, 
+  buildJtcControlPanel,
+  activeTempVoiceChannels
+} from './features/joinToCreateManager.mjs';
 import { handleEmojiSubmissionMessage, handleEmojiSubmissionInteraction } from './features/emojiSubmissionSystem.mjs';
 import { 
   getAllUpdates, 
@@ -598,8 +607,17 @@ GuildChannelManager.prototype.create = async function(options) {
                      options.name.includes('SUPPORT')
                    ));
   const isDuel = stack.includes('activeDuel') || stack.includes('duelChannel') || (options && options.name && options.name.includes('duel-'));
+  const isJtc = stack.includes('jtc') || 
+                stack.includes('joinToCreate') || 
+                stack.includes('handleJtc') || 
+                (options && options.name && (
+                  options.name.includes('🔊') || 
+                  options.name.includes('VC') || 
+                  options.name.includes('Join to Create') || 
+                  options.name.includes('VOICE')
+                ));
 
-  if (!isTicket && !isDuel) {
+  if (!isTicket && !isDuel && !isJtc) {
     console.warn(`[🛡️ SAFETY SHIELD BLOCKED] Intercepted unauthorized channel creation on guild "${this.guild?.name}" (${this.guild?.id}):`, options?.name);
     return null;
   }
@@ -1983,6 +2001,15 @@ async function executeGameBoostOptimization(author) {
 
 
 client.on('interactionCreate', async (interaction) => {
+  // 🔊 Handle Join-to-Create (JTC) Dynamic Voice Channel Controls
+  if ((interaction.isButton() || interaction.isModalSubmit()) && (
+    interaction.customId.startsWith('jtc_') ||
+    interaction.customId.startsWith('modal_jtc_')
+  )) {
+    const handled = await handleJtcInteraction(interaction);
+    if (handled) return;
+  }
+
   // 🪔 Handle Diwali Festival Interactive Buttons
   if (interaction.isButton() && interaction.customId.startsWith('diwali_')) {
     return await handleDiwaliButton(interaction);
@@ -5514,6 +5541,63 @@ client.on('interactionCreate', async (interaction) => {
   if (commandName === 'features' || commandName === 'modules' || commandName === 'keys') {
     const embed = buildFeatureExpanderEmbed();
     return interaction.reply({ embeds: [embed] });
+  }
+
+  if (commandName === 'jtc') {
+    if (!interaction.guild) {
+      return interaction.reply({ content: '❌ Join-to-Create commands can only be used inside servers!', ephemeral: true });
+    }
+    const sub = interaction.options.getSubcommand(false) || 'status';
+
+    if (sub === 'setup') {
+      if (!interaction.member?.permissions?.has(PermissionFlagsBits.ManageChannels)) {
+        return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Channels` permission to set up Join to Create.', ephemeral: true });
+      }
+      await interaction.deferReply();
+      try {
+        const { embed } = await handleJtcSetup(interaction.guild, interaction.user);
+        return interaction.editReply({ embeds: [embed] });
+      } catch (err) {
+        return interaction.editReply({ content: `❌ Failed to setup Join-to-Create: ${err.message}` });
+      }
+    }
+
+    if (sub === 'panel') {
+      if (!interaction.member?.permissions?.has(PermissionFlagsBits.ManageChannels)) {
+        return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Channels` permission to send the control panel.', ephemeral: true });
+      }
+      const config = getJtcConfig(interaction.guild.id);
+      const panelPayload = buildJtcControlPanel(interaction.user.id, "🔊・Voice Controls", false, false, config?.default_limit || 0);
+      return interaction.reply({ ...panelPayload });
+    }
+
+    if (sub === 'reset') {
+      if (!interaction.member?.permissions?.has(PermissionFlagsBits.ManageChannels)) {
+        return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Channels` permission to reset Join to Create.', ephemeral: true });
+      }
+      deleteJtcConfig(interaction.guild.id);
+      return interaction.reply({ content: '✅ Join-to-Create configuration has been reset and disabled for this server.' });
+    }
+
+    const config = getJtcConfig(interaction.guild.id);
+    const activeCount = Array.from(activeTempVoiceChannels.values()).filter(v => v.guild_id === interaction.guild.id).length;
+
+    const statusEmbed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('🔊 Join-to-Create System Status')
+      .setDescription(
+        config && config.hub_channel_id
+          ? `Dynamic voice channels are active on **${interaction.guild.name}**!\n\n` +
+            `• 🎙️ **Hub Channel:** <#${config.hub_channel_id}>\n` +
+            `• 📁 **Category:** <#${config.category_id}>\n` +
+            `• ⚡ **Active Dynamic Channels:** \`${activeCount}\`\n\n` +
+            `*Join <#${config.hub_channel_id}> to automatically spawn a private voice room!*`
+          : `Join-to-Create is **NOT configured** on this server yet!\n\nUse \`/jtc setup\` or \`!setjtc\` to automatically deploy the category and hub channel!`
+      )
+      .setFooter({ text: 'Krims Code AI • Dynamic Voice Architecture' })
+      .setTimestamp();
+
+    return interaction.reply({ embeds: [statusEmbed] });
   }
   if (commandName === 'slowmode') return handleSlowmode(interaction);
   if (commandName === 'afk') return handleAfk(interaction);
@@ -9446,6 +9530,26 @@ client.on('messageCreate', async (message) => {
     }
   }
 
+  // 🔊 Setup Join-to-Create Dynamic Voice Channels (!setjtc, !jtc setup, !setupjtc)
+  if (
+    lowerMsg === '!setjtc' ||
+    lowerMsg === '!setupjtc' ||
+    lowerMsg === '!jtc setup' ||
+    lowerMsg === '!jtc'
+  ) {
+    if (!message.guild) return message.reply('❌ This command can only be used inside servers!');
+    if (!message.member?.permissions?.has(PermissionFlagsBits.ManageChannels)) {
+      return message.reply('❌ **Missing Permissions:** You need the `Manage Channels` permission to set up Join to Create.');
+    }
+    const statusMsg = await message.reply('🔄 **Deploying Join-to-Create Voice Hub...**');
+    try {
+      const { embed } = await handleJtcSetup(message.guild, message.author);
+      return statusMsg.edit({ content: null, embeds: [embed] });
+    } catch (err) {
+      return statusMsg.edit(`❌ Failed to deploy Join-to-Create: ${err.message}`);
+    }
+  }
+
   // ⚡ Deploy Krims Code Support & Updates Server Command (!deploy-support-hub)
   if (lowerMsg === '!deploy-support-hub' || lowerMsg.startsWith('!deploy-support-hub ') || lowerMsg === '!setup-krims-support') {
     const isAuthorized = message.author.id === '1414143825538191373' ||
@@ -12090,6 +12194,23 @@ client.on('guildMemberAdd', async (member) => {
     } catch (err) {
       console.warn('[Skybase Welcome] Error posting welcome card:', err.message);
     }
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// 🎙️ VOICE STATE UPDATE DISPATCHER (Join-to-Create & Voice Levels)
+// ═══════════════════════════════════════════════════════════
+client.on('voiceStateUpdate', async (oldState, newState) => {
+  try {
+    // 1. Join-to-Create Dynamic Voice Channel Engine
+    await handleJtcVoiceStateUpdate(oldState, newState, client);
+
+    // 2. Chat & Voice Activity Leveling Engine (MEE6 / Krylo Levels)
+    if (typeof handleVoiceStateUpdate === 'function') {
+      await handleVoiceStateUpdate(oldState, newState, client);
+    }
+  } catch (voiceErr) {
+    console.warn('[VoiceStateUpdate Dispatch Error]:', voiceErr.message);
   }
 });
 
