@@ -909,23 +909,36 @@ export async function handleWelcomeTicketInteraction(interaction) {
         : 'https://cdn.discordapp.com/embed/avatars/0.png';
 
       if (isStaffApp) {
-        const appEmbed = new EmbedBuilder()
-          .setColor(0xF59E0B)
-          .setTitle(`🛡️ ${guild.name} • Moderator & Admin Application`)
-          .setDescription(
-            `Welcome <@${user.id}> to your Staff Application!\n\n` +
-            `Thank you for wanting to help protect and grow our Roblox community. Please copy and reply with your answers to the questions below:\n\n` +
-            `1️⃣ **Roblox Username & Discord Tag:**\n` +
+        const isMiniGuild = guild.id === '1565848529241505963' || 
+          interaction.client?.user?.id === '1565848105277067414' || 
+          guild.name.toLowerCase().includes('mini');
+
+        const questionsText = isMiniGuild
+          ? `1️⃣ **Why do you want to become a moderator in this server?**\n\n` +
+            `2️⃣ **How active are you, and how many hours can you help the server each day?**\n\n` +
+            `3️⃣ **What would you do if two members started arguing or fighting?**\n\n` +
+            `4️⃣ **What would you do if you caught another staff member abusing their permissions?**\n\n` +
+            `5️⃣ **How would you help the server grow and become a better community?**\n\n` +
+            `6️⃣ **Why should we trust you with moderator permissions over other members?**\n\n`
+          : `1️⃣ **Roblox Username & Discord Tag:**\n` +
             `2️⃣ **Age & Timezone:**\n` +
             `3️⃣ **Desired Position:** *(Trial Moderator, Moderator, or Admin)*\n` +
             `4️⃣ **Daily Activity:** *(How many hours per day can you dedicate?)*\n` +
             `5️⃣ **Past Experience:** *(Have you staffed other Discord servers or Roblox communities?)*\n` +
             `6️⃣ **Scenario:** *(How would you handle scammers, exploiters, or toxic drama?)*\n` +
-            `7️⃣ **Why should we accept you as Staff?**\n\n` +
+            `7️⃣ **Why should we accept you as Staff?**\n\n`;
+
+        const appEmbed = new EmbedBuilder()
+          .setColor(0xF59E0B)
+          .setTitle(`🛡️ ${guild.name} • Moderator & Admin Application`)
+          .setDescription(
+            `Welcome <@${user.id}> to your Staff Application!\n\n` +
+            `Thank you for wanting to help protect and grow our community. Please copy and reply with your answers to the questions below:\n\n` +
+            questionsText +
             `*The Founders and Senior Staff will review your application directly in this channel!* ⚔️`
           )
           .setThumbnail(avatarUrl)
-          .setFooter({ text: 'Mini Staff Core • Click Close Application when done.' })
+          .setFooter({ text: `${isMiniGuild ? 'Mini Staff Core' : guild.name} • Click Close Application when done.` })
           .setTimestamp();
 
         const actionRow = new ActionRowBuilder().addComponents(
