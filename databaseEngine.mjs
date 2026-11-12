@@ -1,6 +1,7 @@
 import mysql from 'mysql2/promise';
 import Database from 'better-sqlite3';
 import pg from 'pg';
+import { MongoClient } from 'mongodb';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -224,6 +225,34 @@ export function waitForNeonSync() {
 }
 
 export { neonPool };
+
+// 🍃 MongoDB Atlas Cloud Integration (krims-codebrain1)
+const mongoUri = process.env.MONGODB_URI;
+let mongoClient = null;
+let mongoDb = null;
+
+if (mongoUri) {
+  try {
+    mongoClient = new MongoClient(mongoUri, {
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+    });
+    mongoClient.connect().then(() => {
+      mongoDb = mongoClient.db('krims_codebrain');
+      console.log('[MongoDB Atlas Engine] 🍃 Connected to MongoDB Atlas Cluster (krims-codebrain1)!');
+    }).catch(err => {
+      console.warn('[MongoDB Atlas Notice] Connection attempt warning:', err.message);
+    });
+  } catch (err) {
+    console.warn('[MongoDB Atlas Notice] Client initialization warning:', err.message);
+  }
+}
+
+export function getMongoDb() {
+  return mongoDb;
+}
+
+export { mongoClient, mongoDb };
 
 // ═══════════════════════════════════════════════════════════
 // 🏛️ TABLE INITIALIZATION SCHEMA

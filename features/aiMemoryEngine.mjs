@@ -1,5 +1,5 @@
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } from 'discord.js';
-import { db } from '../databaseEngine.mjs';
+import { db, getMongoDb } from '../databaseEngine.mjs';
 
 // ──────────────────────────────────────────────────────────
 // 🏛️ SQLITE SCHEMA INITIALIZATION FOR SERVER AI MEMORY
@@ -141,6 +141,15 @@ export function recordConversationTurn(guildId, channelId, userId, userName, pro
       ) AND guild_id = ?
     `).run(guildId, guildId);
 
+    // Sync to MongoDB Atlas (krims-codebrain1)
+    const mongo = getMongoDb();
+    if (mongo) {
+      mongo.collection('server_ai_memory').insertMany([
+        { guild_id: guildId, channel_id: channelId || null, user_id: userId || null, user_name: userName || 'Member', role: 'user', content: prompt.trim(), created_at: new Date() },
+        { guild_id: guildId, channel_id: channelId || null, user_id: null, user_name: 'Krims Code AI', role: 'model', content: reply.trim(), created_at: new Date() }
+      ]).catch(e => console.warn('[MongoDB Atlas Memory Sync Notice]', e.message));
+    }
+
   } catch (err) {
     console.warn('[AI Memory Record Error]', err.message);
   }
@@ -174,6 +183,9 @@ export function getRecentServerMemory(guildId, limit = 8) {
 export function learnServerFact(guildId, factKey, factValue, addedBy = 'User') {
   if (!guildId || !factKey || !factValue) return false;
   try {
+    const sanitizedKey = factKey.trim().toLowerCase().replace(/\s+/g, '_');
+    const sanitizedValue = factValue.trim();
+
     db.prepare(`
       INSERT INTO server_ai_facts (guild_id, fact_key, fact_value, added_by)
       VALUES (?, ?, ?, ?)
@@ -181,7 +193,18 @@ export function learnServerFact(guildId, factKey, factValue, addedBy = 'User') {
         fact_value = excluded.fact_value,
         added_by = excluded.added_by,
         created_at = CURRENT_TIMESTAMP
-    `).run(guildId, factKey.trim().toLowerCase().replace(/\s+/g, '_'), factValue.trim(), addedBy);
+    `).run(guildId, sanitizedKey, sanitizedValue, addedBy);
+
+    // Cloud persistence via MongoDB Atlas (krims-codebrain1)
+    const mongo = getMongoDb();
+    if (mongo) {
+      mongo.collection('server_ai_facts').updateOne(
+        { guild_id: guildId, fact_key: sanitizedKey },
+        { $set: { fact_value: sanitizedValue, added_by: addedBy, updated_at: new Date() } },
+        { upsert: true }
+      ).catch(e => console.warn('[MongoDB Atlas Fact Sync Notice]', e.message));
+    }
+
     return true;
   } catch (err) {
     console.warn('[AI Memory Learn Fact Error]', err.message);
@@ -195,11 +218,43 @@ export function learnServerFact(guildId, factKey, factValue, addedBy = 'User') {
 export function getServerFacts(guildId) {
   if (!guildId) return [];
   try {
-    return db.prepare('SELECT fact_key, fact_value, added_by, created_at FROM server_ai_facts WHERE guild_id = ? ORDER BY id ASC').all(guildId);
+    const facts = db.prepare('SELECT fact_key, fact_value, added_by, created_at FROM server_ai_facts WHERE guild_id = ? ORDER BY id ASC').all(guildId);
+    
+    // Auto-hydrate from MongoDB Atlas if local SQLite facts are empty
+    if (facts.length === 0) {
+      hydrateFactsFromMongo(guildId).catch(() => {});
+    }
+
+    return facts;
   } catch (err) {
     console.warn('[AI Memory Get Facts Error]', err.message);
     return [];
   }
+}
+
+/**
+ * Hydrate server facts from MongoDB Atlas into local SQLite
+ */
+export async function hydrateFactsFromMongo(guildId) {
+  const mongo = getMongoDb();
+  if (!mongo || !guildId) return [];
+  try {
+    const docs = await mongo.collection('server_ai_facts').find({ guild_id: guildId }).toArray();
+    if (docs && docs.length > 0) {
+      const insert = db.prepare(`
+        INSERT OR REPLACE INTO server_ai_facts (guild_id, fact_key, fact_value, added_by)
+        VALUES (?, ?, ?, ?)
+      `);
+      for (const d of docs) {
+        insert.run(d.guild_id, d.fact_key, d.fact_value, d.added_by || 'Atlas Cloud');
+      }
+      console.log(`[AI Memory] 🍃 Hydrated ${docs.length} server facts from MongoDB Atlas for guild ${guildId}`);
+      return docs;
+    }
+  } catch (err) {
+    console.warn('[MongoDB Atlas Hydration Notice]', err.message);
+  }
+  return [];
 }
 
 /**
@@ -213,6 +268,15 @@ export function resetServerMemory(guildId, adminUser = 'Admin') {
 
     db.prepare('DELETE FROM server_ai_memory WHERE guild_id = ?').run(guildId);
     db.prepare('DELETE FROM server_ai_facts WHERE guild_id = ?').run(guildId);
+
+    // Cloud reset via MongoDB Atlas
+    const mongo = getMongoDb();
+    if (mongo) {
+      Promise.all([
+        mongo.collection('server_ai_memory').deleteMany({ guild_id: guildId }),
+        mongo.collection('server_ai_facts').deleteMany({ guild_id: guildId })
+      ]).catch(e => console.warn('[MongoDB Atlas Reset Sync Notice]', e.message));
+    }
 
     console.log(`[AI Memory] 🧹 Server memory for ${guildId} wiped by ${adminUser}: ${memCount} chat logs, ${factCount} facts cleared.`);
     return { deletedMessages: memCount, deletedFacts: factCount };
@@ -365,6 +429,15 @@ export function recordDMTurn(userId, userName, prompt, reply) {
       ) AND user_id = ?
     `).run(userId, userId);
 
+    // Sync to MongoDB Atlas (krims-codebrain1)
+    const mongo = getMongoDb();
+    if (mongo) {
+      mongo.collection('user_dm_memory').insertMany([
+        { user_id: userId, user_name: userName || 'User', role: 'user', content: prompt.trim(), created_at: new Date() },
+        { user_id: userId, user_name: 'Krims Code AI', role: 'model', content: reply.trim(), created_at: new Date() }
+      ]).catch(e => console.warn('[MongoDB Atlas DM Sync Notice]', e.message));
+    }
+
   } catch (err) {
     console.warn('[DM Memory Record Error]', err.message);
   }
@@ -401,6 +474,14 @@ export function clearDMMemory(userId) {
     const countRow = db.prepare('SELECT COUNT(*) as count FROM user_dm_memory WHERE user_id = ?').get(userId);
     const count = countRow?.count || 0;
     db.prepare('DELETE FROM user_dm_memory WHERE user_id = ?').run(userId);
+
+    // Cloud clear via MongoDB Atlas
+    const mongo = getMongoDb();
+    if (mongo) {
+      mongo.collection('user_dm_memory').deleteMany({ user_id: userId })
+        .catch(e => console.warn('[MongoDB Atlas DM Clear Notice]', e.message));
+    }
+
     console.log(`[DM Memory] 🧹 Cleared ${count} DM messages for user ${userId}`);
     return { deletedMessages: count };
   } catch (err) {

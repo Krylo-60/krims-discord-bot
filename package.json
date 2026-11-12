@@ -1,6 +1,6 @@
 {
   "name": "krims-discord-bot",
-  "version": "5.9.29",
+  "version": "5.9.30",
   "description": "Discord Bot for the Krims Code ecosystem, integrating user SDK commands",
   "main": "index.js",
   "type": "module",
@@ -26,6 +26,7 @@
     "jimp": "^0.22.12",
     "libsodium-wrappers": "^0.8.4",
     "mineflayer": "^4.37.1",
+    "mongodb": "^7.8.0",
     "mysql2": "^3.24.2",
     "node-fetch": "^3.3.2",
     "opusscript": "^0.0.8",
