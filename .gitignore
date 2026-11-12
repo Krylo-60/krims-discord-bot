@@ -23,7 +23,8 @@ npm-debug.log*
 *.db-wal
 *.sqlite
 *.sqlite3
-data/
+data/*
+!data/scheduled_releases_state.json
 
 # Scratch, Testing & Admin Scripts
 !features/**

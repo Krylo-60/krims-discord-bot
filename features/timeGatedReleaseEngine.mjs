@@ -12,10 +12,48 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { db, neonPool } from '../databaseEngine.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const STATE_FILE = path.resolve(__dirname, '../data/scheduled_releases_state.json');
+
+// Initialize database tables to guarantee multi-container persistence across Render deploys
+try {
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS scheduled_releases_executed (
+      stage_id TEXT PRIMARY KEY,
+      version TEXT,
+      executed_at INTEGER,
+      executed_iso TEXT
+    )
+  `).run();
+
+  // Guarantee stage_1_v6_ga is marked in SQLite immediately
+  db.prepare(`
+    INSERT OR IGNORE INTO scheduled_releases_executed (stage_id, version, executed_at, executed_iso)
+    VALUES (?, ?, ?, ?)
+  `).run('stage_1_v6_ga', 'v6.0.0 GA', Date.UTC(2026, 10, 9, 0, 0, 0), '2026-11-08T19:00:00.000Z');
+} catch (e) {
+  console.warn('[ReleaseMatrix SQLite Init Warning]:', e.message);
+}
+
+if (neonPool) {
+  neonPool.query(`
+    CREATE TABLE IF NOT EXISTS scheduled_releases_executed (
+      stage_id VARCHAR(64) PRIMARY KEY,
+      version VARCHAR(64),
+      executed_at BIGINT,
+      executed_iso VARCHAR(64)
+    )
+  `).then(() => {
+    return neonPool.query(`
+      INSERT INTO scheduled_releases_executed (stage_id, version, executed_at, executed_iso)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (stage_id) DO NOTHING
+    `, ['stage_1_v6_ga', 'v6.0.0 GA', Date.UTC(2026, 10, 9, 0, 0, 0), '2026-11-08T19:00:00.000Z']);
+  }).catch(e => console.warn('[ReleaseMatrix Neon Init Warning]:', e.message));
+}
 
 export const UPDATES_CHANNEL_ID = '1561175627799994402'; // #🚀・𝖡ot-𝖴pdates
 export const ALPHA_BETA_CHANNEL_ID = '1561175639606693929'; // #🧪・ai-lab (Alpha/Beta Hub)
@@ -227,22 +265,80 @@ export const REDEEMABLE_PERKS = [
   { id: 'ksmp_cosmetic', name: '⚔️ KryloSMP In-Game Particle Aura & Whitelist', cost: 50000, description: 'Exclusive in-game sovereign aura.', command: '/redeem ksmp_cosmetic' }
 ];
 
-// Helper to load release state
+// Helper to load release state (persisted across ephemeral Render container redeploys)
 function loadReleaseState() {
+  let state = {
+    broadcasts: {
+      // Hardcode stage_1_v6_ga as executed so even on fresh containers it NEVER re-triggers!
+      stage_1_v6_ga: {
+        triggeredAt: '2026-11-08T19:00:00.000Z',
+        version: 'v6.0.0 GA'
+      }
+    },
+    founderOverviewSent: true
+  };
+
+  // 1. Read from local JSON state file if present
   if (fs.existsSync(STATE_FILE)) {
     try {
-      return JSON.parse(fs.readFileSync(STATE_FILE, 'utf-8'));
+      const fileData = JSON.parse(fs.readFileSync(STATE_FILE, 'utf-8'));
+      if (fileData.broadcasts) {
+        state.broadcasts = { ...state.broadcasts, ...fileData.broadcasts };
+      }
+      if (fileData.founderOverviewSent) {
+        state.founderOverviewSent = true;
+      }
     } catch (_) {}
   }
-  return { broadcasts: {} };
+
+  // 2. Hydrate & merge from SQLite scheduled_releases_executed
+  try {
+    const rows = db.prepare('SELECT * FROM scheduled_releases_executed').all();
+    for (const r of rows) {
+      state.broadcasts[r.stage_id] = {
+        triggeredAt: r.executed_iso || new Date(Number(r.executed_at || Date.now())).toISOString(),
+        version: r.version
+      };
+    }
+  } catch (err) {
+    console.warn('[ReleaseMatrix] Error loading SQLite release state:', err.message);
+  }
+
+  return state;
 }
 
 function saveReleaseState(state) {
+  // 1. Save to JSON file
   try {
     fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true });
     fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), 'utf-8');
   } catch (err) {
     console.warn('[ReleaseMatrix] Error saving state:', err.message);
+  }
+
+  // 2. Persist to SQLite
+  try {
+    const insertStmt = db.prepare(`
+      INSERT OR REPLACE INTO scheduled_releases_executed (stage_id, version, executed_at, executed_iso)
+      VALUES (?, ?, ?, ?)
+    `);
+    for (const [stageId, data] of Object.entries(state.broadcasts || {})) {
+      insertStmt.run(stageId, data.version || '', Date.now(), data.triggeredAt || new Date().toISOString());
+    }
+  } catch (err) {
+    console.warn('[ReleaseMatrix] Error persisting to SQLite:', err.message);
+  }
+
+  // 3. Persist to Neon Postgres
+  if (neonPool) {
+    for (const [stageId, data] of Object.entries(state.broadcasts || {})) {
+      neonPool.query(`
+        INSERT INTO scheduled_releases_executed (stage_id, version, executed_at, executed_iso)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (stage_id) DO NOTHING
+      `, [stageId, data.version || '', Date.now(), data.triggeredAt || new Date().toISOString()])
+      .catch(e => console.warn('[ReleaseMatrix Neon Sync Error]:', e.message));
+    }
   }
 }
 

@@ -1,0 +1,9 @@
+{
+  "broadcasts": {
+    "stage_1_v6_ga": {
+      "triggeredAt": "2026-11-08T19:00:00.000Z",
+      "version": "v6.0.0 GA"
+    }
+  },
+  "founderOverviewSent": true
+}
