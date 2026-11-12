@@ -801,11 +801,28 @@ export async function handleWelcomeTicketInteraction(interaction) {
       });
     }
 
+    // Check bot's channel creation permissions
+    const botMember = guild.members.me || await guild.members.fetch(interaction.client.user.id).catch(() => null);
+    if (botMember && !botMember.permissions.has(PermissionFlagsBits.ManageChannels)) {
+      return interaction.followUp({
+        content: '❌ **Missing Permissions:** The bot needs the `Manage Channels` permission to create ticket channels. Please grant this permission in Server Settings.',
+        ephemeral: true
+      });
+    }
+
     // Find ticket category (e.g. 🎫 ・SUPPORT or 🎫 ・SUPPORT TICKETS)
     const category = guild.channels.cache.find(c => 
       c.type === ChannelType.GuildCategory && 
       (c.name.includes('SUPPORT') || c.name.includes('TICKET') || c.name.includes('Support'))
     ) || null;
+
+    let parentCategory = null;
+    if (category && botMember) {
+      const perms = botMember.permissionsIn(category);
+      if (perms.has(PermissionFlagsBits.ManageChannels) && perms.has(PermissionFlagsBits.ViewChannel)) {
+        parentCategory = category.id;
+      }
+    }
 
     // Identify staff roles that should have access
     const staffRoles = guild.roles.cache.filter(r => {
@@ -817,13 +834,11 @@ export async function handleWelcomeTicketInteraction(interaction) {
 
     const permissionOverwrites = [
       {
-        id: guild.roles.everyone?.id || guild.id,
-        type: OverwriteType.Role,
+        id: guild.roles.everyone.id,
         deny: [PermissionFlagsBits.ViewChannel]
       },
       {
         id: user.id,
-        type: OverwriteType.Member,
         allow: [
           PermissionFlagsBits.ViewChannel,
           PermissionFlagsBits.SendMessages,
@@ -834,20 +849,34 @@ export async function handleWelcomeTicketInteraction(interaction) {
       },
       {
         id: interaction.client.user.id,
-        type: OverwriteType.Member,
         allow: [
           PermissionFlagsBits.ViewChannel,
           PermissionFlagsBits.SendMessages,
           PermissionFlagsBits.ManageChannels,
-          PermissionFlagsBits.EmbedLinks
+          PermissionFlagsBits.EmbedLinks,
+          PermissionFlagsBits.AttachFiles,
+          PermissionFlagsBits.ReadMessageHistory
         ]
       }
     ];
 
+    if (botMember?.roles?.botRole) {
+      permissionOverwrites.push({
+        id: botMember.roles.botRole.id,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.ManageChannels,
+          PermissionFlagsBits.EmbedLinks,
+          PermissionFlagsBits.AttachFiles,
+          PermissionFlagsBits.ReadMessageHistory
+        ]
+      });
+    }
+
     staffRoles.forEach(r => {
       permissionOverwrites.push({
         id: r.id,
-        type: OverwriteType.Role,
         allow: [
           PermissionFlagsBits.ViewChannel,
           PermissionFlagsBits.SendMessages,
@@ -863,26 +892,16 @@ export async function handleWelcomeTicketInteraction(interaction) {
         ? `Staff & Moderator Application for @${user.tag} (ID: ${user.id})`
         : `Private Support Ticket for @${user.tag} (ID: ${user.id})`;
 
-      let ticketChannel = await guild.channels.create({
+      const ticketChannel = await guild.channels.create({
         name: targetChannelName,
         type: ChannelType.GuildText,
-        parent: category?.id || null,
+        parent: parentCategory,
         topic,
         permissionOverwrites
       });
 
-      if (!ticketChannel || typeof ticketChannel.send !== 'function') {
-        if (ticketChannel?.id) {
-          ticketChannel = await interaction.client.channels.fetch(ticketChannel.id).catch(() => null);
-        }
-        if (!ticketChannel || typeof ticketChannel.send !== 'function') {
-          ticketChannel = guild.channels.cache.find(c => c.name === targetChannelName) ||
-            await guild.channels.fetch().then(chs => chs.find(c => c && c.name === targetChannelName)).catch(() => null);
-        }
-      }
-
-      if (!ticketChannel) {
-        throw new Error('Ticket channel was created but could not be accessed. Please verify bot channel permissions.');
+      if (!ticketChannel || !ticketChannel.id) {
+        throw new Error('Failed to create Discord ticket channel.');
       }
 
       const avatarUrl = (typeof user.displayAvatarURL === 'function')
@@ -994,8 +1013,12 @@ export async function handleWelcomeTicketInteraction(interaction) {
       }
     } catch (createErr) {
       console.error('[Ticket Create Error]', createErr);
+      const isMissingPerm = createErr.code === 50013 || createErr.message?.toLowerCase().includes('missing permission');
+      const errText = isMissingPerm
+        ? '❌ **Missing Permissions:** The bot needs the `Manage Channels` permission to create ticket channels. Please grant this permission in Server Settings.'
+        : `❌ Could not create ticket channel: ${createErr.message}`;
       return interaction.followUp({
-        content: `❌ Could not create ticket channel: ${createErr.message}`,
+        content: errText,
         ephemeral: true
       });
     }

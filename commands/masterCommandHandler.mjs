@@ -433,7 +433,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       if (action === 'reset') {
         if (!isAdmin) {
           return await interaction.reply({
-            content: '❌ **Permission Denied:** Only server administrators can reset Krims Code AI\'s server memory.',
+            content: '❌ **Missing Permissions:** You need the `Manage Server` permission to reset server memory.',
             ephemeral: true
           });
         }
@@ -630,7 +630,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
                           interaction.user.id === '1414143825538191373';
         if (!canManage) {
           return await interaction.editReply({
-            content: '❌ **Permission Denied:** You need `Manage Server` permissions to deploy Discord native AutoMod rules.'
+            content: '❌ **Missing Permissions:** You need the `Manage Server` permission to deploy Discord native AutoMod rules.'
           });
         }
 
@@ -781,7 +781,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     if (commandName === 'diagnose') {
       const isAdmin = interaction.user.id === KRYLO_USER_ID || interaction.member?.permissions?.has(PermissionFlagsBits.Administrator);
       if (!isAdmin) {
-        return await interaction.reply({ content: '❌ Administrator permission required.', ephemeral: true });
+        return await interaction.reply({ content: '❌ **Missing Permissions:** You need the `Administrator` permission to run diagnostics.', ephemeral: true });
       }
 
       const mem = process.memoryUsage();
@@ -1387,7 +1387,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
 
     if (commandName === 'startstream') {
       const isAdmin = interaction.user.id === KRYLO_USER_ID || interaction.member?.permissions?.has(PermissionFlagsBits.Administrator);
-      if (!isAdmin) return await interaction.reply({ content: '❌ Administrator permission required.', ephemeral: true });
+      if (!isAdmin) return await interaction.reply({ content: '❌ **Missing Permissions:** You need the `Administrator` permission to broadcast stream announcements.', ephemeral: true });
 
       const title = interaction.options.getString('title') || '🔴 LIVE STREAM IN PROGRESS!';
       const embed = new EmbedBuilder()
@@ -1402,14 +1402,14 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
 
     if (commandName === 'stopstream') {
       const isAdmin = interaction.user.id === KRYLO_USER_ID || interaction.member?.permissions?.has(PermissionFlagsBits.Administrator);
-      if (!isAdmin) return await interaction.reply({ content: '❌ Administrator permission required.', ephemeral: true });
+      if (!isAdmin) return await interaction.reply({ content: '❌ **Missing Permissions:** You need the `Administrator` permission to end stream broadcasts.', ephemeral: true });
 
       return await interaction.reply({ content: '🛑 Stream ended. Broadcast activity reset to normal.' });
     }
 
     if (commandName === 'adminabuse') {
       const isAdmin = interaction.user.id === KRYLO_USER_ID || interaction.member?.permissions?.has(PermissionFlagsBits.Administrator);
-      if (!isAdmin) return await interaction.reply({ content: '❌ Administrator permission required.', ephemeral: true });
+      if (!isAdmin) return await interaction.reply({ content: '❌ **Missing Permissions:** You need the `Administrator` permission to trigger events.', ephemeral: true });
 
       const details = interaction.options.getString('details') || 'Massive Drop Party, OP items, and boss spawns in spawn square!';
       const embed = new EmbedBuilder()
@@ -1429,7 +1429,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
 
     if (commandName === 'genkey') {
       const isAdmin = interaction.user.id === KRYLO_USER_ID || interaction.member?.permissions?.has(PermissionFlagsBits.Administrator);
-      if (!isAdmin) return await interaction.reply({ content: '❌ Administrator permission required.', ephemeral: true });
+      if (!isAdmin) return await interaction.reply({ content: '❌ **Missing Permissions:** You need the `Administrator` permission to generate API keys.', ephemeral: true });
 
       const prefix = interaction.options.getString('prefix') || 'krylo';
       const env = interaction.options.getString('env') || 'live';
@@ -1445,7 +1445,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       }
 
       const isStaff = interaction.user.id === KRYLO_USER_ID || interaction.member?.permissions?.has(PermissionFlagsBits.BanMembers);
-      if (!isStaff) return await interaction.reply({ content: '❌ Staff permission required.', ephemeral: true });
+      if (!isStaff) return await interaction.reply({ content: '❌ **Missing Permissions:** You need the `Ban Members` permission to use this command.', ephemeral: true });
 
       const targetUser = interaction.options.getUser('user');
       const mcUsername = interaction.options.getString('mcusername');
@@ -1474,7 +1474,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     // ──────────────────────────────────────────────────────────
     if (commandName === 'warn') {
       const isStaff = interaction.user.id === KRYLO_USER_ID || interaction.member?.permissions?.has(PermissionFlagsBits.ModerateMembers);
-      if (!isStaff) return await interaction.reply({ content: '❌ You do not have permission to warn members!', ephemeral: true });
+      if (!isStaff) return await interaction.reply({ content: '❌ **Missing Permissions:** You need the `Moderate Members` permission to warn members.', ephemeral: true });
 
       const targetUser = interaction.options.getUser('user');
       const reason = interaction.options.getString('reason') || 'No reason provided';
@@ -1514,7 +1514,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
 
     if (commandName === 'purge') {
       if (!interaction.member?.permissions?.has(PermissionFlagsBits.ManageMessages)) {
-        return await interaction.reply({ content: '❌ You do not have permission to manage messages!', ephemeral: true });
+        return await interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Messages` permission to purge messages.', ephemeral: true });
       }
 
       const count = interaction.options.getInteger('count') || interaction.options.getInteger('amount') || 10;
@@ -2559,7 +2559,7 @@ if (commandName === 'pay' || commandName === 'tip' || commandName === 'gift') {
                       interaction.user.id === KRYLO_USER_ID;
 
       if (!isStaff) {
-        return await interaction.reply({ content: '❌ You must have administrator or mention permissions to broadcast announcements.', ephemeral: true });
+        return await interaction.reply({ content: '❌ **Missing Permissions:** You need the `Mention Everyone` permission to broadcast announcements.', ephemeral: true });
       }
 
       const isSkybase = interaction.guildId === '1549875778575929446';
@@ -2599,33 +2599,57 @@ if (commandName === 'pay' || commandName === 'tip' || commandName === 'gift') {
         c.type === ChannelType.GuildCategory && (c.name.toLowerCase().includes('ticket') || c.name.toLowerCase().includes('support'))
       );
 
-      const ticketChannel = await interaction.guild.channels.create({
-        name: `ticket-${cleanUsername}`,
-        type: ChannelType.GuildText,
-        parent: supportCategory ? supportCategory.id : null,
-        permissionOverwrites: [
-          { id: interaction.guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
-          { id: interaction.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.AttachFiles, PermissionFlagsBits.ReadMessageHistory] },
-          { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.Administrator] }
-        ]
-      });
+      const botMember = interaction.guild?.members.me;
+      if (botMember && !botMember.permissions.has(PermissionFlagsBits.ManageChannels)) {
+        return await interaction.editReply({
+          content: '❌ **Missing Permissions:** The bot needs the `Manage Channels` permission to create ticket channels. Please grant this permission in Server Settings.'
+        });
+      }
 
-      const welcomeEmbed = new EmbedBuilder()
-        .setColor(0x00E5FF)
-        .setTitle('🎫 Support Ticket Opened')
-        .setDescription(
-          `Welcome <@${interaction.user.id}>! Staff has been notified of your request.\n\n` +
-          `📋 **Reason:** ${reason}\n\n` +
-          `Please provide details below. Click **Close Ticket** when finished.`
-        )
-        .setTimestamp();
+      try {
+        let parentCat = null;
+        if (supportCategory && botMember) {
+          const perms = botMember.permissionsIn(supportCategory);
+          if (perms.has(PermissionFlagsBits.ManageChannels) && perms.has(PermissionFlagsBits.ViewChannel)) {
+            parentCat = supportCategory.id;
+          }
+        }
 
-      const closeRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('close_ticket').setLabel('🔒 Close Ticket').setStyle(ButtonStyle.Danger)
-      );
+        const ticketChannel = await interaction.guild.channels.create({
+          name: `ticket-${cleanUsername}`,
+          type: ChannelType.GuildText,
+          parent: parentCat,
+          permissionOverwrites: [
+            { id: interaction.guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+            { id: interaction.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.AttachFiles, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.EmbedLinks] },
+            { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.EmbedLinks, PermissionFlagsBits.AttachFiles, PermissionFlagsBits.ReadMessageHistory] }
+          ]
+        });
 
-      await ticketChannel.send({ content: `<@${interaction.user.id}>`, embeds: [welcomeEmbed], components: [closeRow] });
-      return await interaction.editReply({ content: `✅ Ticket opened! Please head to <#${ticketChannel.id}>.` });
+        const welcomeEmbed = new EmbedBuilder()
+          .setColor(0x00E5FF)
+          .setTitle('🎫 Support Ticket Opened')
+          .setDescription(
+            `Welcome <@${interaction.user.id}>! Staff has been notified of your request.\n\n` +
+            `📋 **Reason:** ${reason}\n\n` +
+            `Please provide details below. Click **Close Ticket** when finished.`
+          )
+          .setTimestamp();
+
+        const closeRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('close_ticket').setLabel('🔒 Close Ticket').setStyle(ButtonStyle.Danger)
+        );
+
+        await ticketChannel.send({ content: `<@${interaction.user.id}>`, embeds: [welcomeEmbed], components: [closeRow] });
+        return await interaction.editReply({ content: `✅ Ticket opened! Please head to <#${ticketChannel.id}>.` });
+      } catch (err) {
+        console.error('[Ticket Command Error]', err);
+        const isPerm = err.code === 50013 || err.message?.toLowerCase().includes('missing permission');
+        const errText = isPerm
+          ? '❌ **Missing Permissions:** The bot needs the `Manage Channels` permission to create ticket channels. Please grant this permission in Server Settings.'
+          : `❌ Failed to create ticket channel: ${err.message}`;
+        return await interaction.editReply({ content: errText });
+      }
     }
 
     if (commandName === 'close') {

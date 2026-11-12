@@ -2350,7 +2350,7 @@ client.on('interactionCreate', async (interaction) => {
                       interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild);
       if (!isAdmin) {
         return await interaction.reply({
-          content: '❌ **Permission Denied:** Only server administrators can reset Krims Code AI\'s server memory.',
+          content: '❌ **Missing Permissions:** You need the `Manage Server` permission to reset server memory.',
           ephemeral: true
         });
       }
@@ -9245,7 +9245,7 @@ client.on('messageCreate', async (message) => {
                       message.member?.permissions?.has(PermissionFlagsBits.ManageGuild) ||
                       message.author.id === '1414143825538191373';
       if (!isAdmin) {
-        return message.reply('❌ **Permission Denied:** Only server administrators can reset Krims Code AI\'s server memory.');
+        return message.reply('❌ **Missing Permissions:** You need the `Manage Server` permission to reset server memory.');
       }
 
       const { deletedMessages, deletedFacts } = resetServerMemory(message.guild.id, message.author.tag);
@@ -10195,7 +10195,7 @@ client.on('messageCreate', async (message) => {
                     message.author.id === message.guild.ownerId ||
                     message.author.id === '1414143825538191373';
     if (!isStaff) {
-      await message.reply("❌ You need `Manage Server` permission to add custom commands.");
+      await message.reply("❌ **Missing Permissions:** You need the `Manage Server` permission to add custom commands.");
       return;
     }
     const parts = content.split(/\s+/);
@@ -10221,7 +10221,7 @@ client.on('messageCreate', async (message) => {
                     message.author.id === message.guild.ownerId ||
                     message.author.id === '1414143825538191373';
     if (!isStaff) {
-      await message.reply("❌ You need `Manage Server` permission to delete custom commands.");
+      await message.reply("❌ **Missing Permissions:** You need the `Manage Server` permission to delete custom commands.");
       return;
     }
     const trigger = content.split(/\s+/)[1];
@@ -11183,7 +11183,7 @@ client.on('messageCreate', async (message) => {
     const isOwner = message.author.id === '1414143825538191373' || message.author.id === message.guild.ownerId;
     const hasPerms = message.member?.permissions?.has(PermissionFlagsBits.Administrator);
     if (!isOwner && !hasPerms) {
-      await message.reply('🚫 You do not have permission to manage channels!');
+      await message.reply('❌ **Missing Permissions:** You need the `Administrator` permission to use lockdown.');
       return;
     }
 
