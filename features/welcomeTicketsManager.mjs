@@ -913,20 +913,18 @@ export async function handleWelcomeTicketInteraction(interaction) {
           interaction.client?.user?.id === '1565848105277067414' || 
           guild.name.toLowerCase().includes('mini');
 
-        const questionsText = isMiniGuild
-          ? `1️⃣ **Why do you want to become a moderator in this server?**\n\n` +
-            `2️⃣ **How active are you, and how many hours can you help the server each day?**\n\n` +
-            `3️⃣ **What would you do if two members started arguing or fighting?**\n\n` +
-            `4️⃣ **What would you do if you caught another staff member abusing their permissions?**\n\n` +
-            `5️⃣ **How would you help the server grow and become a better community?**\n\n` +
-            `6️⃣ **Why should we trust you with moderator permissions over other members?**\n\n`
-          : `1️⃣ **Roblox Username & Discord Tag:**\n` +
-            `2️⃣ **Age & Timezone:**\n` +
-            `3️⃣ **Desired Position:** *(Trial Moderator, Moderator, or Admin)*\n` +
-            `4️⃣ **Daily Activity:** *(How many hours per day can you dedicate?)*\n` +
-            `5️⃣ **Past Experience:** *(Have you staffed other Discord servers or Roblox communities?)*\n` +
-            `6️⃣ **Scenario:** *(How would you handle scammers, exploiters, or toxic drama?)*\n` +
-            `7️⃣ **Why should we accept you as Staff?**\n\n`;
+        const questionsText =
+          `1️⃣ **Roblox Username & Discord Tag:**\n` +
+          `2️⃣ **Age & Timezone:**\n` +
+          `3️⃣ **Desired Position:** *(Trial Moderator, Moderator, or Admin)*\n` +
+          `4️⃣ **Daily Activity & Availability:** *(How many hours can you help the server each day?)*\n` +
+          `5️⃣ **Past Experience:** *(Have you staffed other Discord servers or Roblox communities?)*\n` +
+          `6️⃣ **Why do you want to become a moderator in this server?**\n` +
+          `7️⃣ **What would you do if two members started arguing or fighting?**\n` +
+          `8️⃣ **What would you do if you caught another staff member abusing their permissions?**\n` +
+          `9️⃣ **Scenario:** *(How would you handle scammers, exploiters, or toxic drama?)*\n` +
+          `🔟 **How would you help the server grow and become a better community?**\n` +
+          `1️⃣1️⃣ **Why should we accept and trust you with moderator permissions over other members?**\n\n`;
 
         const appEmbed = new EmbedBuilder()
           .setColor(0xF59E0B)
