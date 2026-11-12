@@ -373,6 +373,19 @@ export class MultiBotManager {
           try { await guild.members.me?.setNickname('Mini X'); } catch (_) {}
         });
       }
+
+      // Auto-deploy curated, clean slash commands for custom bots (with /jtc & zero filler clutter)
+      (async () => {
+        try {
+          const { REST, Routes } = await import('discord.js');
+          const { customBotCommandJson } = await import('./commands/masterCommandRegistry.mjs');
+          const rest = new REST({ version: '10' }).setToken(config.token);
+          await rest.put(Routes.applicationCommands(client.user.id), { body: customBotCommandJson });
+          console.log(`[MultiBotManager] 🚀 Synced ${customBotCommandJson.length} curated slash commands for ${client.user.tag} (${client.user.id})`);
+        } catch (syncErr) {
+          console.warn(`[MultiBotManager] ⚠️ Slash command sync notice for ${client.user.tag}:`, syncErr.message);
+        }
+      })();
     });
 
     client.on('guildCreate', async (guild) => {
@@ -1162,13 +1175,13 @@ export class MultiBotManager {
       activityName: activityName || `Krims Code AI • /about`
     });
 
-    // 4. Auto-deploy 100 global slash commands to Discord Gateway
+    // 4. Auto-deploy curated global slash commands to Discord Gateway
     try {
       const { REST, Routes } = await import('discord.js');
-      const { masterCommandJson } = await import('./commands/masterCommandRegistry.mjs');
+      const { customBotCommandJson } = await import('./commands/masterCommandRegistry.mjs');
       const rest = new REST({ version: '10' }).setToken(token);
-      await rest.put(Routes.applicationCommands(discordUser.id), { body: masterCommandJson });
-      console.log(`[MultiBotManager] 🚀 Auto-deployed ${masterCommandJson.length} slash commands to bot ${discordUser.username} (${discordUser.id})`);
+      await rest.put(Routes.applicationCommands(discordUser.id), { body: customBotCommandJson });
+      console.log(`[MultiBotManager] 🚀 Auto-deployed ${customBotCommandJson.length} curated slash commands to bot ${discordUser.username} (${discordUser.id})`);
     } catch (deployErr) {
       console.warn(`[MultiBotManager] ⚠️ Slash command auto-deploy notice:`, deployErr.message);
     }

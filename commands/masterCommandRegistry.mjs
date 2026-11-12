@@ -477,8 +477,11 @@ export const masterCommandBuilders = [
     .addSubcommand(sub =>
       sub.setName('reset')
         .setDescription('Reset and disable Join-to-Create system')
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
+    ),
+
+  new SlashCommandBuilder()
+    .setName('setupjtc')
+    .setDescription('🎙️ 1-Click Setup: Automatically create the Category and Join-to-Create voice hub'),
 
   // ──────────────────────────────────────────────────────────
   // 6. ⚔️ PVP & DUELS SUITE
@@ -801,5 +804,31 @@ export const masterCommandJson = masterCommandBuilders
   .map(cmd => typeof cmd?.toJSON === 'function' ? cmd.toJSON() : cmd)
   .filter(cmd => !PREFIX_ONLY_COMMANDS.has(cmd.name));
 
+/**
+ * Essential, clean slash command whitelist for Custom Community Bots (Mini X, Baby Phoenix, etc.)
+ * Strips out developer clutter, KryloSMP specifics, deprecated commands, and non-needed filler commands.
+ */
+export const CUSTOM_BOT_SLASH_COMMANDS = new Set([
+  // Core AI & Info
+  'about', 'help', 'ask',
+  // Voice & JTC (PRIMARY)
+  'jtc', 'setupjtc',
+  // Moderation
+  'warn', 'mute', 'unmute', 'kick', 'ban', 'purge', 'lockdown', 'unlock', 'slowmode', 'automod',
+  // Support & Tickets
+  'ticket', 'close',
+  // Community engagement
+  'announce', 'poll', 'giveaway', 'suggest',
+  // Identity & User tools
+  'serverinfo', 'userinfo', 'avatar', 'ping', 'remind',
+  // Economy & Progression
+  'daily', 'balance', 'pay', 'work', 'rank', 'profile', 'leaderboard', 'store', 'redeem',
+  // Games & Tournaments
+  'tournament', 'challenge', 'duel', 'pvp', 'slots', 'spin', 'chest', 'jackpot'
+]);
+
+export const customBotCommandJson = masterCommandBuilders
+  .map(cmd => typeof cmd?.toJSON === 'function' ? cmd.toJSON() : cmd)
+  .filter(cmd => CUSTOM_BOT_SLASH_COMMANDS.has(cmd.name));
 
 export { ELITE_SMP_COMMAND_DEFINITION };
