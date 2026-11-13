@@ -13558,6 +13558,83 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // Premium License Key Generation Endpoint (called by Web Dashboard /rewards)
+  if (url.pathname === '/api/generate-key') {
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', async () => {
+        try {
+          const payload = JSON.parse(body || '{}');
+          const { tier, days, userId, userName, sendDm } = payload;
+          const { generateLicenseKey } = await import('./features/premiumManager.mjs');
+          const key = generateLicenseKey(tier || 'premium', days, userId, userName);
+
+          // If requested and userId provided, send DM to Discord user
+          let dmSent = false;
+          if (sendDm && userId && client) {
+            try {
+              const u = await client.users.fetch(userId).catch(() => null);
+              if (u) {
+                const tierTitle = tier?.toUpperCase().includes('LIFE') ? 'Enterprise Lifetime Access' : (tier?.toUpperCase().includes('PRO') ? '30-Day Pro Season Pass' : '7-Day Premium Sprint');
+                await u.send({
+                  content: `🎉 <@${userId}> **Your Krims Code Premium License Key has been minted!**`,
+                  embeds: [{
+                    color: 0x00F2FF,
+                    title: `🔑 License Key: ${tierTitle}`,
+                    description: `Thank you for supporting the Krims Code ecosystem!\n\n` +
+                                 `• **Your License Key:** \`\`\`${key}\`\`\`\n` +
+                                 `• **How to Activate:** In any Discord server where you want premium perks, simply run:\n` +
+                                 `  \`/premium activate key:${key}\`\n\n` +
+                                 `• **Perks Unlocked:** 3.0x Server XP Multiplier, Custom Bot Spawner slots, Dedicated 0ms Neural Compute & Priority Support!`,
+                    footer: { text: 'Krims Code AI Ecosystem • Secured by Krims Vault' },
+                    timestamp: new Date().toISOString()
+                  }]
+                });
+                dmSent = true;
+              }
+            } catch (dmErr) {
+              console.warn('[GenerateKey] DM send warning:', dmErr.message);
+            }
+          }
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: true, key, tier, days, dmSent }));
+        } catch (err) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: err.message }));
+        }
+      });
+      return;
+    }
+  }
+
+  // Get User's Unlocked Keys from Neon Postgres
+  if (url.pathname === '/api/user-keys') {
+    const qUserId = url.searchParams.get('userId');
+    if (!qUserId) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: 'userId is required' }));
+    }
+    try {
+      const { neonPool } = await import('./databaseEngine.mjs');
+      if (neonPool) {
+        const q = await neonPool.query(
+          'SELECT license_key, tier, tier_name, days, redeemed, redeemed_by_guild, created_at FROM premium_licenses WHERE user_id = $1 ORDER BY created_at DESC',
+          [qUserId]
+        );
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ ok: true, keys: q.rows }));
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, keys: [] }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
   // Custom Bots Multi-Tenant Endpoint
   if (url.pathname === '/api/custom-bots') {
     if (req.method === 'GET') {

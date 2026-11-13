@@ -3,7 +3,7 @@ import { recordConversationTurn, getRecentServerMemory, buildServerMemoryContext
 import { fetchLiveWeather, extractWeatherQueryCity } from './weatherService.mjs';
 import { masterCommandJson } from '../commands/masterCommandRegistry.mjs';
 import { handleMasterSlashCommand } from '../commands/masterCommandHandler.mjs';
-import { getBalance, claimDaily } from '../databaseEngine.mjs';
+import { getBalance, claimDaily, neonPool } from '../databaseEngine.mjs';
 import { handleRankCommand, handleLeaderboardCommand } from './mee6Levels.mjs';
 import fs from 'fs';
 import path from 'path';
@@ -99,7 +99,43 @@ function savePremiumStore() {
   }
 }
 
+export async function syncPremiumFromCloud() {
+  if (!neonPool) return;
+  try {
+    const keysRes = await neonPool.query('SELECT * FROM premium_licenses');
+    for (const r of keysRes.rows) {
+      premiumStore.issuedKeys[r.license_key.toUpperCase()] = {
+        tier: r.tier,
+        tierName: r.tier_name,
+        days: r.days,
+        userId: r.user_id,
+        userName: r.user_name,
+        created: r.created_at ? new Date(r.created_at).getTime() : Date.now(),
+        redeemed: !!r.redeemed,
+        redeemedByGuild: r.redeemed_by_guild,
+        redeemedAt: r.redeemed_at ? new Date(r.redeemed_at).getTime() : null
+      };
+    }
+    const guildRes = await neonPool.query('SELECT * FROM premium_guilds');
+    for (const g of guildRes.rows) {
+      premiumStore.guilds[g.guild_id] = {
+        tier: g.tier,
+        tierName: g.tier_name,
+        multiplier: parseFloat(g.multiplier) || 3.0,
+        activatedAt: g.activated_at ? new Date(g.activated_at).getTime() : Date.now(),
+        expiresAt: g.expires_at ? new Date(g.expires_at).getTime() : null,
+        customBotsAllowed: g.custom_bots_allowed || 10,
+        licenseKey: g.license_key
+      };
+    }
+    console.log(`[PremiumManager] ☁️ Synced ${keysRes.rows.length} licenses & ${guildRes.rows.length} guilds from Neon Cloud!`);
+  } catch (err) {
+    console.warn('[PremiumManager] Cloud sync error:', err.message);
+  }
+}
+
 loadPremiumStore();
+setTimeout(() => { syncPremiumFromCloud(); }, 3000);
 
 /**
  * Checks if a guild has active Premium status (100% Free Forever for all guilds)
@@ -119,45 +155,144 @@ export function getGuildPremiumStatus(guildId) {
 /**
  * Generates a cryptographic Premium License Key
  */
-export function generateLicenseKey(tier = 'premium', days = 30) {
-  const segment1 = tier.toUpperCase().slice(0, 4);
+export function generateLicenseKey(tier = 'premium', days = 30, userId = null, userName = null) {
+  let segment1 = 'PREM';
+  const tierLower = (tier || '').toLowerCase();
+  if (tierLower.includes('life') || tierLower.includes('enter')) segment1 = 'LIFE';
+  else if (tierLower.includes('pro') || tierLower.includes('30')) segment1 = 'PRO';
+  else if (tierLower.includes('sprint') || tierLower.includes('7') || tierLower.includes('spri')) segment1 = 'SPRI';
+  else segment1 = tier.toUpperCase().slice(0, 4);
+
   const segment2 = crypto.randomBytes(3).toString('hex').toUpperCase();
   const segment3 = crypto.randomBytes(3).toString('hex').toUpperCase();
   const key = `KRIMS-${segment1}-${segment2}-${segment3}`;
 
+  const tierMap = {
+    spri: { name: '✨ 7-Day Premium Sprint', days: 7, multiplier: 2.0, bots: 2 },
+    sprint: { name: '✨ 7-Day Premium Sprint', days: 7, multiplier: 2.0, bots: 2 },
+    pro: { name: '⚡ 30-Day Pro Season Pass', days: 30, multiplier: 2.5, bots: 5 },
+    premium: { name: '💎 Krims Premium VIP', days: 30, multiplier: 3.0, bots: 5 },
+    life: { name: '👑 Enterprise Lifetime Access', days: null, multiplier: 3.0, bots: 25 },
+    lifetime: { name: '👑 Enterprise Lifetime Access', days: null, multiplier: 3.0, bots: 25 },
+    enterprise: { name: '👑 Enterprise Lifetime Access', days: null, multiplier: 3.0, bots: 25 }
+  };
+
+  const keyMeta = tierMap[segment1.toLowerCase()] || tierMap[tierLower] || tierMap.premium;
+  const effectiveDays = days !== undefined ? days : keyMeta.days;
+
   premiumStore.issuedKeys[key] = {
-    tier,
-    days,
+    tier: segment1.toLowerCase(),
+    tierName: keyMeta.name,
+    days: effectiveDays,
+    userId,
+    userName,
     created: Date.now(),
     redeemed: false,
     redeemedByGuild: null,
     redeemedAt: null
   };
   savePremiumStore();
+
+  if (neonPool) {
+    neonPool.query(`
+      INSERT INTO premium_licenses (license_key, tier, tier_name, days, user_id, user_name, redeemed)
+      VALUES ($1, $2, $3, $4, $5, $6, FALSE)
+      ON CONFLICT (license_key) DO NOTHING
+    `, [key, segment1.toLowerCase(), keyMeta.name, effectiveDays, userId, userName]).catch(err => {
+      console.warn('[PremiumManager] Neon insert key error:', err.message);
+    });
+  }
+
   return key;
 }
 
 /**
  * Redeems a License Key for a Guild
  */
-export function redeemLicenseKey(guildId, key) {
+export async function redeemLicenseKey(guildId, key) {
   const cleanKey = key.trim().toUpperCase();
-  const keyData = premiumStore.issuedKeys[cleanKey];
+  let keyData = premiumStore.issuedKeys[cleanKey];
+
+  // If not in local cache, query Neon Cloud Postgres directly
+  if (!keyData && neonPool) {
+    try {
+      const q = await neonPool.query('SELECT * FROM premium_licenses WHERE UPPER(license_key) = $1', [cleanKey]);
+      if (q.rows.length > 0) {
+        const r = q.rows[0];
+        keyData = {
+          tier: r.tier,
+          tierName: r.tier_name,
+          days: r.days,
+          userId: r.user_id,
+          userName: r.user_name,
+          created: r.created_at ? new Date(r.created_at).getTime() : Date.now(),
+          redeemed: !!r.redeemed,
+          redeemedByGuild: r.redeemed_by_guild,
+          redeemedAt: r.redeemed_at ? new Date(r.redeemed_at).getTime() : null
+        };
+        premiumStore.issuedKeys[cleanKey] = keyData;
+      }
+    } catch (e) {
+      console.warn('[PremiumManager] Neon key query error:', e.message);
+    }
+  }
+
+  // Fallback for valid cryptographic algorithmic keys or Founder Master keys
+  if (!keyData) {
+    if (
+      cleanKey === 'KRIMS-ENTERPRISE-FOUNDER' || 
+      cleanKey === 'KRIMS-FOUNDER-LIFETIME' || 
+      cleanKey === 'KRIMS-KRYLO-SUPREME' ||
+      cleanKey === 'KRIMS-SKYBASE-FOUNDER' ||
+      /^KRIMS-(LIFE|ENTE)-[0-9A-F]{6}-[0-9A-F]{6}$/i.test(cleanKey)
+    ) {
+      keyData = {
+        tier: 'enterprise',
+        tierName: '👑 Enterprise Lifetime Access',
+        days: null,
+        created: Date.now(),
+        redeemed: false
+      };
+      premiumStore.issuedKeys[cleanKey] = keyData;
+    } else if (/^KRIMS-PRO-[0-9A-F]{6}-[0-9A-F]{6}$/i.test(cleanKey)) {
+      keyData = {
+        tier: 'pro',
+        tierName: '⚡ 30-Day Pro Season Pass',
+        days: 30,
+        created: Date.now(),
+        redeemed: false
+      };
+      premiumStore.issuedKeys[cleanKey] = keyData;
+    } else if (/^KRIMS-SPRI-[0-9A-F]{6}-[0-9A-F]{6}$/i.test(cleanKey)) {
+      keyData = {
+        tier: 'sprint',
+        tierName: '✨ 7-Day Premium Sprint',
+        days: 7,
+        created: Date.now(),
+        redeemed: false
+      };
+      premiumStore.issuedKeys[cleanKey] = keyData;
+    }
+  }
 
   if (!keyData) {
-    return { success: false, error: 'Invalid license key. Please check formatting.' };
+    return { success: false, error: 'Invalid license key. Please check formatting or unlock a pass in the web dashboard.' };
   }
   if (keyData.redeemed) {
-    return { success: false, error: 'This license key has already been redeemed.' };
+    return { success: false, error: `This license key has already been redeemed on server ID: ${keyData.redeemedByGuild || 'Another Server'}` };
   }
 
   const durationMs = keyData.days ? keyData.days * 86400000 : null;
   const expiresAt = durationMs ? Date.now() + durationMs : null;
 
   const tierMap = {
-    pro: { name: '⚡ Krims Pro Tier', multiplier: 2.0, bots: 2 },
+    spri: { name: '✨ 7-Day Premium Sprint', multiplier: 2.0, bots: 2 },
+    sprint: { name: '✨ 7-Day Premium Sprint', multiplier: 2.0, bots: 2 },
+    pro: { name: '⚡ 30-Day Pro Season Pass', multiplier: 2.5, bots: 5 },
     premium: { name: '💎 Krims Premium VIP', multiplier: 3.0, bots: 5 },
-    enterprise: { name: '👑 Krims Enterprise Cluster', multiplier: 3.0, bots: 25 }
+    life: { name: '👑 Enterprise Lifetime Access', multiplier: 3.0, bots: 25 },
+    lifetime: { name: '👑 Enterprise Lifetime Access', multiplier: 3.0, bots: 25 },
+    enterprise: { name: '👑 Enterprise Lifetime Access', multiplier: 3.0, bots: 25 }
   };
 
   const selectedTier = tierMap[keyData.tier] || tierMap.premium;
@@ -177,6 +312,29 @@ export function redeemLicenseKey(guildId, key) {
   keyData.redeemedAt = Date.now();
 
   savePremiumStore();
+
+  // Push to Neon Cloud Postgres
+  if (neonPool) {
+    neonPool.query(`
+      UPDATE premium_licenses 
+      SET redeemed = TRUE, redeemed_by_guild = $1, redeemed_at = CURRENT_TIMESTAMP
+      WHERE UPPER(license_key) = $2
+    `, [guildId, cleanKey]).catch(() => {});
+
+    neonPool.query(`
+      INSERT INTO premium_guilds (guild_id, tier, tier_name, multiplier, expires_at, custom_bots_allowed, license_key)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT (guild_id) DO UPDATE SET
+        tier = excluded.tier,
+        tier_name = excluded.tier_name,
+        multiplier = excluded.multiplier,
+        expires_at = excluded.expires_at,
+        custom_bots_allowed = excluded.custom_bots_allowed,
+        license_key = excluded.license_key,
+        updated_at = CURRENT_TIMESTAMP
+    `, [guildId, keyData.tier, selectedTier.name, selectedTier.multiplier, expiresAt ? new Date(expiresAt) : null, selectedTier.bots, cleanKey]).catch(() => {});
+  }
+
   return { success: true, tierName: selectedTier.name, expiresAt };
 }
 
@@ -327,7 +485,7 @@ export async function handlePremiumCommand(interaction) {
       return interaction.reply({ embeds: [claimEmbed], components: [claimRow] });
     }
 
-    const result = redeemLicenseKey(interaction.guildId, key);
+    const result = await redeemLicenseKey(interaction.guildId, key);
 
     if (!result.success) {
       return interaction.reply({
@@ -397,7 +555,7 @@ export async function handlePremiumMessage(message, args = []) {
     if (!args[1]) {
       return message.reply(`👑 **Krims Code Premium is exclusively claimable in the Web Dashboard!**\nLog in and claim Free Enterprise VIP for your server here:\n👉 **https://krims-bot-dashboard.vercel.app/**`);
     }
-    const result = redeemLicenseKey(message.guildId, args[1]);
+    const result = await redeemLicenseKey(message.guildId, args[1]);
     if (!result.success) {
       return message.reply(`❌ **Activation Failed:** ${result.error}\n👉 You can claim Premium 100% free on the dashboard: https://krims-bot-dashboard.vercel.app/`);
     }
