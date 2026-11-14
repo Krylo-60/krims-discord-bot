@@ -796,10 +796,22 @@ export class MultiBotManager {
             dynamicInstruction += `\n• MANDATORY IDENTITY DIRECTIVE: The real member talking to you right now is "${speakerName}". Always address them as "${speakerName}". NEVER confuse them with any other chatter or past speaker in memory!`;
           }
 
+          const memberRoles = message.member?.roles?.cache
+            ?.filter(r => r.name !== '@everyone')
+            ?.map(r => r.name)
+            ?.join(', ') || 'None';
+
+          const liveServerContext = `• REAL-TIME LIVE SERVER CONTEXT (ACCURATE DISCORD DATA):\n` +
+            `- Current Server: "${message.guild.name}"\n` +
+            `- Current Channel: #${message.channel.name}\n` +
+            `- Speaker Display Name: "${speakerName}"\n` +
+            `- Speaker Live Discord Roles in this server: [${memberRoles}]\n` +
+            `• CRITICAL ROLE QUERY DIRECTIVE: If asked about roles, accurately report their real live roles from [${memberRoles}]!`;
+
           let aiResponse = '';
           const askFunction = geminiDirectAsk || (await import('./index.js').then(m => m.geminiDirectAsk).catch(() => null));
           if (typeof askFunction === 'function') {
-            aiResponse = await askFunction(cleanPrompt, dynamicInstruction, message.guild.name, message.guild.id, message.author.id, speakerName);
+            aiResponse = await askFunction(cleanPrompt, dynamicInstruction, message.guild.name, message.guild.id, message.author.id, speakerName, liveServerContext);
           } else {
             aiResponse = `🔥 Hey **${message.author.username}**! I'm **${activeBotName}**, guardian of **${message.guild.name}**! Ask me anything or explore commands with \`/about\`! 🚀`;
           }
@@ -809,30 +821,32 @@ export class MultiBotManager {
           }
 
           const replyText = aiResponse.trim();
-          if (replyText.length <= 1950) {
-            await message.reply({ 
-              content: replyText, 
-              allowedMentions: { repliedUser: false } 
-            }).catch(async () => {
-              await message.channel.send({ 
-                content: `<@${message.author.id}>, ${replyText.slice(0, 1900)}`,
-                allowedMentions: { users: [message.author.id] }
-              }).catch(() => {});
-            });
-          } else {
-            const chunks = [];
-            let cur = '';
-            for (const line of replyText.split('\n')) {
-              if ((cur + '\n' + line).length > 1900) {
-                if (cur) chunks.push(cur);
-                cur = line;
-              } else {
-                cur = cur ? (cur + '\n' + line) : line;
-              }
-            }
-            if (cur) chunks.push(cur);
+          const MAX_CHUNK = 1900;
+          const chunks = [];
+          let remaining = replyText;
 
-            await message.reply({ content: chunks[0], allowedMentions: { repliedUser: false } }).catch(() => {});
+          while (remaining.length > 0) {
+            if (remaining.length <= MAX_CHUNK) {
+              chunks.push(remaining);
+              break;
+            }
+
+            let splitIdx = remaining.lastIndexOf('\n', MAX_CHUNK);
+            if (splitIdx === -1 || splitIdx < MAX_CHUNK * 0.4) {
+              splitIdx = remaining.lastIndexOf(' ', MAX_CHUNK);
+            }
+            if (splitIdx === -1 || splitIdx < MAX_CHUNK * 0.4) {
+              splitIdx = MAX_CHUNK;
+            }
+
+            chunks.push(remaining.slice(0, splitIdx).trimEnd());
+            remaining = remaining.slice(splitIdx).trimStart();
+          }
+
+          if (chunks.length > 0) {
+            await message.reply({ content: chunks[0], allowedMentions: { repliedUser: false } }).catch(async () => {
+              await message.channel.send({ content: chunks[0], allowedMentions: { users: [message.author.id] } }).catch(() => {});
+            });
             for (let i = 1; i < chunks.length; i++) {
               await message.channel.send(chunks[i]).catch(() => {});
             }

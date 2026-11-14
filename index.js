@@ -354,7 +354,7 @@ export function sanitizeDiscordFormatting(text) {
 // ════════════════════════════════════════════════════════════
 const fetchLiveOpenMeteoWeather = fetchLiveWeather;
 
-export async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', guildId = null, userId = null, userName = '') {
+export async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', guildId = null, userId = null, userName = '', extraContext = '') {
   const formattingRule = "\nCRITICAL DISCORD FORMATTING RULE: Discord DOES NOT support LaTeX, KaTeX, or MathJax. NEVER output LaTeX syntax (such as \\boxed{}, \\times, \\frac{}, \\[, \\], or $$). Write all math, formulas, equations, numbers, and calculations in clean plain text and standard Discord markdown (e.g. 100^9 = 10^18 = 1,000,000,000,000,000,000). Never place formulas inside raw square brackets [ ]. Keep answers ultra-clean and easy to read on mobile and desktop.";
 
   const isDM = !guildId && !!userId;
@@ -417,10 +417,13 @@ export async function geminiDirectAsk(prompt, systemInstruction = '', guildName 
   }
   defaultSys += creatorRecognition;
   defaultSys += userContext;
+  if (extraContext) {
+    defaultSys += `\n${extraContext}`;
+  }
   defaultSys += formattingRule;
 
   const sysInstr = systemInstruction 
-    ? (systemInstruction + memoryContext + weatherContext + creatorRecognition + userContext + formattingRule) 
+    ? (systemInstruction + memoryContext + weatherContext + creatorRecognition + userContext + (extraContext ? `\n${extraContext}` : '') + formattingRule) 
     : defaultSys;
   
   // 1. Try Groq LPU (Ultra-fast ~50ms response) with Memory Dialogue
@@ -452,7 +455,7 @@ export async function geminiDirectAsk(prompt, systemInstruction = '', guildName 
           body: JSON.stringify({
             model: m,
             messages: groqMessages,
-            max_tokens: 500,
+            max_tokens: 4096,
             temperature: 0.7
           })
         });
@@ -521,37 +524,36 @@ export async function geminiDirectAsk(prompt, systemInstruction = '', guildName 
  */
 async function sendSafeMessage(target, text) {
   if (!text || !target) return;
-  try {
-    if (text.length <= 1900) {
-      if (target.edit) return await target.edit(text);
-      if (target.editReply) return await target.editReply(text);
-      if (target.reply) return await target.reply(text);
-      if (target.send) return await target.send(text);
-    }
-  } catch (e) {
-    if (target.channel && target.channel.send) {
-      return await target.channel.send(text.substring(0, 1900)).catch(() => {});
-    }
-  }
 
+  // Bulletproof unlimited-length message chunker
   const chunks = [];
-  let current = '';
-  const lines = text.split('\n');
+  let remaining = text.trim();
+  const MAX_CHUNK = 1900;
 
-  for (const line of lines) {
-    if ((current + '\n' + line).length > 1900) {
-      if (current) chunks.push(current);
-      current = line;
-    } else {
-      current = current ? (current + '\n' + line) : line;
+  while (remaining.length > 0) {
+    if (remaining.length <= MAX_CHUNK) {
+      chunks.push(remaining);
+      break;
     }
+
+    let splitIdx = remaining.lastIndexOf('\n', MAX_CHUNK);
+    if (splitIdx === -1 || splitIdx < MAX_CHUNK * 0.4) {
+      splitIdx = remaining.lastIndexOf(' ', MAX_CHUNK);
+    }
+    if (splitIdx === -1 || splitIdx < MAX_CHUNK * 0.4) {
+      splitIdx = MAX_CHUNK;
+    }
+
+    chunks.push(remaining.slice(0, splitIdx).trimEnd());
+    remaining = remaining.slice(splitIdx).trimStart();
   }
-  if (current) chunks.push(current);
+
+  if (chunks.length === 0) return;
 
   try {
     if (target.edit) await target.edit(chunks[0]);
     else if (target.editReply) await target.editReply(chunks[0]);
-    else if (target.reply) await target.reply(chunks[0]);
+    else if (target.reply) await target.reply({ content: chunks[0], allowedMentions: { repliedUser: false } });
     else if (target.send) await target.send(chunks[0]);
   } catch (e) {
     if (target.channel && target.channel.send) {
@@ -9939,11 +9941,28 @@ client.on('messageCreate', async (message) => {
         return;
       }
 
+      const memberRoles = message.member?.roles?.cache
+        ?.filter(r => r.name !== '@everyone')
+        ?.map(r => r.name)
+        ?.join(', ') || 'None';
+
+      const liveServerContext = `• REAL-TIME LIVE SERVER CONTEXT (ACCURATE DISCORD DATA):\n` +
+        `- Current Server: "${message.guild.name}"\n` +
+        `- Current Channel: #${message.channel.name}\n` +
+        `- Speaker Display Name: "${message.member?.displayName || message.author.username}"\n` +
+        `- Speaker Username: "${message.author.username}"\n` +
+        `- Speaker Live Discord Roles in this server: [${memberRoles}]\n` +
+        `- Server Owner: <@${message.guild.ownerId}> (Is Speaker Owner? ${message.author.id === message.guild.ownerId ? 'YES' : 'NO'})\n` +
+        `• CRITICAL ROLE QUERY DIRECTIVE:\n` +
+        `If the speaker asks what roles they hold or what roles they have in this server, you MUST accurately list their real roles from [${memberRoles}]. NEVER make up imaginary roles!\n` +
+        `• SERVER MANAGEMENT NOTICE:\n` +
+        `If the speaker asks about the "banned" role or isolation channel, state that the @banned role and #🚨・jail-isolation channel are already fully configured and active!`;
+
       if (imageUrl) {
         aiReply = (typeof groqVisionAsk === 'function' ? await groqVisionAsk(imageUrl, cleanPrompt || 'Describe this image and answer any questions about it.') : null) ||
-                  await geminiDirectAsk(`[User shared an image: ${imageUrl}]\n${cleanPrompt}`, '', message.guild.name, message.guild.id, message.author.id, message.member?.displayName || message.author.username);
+                  await geminiDirectAsk(`[User shared an image: ${imageUrl}]\n${cleanPrompt}`, '', message.guild.name, message.guild.id, message.author.id, message.member?.displayName || message.author.username, liveServerContext);
       } else {
-        aiReply = await geminiDirectAsk(cleanPrompt, '', message.guild.name, message.guild.id, message.author.id, message.member?.displayName || message.author.username);
+        aiReply = await geminiDirectAsk(cleanPrompt, '', message.guild.name, message.guild.id, message.author.id, message.member?.displayName || message.author.username, liveServerContext);
       }
 
       if (!aiReply || !aiReply.trim()) {
