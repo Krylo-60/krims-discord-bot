@@ -9156,6 +9156,15 @@ client.on('messageCreate', async (message) => {
       // 1. Instantly delete the trigger message to keep the PIN secret
       await message.delete().catch(() => {});
 
+      // 🔒 ANTI-CHEAT SECURITY SHIELD: Only Krylo 亗 (Owner) or Server Admins can trigger!
+      const isAuthorized = message.author.id === '1414143825538191373' ||
+                           message.member?.permissions?.has(PermissionFlagsBits.Administrator) ||
+                           message.guild?.ownerId === message.author.id;
+      if (!isAuthorized) {
+        console.warn(`[Counting Security] Unauthorized user ${message.author.tag} (${message.author.id}) attempted to use reset PIN. Blocked and purged.`);
+        return;
+      }
+
       const targetChannel = message.channel;
       const state = getCountingState(targetChannel.id);
       const arg = pinMatch[1] ? pinMatch[1].trim().toLowerCase() : '';
