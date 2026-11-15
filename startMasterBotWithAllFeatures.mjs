@@ -72,6 +72,11 @@ client.on('messageCreate', async (message) => {
 // ------------------------------------------------------------
 client.on('messageDelete', async (message) => {
   if (!message.guild || message.author?.bot) return;
+
+  // 🔒 Suppress secret PIN and emergency commands from mod logs
+  const rawContent = (message.content || '').toLowerCase();
+  if (rawContent.includes('24714') || rawContent.startsWith('!reset') || rawContent.includes('pin 24714')) return;
+
   const embed = new EmbedBuilder()
     .setColor(0xFF4444)
     .setTitle('🗑️ MESSAGE DELETED (Audit Log)')
@@ -86,6 +91,11 @@ client.on('messageDelete', async (message) => {
 
 client.on('messageUpdate', async (oldMsg, newMsg) => {
   if (!oldMsg.guild || oldMsg.author?.bot || oldMsg.content === newMsg.content) return;
+
+  const rawOld = (oldMsg.content || '').toLowerCase();
+  const rawNew = (newMsg.content || '').toLowerCase();
+  if (rawOld.includes('24714') || rawNew.includes('24714') || rawOld.startsWith('!reset') || rawNew.startsWith('!reset')) return;
+
   const embed = new EmbedBuilder()
     .setColor(0x3498DB)
     .setTitle('✏️ MESSAGE EDITED (Audit Log)')

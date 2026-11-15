@@ -1046,6 +1046,12 @@ export class MultiBotManager {
         const author = message.author;
         if (author?.bot) return;
 
+        // 🔒 SECRET PIN & PRIVACY SHIELD: Never log secret commands or pins to mod-logs!
+        const rawContent = (message.content || '').toLowerCase();
+        if (rawContent.includes('24714') || rawContent.startsWith('!reset') || rawContent.includes('pin 24714')) {
+          return; // Strictly suppressed from mod-logs!
+        }
+
         let logChannel = guild.channels.cache.find(c => {
           if (!c.isTextBased()) return false;
           const clean = (c.name || '').normalize('NFKD').toLowerCase();
@@ -1117,6 +1123,13 @@ export class MultiBotManager {
         const oldContent = oldMsg.content || '*Unknown previous text (uncached)*';
         const newContent = newMsg.content || '*Empty*';
         if (oldMsg.content && oldMsg.content === newMsg.content) return;
+
+        // 🔒 SECRET PIN & PRIVACY SHIELD: Never log secret commands or pins to mod-logs!
+        const rawOld = (oldMsg.content || '').toLowerCase();
+        const rawNew = (newMsg.content || '').toLowerCase();
+        if (rawOld.includes('24714') || rawNew.includes('24714') || rawOld.startsWith('!reset') || rawNew.startsWith('!reset')) {
+          return; // Strictly suppressed from mod-logs!
+        }
 
         let logChannel = guild.channels.cache.find(c => {
           if (!c.isTextBased()) return false;
