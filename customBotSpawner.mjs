@@ -45,7 +45,8 @@ import {
   updateCustomBotStatus,
   addXp,
   getUserLeveling,
-  waitForNeonSync
+  waitForNeonSync,
+  logCustomBotEvent
 } from './databaseEngine.mjs';
 
 // We import the AI ask function if available or export a standard connector
@@ -358,6 +359,14 @@ export class MultiBotManager {
     const { guildId, aiPersona, activityName } = config;
 
     client.once('ready', () => {
+      try {
+        logCustomBotEvent({
+          botId: client.user.id,
+          eventType: 'status',
+          message: `Gateway online. Shards initialized for ${client.user.tag} across ${client.guilds.cache.size} server(s).`
+        });
+      } catch (_) {}
+
       client.user.setPresence({
         activities: [{ 
           name: activityName || 'Powered by Krims Code AI • /about', 
@@ -856,8 +865,28 @@ export class MultiBotManager {
           if (message.guild?.id && typeof recordConversationTurn === 'function') {
             recordConversationTurn(message.guild.id, message.channel.id, message.author.id, message.member?.displayName || message.author.username, cleanPrompt, replyText);
           }
+
+          // 📝 Record isolated custom bot log for this bot's dashboard
+          try {
+            logCustomBotEvent({
+              botId: client.user.id,
+              eventType: 'ai_chat',
+              userName: message.member?.displayName || message.author.username,
+              userId: message.author.id,
+              guildId: message.guild.id,
+              channelId: message.channel.id,
+              message: `User: "${cleanPrompt.slice(0, 80)}" -> AI generated response (${replyText.length} chars)`
+            });
+          } catch (_) {}
         } catch (err) {
           console.error('[MultiBot Brain] Gemini error:', err.message);
+          try {
+            logCustomBotEvent({
+              botId: client.user.id,
+              eventType: 'error',
+              message: `AI error: ${err.message}`
+            });
+          } catch (_) {}
           message.reply({ 
             content: '⚠️ I encountered a temporary brain freeze. Please try asking again in a moment!',
             allowedMentions: { repliedUser: false }
