@@ -266,6 +266,7 @@ export const SCHEDULED_RELEASES = [
   }
 ];
 
+export const AUTOMATED_UPDATES_PAUSED = true;
 export const V6_0_GA_TIMESTAMP = SCHEDULED_RELEASES[0].timestamp;
 export const REDEEMABLE_PERKS = [
   { id: 'founder_badge', name: '👑 Founder Pioneer Profile Badge', cost: 5000, description: 'Permanent prestige badge on your profile.', command: '/redeem founder_badge' },
@@ -379,34 +380,20 @@ async function saveReleaseState(state) {
  * Get comprehensive overview of past, present, and upcoming automated releases
  */
 export function getEcosystemReleaseStatus() {
-  const now = Date.now();
-  const nextRelease = SCHEDULED_RELEASES.find(r => r.timestamp > now);
-  const activeReleases = SCHEDULED_RELEASES.filter(r => r.timestamp <= now);
-  const latestActive = activeReleases[activeReleases.length - 1] || SCHEDULED_RELEASES[0];
-
-  let msRemaining = 0;
-  let countdownText = '🟢 ALL 2026 SCHEDULED RELEASES DEPLOYED';
-
-  if (nextRelease) {
-    msRemaining = nextRelease.timestamp - now;
-    const days = Math.floor(msRemaining / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((msRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((msRemaining % (1000 * 60)) / (1000 * 60));
-    countdownText = `⏳ ${days}d ${hours}h ${minutes}m until ${nextRelease.version} (${nextRelease.summary})`;
-  }
-
   return {
-    currentVersion: latestActive.version,
-    nextVersion: nextRelease ? nextRelease.version : '2027 Era',
-    nextTimestamp: nextRelease ? nextRelease.timestamp : null,
-    countdownText,
+    mode: 'manual',
+    isPaused: true,
+    currentVersion: 'v6.0.0 GA',
+    nextVersion: 'Community Choice (Manual Release)',
+    nextTimestamp: null,
+    countdownText: '⏸️ Automated scheduled cadence PAUSED by Founder Krylo 亗. Releases are now driven manually by community suggestions and feedback!',
     allStages: SCHEDULED_RELEASES.map(r => ({
       id: r.id,
       version: r.version,
       summary: r.summary,
       timestamp: r.timestamp,
-      isTriggered: now >= r.timestamp,
-      dateString: new Date(r.timestamp).toUTCString()
+      isTriggered: r.id === 'stage_1_v6_ga',
+      dateString: 'Manual Community Drop'
     }))
   };
 }
@@ -461,6 +448,11 @@ export async function sendOwnerScheduleOverviewDM(client, force = false) {
  * and broadcast the update to Discord without human intervention!
  */
 export async function checkAndTriggerGABroadcast(client) {
+  if (AUTOMATED_UPDATES_PAUSED) {
+    // ⏸️ All automated scheduled release broadcasts are paused by Founder Krylo 亗!
+    // Running in 100% manual updates mode driven by community suggestions & feedback.
+    return false;
+  }
   const now = Date.now();
   const state = loadReleaseState();
 
@@ -636,5 +628,48 @@ export async function checkAndTriggerGABroadcast(client) {
 
   if (stateModified) {
     await saveReleaseState(state);
+  }
+}
+
+/**
+ * Broadcast Founder Krylo's official announcement that automated updates are paused
+ * and we are switching to manual updates driven by community feedback!
+ */
+export async function broadcastManualModeAnnouncement(client, force = false) {
+  try {
+    const state = loadReleaseState();
+    if (state.manualModeAnnounced && !force) {
+      return false;
+    }
+    const channel = await client.channels.fetch(UPDATES_CHANNEL_ID).catch(() => null);
+    if (!channel) return false;
+
+    const embed = new EmbedBuilder()
+      .setColor(0xF59E0B)
+      .setTitle('📢 [OFFICIAL ANNOUNCEMENT] SWITCHING TO MANUAL COMMUNITY RELEASES')
+      .setDescription(
+        `### Hey @everyone!\n\n` +
+        `**Founder Krylo 亗** has officially paused all automated scheduled release timers across the Krims ecosystem!\n\n` +
+        `> *"I feel bored of robotic, pre-scheduled automated drops. I want real feedback and ideas from you guys so we can build what you actually want next!"* — **Krylo 亗**\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `✨ **What This Means:**\n` +
+        `• ⏸️ **Automated Release Timers:** Permanently paused.\n` +
+        `• 🛠️ **Manual Feature Drops:** All new updates, commands, and bot upgrades will now be coded and released **manually** by Krylo on-demand!\n` +
+        `• 💬 **Community-First Development:** Drop your suggestions, feature requests, and feedback below or in our suggestions channels.\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `👉 **What should Krylo build next?** Drop your ideas and let us know! 🚀`
+      )
+      .setImage('https://krims-discord-bot-d57m.onrender.com/gifs/krylo_aura_all_in_one.gif')
+      .setFooter({ text: `${channel.guild?.name || 'Krims Code'} • Community Feedback Era` })
+      .setTimestamp();
+
+    await channel.send({ embeds: [embed] });
+    state.manualModeAnnounced = true;
+    await saveReleaseState(state);
+    console.log('[ReleaseMatrix] Successfully broadcasted manual mode & feedback announcement to #bot-updates!');
+    return true;
+  } catch (err) {
+    console.warn('[ReleaseMatrix] Failed to broadcast manual mode announcement:', err.message);
+    return false;
   }
 }

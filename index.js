@@ -22,7 +22,7 @@ import {
   handleFireworksCommand,
   handleDiwaliButton
 } from './features/diwaliFestivalEngine.mjs';
-import { checkAndTriggerGABroadcast, sendOwnerScheduleOverviewDM } from './features/timeGatedReleaseEngine.mjs';
+import { checkAndTriggerGABroadcast, sendOwnerScheduleOverviewDM, broadcastManualModeAnnouncement } from './features/timeGatedReleaseEngine.mjs';
 /**
  * 👑 KRYLOSMP MASTER GOOGLE SHEETS:
  * 1. Support & Ticket Logs Sheet: https://docs.google.com/spreadsheets/d/1F4NRwssxFxJO58uX6CTHvXqSMoEMoLhJGRI2IeghF-g/edit?gid=377764939#gid=377764939
@@ -1224,38 +1224,7 @@ async function endCurrentDuel(guild, duelChannel) {
 const execPromise = util.promisify(exec);
 
 function startAutoUpdater() {
-  console.log("[Auto-Updater] Initialized. Checking for GitHub repository updates every 5 minutes...");
-  setInterval(async () => {
-    try {
-      console.log("[Auto-Updater] Fetching origin...");
-      await execPromise('git fetch origin');
-      
-      const { stdout } = await execPromise('git status -uno');
-      if (stdout.includes('Your branch is behind')) {
-        console.log("[Auto-Updater] New updates detected on origin/main! Pulling changes...");
-        await execPromise('git pull');
-        console.log("[Auto-Updater] Re-installing dependencies...");
-        await execPromise('npm install');
-        console.log("[Auto-Updater] Auto-restart triggered. Spawning new process...");
-        
-        const out = fs.openSync('./auto_update.log', 'a');
-        const err = fs.openSync('./auto_update.log', 'a');
-        
-        const child = spawn(process.argv[0], process.argv.slice(1), {
-          detached: true,
-          stdio: [ 'ignore', out, err ]
-        });
-        child.unref();
-        
-        console.log("[Auto-Updater] Exiting old process...");
-        process.exit(0);
-      } else {
-        console.log("[Auto-Updater] Bot is up to date.");
-      }
-    } catch (err) {
-      console.error("[Auto-Updater] Update check failed:", err.message);
-    }
-  }, 5 * 60 * 1000);
+  console.log("[Auto-Updater] Automated Git polling is PAUSED by Founder Krylo 亗. All updates and restarts are handled manually to protect active counting games and chats.");
 }
 
 async function updateDynamicServerVoiceStats() {
@@ -1364,6 +1333,7 @@ client.once('ready', async () => {
   try {
     checkAndTriggerGABroadcast(client);
     setInterval(() => checkAndTriggerGABroadcast(client), 60 * 1000);
+    broadcastManualModeAnnouncement(client);
   } catch (gaErr) {
     console.warn('[TimeGatedRelease] Engine notice:', gaErr.message);
   }
