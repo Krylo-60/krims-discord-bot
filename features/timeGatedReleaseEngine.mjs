@@ -96,7 +96,7 @@ export const SCHEDULED_RELEASES = [
     version: 'v6.0.5 Event Finale',
     title: '🪔✨ DIWALI FESTIVAL FINALE & SACRED MEMORIAL ✨🪔',
     color: 0xF59E0B,
-    banner: 'https://krims-discord-bot-d57m.onrender.com/gifs/krylo_aura_all_in_one.gif',
+    banner: 'https://krims-bot-dashboard.vercel.app/logo.png',
     summary: '5-Day Diwali Cultural Festival Concludes With Final Community Stats',
     description:
       `### 🕯️ Shubh Deepavali • Festival Concluded!\n\n` +
@@ -166,7 +166,7 @@ export const SCHEDULED_RELEASES = [
     version: 'v6.2.0 Winter',
     title: '❄️ KRIMS CODE v6.2.0 — WINTER WONDERLAND & ADVENT CALENDAR! ⛄',
     color: 0x38BDF8,
-    banner: 'https://krims-discord-bot-d57m.onrender.com/gifs/krylo_mc_aura.gif',
+    banner: 'https://krims-bot-dashboard.vercel.app/logo.png',
     summary: 'Winter Season Launch, Daily Advent Calendar & Snowball Minigame',
     description:
       `### Welcome to December in the Krims Ecosystem!\n\n` +
@@ -252,7 +252,7 @@ export const SCHEDULED_RELEASES = [
     version: 'v7.0.0 Revolution',
     title: '🎆 HAPPY NEW YEAR 2027 — THE KRIMS CODE REVOLUTION! 🚀👑',
     color: 0xEC4899,
-    banner: 'https://krims-discord-bot-d57m.onrender.com/gifs/krylo_aura_all_in_one.gif',
+    banner: 'https://krims-bot-dashboard.vercel.app/logo.png',
     summary: 'Official Launch of the 2027 Era, Annual Leaderboard & Founder Trophies',
     description:
       `### 🥂 WELCOME TO 2027!\n\n` +
@@ -428,7 +428,6 @@ export async function sendOwnerScheduleOverviewDM(client, force = false) {
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
         `Enjoy your 1-month break! The bot will keep your servers active 24/7.`
       )
-      .setImage('https://krims-discord-bot-d57m.onrender.com/gifs/krylo_aura_all_in_one.gif')
       .setFooter({ text: 'Krims Code Autopilot • Direct Founder DM' })
       .setTimestamp();
 
@@ -542,11 +541,7 @@ export async function checkAndTriggerGABroadcast(client) {
         new ButtonBuilder()
           .setLabel('🌐 Web Dashboard')
           .setStyle(ButtonStyle.Link)
-          .setURL('https://krims-bot-dashboard.vercel.app/updates'),
-        new ButtonBuilder()
-          .setLabel('⚡ Krylo Aura')
-          .setStyle(ButtonStyle.Link)
-          .setURL('https://krims-discord-bot-d57m.onrender.com/gifs/krylo_aura_all_in_one.gif')
+          .setURL('https://krims-bot-dashboard.vercel.app/updates')
       );
 
       // 1. 📢 Dispatch to Main Updates Channel (#🚀・𝖡ot-𝖴pdates)
@@ -659,7 +654,6 @@ export async function broadcastManualModeAnnouncement(client, force = false) {
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
         `👉 **What should Krylo build next?** Drop your ideas and let us know! 🚀`
       )
-      .setImage('https://krims-discord-bot-d57m.onrender.com/gifs/krylo_aura_all_in_one.gif')
       .setFooter({ text: `${channel.guild?.name || 'Krims Code'} • Community Feedback Era` })
       .setTimestamp();
 

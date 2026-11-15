@@ -420,48 +420,24 @@ export async function handlePartnersCommand(message) {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// 6. ⚡ !aura / !krylo — Krylo Supreme Animated Aura Showcase
+// 6. ⚡ !aura / !krylo — Krylo Supreme Showcase (Static Sleek Card)
 // ═════════════════════════════════════════════════════════════════════════════
 export async function handleAuraCommand(message) {
-  const gifUrl = 'https://krims-discord-bot-d57m.onrender.com/gifs/krylo_aura_all_in_one.gif';
   const embed = new EmbedBuilder()
     .setColor(0x00F2FF)
-    .setTitle('⚡ KRYLO SUPREME AURA • +1,000,000 AURA ⚡')
+    .setTitle('👑 KRYLO 亗 • SUPREME FOUNDER & DEVELOPER')
+    .setThumbnail('https://cdn.discordapp.com/avatars/1414143825538191373/90c635bbd2b9deb44f9c6564891eaee4.png')
     .setDescription(
-      `👑 **Java Minecraft Player:** \`KryloMCYT\`\n` +
+      `👑 **Founder & Architect:** Krylo 亗 (\`1414143825538191373\`)\n` +
+      `🎮 **Minecraft:** \`KryloMCYT\`\n` +
       `⚔️ **Factions:** [IND] • The Light Bearers [TLB]\n` +
-      `⚡ **Sovereignty:** Infinite Aura • God of Code & PvP\n\n` +
-      `*Domination across KryloSMP and the Krims Bot Network.*`
+      `🌐 **Ecosystem:** Krims Code AI & KryloSMP\n\n` +
+      `*Creator and lead developer across the Krims Bot Network.*`
     )
-    .setImage(gifUrl)
-    .setFooter({ text: 'Krims Code • Powered by Krylo', iconURL: 'https://cdn.discordapp.com/avatars/1414143825538191373/90c635bbd2b9deb44f9c6564891eaee4.png' })
+    .setFooter({ text: `${message.guild?.name || 'Community'} • Founder Profile`, iconURL: 'https://cdn.discordapp.com/avatars/1414143825538191373/90c635bbd2b9deb44f9c6564891eaee4.png' })
     .setTimestamp();
 
-  const isTLB = message.guild?.id === '1557852594242719775';
-  const buttons = [
-    new ButtonBuilder()
-      .setLabel('View HD GIF')
-      .setStyle(ButtonStyle.Link)
-      .setURL(gifUrl)
-  ];
-  if (isTLB) {
-    buttons.push(
-      new ButtonBuilder()
-        .setLabel('Elite SMP Edition')
-        .setStyle(ButtonStyle.Link)
-        .setURL('https://krims-discord-bot-d57m.onrender.com/gifs/krylo_elite_smp_ind_aura.gif')
-    );
-  }
-  buttons.push(
-    new ButtonBuilder()
-      .setLabel('TLB Edition')
-      .setStyle(ButtonStyle.Link)
-      .setURL('https://krims-discord-bot-d57m.onrender.com/gifs/krylo_mc_aura.gif')
-  );
-
-  const row = new ActionRowBuilder().addComponents(buttons);
-
-  return message.reply({ embeds: [embed], components: [row] });
+  return message.reply({ embeds: [embed] });
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
