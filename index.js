@@ -9150,43 +9150,80 @@ client.on('messageCreate', async (message) => {
 
   // 🔢 Counting Game Message Handler & Commands
   if (message.guild) {
-    // 🔐 Secret Admin / Owner Emergency Streak Revive Code
-    if (content.toLowerCase().startsWith('!reset pin 24714')) {
+    // 🔐 Secret Admin / Owner Emergency Streak Revive & Reset Code (Matches !reset24714, !reset 24714, !reset pin 24714)
+    const pinMatch = content.trim().match(/^!reset\s*(?:pin\s*)?24714(?:\s+(.+))?$/i);
+    if (pinMatch) {
       // 1. Instantly delete the trigger message to keep the PIN secret
       await message.delete().catch(() => {});
 
-      // Parse optional custom count (e.g., "!reset pin 24714 19") or revive to previous/target
-      const parts = content.trim().split(/\s+/);
       const targetChannel = message.channel;
       const state = getCountingState(targetChannel.id);
+      const arg = pinMatch[1] ? pinMatch[1].trim().toLowerCase() : '';
 
-      // Default count is either specified (parts[3]), or the high score, or current + 1
-      let reviveCount = 1;
-      if (parts[3] && !isNaN(parseInt(parts[3], 10))) {
-        reviveCount = parseInt(parts[3], 10);
-      } else if (state && state.high_score > 0) {
-        reviveCount = state.high_score;
-      } else if (state && state.current_number > 0) {
-        reviveCount = state.current_number;
+      // Mode A: Full Reset of everything including High Score (!reset24714 all / !reset24714 score)
+      if (arg === 'all' || arg === 'score' || arg === 'highscore') {
+        await resetCountingState(targetChannel.id, targetChannel);
+        try {
+          const Database = (await import('better-sqlite3')).default;
+          const db = new Database('data/krylosmp.db');
+          db.prepare('UPDATE counting_state SET high_score = 0 WHERE channel_id = ?').run(targetChannel.id);
+        } catch (_) {}
+
+        const fullResetEmbed = new EmbedBuilder()
+          .setColor(0xEF4444)
+          .setTitle('🧹 FULL COUNTING & SCORE RESET!')
+          .setDescription(
+            `**${message.author.displayName || message.author.username}** invoked the **Emergency Master PIN**! 🛡️\n\n` +
+            `• **Active Chain:** Reset back to **\`0\`** (Next number is **\`1\`**)\n` +
+            `• **Record High Score:** Wiped to **\`0\`**\n\n` +
+            `👉 *Fresh slate activated! Type **\`1\`** to start a brand new record!* 🚀`
+          )
+          .setFooter({ text: `${message.guild?.name || 'Krims Code'} • Emergency Master PIN` })
+          .setTimestamp();
+
+        return await targetChannel.send({ embeds: [fullResetEmbed] });
       }
 
-      await setCountingState(targetChannel.id, targetChannel, reviveCount, message.author.id);
+      // Mode B: Target Number Specified (e.g. !reset24714 18)
+      if (arg && !isNaN(parseInt(arg, 10)) && parseInt(arg, 10) > 0) {
+        const reviveCount = parseInt(arg, 10);
+        await setCountingState(targetChannel.id, targetChannel, reviveCount, message.author.id);
 
-      const reviveEmbed = new EmbedBuilder()
-        .setColor(0x10B981)
-        .setTitle('⚡ STREAK REVIVED BY MASTER KEY!')
+        const reviveEmbed = new EmbedBuilder()
+          .setColor(0x10B981)
+          .setTitle('⚡ STREAK RESTORED BY MASTER KEY!')
+          .setDescription(
+            `**${message.author.displayName || message.author.username}** invoked the **Emergency Master PIN**! 🛡️\n\n` +
+            `• **Restored Count:** **\`${reviveCount}\`**\n` +
+            `• **Next Number:** **\`${reviveCount + 1}\`**\n` +
+            `• **Last Counter:** <@${message.author.id}>\n\n` +
+            `👉 *The chain is fully restored! Another teammate must type **\`${reviveCount + 1}\`** to keep counting!* 🚀`
+          )
+          .setFooter({ text: `${message.guild?.name || 'Krims Code'} • Emergency Master PIN` })
+          .setTimestamp();
+
+        const notifyMsg = await targetChannel.send({ embeds: [reviveEmbed] });
+        await notifyMsg.react('⚡').catch(() => {});
+        return;
+      }
+
+      // Mode C: Simple Reset to 0 (!reset24714 with no arguments or !reset24714 0)
+      await resetCountingState(targetChannel.id, targetChannel);
+      const resetEmbed = new EmbedBuilder()
+        .setColor(0x38BDF8)
+        .setTitle('🔄 COUNTING CHAIN RESET!')
         .setDescription(
           `**${message.author.displayName || message.author.username}** invoked the **Emergency Master PIN**! 🛡️\n\n` +
-          `• **Restored Count:** **\`${reviveCount}\`**\n` +
-          `• **Next Number:** **\`${reviveCount + 1}\`**\n` +
-          `• **Last Counter:** <@${message.author.id}>\n\n` +
-          `👉 *The chain is fully restored! Another teammate must type **\`${reviveCount + 1}\`** to keep counting!* 🚀`
+          `• **Current Count:** Reset back to **\`0\`**\n` +
+          `• **Next Number:** **\`1\`**\n` +
+          `• **Record High Score:** **\`${state?.high_score || 0}\`** (Preserved)\n\n` +
+          `👉 *The counting arena is reset! Type **\`1\`** to start counting!* 🚀`
         )
-        .setFooter({ text: 'Krims Code AI • Emergency Secret Pin Protection' })
+        .setFooter({ text: `${message.guild?.name || 'Krims Code'} • Emergency Master PIN` })
         .setTimestamp();
 
-      const notifyMsg = await targetChannel.send({ embeds: [reviveEmbed] });
-      await notifyMsg.react('⚡').catch(() => {});
+      const notifyMsg = await targetChannel.send({ embeds: [resetEmbed] });
+      await notifyMsg.react('🔄').catch(() => {});
       return;
     }
 
