@@ -629,10 +629,6 @@ export const masterCommandBuilders = [
     .setDescription('🗳️ Vote on Top.gg to activate 2.0x XP booster, vote streak bonuses, and rewards!'),
 
   new SlashCommandBuilder()
-    .setName('telegram')
-    .setDescription('✈️ Connect with Krims Code on Telegram (@Krimscodebot) & claim +1,000 KR!'),
-
-  new SlashCommandBuilder()
     .setName('refer')
     .setDescription('👥 Refer a friend to earn +2,000 KC and referral keys!')
     .addUserOption(opt => opt.setName('friend').setDescription('Friend you invited').setRequired(false)),

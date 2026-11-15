@@ -6163,32 +6163,6 @@ client.on('interactionCreate', async (interaction) => {
     return;
   }
 
-  // Command: /telegram
-  if (commandName === 'telegram') {
-    const embed = new EmbedBuilder()
-      .setColor(0x00F2FF)
-      .setTitle('✈️ Krims Code is Live on Telegram!')
-      .setDescription(
-        `Krims is now officially live on Telegram as **[@Krimscodebot](https://t.me/Krimscodebot)**!\n\n` +
-        `• 🧠 **Pocket AI Assistant:** Chat with the Gemini AI brain anywhere from your phone.\n` +
-        `• 💎 **Mobile Kr Rewards Wallet:** Check balances, maintain daily streaks, and transfer Kr on the go.\n` +
-        `• 🎁 **Link Bonus:** Type \`/link ${interaction.user.id}\` inside **@Krimscodebot** on Telegram to link your account and claim **+1,000 KR** instantly!\n\n` +
-        `👉 [Click here to open @Krimscodebot on Telegram](https://t.me/Krimscodebot)`
-      )
-      .setFooter({ text: 'Krims Code AI • Multi-Platform Expansion' })
-      .setTimestamp();
-
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setLabel('✈️ Open @Krimscodebot')
-        .setStyle(ButtonStyle.Link)
-        .setURL('https://t.me/Krimscodebot')
-    );
-
-    await interaction.reply({ embeds: [embed], components: [row] });
-    return;
-  }
-
   // Command: /wiki
   if (commandName === 'wiki') {
     await handleWikiCommand(interaction);
@@ -10163,32 +10137,6 @@ client.on('messageCreate', async (message) => {
   if (lowerMsg === '!vote' || lowerMsg === '!votes' || lowerMsg === '!voter' || lowerMsg === '!votebooster') {
     await message.channel.sendTyping().catch(() => {});
     await handleVoteMessage(message);
-    return;
-  }
-
-  // Command: !telegram, !tg
-  if (lowerMsg === '!telegram' || lowerMsg === '!tg') {
-    const embed = new EmbedBuilder()
-      .setColor(0x00F2FF)
-      .setTitle('✈️ Krims Code is Live on Telegram!')
-      .setDescription(
-        `Krims is now officially live on Telegram as **[@Krimscodebot](https://t.me/Krimscodebot)**!\n\n` +
-        `• 🧠 **Pocket AI Assistant:** Chat with the Gemini AI brain anywhere from your phone.\n` +
-        `• 💎 **Mobile Kr Rewards Wallet:** Check balances, maintain daily streaks, and transfer Kr on the go.\n` +
-        `• 🎁 **Link Bonus:** Type \`/link ${message.author.id}\` inside **@Krimscodebot** on Telegram to link your account and claim **+1,000 KR** instantly!\n\n` +
-        `👉 [Click here to open @Krimscodebot on Telegram](https://t.me/Krimscodebot)`
-      )
-      .setFooter({ text: 'Krims Code AI • Multi-Platform Expansion' })
-      .setTimestamp();
-
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setLabel('✈️ Open @Krimscodebot')
-        .setStyle(ButtonStyle.Link)
-        .setURL('https://t.me/Krimscodebot')
-    );
-
-    await message.reply({ embeds: [embed], components: [row] });
     return;
   }
 
