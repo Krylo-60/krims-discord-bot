@@ -62,6 +62,7 @@ import { handleBotDevApplicationInteraction, setupBotDevApplicationChannel } fro
 import { handleTopggWebhook, getVoteBoosterInfo, handleVoteCommand, handleVoteMessage } from './features/voteBoosterManager.mjs';
 import { getLiveStatusData, renderLiveStatusHtml } from './features/liveStatusDashboard.mjs';
 import { renderKrimsWikiHtml, handleWikiCommand, handleWikiMessage } from './features/krimsWiki.mjs';
+import { initTelegramBot } from './features/telegramBotEngine.mjs';
 import { handlePlatformRoleInteraction, setPlatformPublicStatus, getPlatformRoleStatus } from './features/platformRolePublisher.mjs';
 import { 
   handleJtcVoiceStateUpdate, 
@@ -6163,6 +6164,32 @@ client.on('interactionCreate', async (interaction) => {
     return;
   }
 
+  // Command: /telegram
+  if (commandName === 'telegram') {
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('✈️ Krims Code is Live on Telegram!')
+      .setDescription(
+        `Krims is now officially live on Telegram as **[@Krimscodebot](https://t.me/Krimscodebot)**!\n\n` +
+        `• 🧠 **Pocket AI Assistant:** Chat with the Gemini AI brain anywhere from your phone.\n` +
+        `• 💎 **Mobile Kr Rewards Wallet:** Check balances, maintain daily streaks, and transfer Kr on the go.\n` +
+        `• 🎁 **Link Bonus:** Type \`/link ${interaction.user.id}\` inside **@Krimscodebot** on Telegram to link your account and claim **+1,000 KR** instantly!\n\n` +
+        `👉 [Click here to open @Krimscodebot on Telegram](https://t.me/Krimscodebot)`
+      )
+      .setFooter({ text: 'Krims Code AI • Multi-Platform Expansion' })
+      .setTimestamp();
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setLabel('✈️ Open @Krimscodebot')
+        .setStyle(ButtonStyle.Link)
+        .setURL('https://t.me/Krimscodebot')
+    );
+
+    await interaction.reply({ embeds: [embed], components: [row] });
+    return;
+  }
+
   // Command: /wiki
   if (commandName === 'wiki') {
     await handleWikiCommand(interaction);
@@ -10140,6 +10167,32 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
+  // Command: !telegram, !tg
+  if (lowerMsg === '!telegram' || lowerMsg === '!tg') {
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('✈️ Krims Code is Live on Telegram!')
+      .setDescription(
+        `Krims is now officially live on Telegram as **[@Krimscodebot](https://t.me/Krimscodebot)**!\n\n` +
+        `• 🧠 **Pocket AI Assistant:** Chat with the Gemini AI brain anywhere from your phone.\n` +
+        `• 💎 **Mobile Kr Rewards Wallet:** Check balances, maintain daily streaks, and transfer Kr on the go.\n` +
+        `• 🎁 **Link Bonus:** Type \`/link ${message.author.id}\` inside **@Krimscodebot** on Telegram to link your account and claim **+1,000 KR** instantly!\n\n` +
+        `👉 [Click here to open @Krimscodebot on Telegram](https://t.me/Krimscodebot)`
+      )
+      .setFooter({ text: 'Krims Code AI • Multi-Platform Expansion' })
+      .setTimestamp();
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setLabel('✈️ Open @Krimscodebot')
+        .setStyle(ButtonStyle.Link)
+        .setURL('https://t.me/Krimscodebot')
+    );
+
+    await message.reply({ embeds: [embed], components: [row] });
+    return;
+  }
+
   // Command: !wiki, !docs
   if (lowerMsg === '!wiki' || lowerMsg.startsWith('!wiki ') || lowerMsg === '!docs' || lowerMsg.startsWith('!docs ')) {
     const args = content.split(/\s+/).slice(1);
@@ -13457,6 +13510,12 @@ console.log('[🚀 LAUNCHING TWITCH BOT] Starting Twitch bot instance with main 
 initTwitchBot(client).then(() => {
   console.log('[+] Twitch Bot instance successfully initialized and online!');
 }).catch(err => console.error('[TwitchBot] Initialization error:', err));
+
+// Initialize Krims Code Telegram Bot (online co-hosted with Discord bot on Render)
+console.log('[🚀 LAUNCHING TELEGRAM BOT] Starting Telegram bot instance with main Krims Code AI on Render...');
+initTelegramBot().then(() => {
+  console.log('[+] Telegram Bot instance successfully initialized and online!');
+}).catch(err => console.error('[TelegramBot] Initialization error:', err));
 
 // Global process error handlers to prevent crashes on Discord API timeouts/errors
 process.on('uncaughtException', (err) => {

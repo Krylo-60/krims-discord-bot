@@ -23,6 +23,7 @@
     "firebase": "^12.17.1",
     "firebase-admin": "^14.2.0",
     "google-tts-api": "^2.0.2",
+    "grammy": "^1.46.0",
     "jimp": "^0.22.12",
     "libsodium-wrappers": "^0.8.4",
     "mineflayer": "^4.37.1",
