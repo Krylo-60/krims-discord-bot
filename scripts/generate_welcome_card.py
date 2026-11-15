@@ -114,7 +114,7 @@ def generate_card(avatar_input, mc_head_input, username, member_count, server_na
     if not os.path.exists(banner_path):
         banner_path = os.path.join(images_dir, 'the_light_bearers_banner.jpg')
 
-    is_light_bearer = 'light bearer' in server_name.lower() or 'half life' in server_name.lower()
+    is_light_bearer = 'light bearer' in server_name.lower() or 'tlb' in server_name.lower()
 
     if is_light_bearer and os.path.exists(banner_path):
         b_raw = Image.open(banner_path).convert('RGBA')

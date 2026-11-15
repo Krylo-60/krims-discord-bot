@@ -125,7 +125,7 @@ async function restoreCountingState() {
       `• **Last Counter:** <@${kryloUserId}>\n` +
       `• **Next Number:** **\`20\`** (must be typed by another teammate: st1LLkill3r, CrazyCoolCam, or Bexxy!)\n\n` +
       `🚀 *Streak is alive! Keep counting!*`,
-    footer: { text: 'The Half Lifes • Counting Engine' },
+    footer: { text: 'The Light Bearers • Counting Engine' },
     timestamp: new Date().toISOString()
   };
 

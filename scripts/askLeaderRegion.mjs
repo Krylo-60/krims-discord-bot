@@ -20,10 +20,10 @@ client.once('clientReady', async () => {
     // 2. Send friendly DM asking for their region
     const dmEmbed = new EmbedBuilder()
       .setColor(0xFFD700) // Gold
-      .setTitle('👑 The Half Lifes • Clan Region & Timezone Verification')
+      .setTitle('👑 The Light Bearers • Clan Region & Timezone Verification')
       .setDescription(
         `Hey **${leader.displayName}**!\n\n` +
-        `Krylo and the squad are updating the official leadership records and roster roles for **The Half Lifes**.\n\n` +
+        `Krylo and the squad are updating the official leadership records and roster roles for **The Light Bearers**.\n\n` +
         `We noticed your region wasn't confirmed yet. **Which region / timezone are you playing from?**\n\n` +
         `• 🌍 **Europe (EU)** *(GMT / CET / EET)*\n` +
         `• 🌏 **Asia & Oceania (Asia/OCE)** *(IST / SGT / AEST)*\n` +
@@ -31,7 +31,7 @@ client.once('clientReady', async () => {
         `• 🌐 **Other**\n\n` +
         `You can reply directly to this DM, or pick your timezone role anytime in the <#1559251032465219587> channel! ⚔️`
       )
-      .setFooter({ text: 'The Half Lifes • Leadership Roster' })
+      .setFooter({ text: 'The Light Bearers • Leadership Roster' })
       .setTimestamp();
 
     await leader.send({ embeds: [dmEmbed] });

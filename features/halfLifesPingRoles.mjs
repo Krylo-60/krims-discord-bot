@@ -21,7 +21,7 @@ export const ROLE_IDS = {
 
 export const HALF_LIFES_PING_COMMAND_DEF = {
   name: 'pingroles',
-  description: 'Manage clan notification & ping preference roles (The Half Lifes Only)',
+  description: 'Manage clan notification & ping preference roles (The Light Bearers Only)',
   options: [
     {
       name: 'setup',
@@ -105,7 +105,7 @@ export function buildPingRolesActionRows() {
 export async function handlePingRolesSlashCommand(interaction) {
   if (interaction.guildId !== HALF_LIFES_GUILD_ID) {
     return interaction.reply({
-      content: '❌ This command is exclusively configured for **The Half Lifes** server.',
+      content: '❌ This command is exclusively configured for **The Light Bearers (TLB)** server.',
       ephemeral: true
     });
   }

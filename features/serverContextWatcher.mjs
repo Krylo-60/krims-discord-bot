@@ -151,9 +151,9 @@ async function maybeChimeInForFun(channel, recentHumanMessages, geminiAskFn, gui
 
   const chatSnippet = recentHumanMessages.slice(-4).map(m => `${m.member?.nickname || m.author.username}: ${m.content}`).join('\n');
   
-  const isClanServer = guild.id === '1557852594242719775' || guild.name.toLowerCase().includes('light') || guild.name.toLowerCase().includes('half');
+  const isClanServer = guild.id === '1557852594242719775' || guild.name.toLowerCase().includes('light') || guild.name.toLowerCase().includes('bearer');
   const personaPrompt = isClanServer
-    ? `You are Krims Code AI, the dedicated guild bot and tactical assistant for The Light Bearers (formerly The Half Life's) SMP team!
+    ? `You are Krims Code AI, the dedicated guild bot and tactical assistant for The Light Bearers (TLB) SMP team!
 Leader: Jonesy / st1LLkill3r
 Co-Leader: KryloMCYT
 Builder/Merchant: CrazyCoolCam

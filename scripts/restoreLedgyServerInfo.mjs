@@ -28,7 +28,7 @@ client.once('clientReady', async () => {
           .setColor(0x00FFFF)
           .setTitle('🌐 ELITE SMP — OFFICIAL SERVER CONNECTION')
           .setDescription(
-            `**The Half Lifes** is an elite team competing on the **Elite SMP by Ledgy**! Use the connection addresses below to join us on the server.\n\n` +
+            `**The Light Bearers [TLB]** is an elite team competing on the **Elite SMP by Ledgy**! Use the connection addresses below to join us on the server.\n\n` +
             `▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬`
           )
           .addFields([
@@ -53,7 +53,7 @@ client.once('clientReady', async () => {
               inline: false
             }
           ])
-          .setFooter({ text: 'The Half Lifes • Elite SMP Team HQ • Ledgy Server' })
+          .setFooter({ text: 'The Light Bearers • Elite SMP Team HQ • Ledgy Server' })
           .setTimestamp();
 
         await targetMsg.edit({ embeds: [ledgyEmbed] });
@@ -69,9 +69,9 @@ client.once('clientReady', async () => {
       const annMsg = await annCh.messages.fetch('1557855883005001819').catch(() => null);
       if (annMsg && annMsg.embeds.length > 0) {
         const emb = EmbedBuilder.from(annMsg.embeds[0]);
-        emb.setTitle('🛡️ THE HALF LIFE\'S • ELITE SMP OPERATIONS');
+        emb.setTitle('✨ THE LIGHT BEARERS • ELITE SMP OPERATIONS');
         emb.setDescription(
-          `Welcome to the official squad headquarters for **The Half Life's** on **Elite SMP by Ledgy**!\n\n` +
+          `Welcome to the official squad headquarters for **The Light Bearers** on **Elite SMP by Ledgy**!\n\n` +
           `📌 **Clan Quick Links:**\n` +
           `• **Team Rules & Code:** <#1557855862146465922>\n` +
           `• **Clan Creed:** <#1557863770792136774>\n` +
@@ -79,7 +79,7 @@ client.once('clientReady', async () => {
           `• **Server IP & Info:** <#1557858903927169034>\n` +
           `• **Chat & Comms:** <#1557855867897127054>`
         );
-        emb.setFooter({ text: 'The Half Lifes • Elite SMP Clan HQ • Est. 2026' });
+        emb.setFooter({ text: 'The Light Bearers • Elite SMP Clan HQ • Est. 2026' });
         await annMsg.edit({ embeds: [emb] });
         console.log('[Restore] ✅ Restored Ledgy Elite SMP footer and intro in #📢・𝖠nnouncements!');
       }

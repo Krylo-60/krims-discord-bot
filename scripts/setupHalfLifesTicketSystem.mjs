@@ -80,9 +80,9 @@ if (!chFaq) {
 const avatarUrl = client.user.displayAvatarURL({ extension: 'png', size: 512 });
 
 const ticketEmbed = new EmbedBuilder()
-  .setTitle('🛡️ The Half Life\'s — Clan Command & Ticket Desk')
+  .setTitle('✨ The Light Bearers — Clan Command & Ticket Desk')
   .setDescription(
-    `Welcome to the official **Clan Support & Dispatch Center** for **The Half Life's**!\n\n` +
+    `Welcome to the official **Clan Support & Dispatch Center** for **The Light Bearers [TLB]**!\n\n` +
     `Need a private discussion with Clan Leadership, need to report an urgent base security emergency, or want to requisition war gear and supplies?\n\n` +
     `Click a button below to open an **isolated private ticket channel** with Team Leader **St1llkill3r**, Co-Leader **Krylo**, and Clan Command.\n\n` +
     `**🛡️ Available Departments:**\n` +
@@ -91,9 +91,9 @@ const ticketEmbed = new EmbedBuilder()
     `• **⚔️ Gear & Supply Requisition:** Kits, totems, potions, and mining materials.\n` +
     `• **❓ General Clan Support:** Verification issues, role questions, and squad info.`
   )
-  .setColor(0x00F2FF)
+  .setColor(0xFFD700)
   .setThumbnail(avatarUrl)
-  .setFooter({ text: 'The Half Life\'s Clan Command • Powered by Krims Bot v5.3', iconURL: avatarUrl })
+  .setFooter({ text: 'The Light Bearers Clan Command • Powered by Krims Bot v5.3', iconURL: avatarUrl })
   .setTimestamp();
 
 const ticketButtons = new ActionRowBuilder().addComponents(
@@ -132,9 +132,9 @@ console.log('  ✅ Dispatched Clan Ticket Panel to #' + chTicket.name);
 
 // 5. Dispatch Clan FAQ Embed
 const faqEmbed = new EmbedBuilder()
-  .setTitle('❓ The Half Life\'s — Official Clan Handbook & FAQ')
+  .setTitle('✨ The Light Bearers — Official Clan Handbook & FAQ')
   .setDescription(
-    `Everything you need to know about dominating on **Ledgy\'s Elite SMP** with **The Half Life\'s**:\n\n` +
+    `Everything you need to know about dominating on **Ledgy\'s Elite SMP** with **The Light Bearers [TLB]**:\n\n` +
     `**🌐 1. Server Connection Info**\n` +
     `• **Java Edition IP:** \`EliteSmp.gg\`\n` +
     `• **Bedrock Edition IP:** \`Mc.eliteSmp.gg\` | Port: \`19132\`\n` +
@@ -156,7 +156,7 @@ const faqEmbed = new EmbedBuilder()
   )
   .setColor(0xFFD700)
   .setThumbnail(avatarUrl)
-  .setFooter({ text: 'The Half Life\'s • Victory Through Unity', iconURL: avatarUrl })
+  .setFooter({ text: 'The Light Bearers • Victory Through Unity', iconURL: avatarUrl })
   .setTimestamp();
 
 try {
@@ -169,6 +169,6 @@ try {
 await chFaq.send({ embeds: [faqEmbed] });
 console.log('  ✅ Dispatched Clan FAQ to #' + chFaq.name);
 
-console.log('\n[+] Completed Half Life\'s Ticket System & Clan Guide Setup!');
+console.log('\n[+] Completed The Light Bearers Ticket System & Clan Guide Setup!');
 await client.destroy();
 process.exit(0);

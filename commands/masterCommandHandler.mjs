@@ -409,7 +409,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
             `2. No waiting for offline teammates — climb the high score anytime!\n` +
             `3. If any teammate joins in and counts, AI mode automatically pauses so the real squad takes over! 👥`
           )
-          .setFooter({ text: 'The Half Lifes • AI Counting Partner' })
+          .setFooter({ text: 'The Light Bearers • AI Counting Partner' })
           .setTimestamp();
 
         return await interaction.reply({ embeds: [aiEmbed] });
@@ -813,7 +813,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
             `2. No waiting for offline teammates — climb the high score anytime!\n` +
             `3. If any teammate joins in and counts, AI mode automatically pauses so the real squad takes over! 👥`
           )
-          .setFooter({ text: 'The Half Lifes • AI Counting Partner' })
+          .setFooter({ text: 'The Light Bearers • AI Counting Partner' })
           .setTimestamp();
 
         return await interaction.reply({ embeds: [aiEmbed] });
@@ -3425,12 +3425,12 @@ if (commandName === 'pay' || commandName === 'tip' || commandName === 'gift') {
           `• ${emojiMap.krims_core?.tag || '🧠'} \`:krims_core:\` — Neural Core Emblem\n` +
           `• ${emojiMap.krims_support?.tag || '🛡️'} \`:krims_support:\` — Support & Community\n` +
           `• ${emojiMap.krims_server?.tag || '🌐'} \`:krims_server:\` — Official Support Server Badge\n` +
-          `• ${emojiMap.krims_shield?.tag || '🛡️'} \`:krims_shield:\` — The Half Life's Clan Shield\n\n` +
+          `• ${emojiMap.krims_shield?.tag || '🛡️'} \`:krims_shield:\` — The Light Bearers Clan Shield\n\n` +
           `### 💎 ECONOMY & GAMING\n` +
           `• ${emojiMap.krims_coin?.tag || '🪙'} \`:krims_coin:\` — KryloCoin (KC) Currency\n` +
           `• ${emojiMap.krims_diamond?.tag || '💎'} \`:krims_diamond:\` — Cyber Diamond Gem\n` +
           `• ${emojiMap.krims_sword?.tag || '⚔️'} \`:krims_sword:\` — Netherite Combat Sword\n` +
-          `• ${emojiMap.krims_heart?.tag || '❤️'} \`:krims_heart:\` — Half-Life Vitality Heart\n` +
+          `• ${emojiMap.krims_heart?.tag || '❤️'} \`:krims_heart:\` — Vitality Heart\n` +
           `• ${emojiMap.krims_fire?.tag || '🔥'} \`:krims_fire:\` — Neural Flame / Hot Streak\n\n` +
           `### ⚡ BADGES & ENGINEERING\n` +
           `• ${emojiMap.krims_crown?.tag || '👑'} \`:krims_crown:\` — Executive Crown\n` +

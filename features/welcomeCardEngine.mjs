@@ -1,5 +1,5 @@
 /**
- * 🛡️ The Half Life's Elite Welcome Card Engine
+ * ✨ The Light Bearers (TLB) Elite Welcome Card Engine
  * Generates dynamic, dual-phase welcome cards:
  *   - Phase 1: On member join -> Displays Discord handle, member #, and "⏳ PENDING MINECRAFT IGN"
  *   - Phase 2: On IGN drop in #📋・𝖱oster -> Live-edits the original welcome message with 3D skin head & "✅ VERIFIED SMP ROSTER"

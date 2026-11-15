@@ -72,7 +72,7 @@ const DEFAULT_SERVER_FACTS = {
     { key: 'server_identity', value: "Krims Code AI Official Headquarters — Central hub for AI development, Discord bot fleet, coding, and multi-bot network." },
     { key: 'founder_and_boss', value: "Krylo (krylo_plays / KryloMCYT, Discord ID: 1414143825538191373) is the Founder, Mastermind, and Supreme Creator of Krims Code AI." }
   ],
-  // The Light Bearers (formerly The Half Life's) Elite SMP Guild Server
+  // The Light Bearers (TLB) Elite SMP Guild Server
   '1557852594242719775': [
     { key: 'team_identity', value: 'The Light Bearers (TLB) — Noble Minecraft SMP guild dedicated to being a light in the dark, building underground sanctuaries, defending members against griefers, and trading resources as a united team.' },
     { key: 'team_leader', value: 'Jonesy / st1LLkill3r (IGN: st1LLkill3r) is the official Guild Leader of The Light Bearers.' },

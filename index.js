@@ -1420,13 +1420,13 @@ client.once('ready', async () => {
     }
 
     // Sync Guild-Specific Command Suite for The Light Bearers (TLB)
-    const halfLifesGuild = client.guilds.cache.get(HALF_LIFES_GUILD_ID);
-    if (halfLifesGuild) {
-      await halfLifesGuild.commands.create(HALF_LIFES_PING_COMMAND_DEF).catch(e => console.warn('[HalfLifes Cmd] Register notice:', e.message));
-      await halfLifesGuild.commands.create(ELITE_SMP_COMMAND_DEFINITION).catch(e => console.warn('[TLB Cmd] Register notice:', e.message));
+    const tlbGuild = client.guilds.cache.get(HALF_LIFES_GUILD_ID);
+    if (tlbGuild) {
+      await tlbGuild.commands.create(HALF_LIFES_PING_COMMAND_DEF).catch(e => console.warn('[TLB Cmd] Register notice:', e.message));
+      await tlbGuild.commands.create(ELITE_SMP_COMMAND_DEFINITION).catch(e => console.warn('[TLB Cmd] Register notice:', e.message));
       console.log('[+] Guild-specific /pingroles and /elitesmp synced exclusively to The Light Bearers (TLB)!');
     }
-    console.log('[+] Slash commands registered globally & locally in Skybase and The Half Lifes!');
+    console.log('[+] Slash commands registered globally & locally in Skybase and The Light Bearers (TLB)!');
 
   // Sync persistent platform updates to Discord
   try {
@@ -2061,7 +2061,7 @@ client.on('interactionCreate', async (interaction) => {
     return await handleVideoCrewInteraction(interaction);
   }
 
-  // ⚔️ Handle The Half Life's Clan Team Application Interactions
+  // ⚔️ Handle The Light Bearers (TLB) Clan Team Application Interactions
   if (
     (interaction.isButton() && (
       interaction.customId === 'btn_open_clan_app_modal' ||
@@ -2117,7 +2117,7 @@ client.on('interactionCreate', async (interaction) => {
     const { customId } = interaction;
     console.log(`[Button Click] customId: "${customId}" by ${interaction.user?.tag} (${interaction.user?.id}) in ${interaction.guild?.name || 'DM'}`);
 
-    // 🔔 The Half Lifes Clan Ping & Notification Preference Buttons
+    // 🔔 The Light Bearers Clan Ping & Notification Preference Buttons
     if (customId.startsWith('btn_ping_')) {
       return await handlePingRoleButton(interaction);
     }
@@ -2279,7 +2279,7 @@ client.on('interactionCreate', async (interaction) => {
       return;
     }
 
-    // 🛡️ The Half Life's Clan Command - Interactive Ticket Buttons (Trigger Modal Popup)
+    // 🛡️ The Light Bearers Clan Command - Interactive Ticket Buttons (Trigger Modal Popup)
     if (customId.startsWith('halflife_ticket_')) {
       const deptMap = {
         'halflife_ticket_leadership': {
@@ -4284,7 +4284,7 @@ client.on('interactionCreate', async (interaction) => {
       });
     }
 
-    // 🛡️ The Half Life's Clan Command - Modal Ticket Submission Handler
+    // 🛡️ The Light Bearers Clan Command - Modal Ticket Submission Handler
     if (customId.startsWith('modal_halflife_ticket_')) {
       await interaction.deferReply({ ephemeral: true });
       const deptMap = {
@@ -5113,7 +5113,7 @@ client.on('interactionCreate', async (interaction) => {
     return await handleDiwaliCommand(interaction, true);
   }
 
-  // 🔔 Guild-Specific Command: /pingroles for The Half Lifes
+  // 🔔 Guild-Specific Command: /pingroles for The Light Bearers
   if (interaction.commandName === 'pingroles') {
     return await handlePingRolesSlashCommand(interaction);
   }
@@ -8117,7 +8117,7 @@ client.on('interactionCreate', async (interaction) => {
             '• **Perks:** +10% Exp Boost for all members!'
           )
 
-          .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'The Half Lifes'} Clan System 🏰` })
+          .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'The Light Bearers'} Clan System 🏰` })
           .setTimestamp();
 
         await interaction.editReply({ embeds: [clanEmbed] });
@@ -8157,7 +8157,7 @@ client.on('interactionCreate', async (interaction) => {
           .setColor(0xFF0055)
           .setTitle(`💥 CLAN DISBANDED: [${disbandedTag}] ${disbandedName}`)
           .setDescription(`The clan **[${disbandedTag}] ${disbandedName}** has been permanently disbanded by <@${userId}>. Its private role & text channel have been removed.`)
-          .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'The Half Lifes'} Clan System 🏰` })
+          .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'The Light Bearers'} Clan System 🏰` })
           .setTimestamp();
 
         await interaction.reply({ embeds: [disbandEmbed] });
@@ -8298,7 +8298,7 @@ client.on('interactionCreate', async (interaction) => {
             `• **Clan Leader:** <@${userClan.leaderId}>\n` +
             `• **Active Members:** **${userClan.members.length}**`
           )
-          .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'The Half Lifes'} Clan Vault 🏰` })
+          .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'The Light Bearers'} Clan Vault 🏰` })
           .setTimestamp();
 
         await interaction.reply({ embeds: [depositEmbed] });
@@ -8328,7 +8328,7 @@ client.on('interactionCreate', async (interaction) => {
             { name: '🎭 Clan Role', value: userClan.roleId ? `<@&${userClan.roleId}>` : 'None', inline: true },
             { name: '💬 Private Channel', value: userClan.channelId ? `<#${userClan.channelId}>` : 'None', inline: true }
           )
-          .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'The Half Lifes'} Clan System 🏰` })
+          .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'The Light Bearers'} Clan System 🏰` })
           .setTimestamp();
 
         await interaction.reply({ embeds: [infoEmbed] });
@@ -8347,7 +8347,7 @@ client.on('interactionCreate', async (interaction) => {
           .setColor(0xFFAA00)
           .setTitle('🏰 TOP CLANS LEADERBOARD')
           .setDescription(desc)
-          .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'The Half Lifes'} Top Clans 🏆` })
+          .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'The Light Bearers'} Top Clans 🏆` })
           .setTimestamp();
 
         await interaction.reply({ embeds: [lbEmbed] });
@@ -8420,7 +8420,7 @@ if (commandName === 'bounty') {
         .setTitle('🎯 BOUNTY PLACED')
         .setColor(0x00FF66)
         .setDescription(`**${interaction.user.username}** placed a **${amount.toLocaleString()} KC** bounty on **${target.username}**! 🎯\n\n**Total Bounty on ${target.username}**: **${(currentBounty + amount).toLocaleString()} KC**`)
-        .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'The Half Lifes'} Bounty System` })
+        .setFooter({ text: `${(interaction?.guild || message?.guild)?.name || 'The Light Bearers'} Bounty System` })
         .setTimestamp();
     
     await interaction.reply({ embeds: [embed] });
@@ -9202,7 +9202,7 @@ client.on('messageCreate', async (message) => {
             `2. No waiting for offline teammates — climb the high score anytime!\n` +
             `3. If any teammate joins in and counts, AI mode automatically pauses so the real squad takes over! 👥`
           )
-          .setFooter({ text: 'The Half Lifes • AI Counting Partner' })
+          .setFooter({ text: 'The Light Bearers • AI Counting Partner' })
           .setTimestamp();
 
         return message.reply({ embeds: [aiEmbed] });
@@ -9442,16 +9442,18 @@ client.on('messageCreate', async (message) => {
       lowerMsg === '!halflifes' ||
       lowerMsg === '!hl' ||
       lowerMsg === '!krylo' ||
+      lowerMsg === ':tlb:' ||
+      lowerMsg === ':lightbearers:' ||
       lowerMsg === ':halflifes:' ||
       lowerMsg === ':krylo:'
     ) {
       const gifUrl = 'https://krims-discord-bot-d57m.onrender.com/gifs/the_half_lifes.gif';
       const embed = new EmbedBuilder()
-        .setColor(0x00FF88)
-        .setTitle('⚡ THE HALF LIFES ⚡')
+        .setColor(0xFFD700)
+        .setTitle('✨ THE LIGHT BEARERS ✨')
         .setDescription('👑 **Official Squad Animation** • Domination on Minecraft SMP\n🔗 [Open High-Res GIF](' + gifUrl + ')')
         .setImage(gifUrl)
-        .setFooter({ text: 'The Half Lifes • Free Animated GIF (No Nitro Needed!)' });
+        .setFooter({ text: 'The Light Bearers • Free Animated GIF (No Nitro Needed!)' });
       return message.reply({ embeds: [embed] });
     }
   }
@@ -12055,13 +12057,13 @@ async function generateWelcomeCard(avatarUrl, username, memberCount) {
 }
 
 client.on('guildMemberAdd', async (member) => {
-  // 🛡️ The Half Life's Clan Operative Arrival Terminal System
-  if (member.guild.id === HALF_LIFES_GUILD_ID || member.guild.name.toLowerCase().includes('half')) {
+  // ✨ The Light Bearers (TLB) Clan Operative Arrival Terminal System
+  if (member.guild.id === HALF_LIFES_GUILD_ID || member.guild.name.toLowerCase().includes('light') || member.guild.name.toLowerCase().includes('bearer') || member.guild.name.toLowerCase().includes('half')) {
     try {
       await checkAndAssignApprovedRecruit(member);
       await handleGuildMemberAddWelcome(member);
     } catch (err) {
-      console.warn('[HalfLifes Welcome] Error handling member join:', err.message);
+      console.warn('[TLB Welcome] Error handling member join:', err.message);
     }
     return;
   }

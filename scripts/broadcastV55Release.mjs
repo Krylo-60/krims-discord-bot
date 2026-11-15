@@ -11,8 +11,8 @@ const client = new Client({
 // Target Announcement Channels
 const ANNOUNCEMENT_CHANNELS = [
   { name: 'Krims Support Updates', channelId: '1561175627799994402' },
-  { name: 'Half Lifes Progress', channelId: '1559253426368548894' },
-  { name: 'Half Lifes Server Updates', channelId: '1557863149389095064' }
+  { name: 'Light Bearers Progress', channelId: '1559253426368548894' },
+  { name: 'Light Bearers Server Updates', channelId: '1557863149389095064' }
 ];
 
 // Target Server Owners

@@ -660,7 +660,7 @@ export async function handleCountingMessage(message) {
           .setColor(0x38BDF8)
           .setTitle('👥 SQUAD TAKEOVER!')
           .setDescription(`**${message.author.displayName || message.author.username}** joined the counting arena! AI Counting Partner mode paused so the squad can count together!`)
-          .setFooter({ text: 'The Half Lifes • Team Counting' });
+          .setFooter({ text: 'The Light Bearers • Team Counting' });
         await message.channel.send({ embeds: [takeoverEmbed] });
       } catch (_) {}
     } else {

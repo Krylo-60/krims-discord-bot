@@ -12,7 +12,7 @@ c.once('clientReady', async () => {
     const scripCh = await g.channels.fetch('1559664953705893898').catch(() => null);
     if (scripCh) {
       await scripCh.setName('📖・𝗌𝖼𝗋𝗂𝗉𝗍𝗎𝗋𝖾-𝗏𝖾𝗋𝗌𝖾');
-      await scripCh.setTopic('📖 Daily Scripture & Fellowship • Faith, brotherhood, and daily reflections for The Half Life\'s.');
+      await scripCh.setTopic('📖 Daily Scripture & Fellowship • Faith, brotherhood, and daily reflections for The Light Bearers.');
       console.log('✅ Scripture channel polished');
     }
 
@@ -41,7 +41,7 @@ c.once('clientReady', async () => {
     const bountyCh = await g.channels.fetch('1558113541729558578').catch(() => null);
     if (bountyCh) {
       const bountyEmbed = new EmbedBuilder()
-        .setTitle('🎯 THE HALF LIFE\'S • OFFICIAL BOUNTY BOARD & HIT LIST')
+        .setTitle('🎯 THE LIGHT BEARERS • OFFICIAL BOUNTY BOARD & HIT LIST')
         .setDescription(
           'Below is the high-priority syndicate bounty ledger posted by Clan Command (<@1533703991882416373> & <@1414143825538191373>).\n\n' +
           'Operatives who locate, neutralize, and confirm eliminations of these high-value targets will receive direct vault payout rewards upon submitting proof to Clan Command.'
@@ -77,7 +77,7 @@ c.once('clientReady', async () => {
           }
         ])
         .setColor(0xFF1E27)
-        .setFooter({ text: 'The Half Life\'s Clan Warfare • High-Value Targets Ledger' })
+        .setFooter({ text: 'The Light Bearers Clan Warfare • High-Value Targets Ledger' })
         .setTimestamp();
 
       const bountyMsg = await bountyCh.send({ embeds: [bountyEmbed] });

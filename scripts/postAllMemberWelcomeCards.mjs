@@ -48,7 +48,7 @@ for (const m of clanMembers) {
     mcHeadUrl,
     username: m.ign,
     memberCount: m.orderNum,
-    serverName: "THE HALF LIFE'S",
+    serverName: "THE LIGHT BEARERS",
     phase: 2
   });
 

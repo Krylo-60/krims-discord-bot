@@ -9,7 +9,7 @@ import { handleRosterIgnWelcomeUpdate } from './welcomeCardEngine.mjs';
 
 // Protected Leadership & Admin IDs that must NEVER have their nickname modified by auto-sync
 export const PROTECTED_MEMBER_IDS = new Set([
-  '1533703991882416373', // Jonesy / st1LLkill3r (The Half Life's Clan Leader)
+  '1533703991882416373', // Jonesy / st1LLkill3r (The Light Bearers Clan Leader)
   '1414143825538191373', // Krylo / KryloMCYT (Supreme Creator & Co-Leader)
 ]);
 

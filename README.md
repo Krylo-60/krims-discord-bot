@@ -9,7 +9,7 @@
 [![Founder](https://img.shields.io/badge/Founder-krylo__plays-FFD700?logo=discord&logoColor=black)](#-leadership--ownership)
 [![License](https://img.shields.io/badge/License-Proprietary%20%7C%20All%20Rights%20Reserved-FF0055.svg)](#-license)
 
-**Krims Code AI** is an advanced, autonomous multi-bot Discord operations platform engineered by **Krylo** (`krylo_plays` / `KryloMCYT`) and **Krims Code Studio**. It powers competitive Minecraft SMP team headquarters (**The Half Life's**) and content studios (**Krylo's Skybase**) with dual-phase adaptive welcome cards, real-time Cloudflare SMP synchronization, persistent multi-turn conversational memory, automated Minecraft roster linking, and enterprise VIP intelligence.
+**Krims Code AI** is an advanced, autonomous multi-bot Discord operations platform engineered by **Krylo** (`krylo_plays` / `KryloMCYT`) and **Krims Code Studio**. It powers competitive Minecraft SMP team headquarters (**The Light Bearers [TLB]**) and content studios (**Krylo's Skybase**) with dual-phase adaptive welcome cards, real-time Cloudflare SMP synchronization, persistent multi-turn conversational memory, automated Minecraft roster linking, and enterprise VIP intelligence.
 
 ---
 
@@ -32,7 +32,7 @@ The ecosystem runs as a coordinated fleet of specialized bot instances, each tai
 Directly integrated with the official **Elite SMP** (`elitesmp.gg`) live Cloudflare Worker API:
 * **Live Team Leaderboard:** Fetches real-time kills, treasuries, member counts, and clan stages directly from `elite-smp-leaderboard.smpcurios.workers.dev/leaderboard`.
   * Top Rivals: **VenomX** (#1, 182 kills, Top Player `ODYSSEAS12345`) and **Team_Rocket** (#2, 181 kills, Top Player `Jamkeju`, Treasury `$511k`).
-  * Official Clan Ally: **BAT** (#6, Top Player `.acesbedoya`) — officially partnered with **The Half Life's**!
+  * Official Clan Ally: **BAT** (#6, Top Player `.acesbedoya`) — officially partnered with **The Light Bearers [TLB]**!
 * **Cross-Play Connection Hub (`/elitesmp join`):** Live server addresses and port guides for Java (`elitesmp.gg:25565`) and Bedrock (`elitesmp.gg:19132`, prefix `.`, spaces as `_`).
 * **In-Game Rules & Mechanics (`/elitesmp rules` & `/elitesmp wiki`):** Full guides on raiding permissions (100% legal), combat tagging (15s combat log instant death), grace periods, and weekly legendary kits.
 * **Custom Spawner Crafting (`/elitesmp craftings`):** In-game recipes for Skeleton, Zombie, Spider, Cave Spider, and Magma Cube spawners.
@@ -44,8 +44,8 @@ Shared SQLite-backed dialogue memory giving both bots deep contextual awareness:
 * **Multi-Turn Memory:** Bots remember the last 6+ messages exchanged in the channel. Follow-up queries (*"and who leads it?"* or *"what about them?"*) work naturally without re-explaining context.
 * **Server Knowledge Seeding:** Automatically stores and recalls server facts, clan creeds, builder assignments, and alliance logs.
 * **Grounded Leadership Recognition:**
-  * **Team Leader:** `st1llkill3r` — Official Leader of The Half Life's clan in Elite SMP.
-  * **Team Co-Leader & Supreme Owner:** `krylo_plays` (`KryloMCYT` / `1414143825538191373`) — Official Co-Leader of The Half Life's and Supreme Founder of Krims Code.
+  * **Team Leader:** `st1llkill3r` (Jonesy) — Official Leader of The Light Bearers clan in Elite SMP.
+  * **Team Co-Leader & Supreme Owner:** `krylo_plays` (`KryloMCYT` / `1414143825538191373`) — Official Co-Leader of The Light Bearers and Supreme Founder of Krims Code.
   * **Lead Builder & Redstone Engineer:** `CrazyCoolCam`
   * **Official Ally:** `BAT`
 * **Supreme Founder Clearance:** Automatically salutes Krylo (`krylo_plays`) with 100% loyalty and recognizes his **Lifetime Founder License ($0.00 Free Forever)**.
@@ -62,7 +62,7 @@ Engineered as an all-in-one VIP upgrade that includes **everything from the main
 
 ---
 
-### 🛡️ 4. The Half Life's Elite Clan Operations
+### 🛡️ 4. The Light Bearers [TLB] Elite Clan Operations
 * **Dual-Phase Adaptive Welcome Cards:**
   * **Phase 1 (Arrival):** Generates a custom Dark Cyber welcome card in `#👋・𝖶elcome` with member count and `⏳ PENDING MINECRAFT IGN`.
   * **Phase 2 (Roster Verified):** When an operative posts their IGN in `#📋・𝖱oster`, the bot **live-edits the original welcome message in real time**, attaching their 3D Minecraft skin head badge and updating their status to `✅ VERIFIED SMP ROSTER`.
@@ -143,8 +143,8 @@ All primary commands can be triggered with the standard `!` prefix across both b
 ## 👑 Leadership & Ownership
 
 * **Creator & Supreme Founder:** **Krylo** (`krylo_plays` / `KryloMCYT` / `st1llkill3r` — User ID: `1414143825538191373`)
-* **The Half Life's Clan Leader:** `st1llkill3r`
-* **The Half Life's Clan Co-Leader:** `krylo_plays`
+* **The Light Bearers [TLB] Clan Leader:** `st1llkill3r` (Jonesy)
+* **The Light Bearers [TLB] Clan Co-Leader:** `krylo_plays` (Krylo 亗)
 * **Development Studio:** **Krims Code Studio**
 
 ---

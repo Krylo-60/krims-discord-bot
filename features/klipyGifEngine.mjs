@@ -27,11 +27,11 @@ export async function searchKlipy(query, type = 'gifs', limit = 15) {
     else if (Array.isArray(data?.results)) items = data.results;
 
     const lowerQ = (query || '').toLowerCase();
-    if (lowerQ.includes('krylo') || lowerQ.includes('half') || lowerQ.includes('clan')) {
+    if (lowerQ.includes('krylo') || lowerQ.includes('light') || lowerQ.includes('tlb') || lowerQ.includes('clan')) {
       items.unshift({
-        title: '⚡ The Half Lifes Clan Animation • Krylo_MC 👑',
+        title: '✨ The Light Bearers Clan Animation • Krylo 👑',
         url: 'https://krims-discord-bot-d57m.onrender.com/gifs/the_half_lifes.gif',
-        slug: 'the-half-lifes-clan-gif'
+        slug: 'the-light-bearers-clan-gif'
       });
     }
 
