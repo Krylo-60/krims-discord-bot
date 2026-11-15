@@ -1334,7 +1334,6 @@ client.once('ready', async () => {
   try {
     checkAndTriggerGABroadcast(client);
     setInterval(() => checkAndTriggerGABroadcast(client), 60 * 1000);
-    broadcastManualModeAnnouncement(client);
   } catch (gaErr) {
     console.warn('[TimeGatedRelease] Engine notice:', gaErr.message);
   }
