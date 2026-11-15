@@ -660,7 +660,7 @@ export async function handleCountingMessage(message) {
           .setColor(0x38BDF8)
           .setTitle('👥 SQUAD TAKEOVER!')
           .setDescription(`**${message.author.displayName || message.author.username}** joined the counting arena! AI Counting Partner mode paused so the squad can count together!`)
-          .setFooter({ text: 'The Light Bearers • Team Counting' });
+          .setFooter({ text: `${message.guild?.name || 'Community'} • Team Counting` });
         await message.channel.send({ embeds: [takeoverEmbed] });
       } catch (_) {}
     } else {
@@ -777,7 +777,7 @@ export async function handleStickyMessage(message) {
       .setColor(0x00D8F6)
       .setTitle('📌 Channel Notice')
       .setDescription(stickText)
-      .setFooter({ text: 'KryloSMP Community Engine • Auto-Sticky' })
+      .setFooter({ text: `${message.guild?.name || 'Community'} • Auto-Sticky` })
       .setTimestamp();
 
     const sent = await message.channel.send({ embeds: [embed] });

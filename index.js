@@ -9231,7 +9231,7 @@ client.on('messageCreate', async (message) => {
             `2. No waiting for offline teammates — climb the high score anytime!\n` +
             `3. If any teammate joins in and counts, AI mode automatically pauses so the real squad takes over! 👥`
           )
-          .setFooter({ text: 'The Light Bearers • AI Counting Partner' })
+          .setFooter({ text: `${message.guild?.name || 'Krims Code AI'} • AI Counting Partner` })
           .setTimestamp();
 
         return message.reply({ embeds: [aiEmbed] });

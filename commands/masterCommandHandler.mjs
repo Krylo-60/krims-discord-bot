@@ -409,7 +409,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
             `2. No waiting for offline teammates — climb the high score anytime!\n` +
             `3. If any teammate joins in and counts, AI mode automatically pauses so the real squad takes over! 👥`
           )
-          .setFooter({ text: 'The Light Bearers • AI Counting Partner' })
+          .setFooter({ text: `${interaction.guild?.name || 'Krims Code AI'} • AI Counting Partner` })
           .setTimestamp();
 
         return await interaction.reply({ embeds: [aiEmbed] });
@@ -813,7 +813,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
             `2. No waiting for offline teammates — climb the high score anytime!\n` +
             `3. If any teammate joins in and counts, AI mode automatically pauses so the real squad takes over! 👥`
           )
-          .setFooter({ text: 'The Light Bearers • AI Counting Partner' })
+          .setFooter({ text: `${interaction.guild?.name || 'Krims Code AI'} • AI Counting Partner` })
           .setTimestamp();
 
         return await interaction.reply({ embeds: [aiEmbed] });
