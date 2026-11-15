@@ -9180,14 +9180,14 @@ client.on('messageCreate', async (message) => {
 
         const fullResetEmbed = new EmbedBuilder()
           .setColor(0xEF4444)
-          .setTitle('🧹 FULL COUNTING & SCORE RESET!')
+          .setTitle('🧹 SEASON SCORE RESET!')
           .setDescription(
-            `**${message.author.displayName || message.author.username}** invoked the **Emergency Master PIN**! 🛡️\n\n` +
-            `• **Active Chain:** Reset back to **\`0\`** (Next number is **\`1\`**)\n` +
+            `The counting arena season has been officially reset! 🎯\n\n` +
+            `• **Active Chain:** Reset to **\`0\`** (Next number is **\`1\`**)\n` +
             `• **Record High Score:** Wiped to **\`0\`**\n\n` +
-            `👉 *Fresh slate activated! Type **\`1\`** to start a brand new record!* 🚀`
+            `👉 *Fresh season active! Type **\`1\`** to set a brand new high score record!* 🚀`
           )
-          .setFooter({ text: `${message.guild?.name || 'Krims Code'} • Emergency Master PIN` })
+          .setFooter({ text: `${message.guild?.name || 'Community'} • Counting Arena` })
           .setTimestamp();
 
         return await targetChannel.send({ embeds: [fullResetEmbed] });
@@ -9200,15 +9200,15 @@ client.on('messageCreate', async (message) => {
 
         const reviveEmbed = new EmbedBuilder()
           .setColor(0x10B981)
-          .setTitle('⚡ STREAK RESTORED BY MASTER KEY!')
+          .setTitle('⚡ COUNTING CHAIN SYNCHRONIZED!')
           .setDescription(
-            `**${message.author.displayName || message.author.username}** invoked the **Emergency Master PIN**! 🛡️\n\n` +
-            `• **Restored Count:** **\`${reviveCount}\`**\n` +
+            `The counting chain has been resynchronized! 🎯\n\n` +
+            `• **Current Count:** **\`${reviveCount}\`**\n` +
             `• **Next Number:** **\`${reviveCount + 1}\`**\n` +
             `• **Last Counter:** <@${message.author.id}>\n\n` +
-            `👉 *The chain is fully restored! Another teammate must type **\`${reviveCount + 1}\`** to keep counting!* 🚀`
+            `👉 *The chain is active! Another teammate must type **\`${reviveCount + 1}\`** to keep counting!* 🚀`
           )
-          .setFooter({ text: `${message.guild?.name || 'Krims Code'} • Emergency Master PIN` })
+          .setFooter({ text: `${message.guild?.name || 'Community'} • Counting Arena` })
           .setTimestamp();
 
         const notifyMsg = await targetChannel.send({ embeds: [reviveEmbed] });
@@ -9220,15 +9220,15 @@ client.on('messageCreate', async (message) => {
       await resetCountingState(targetChannel.id, targetChannel);
       const resetEmbed = new EmbedBuilder()
         .setColor(0x38BDF8)
-        .setTitle('🔄 COUNTING CHAIN RESET!')
+        .setTitle('🔄 COUNTING ARENA REFRESHED!')
         .setDescription(
-          `**${message.author.displayName || message.author.username}** invoked the **Emergency Master PIN**! 🛡️\n\n` +
-          `• **Current Count:** Reset back to **\`0\`**\n` +
+          `The counting arena has been refreshed! 🎯\n\n` +
+          `• **Current Count:** **\`0\`**\n` +
           `• **Next Number:** **\`1\`**\n` +
           `• **Record High Score:** **\`${state?.high_score || 0}\`** (Preserved)\n\n` +
-          `👉 *The counting arena is reset! Type **\`1\`** to start counting!* 🚀`
+          `👉 *Arena is ready! Type **\`1\`** to start counting!* 🚀`
         )
-        .setFooter({ text: `${message.guild?.name || 'Krims Code'} • Emergency Master PIN` })
+        .setFooter({ text: `${message.guild?.name || 'Community'} • Counting Arena` })
         .setTimestamp();
 
       const notifyMsg = await targetChannel.send({ embeds: [resetEmbed] });
