@@ -120,7 +120,7 @@ export async function initTelegramBot() {
         .text('💎 Check Balance', 'action_balance')
         .text('🎁 Claim Daily Kr', 'action_daily')
         .row()
-        .url('🎮 Join Discord Server', 'https://discord.gg/uB93g9Hrhh')
+        .url('🎮 Join Discord Server', 'https://discord.gg/sYaVJtXgQb')
         .url('🌐 Open Web Dashboard', 'https://krims-bot-dashboard.vercel.app');
 
       const welcomeMsg = 
