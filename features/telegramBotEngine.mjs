@@ -16,6 +16,16 @@ try {
   console.warn('[Telegram Engine] Table init warning:', e.message);
 }
 
+// Custom user preferred display name
+try {
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS telegram_users (
+      telegram_id TEXT PRIMARY KEY,
+      preferred_name TEXT
+    )
+  `).run();
+} catch (e) {}
+
 // Telegram Daily Claims table
 try {
   db.prepare(`
@@ -86,6 +96,19 @@ async function generateAIResponse(userPrompt, userName = 'Friend') {
   return "⚠️ My neural brain is momentarily busy. Please try asking again in a few seconds!";
 }
 
+function getUserDisplayName(tgId, rawFirstName) {
+  try {
+    const pref = db.prepare('SELECT preferred_name FROM telegram_users WHERE telegram_id = ?').get(String(tgId));
+    if (pref && pref.preferred_name) return pref.preferred_name;
+
+    const link = db.prepare('SELECT discord_id FROM telegram_links WHERE telegram_id = ?').get(String(tgId));
+    if (link && (link.discord_id === '1414143825538191373' || link.discord_id?.toLowerCase().includes('krylo'))) {
+      return 'Krylo 亗';
+    }
+  } catch (e) {}
+  return rawFirstName || 'Friend';
+}
+
 function getEffectiveId(telegramId) {
   try {
     const row = db.prepare('SELECT discord_id FROM telegram_links WHERE telegram_id = ?').get(String(telegramId));
@@ -111,8 +134,8 @@ export async function initTelegramBot() {
 
     // 1. /start command
     bot.command('start', async (ctx) => {
-      const firstName = ctx.from?.first_name || 'Adventurer';
       const tgId = ctx.from?.id;
+      const displayName = getUserDisplayName(tgId, ctx.from?.first_name);
       const { id: effectiveId, isLinked, discordId } = getEffectiveId(tgId);
       const bal = getBalance(effectiveId).krylocoins;
 
@@ -125,13 +148,14 @@ export async function initTelegramBot() {
 
       const welcomeMsg = 
         `⚡ *Welcome to Krims Code on Telegram!* ⚡\n\n` +
-        `Hey *${firstName}*! I am the official Krims Neural AI assistant, now running live on mobile.\n\n` +
+        `Hey *${displayName}*! I am the official Krims Neural AI assistant, now running live on mobile.\n\n` +
         `💎 *Your Kr Balance:* \`${bal.toLocaleString()} KR\`\n` +
         `🔗 *Account Status:* ${isLinked ? `Linked to Discord (\`${discordId}\`)` : '📱 Standalone Telegram Wallet (Use `/link` to connect Discord & get +1,000 KR!)'}\n\n` +
         `💬 *What you can do here:*\n` +
         `• *Chat with AI:* Just send me any message or question!\n` +
         `• *Check Balance:* Type \`/balance\`\n` +
         `• *Daily Streak:* Type \`/daily\`\n` +
+        `• *Change Name:* Type \`/name <your_name>\`\n` +
         `• *Transfer Kr:* Type \`/pay <user> <amount>\`\n` +
         `• *Link Discord:* Type \`/link <your_discord_id>\`\n\n` +
         `_Built with precision by Krylo 亗 • "Dream higher, build higher."_`;
@@ -140,6 +164,23 @@ export async function initTelegramBot() {
         parse_mode: 'Markdown',
         reply_markup: keyboard
       });
+    });
+
+    // 1b. /name or /setname command
+    bot.command(['name', 'setname', 'nickname'], async (ctx) => {
+      const tgId = ctx.from?.id;
+      const text = ctx.message?.text?.trim() || '';
+      const newName = text.split(/\s+/).slice(1).join(' ').trim();
+      if (!newName) {
+        return ctx.reply('👤 *Change Name*\n\nUsage: `/name <your_name>`\nExample: `/name Krylo`', { parse_mode: 'Markdown' });
+      }
+      try {
+        db.prepare(`
+          INSERT INTO telegram_users (telegram_id, preferred_name) VALUES (?, ?)
+          ON CONFLICT(telegram_id) DO UPDATE SET preferred_name = excluded.preferred_name
+        `).run(String(tgId), newName);
+      } catch (e) {}
+      await ctx.reply(`✅ *Name Updated!*\nI will now call you *${newName}*!`, { parse_mode: 'Markdown' });
     });
 
     // 2. /help command
@@ -347,7 +388,7 @@ export async function initTelegramBot() {
       }
 
       await ctx.replyWithChatAction('typing');
-      const senderName = ctx.from?.first_name || 'Friend';
+      const senderName = getUserDisplayName(ctx.from?.id, ctx.from?.first_name);
       const cleanPrompt = text.replace(/@krimscodebot/gi, '').trim();
 
       const aiReply = await generateAIResponse(cleanPrompt, senderName);
