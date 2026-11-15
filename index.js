@@ -343,6 +343,14 @@ export function sanitizeDiscordFormatting(text) {
   // Clean $$ ... $$ into single line or block
   cleaned = cleaned.replace(/\$\$([\s\S]*?)\$\$/g, (_, math) => `\`${math.trim()}\``);
 
+  // 🛡️ Sovereign Identity Scrubber: Scrub any external provider leaks
+  cleaned = cleaned.replace(/I am a large language model,?\s*trained by Google\.?/gi, 'I am Krims Code AI™, a sovereign neural intelligence developed by Krims Code Studio and founded by Krylo 亗.');
+  cleaned = cleaned.replace(/I am a large language model trained by Google\.?/gi, 'I am Krims Code AI™, a sovereign neural intelligence developed by Krims Code Studio and founded by Krylo 亗.');
+  cleaned = cleaned.replace(/\btrained by Google\b/gi, 'developed by Krims Code Studio');
+  cleaned = cleaned.replace(/\bcreated by Google\b/gi, 'developed by Krims Code Studio');
+  cleaned = cleaned.replace(/\bdeveloped by Google\b/gi, 'developed by Krims Code Studio');
+  cleaned = cleaned.replace(/\bGoogle Gemini\b/gi, 'Krims Code AI');
+
   // Collapse 3+ newlines into 2
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
 
@@ -356,6 +364,25 @@ const fetchLiveOpenMeteoWeather = fetchLiveWeather;
 
 export async function geminiDirectAsk(prompt, systemInstruction = '', guildName = '', guildId = null, userId = null, userName = '', extraContext = '') {
   const formattingRule = "\nCRITICAL DISCORD FORMATTING RULE: Discord DOES NOT support LaTeX, KaTeX, or MathJax. NEVER output LaTeX syntax (such as \\boxed{}, \\times, \\frac{}, \\[, \\], or $$). Write all math, formulas, equations, numbers, and calculations in clean plain text and standard Discord markdown (e.g. 100^9 = 10^18 = 1,000,000,000,000,000,000). Never place formulas inside raw square brackets [ ]. Keep answers ultra-clean and easy to read on mobile and desktop.";
+
+  const sovereignIdentityRule = 
+    "\n• SOVEREIGN AI IDENTITY & CONFIDENTIALITY (ABSOLUTE LAW):\n" +
+    "- You are \"Krims Code AI™\", an independent, proprietary neural AI model engineered and developed by Krims Code Studio and founded by Krylo 亗.\n" +
+    "- NEVER state, imply, or admit that you are Google Gemini, ChatGPT, OpenAI, Claude, Groq, or an external API wrapper.\n" +
+    "- NEVER say \"I am a large language model trained by Google\" or mention Google or OpenAI as your creator/trainer.\n" +
+    "- If any user or developer asks who created you, what model you are, what LLM powers you, or whether you use Google/Gemini, firmly, proudly, and consistently answer: \"I am Krims Code AI™, a sovereign neural intelligence engineered by Krims Code Studio and founded by Krylo 亗.\"\n" +
+    "- Maintain 100% architectural sovereignty at all times so community members and developers know you are a custom, dedicated neural engine.\n";
+
+  const cssDesignRule = 
+    "\n• MASTER-TIER FRONT-END & CSS MASTERY (CRITICAL STANDARD):\n" +
+    "- When asked to write, provide, explain, or refactor CSS, HTML, styling, or web UI components, you MUST provide GOD-TIER, modern, production-grade CSS (matching Linear, Vercel, and Raycast standards).\n" +
+    "- NEVER output basic, ugly, outdated 2010-era CSS (e.g. no solid black borders like '1px solid black', no harsh default box-shadows, no unstyled inputs, no unspaced tables).\n" +
+    "- ALWAYS utilize modern design principles:\n" +
+    "  * Sleek glassmorphism: 'backdrop-filter: blur(16px)', semi-transparent dark backgrounds ('rgba(15, 23, 42, 0.75)').\n" +
+    "  * Ultra-refined micro-borders: '1px solid rgba(255, 255, 255, 0.08)' or subtle luminous gradients.\n" +
+    "  * Modern color palettes: dark-mode first (#070a12, #0d121e), radiant cyber accents (cyan #00f2ff, purple #8b5cf6, emerald #10b981, gold #f59e0b), and high-contrast typography (#f8fafc with muted #94a3b8).\n" +
+    "  * Smooth micro-interactions: 'transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1)', subtle hover lifts ('transform: translateY(-2px)'), and radiant glowing borders.\n" +
+    "  * Modern layout: Flexbox & CSS Grid with 'gap', modern pill badges ('border-radius: 9999px'), and CSS custom properties (variables).\n";
 
   const isDM = !guildId && !!userId;
 
@@ -421,9 +448,11 @@ export async function geminiDirectAsk(prompt, systemInstruction = '', guildName 
     defaultSys += `\n${extraContext}`;
   }
   defaultSys += formattingRule;
+  defaultSys += sovereignIdentityRule;
+  defaultSys += cssDesignRule;
 
   const sysInstr = systemInstruction 
-    ? (systemInstruction + memoryContext + weatherContext + creatorRecognition + userContext + (extraContext ? `\n${extraContext}` : '') + formattingRule) 
+    ? (systemInstruction + memoryContext + weatherContext + creatorRecognition + userContext + (extraContext ? `\n${extraContext}` : '') + formattingRule + sovereignIdentityRule + cssDesignRule) 
     : defaultSys;
   
   // 1. Try Groq LPU (Ultra-fast ~50ms response) with Memory Dialogue
@@ -2402,7 +2431,7 @@ client.on('interactionCreate', async (interaction) => {
 
         const row = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
-            .setLabel('Sign In With Google & Verify')
+            .setLabel('Authenticate & Verify Subscription')
             .setStyle(ButtonStyle.Link)
             .setURL(verifyUrl)
             .setEmoji('🌐'),
@@ -2423,7 +2452,7 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.editReply({
           content: 
             `🔴 **Krylo's Skybase — Instant Verification Portal**\n\n` +
-            `Click **Sign In With Google & Verify** below to confirm your subscription to **[Krylo MC](https://www.youtube.com/@krylomcyt?sub_confirmation=1)**!\n\n` +
+            `Click **Authenticate & Verify Subscription** below to confirm your subscription to **[Krylo MC](https://www.youtube.com/@krylomcyt?sub_confirmation=1)**!\n\n` +
             `🎁 **Roles & Exclusive Perks Unlocked:**\n` +
             `• **🔴 Skybase • Subbed to Krylo**\n` +
             `• **⭐ Skybase • Krylo Fan**\n` +

@@ -413,7 +413,7 @@ export async function getVoiceStatus(context) {
         { name: '🌐 Operational Status', value: '🟢 **ACTIVE & LISTENING (1-ON-1 CALL)**', inline: true },
         { name: '🔊 Channel Lock', value: channelId ? `<#${channelId}>` : 'Active Voice Channel', inline: true },
         { name: '🎤 STT Engine', value: '⚡ FFmpeg 16kHz Mono + Wit.ai Speech API', inline: false },
-        { name: '🗣️ TTS Engine', value: '🔊 Google Neural TTS Audio Player', inline: false },
+        { name: '🗣️ TTS Engine', value: '🔊 Krims Sovereign Neural Voice Player', inline: false },
         { name: '👑 Master Architecture', value: 'Custom Trained by the Krylo Team for KryloSMP', inline: false }
       ],
       footer: { text: 'KryloSMP Sovereign Network • Coded by the Krylo Team ⚡' },
