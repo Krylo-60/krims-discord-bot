@@ -43,7 +43,13 @@ const ROLE_ADMIN = '1538228602687078492';
 const ROLE_MOD = '1538228604859879435';
 
 export const ksmpClient = new Client({
-  intents: [GatewayIntentBits.Guilds]
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildPresences,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ]
 });
 
 let globalMasterClient = null;
