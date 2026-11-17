@@ -84,9 +84,7 @@ export function determineRankFromMember(member) {
   if (roleNames.some(r => r.includes('vip'))) {
     return 'vip';
   }
-  if (roleNames.some(r => r.includes('verified'))) {
-    return 'verified';
-  }
+  // Verified role is Discord-only; in-game verified defaults to normal player rank
   return 'default';
 }
 
