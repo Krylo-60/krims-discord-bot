@@ -29,6 +29,17 @@ export async function diagnoseAndIsolateBug(error, origin = 'Runtime Exception')
 
   const errorMsg = error.message || String(error);
   const errorStack = error.stack || 'No stack trace available';
+
+  // Suppress non-critical transient background network/polling conflicts (e.g. rolling deploy overlap)
+  if (
+    errorMsg.includes('409: Conflict') || 
+    errorMsg.includes('terminated by other getUpdates') ||
+    errorMsg.includes('WebSocket connection closed') ||
+    errorMsg.includes('ECONNRESET')
+  ) {
+    console.warn(`[AI Self-Healing] Suppressed transient network/polling event (${origin}): ${errorMsg}`);
+    return;
+  }
   
   // Fingerprint error to prevent duplicate spam
   const errorHash = crypto.createHash('md5').update(`${errorMsg}_${errorStack.slice(0, 150)}`).digest('hex');

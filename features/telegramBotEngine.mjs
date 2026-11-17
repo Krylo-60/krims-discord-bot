@@ -402,10 +402,23 @@ export async function initTelegramBot() {
       console.error('[Telegram Bot Error]', err.message || err);
     });
 
-    // Start long-polling
+    // Start long-polling with conflict backoff & recovery
     bot.start({
+      drop_pending_updates: true,
       onStart: (info) => {
         console.log(`✈️ [Telegram] ✅ Bot connected successfully as @${info.username} (${info.id})!`);
+      }
+    }).catch(async (pollingErr) => {
+      const errMsg = pollingErr.message || String(pollingErr);
+      if (errMsg.includes('409') || errMsg.includes('terminated by other getUpdates')) {
+        console.warn('⚠️ [Telegram] 409 Conflict during instance transition. Retrying in 15s...');
+        setTimeout(() => {
+          try {
+            bot.start({ drop_pending_updates: true }).catch(e => console.warn('[Telegram Reconnect Notice]', e.message));
+          } catch (_) {}
+        }, 15000);
+      } else {
+        console.error('❌ [Telegram] Polling stopped:', errMsg);
       }
     });
 

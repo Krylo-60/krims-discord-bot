@@ -356,7 +356,7 @@ export class MultiBotManager {
    * Attach the Krims Code AI Brain (Gemini chat, leveling, about commands)
    */
   attachBrain(client, config) {
-    const { guildId, aiPersona, activityName } = config;
+    const { guildId, aiPersona, activityName, customPrefix = '!' } = config;
 
     client.once('ready', () => {
       try {
@@ -455,7 +455,7 @@ export class MultiBotManager {
       } catch (_) {}
 
       const cleanText = message.content.trim().toLowerCase();
-      const p = (customPrefix || '!').toLowerCase();
+      const p = (config?.customPrefix || (typeof customPrefix !== 'undefined' ? customPrefix : '!')).toLowerCase();
 
       // Exclusive: Baby Phoenix Den Engine (Only active for Baby Phoenix in Phoenix Den)
       // Exclusive: Mini's Cool Roblox Server Engine (Only active for Mini X in Mini's server)
@@ -658,7 +658,7 @@ export class MultiBotManager {
       }
 
       // B. Welcome Card Test Trigger (!testwelcome or !welcome)
-      if (cleanText === '!testwelcome' || cleanText === '!welcome' || cleanText === `${(customPrefix || '!').toLowerCase()}testwelcome`) {
+      if (cleanText === '!testwelcome' || cleanText === '!welcome' || cleanText === `${p}testwelcome`) {
         const isOwnerOrAdmin = message.author.id === '1414143825538191373' || 
           message.member?.permissions?.has(1n << 3n) || // ADMINISTRATOR
           message.member?.permissions?.has(1n << 5n);   // MANAGE_GUILD
