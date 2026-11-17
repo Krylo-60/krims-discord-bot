@@ -23,6 +23,7 @@ import {
   handleDiwaliButton
 } from './features/diwaliFestivalEngine.mjs';
 import { checkAndTriggerGABroadcast, sendOwnerScheduleOverviewDM, broadcastManualModeAnnouncement } from './features/timeGatedReleaseEngine.mjs';
+import { startKsmpBot } from './features/kryloSmpBotEngine.mjs';
 /**
  * 👑 KRYLOSMP MASTER GOOGLE SHEETS:
  * 1. Support & Ticket Logs Sheet: https://docs.google.com/spreadsheets/d/1F4NRwssxFxJO58uX6CTHvXqSMoEMoLhJGRI2IeghF-g/edit?gid=377764939#gid=377764939
@@ -14803,4 +14804,9 @@ setInterval(async () => {
     console.warn(`[Keep-Alive 24/7] Heartbeat notice: ${e.message}`);
   }
 }, 300000); // Every 5 minutes
+
+// ═══════════════════════════════════════════════════════════
+// ⚡ LAUNCH KRYLOSMP SECONDARY BOT CLUSTER (CO-HOSTED ON RENDER)
+// ═══════════════════════════════════════════════════════════
+startKsmpBot().catch(err => console.error('[KSMP Engine Launch Error]:', err.message));
 
