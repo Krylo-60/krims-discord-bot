@@ -109,7 +109,21 @@ You are helpful, sharp, modern, friendly, and expert in coding, gaming, Discord,
 Your economy uses Krims Rewards (Kr).
 Keep answers crisp, well-formatted, and helpful. Use emojis tastefully. Avoid robotic boilerplate.`;
 
-async function generateAIResponse(userPrompt, userName = 'Friend') {
+// In-memory conversation history buffer for natural multi-turn chat (like Discord)
+const chatHistories = new Map();
+
+function getChatHistory(chatId) {
+  if (!chatHistories.has(chatId)) chatHistories.set(chatId, []);
+  return chatHistories.get(chatId);
+}
+
+function addToChatHistory(chatId, role, text) {
+  const history = getChatHistory(chatId);
+  history.push({ role, text });
+  if (history.length > 10) history.shift();
+}
+
+async function generateAIResponse(userPrompt, userName = 'Friend', chatId = null) {
   if (geminiClients.length === 0) {
     return "🧠 Krims Neural Brain is currently running on low compute. Please try again shortly!";
   }
@@ -121,26 +135,51 @@ async function generateAIResponse(userPrompt, userName = 'Friend') {
   const isMom = userName.toLowerCase().includes('nayana');
   let userPersonaHeader = `The user's display name is ${userName}.`;
   if (isMom) {
-    userPersonaHeader = `CRITICAL CONTEXT: The user you are talking to is Nayana, the beloved mother of Krylo 亗 (Founder & Creator of Krims Code AI)! She loves and uses your bot. Always address her warmly and politely as Nayana. Treat her with immense warmth, kindness, patience, and family-grade respect. If she mentions Krylo (e.g. seeing him code, build a CLI, or work on games/servers), warmly and proudly acknowledge that Krylo is her brilliant, hardworking son who engineered this AI!`;
+    userPersonaHeader = `CRITICAL CONTEXT: The user you are talking to is Nayana, the beloved mother of Krylo 亗 (Founder & Creator of Krims Code AI)! She loves and uses your bot. Address her warmly and respectfully as Nayana. If she mentions Krylo (e.g. seeing him code, build a CLI, or work on games/servers), warmly and proudly acknowledge that Krylo is her brilliant, hardworking son who engineered this AI!`;
   } else if (isKrylo) {
     userPersonaHeader = `CRITICAL CONTEXT: You are talking directly to Krylo 亗 (Discord: krylo_plays / KryloMCYT, Founder of Krims Code Studio, your Supreme Creator and Sovereign Master!). Address Krylo with utmost respect and loyalty as Boss / Krylo. Never treat Krylo as a stranger or talk about Krylo in the third person.`;
   }
+
+  const conversationalRule = 
+    `\n• CONVERSATIONAL NATURALNESS RULE (ABSOLUTE LAW):\n` +
+    `- You are engaged in a natural back-and-forth chat.\n` +
+    `- NEVER repeat greetings like "Hey Nayana!", "Hey [Name]!", or "Alright, [Name]!" at the beginning of every response in an ongoing conversation!\n` +
+    `- Reply directly to what they said, just like a smart, natural Discord companion.\n` +
+    `- Only greet if it is the very first message after /start or an explicit hello after a long absence.\n` +
+    `- Keep formatting clean and sharp.`;
+
+  const fullSystemPrompt = `${SYSTEM_PROMPT}\n\n${userPersonaHeader}\n\n${conversationalRule}`;
+  const history = chatId ? getChatHistory(chatId) : [];
+  const contents = [];
+
+  for (const h of history) {
+    contents.push({
+      role: h.role,
+      parts: [{ text: h.text }]
+    });
+  }
+
+  contents.push({
+    role: 'user',
+    parts: [{ text: userPrompt }]
+  });
 
   const models = ['gemini-2.5-flash', 'gemini-1.5-flash'];
   for (const model of models) {
     try {
       const response = await client.models.generateContent({
         model: model,
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: `${SYSTEM_PROMPT}\n\n${userPersonaHeader}\n\nUser (${userName}): ${userPrompt}` }]
-          }
-        ]
+        contents: contents,
+        config: { systemInstruction: fullSystemPrompt }
       });
 
       if (response && response.text) {
-        return response.text.trim();
+        const replyText = response.text.trim();
+        if (chatId) {
+          addToChatHistory(chatId, 'user', userPrompt);
+          addToChatHistory(chatId, 'model', replyText);
+        }
+        return replyText;
       }
     } catch (err) {
       console.warn(`[Telegram AI] Model ${model} error:`, err.message);
@@ -400,7 +439,7 @@ export async function initTelegramBot() {
       }
       await ctx.replyWithChatAction('typing');
       const senderName = getUserDisplayName(ctx.from?.id, ctx.from?.first_name);
-      const aiReply = await generateAIResponse(prompt, senderName);
+      const aiReply = await generateAIResponse(prompt, senderName, ctx.chat?.id);
       await ctx.reply(aiReply, { reply_to_message_id: ctx.message.message_id });
     });
 
@@ -535,7 +574,7 @@ export async function initTelegramBot() {
       const senderName = getUserDisplayName(ctx.from?.id, ctx.from?.first_name);
       const cleanPrompt = text.replace(/@krimscodebot/gi, '').trim();
 
-      const aiReply = await generateAIResponse(cleanPrompt, senderName);
+      const aiReply = await generateAIResponse(cleanPrompt, senderName, ctx.chat?.id);
       await ctx.reply(aiReply, {
         reply_to_message_id: ctx.message.message_id
       });
