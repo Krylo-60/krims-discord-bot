@@ -90,7 +90,8 @@ async function main() {
         `This channel is a public space for **new members and guests** to chat, ask questions, and meet the community before linking their Minecraft account.\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `### 🚀 Ready to Unlock the Full Server?\n` +
-        `• 🌐 **Server IP:** \`krylosmp.falix.gg:29273\` (Java & Bedrock)\n` +
+        `• 🔒 **Server IP:** \`Revealing Soon at Grand Launch!\`\n` +
+        `• 🚀 **Status:** Whitelisted Pre-Registration Active!\n` +
         `• 💎 **Link Reward:** Claim **+1,000 KryloCoins ($Kr)** deposited instantly!\n` +
         `• 🔓 **Access:** Gain access to all **50+ community channels & voice lounges**!\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
@@ -259,10 +260,13 @@ async function main() {
         `🎮 **HOW TO GET STARTED:**\n` +
         `1️⃣ **Read Server Rules:** Review <#1542646197100224552> to stay safe.\n` +
         `2️⃣ **Link Your Account:** Head to <#1542646204658090054> and click Sync to claim **+1,000 KryloCoins ($Kr)**!\n` +
-        `3️⃣ **Connect In-Game:** Join \`krylosmp.falix.gg:29273\` on Java or Bedrock.\n` +
+        `3️⃣ **Pre-Register for Launch:** Get whitelisted and claim starter gear!\n` +
         `4️⃣ **Explore the Web Hub:** Visit [krylosmp-store-website.vercel.app](${STORE_VERCEL_URL}) to browse ranks, worlds, and staff applications!\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `*Have fun and make new memories on KryloSMP!* 🌟`
+        `🌐 **Connection Address:**\n` +
+        `• **Server IP:** \`Revealing Soon at Grand Launch!\`\n` +
+        `• **Status:** \`Whitelisted Pre-Registration Active\`\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
       )
       .setImage(BANNER_URL)
       .setFooter({ text: 'KryloSMP • Built for Krylo 亗' })
@@ -308,7 +312,7 @@ async function main() {
         `✨ **HIGHLIGHTS & FEATURES:**\n` +
         `• ⚔️ **4 Active Gamemodes:** Lifesteal SMP, Redish BoxPvP, OneBlock, and Practice Duels!\n` +
         `• 💎 **100% Free-to-Play Economy:** Earn KryloCoins ($Kr) in-game & on Discord to unlock VIP ranks and crate keys!\n` +
-        `• 🌐 **Seamless Crossplay:** Connect on Java (1.20 - 1.21.x) or Bedrock at \`krylosmp.falix.gg:29273\`!\n` +
+        `• 🌐 **Seamless Crossplay:** Connect on Java (1.20 - 1.21.x) or Bedrock (IP reveals on Launch Day!)\n` +
         `• 🤖 **Dedicated KryloSMP Bot:** Instant account sync, nickname updates, and 24/7 ticket support!\n\n` +
         `🎁 **CLAIM +1,000 KRYLOCOINS:**\n` +
         `Head over to <#1542646204658090054> to link your account and claim your free **+1,000 Kr** starter reward!\n` +
@@ -352,9 +356,8 @@ async function main() {
         `Welcome to **KryloSMP**, the premier crossplay Minecraft community network! ⚔️\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `📡 **CONNECTION PROTOCOL:**\n` +
-        `• **Server IP:** \`krylosmp.falix.gg\`\n` +
-        `• **Java Edition Port:** \`29273\` (Default 25565 forwards)\n` +
-        `• **Bedrock Edition Port:** \`29273\`\n` +
+        `• **Server IP:** \`Revealing Soon at Grand Launch!\`\n` +
+        `• **Server Status:** \`Pre-Registration Active (Whitelisted for Launch)\`\n` +
         `• **Supported Versions:** \`1.20.x — 1.21.x\` (Native 1.21.1)\n\n` +
         `🏰 **WORLDS & GAMEMODES:**\n` +
         `• ⚔️ **Lifesteal SMP:** High-stakes survival; kill players to steal hearts.\n` +
@@ -442,8 +445,7 @@ async function main() {
         `Everything you need to know to get started on **KryloSMP**!\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `🎮 **Q: How do I join the Minecraft server?**\n` +
-        `• **Java:** Multiplayer ➔ Direct Connect / Add Server ➔ \`krylosmp.falix.gg:29273\`\n` +
-        `• **Bedrock:** Servers ➔ Add External Server ➔ IP: \`krylosmp.falix.gg\`, Port: \`29273\`\n\n` +
+        `• The official server IP address is hidden for our launch secrecy and will be revealed in <#1542646206893654067> on Launch Day! Link your account now in <#1542646204658090054> to get whitelisted!\n\n` +
         `💎 **Q: What are KryloCoins ($Kr) and how do I earn them?**\n` +
         `• KryloCoins are our free in-game & Discord currency! Earn them by linking your account (+1,000 Kr), chatting in channels, finding server bugs, and winning community events. Redeem them for real store ranks!\n\n` +
         `🛡️ **Q: How do I report a hacker or rulebreaker?**\n` +
@@ -607,19 +609,19 @@ async function main() {
       id: '1542662507406303232',
       title: '🎮 KRYLOSMP CROSSPLAY COMMUNITY HUB',
       color: 0x00F2FF,
-      desc: 'Welcome to the official **Crossplay Discussion Hub** for both Java Edition & Bedrock Edition players!\n\n• Chat about cross-platform gameplay, server events, and trading.\n• Server IP: `krylosmp.falix.gg:29273`'
+      desc: 'Welcome to the official **Crossplay Discussion Hub** for both Java Edition & Bedrock Edition players!\n\n• Chat about cross-platform gameplay, server events, and trading.\n• Server IP: Revealing Soon at Grand Launch!'
     },
     {
       id: '1542662509054402600',
       title: '☕ KRYLOSMP JAVA EDITION LOUNGE',
       color: 0xEAB308,
-      desc: 'Dedicated discussion channel for **Minecraft Java Edition** players on KryloSMP!\n\n• Discuss Java PvP mechanics, 1.8 vs 1.9+ combat, mods, and client performance.\n• Java Port: `29273` (Default 25565 forwards automatically).'
+      desc: 'Dedicated discussion channel for **Minecraft Java Edition** players on KryloSMP!\n\n• Discuss Java PvP mechanics, 1.8 vs 1.9+ combat, mods, and client performance.\n• Server address will be broadcast on Launch Day.'
     },
     {
       id: '1542662509947912252',
       title: '📱 KRYLOSMP BEDROCK EDITION LOUNGE',
       color: 0x10B981,
-      desc: 'Dedicated lounge for **Windows 10/11, iOS, Android, Xbox, PlayStation, and Switch** players!\n\n• Server IP: `krylosmp.falix.gg`\n• Bedrock Port: `29273`\n• Bedrock IGNs start with a leading dot (e.g. `.TSOKZIN13`).'
+      desc: 'Dedicated lounge for **Windows 10/11, iOS, Android, Xbox, PlayStation, and Switch** players!\n\n• Server address will be broadcast on Launch Day.\n• Bedrock IGNs start with a leading dot (e.g. `.TSOKZIN13`).'
     }
   ];
 
@@ -673,6 +675,86 @@ async function main() {
       .setFooter({ text: 'KryloSMP Combat Arena' })
       .setTimestamp();
     await ffaCh.send({ embeds: [emb] });
+  }
+
+  // 15. #✅・verify (1542646204658090054)
+  console.log('[🚀 Step 15] Upgrading #✅・verify...');
+  const verifyCh = await ksmpGuild.channels.fetch('1542646204658090054').catch(() => null);
+  if (verifyCh) {
+    const vmsgs = await verifyCh.messages.fetch({ limit: 10 }).catch(() => null);
+    if (vmsgs) {
+      for (const m of vmsgs.values()) {
+        if (m.author.id === ksmpClient.user.id || m.author.id === KRIMS_CODE_ID) {
+          await m.delete().catch(() => {});
+        }
+      }
+    }
+    const syncEmbed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('🎮 KRYLOSMP — MINECRAFT ACCOUNT SYNC & PERKS')
+      .setDescription(
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+        '🌐 **KRYLOSMP PRE-REGISTRATION IS LIVE!**\n' +
+        '• 🔒 **Server IP:** `Revealing Soon at Grand Launch!`\n' +
+        '• 🛡️ **Platform:** Full Java & Bedrock Crossplay Support\n' +
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+        '### ⚡ Why Sync Your Minecraft Account Now?\n' +
+        'Linking your Discord account to your in-game username enables automatic store fulfillment, stats tracking, and perks:\n\n' +
+        '🎁 **Perks Unlocked When Synced:**\n' +
+        '• 💰 **+1,000 KryloCoins** instant welcome bonus\n' +
+        '• 📦 **Automated In-Game Delivery** for all web store kits & ranks\n' +
+        '• 🏰 **Clan Roster & Leaderboard** integration\n' +
+        '• 🛡️ **Verified Member Role** in Discord\n\n' +
+        '### 🚀 How to Sync in 5 Seconds:\n' +
+        '1️⃣ Click the **🎮 Sync Minecraft Account** button below.\n' +
+        '2️⃣ Enter your **Minecraft In-Game Name (IGN)** in the pop-up modal.\n' +
+        '3️⃣ That\'s it! Your account is instantly linked and whitelisted.\n\n' +
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+        '*Need assistance? Open a support ticket in <#1542646331502366760>!*'
+      )
+      .setImage(BANNER_URL)
+      .setFooter({ text: 'KryloSMP Account Sync Engine • Whitelisting Active ⚡' })
+      .setTimestamp();
+
+    const syncRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('btn_ksmp_verify_modal')
+        .setLabel('🎮 Sync Minecraft Account (+1,000 Kr)')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setLabel('🛒 Web Store')
+        .setStyle(ButtonStyle.Link)
+        .setURL(STORE_VERCEL_URL)
+    );
+
+    const platformEmbed = new EmbedBuilder()
+      .setColor(0x5865F2)
+      .setTitle('🎮 CHOOSE YOUR MINECRAFT PLATFORM')
+      .setDescription(
+        'Select your Minecraft edition to unlock platform-specific alerts, chat badges, and guides:\n\n' +
+        '• ☕ **Java Edition:** PC / Mac / Linux (1.20.x — 1.21.x)\n' +
+        '• 📱 **Bedrock Edition:** Mobile / Console / Windows 10/11\n\n' +
+        '*(Official server IP will be revealed in announcements on launch day!)*\n\n' +
+        '*Click the buttons below to claim or toggle your platform roles!*'
+      )
+      .setFooter({ text: 'KryloSMP Crossplay Protocol • Java & Bedrock 1.21.x ⚡' });
+
+    const platformRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('btn_ksmp_role_java')
+        .setLabel('☕ Java Player')
+        .setEmoji('☕')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('btn_ksmp_role_bedrock')
+        .setLabel('📱 Bedrock Player')
+        .setEmoji('📱')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+    await verifyCh.send({ embeds: [syncEmbed], components: [syncRow] });
+    await verifyCh.send({ embeds: [platformEmbed], components: [platformRow] });
+    console.log('  ✅ Deployed hidden IP sync and platform panels in #✅・verify');
   }
 
   console.log('\n🎉 ALL KRIMS CODE MESSAGES PURGED AND REPLACED WITH KRYLOSMP BOT EMBEDS!');

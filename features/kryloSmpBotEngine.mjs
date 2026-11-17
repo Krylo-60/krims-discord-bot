@@ -521,7 +521,7 @@ export async function deployOfficialPanels(force = false) {
           .setTitle('🎫 KRYLOSMP 24/7 SUPPORT & HELP CENTER')
           .setAuthor({
             name: '👑 KryloSMP Executive Support Protocol',
-            iconURL: 'https://mc-heads.net/avatar/KryloMCYT/64'
+            iconURL: ticketChannel.guild?.iconURL() || ksmpClient.user?.displayAvatarURL() || 'https://cdn.discordapp.com/icons/1538225337048236082/71b673a19efeeb1581b81563f155455f.png'
           })
           .setDescription(
             '━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
@@ -632,11 +632,11 @@ export async function deployOfficialPanels(force = false) {
           .setTitle('🎮 KRYLOSMP — MINECRAFT ACCOUNT SYNC & PERKS')
           .setDescription(
             '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
-            '🌐 **SERVER IS 100% PUBLIC FOR EVERYONE TO JOIN!**\n' +
-            '• **Server IP:** `krylosmp.falix.gg`\n' +
-            '• **Port (Java & Bedrock):** `29273`\n' +
+            '🌐 **KRYLOSMP PRE-REGISTRATION IS LIVE!**\n' +
+            '• 🔒 **Server IP:** `Revealing Soon at Grand Launch!`\n' +
+            '• 🛡️ **Platform:** Full Java & Bedrock Crossplay Support\n' +
             '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
-            '### ⚡ Why Sync Your Minecraft Account?\n' +
+            '### ⚡ Why Sync Your Minecraft Account Now?\n' +
             'Linking your Discord account to your in-game username enables automatic store fulfillment, stats tracking, and perks:\n\n' +
             '🎁 **Perks Unlocked When Synced:**\n' +
             '• 💰 **+1,000 KryloCoins** instant welcome bonus\n' +
@@ -646,11 +646,11 @@ export async function deployOfficialPanels(force = false) {
             '### 🚀 How to Sync in 5 Seconds:\n' +
             '1️⃣ Click the **🎮 Sync Minecraft Account** button below.\n' +
             '2️⃣ Enter your **Minecraft In-Game Name (IGN)** in the pop-up modal.\n' +
-            '3️⃣ That\'s it! Your account is instantly linked.\n\n' +
+            '3️⃣ That\'s it! Your account is instantly linked and whitelisted.\n\n' +
             '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
             '*Need assistance? Open a support ticket in <#1542646331502366760>!*'
           )
-          .setFooter({ text: 'KryloSMP Account Sync Engine • Free Public Server ⚡' })
+          .setFooter({ text: 'KryloSMP Account Sync Engine • Whitelisting Active ⚡' })
           .setTimestamp();
 
         const syncRow = new ActionRowBuilder().addComponents(
@@ -669,8 +669,9 @@ export async function deployOfficialPanels(force = false) {
           .setTitle('🎮 CHOOSE YOUR MINECRAFT PLATFORM')
           .setDescription(
             'Select your Minecraft edition to unlock platform-specific alerts, chat badges, and guides:\n\n' +
-            '• ☕ **Java Edition:** PC / Mac / Linux players (`krylosmp.falix.gg:29273`)\n' +
-            '• 📱 **Bedrock Edition:** Mobile / Console / Windows 10 (`krylosmp.falix.gg:29273`)\n\n' +
+            '• ☕ **Java Edition:** PC / Mac / Linux (1.20.x — 1.21.x)\n' +
+            '• 📱 **Bedrock Edition:** Mobile / Console / Windows 10/11\n\n' +
+            '*(Official server IP will be revealed in announcements on launch day!)*\n\n' +
             '*Click the buttons below to claim or toggle your platform roles!*'
           )
           .setFooter({ text: 'KryloSMP Crossplay Protocol • Java & Bedrock 1.21.x ⚡' });
