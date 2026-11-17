@@ -8086,7 +8086,45 @@ client.on('interactionCreate', async (interaction) => {
               },
               {
                 id: clanRole.id, // Clan Role
-                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.AttachFiles, PermissionFlagsBits.EmbedLinks]
+                allow: [
+                  PermissionFlagsBits.ViewChannel,
+                  PermissionFlagsBits.SendMessages,
+                  PermissionFlagsBits.AttachFiles,
+                  PermissionFlagsBits.EmbedLinks,
+                  PermissionFlagsBits.ReadMessageHistory
+                ]
+              },
+              {
+                id: '1538228602687078492', // ROLE_ADMIN
+                allow: [
+                  PermissionFlagsBits.ViewChannel,
+                  PermissionFlagsBits.SendMessages,
+                  PermissionFlagsBits.AttachFiles,
+                  PermissionFlagsBits.EmbedLinks,
+                  PermissionFlagsBits.ReadMessageHistory,
+                  PermissionFlagsBits.ManageMessages
+                ]
+              },
+              {
+                id: '1538228604859879435', // ROLE_MOD
+                allow: [
+                  PermissionFlagsBits.ViewChannel,
+                  PermissionFlagsBits.SendMessages,
+                  PermissionFlagsBits.AttachFiles,
+                  PermissionFlagsBits.EmbedLinks,
+                  PermissionFlagsBits.ReadMessageHistory,
+                  PermissionFlagsBits.ManageMessages
+                ]
+              },
+              {
+                id: guild.ownerId || '1414143825538191373', // Server Owner (Krylo)
+                allow: [
+                  PermissionFlagsBits.ViewChannel,
+                  PermissionFlagsBits.SendMessages,
+                  PermissionFlagsBits.ManageChannels,
+                  PermissionFlagsBits.ManageMessages,
+                  PermissionFlagsBits.ReadMessageHistory
+                ]
               }
             ]
           });

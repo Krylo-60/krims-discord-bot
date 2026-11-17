@@ -724,6 +724,7 @@ export class MultiBotManager {
       ].filter(Boolean);
 
       const textMentionRegex = new RegExp('@?(' + botNames.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\b', 'i');
+      const hasTextMention = Boolean(message.content && textMentionRegex.test(message.content));
 
       const isMentioned = !message.mentions.everyone && (hasUserMention || hasRoleMention || isReplyToBot || hasTextMention);
 

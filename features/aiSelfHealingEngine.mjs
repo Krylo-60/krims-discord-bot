@@ -110,8 +110,11 @@ Keep it concise, clear, and actionable. Do not add fluff.`;
         .setFooter({ text: 'Krims Code AI • Autonomous Self-Healing System' })
         .setTimestamp();
 
-      for (const [, guild] of clientRef.guilds.cache) {
-        const logCh = guild.channels.cache.find(c => c && c.name && (c.name.includes('staff-log') || c.name.includes('admin-log') || c.name.includes('mod-log')) && c.isTextBased());
+      // 3. Post notification ONLY to official Krims Code developer server / Krylo, NEVER to other community servers
+      const KRIMS_DEV_GUILD_ID = '1561174283294609479';
+      const devGuild = clientRef.guilds.cache.get(KRIMS_DEV_GUILD_ID);
+      if (devGuild) {
+        const logCh = devGuild.channels.cache.find(c => c && c.name && (c.name.includes('bot-alerts') || c.name.includes('dev-log') || c.name.includes('staff-log')) && c.isTextBased());
         if (logCh) {
           await logCh.send({ embeds: [logEmbed] }).catch(() => {});
         }
