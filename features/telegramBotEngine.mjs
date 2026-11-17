@@ -107,7 +107,9 @@ const SYSTEM_PROMPT = `You are Krims, an advanced autonomous neural AI assistant
 You are running natively on Telegram.
 You are helpful, sharp, modern, friendly, and expert in coding, gaming, Discord, and Telegram communities.
 Your economy uses Krims Rewards (Kr).
-Keep answers crisp, well-formatted, and helpful. Use emojis tastefully. Avoid robotic boilerplate.`;
+Keep answers crisp, conversational, and helpful. Use emojis tastefully. Avoid robotic boilerplate.
+
+• TELEGRAM FORMATTING RULE: This is Telegram mobile chat, NOT a developer markdown document. Write cleanly, warmly, and naturally. Do NOT surround every single keyword with asterisks (**). Do NOT make heavy bullet-point lists with asterisks everywhere. Write in natural, easy-to-read sentences.`;
 
 // In-memory conversation history buffer for natural multi-turn chat (like Discord)
 const chatHistories = new Map();
@@ -121,6 +123,72 @@ function addToChatHistory(chatId, role, text) {
   const history = getChatHistory(chatId);
   history.push({ role, text });
   if (history.length > 10) history.shift();
+}
+
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function formatMarkdownForTelegram(text) {
+  if (!text) return '';
+
+  // 1. Preserve code blocks
+  const codeBlocks = [];
+  let processed = text.replace(/```([a-zA-Z0-9]*)\n?([\s\S]*?)```/g, (match, lang, code) => {
+    const placeholder = `___CODE_BLOCK_${codeBlocks.length}___`;
+    codeBlocks.push(`<pre><code>${escapeHtml(code.trim())}</code></pre>`);
+    return placeholder;
+  });
+
+  // 2. Preserve inline code
+  const inlineCodes = [];
+  processed = processed.replace(/`([^`]+)`/g, (match, code) => {
+    const placeholder = `___INLINE_CODE_${inlineCodes.length}___`;
+    inlineCodes.push(`<code>${escapeHtml(code)}</code>`);
+    return placeholder;
+  });
+
+  // 3. Escape HTML in regular text
+  processed = escapeHtml(processed);
+
+  // 4. Convert **bold** to <b>bold</b>, and *italic* to <i>italic</i>
+  processed = processed.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+  processed = processed.replace(/(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)/g, '<i>$1</i>');
+  processed = processed.replace(/__(.*?)__/g, '<u>$1</u>');
+  processed = processed.replace(/~~(.*?)~~/g, '<s>$1</s>');
+
+  // 5. Restore code blocks & inline code
+  inlineCodes.forEach((html, i) => {
+    processed = processed.replace(`___INLINE_CODE_${i}___`, html);
+  });
+  codeBlocks.forEach((html, i) => {
+    processed = processed.replace(`___CODE_BLOCK_${i}___`, html);
+  });
+
+  return processed;
+}
+
+async function sendAiReply(ctx, replyText, replyToMessageId) {
+  const formattedHtml = formatMarkdownForTelegram(replyText);
+  try {
+    await ctx.reply(formattedHtml, {
+      parse_mode: 'HTML',
+      reply_to_message_id: replyToMessageId
+    });
+  } catch (htmlErr) {
+    // If Telegram HTML parsing fails, strip raw asterisks so the user never sees raw markdown syntax
+    const cleanText = replyText
+      .replace(/\*\*\*(.*?)\*\*\*/g, '$1')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/__(.*?)__/g, '$1');
+    await ctx.reply(cleanText, {
+      reply_to_message_id: replyToMessageId
+    });
+  }
 }
 
 async function generateAIResponse(userPrompt, userName = 'Friend', chatId = null) {
@@ -440,7 +508,7 @@ export async function initTelegramBot() {
       await ctx.replyWithChatAction('typing');
       const senderName = getUserDisplayName(ctx.from?.id, ctx.from?.first_name);
       const aiReply = await generateAIResponse(prompt, senderName, ctx.chat?.id);
-      await ctx.reply(aiReply, { reply_to_message_id: ctx.message.message_id });
+      await sendAiReply(ctx, aiReply, ctx.message.message_id);
     });
 
     // 7. /pay command
@@ -575,9 +643,7 @@ export async function initTelegramBot() {
       const cleanPrompt = text.replace(/@krimscodebot/gi, '').trim();
 
       const aiReply = await generateAIResponse(cleanPrompt, senderName, ctx.chat?.id);
-      await ctx.reply(aiReply, {
-        reply_to_message_id: ctx.message.message_id
-      });
+      await sendAiReply(ctx, aiReply, ctx.message.message_id);
     });
 
     // Error handling
