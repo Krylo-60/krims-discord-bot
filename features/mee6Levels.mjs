@@ -547,8 +547,16 @@ export function buildLeaderboardPayload({ guild, type = 'messages', currentUserI
 
   const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
   const desc = sorted.map(([userId, data], i) => {
-    const isOwner = userId === '1414143825538191373' || userId === guild?.ownerId;
-    const badge = isOwner ? '👑 [OWNER]' : (medals[i] || `${i + 1}.`);
+    const medal = medals[i] || `${i + 1}.`;
+    const isServerOwner = userId === guild?.ownerId || (guild?.id === '1571029700761878548' && userId === '1541508115302719512');
+    const isBotDev = userId === '1414143825538191373';
+    let roleTag = '';
+    if (isServerOwner) {
+      roleTag = ' 👑 [OWNER]';
+    } else if (isBotDev) {
+      roleTag = ' ⚡ [BOT DEV]';
+    }
+    const badge = `${medal}${roleTag}`;
     const lvl = data.level || 0;
     const xp = (data.xp || 0).toLocaleString();
     const msgs = (data.messages ?? Math.max(1, Math.floor((data.xp || 0) / 20))).toLocaleString();

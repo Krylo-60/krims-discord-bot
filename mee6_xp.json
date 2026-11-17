@@ -78,5 +78,91 @@
       "announced_level": 0,
       "messages": 1
     }
+  },
+  "1571029700761878548": {
+    "1414143825538191373": {
+      "xp": 1716,
+      "level": 6,
+      "messages": 78,
+      "username": "krylo_plays",
+      "discriminator": "0"
+    },
+    "1565838666922725376": {
+      "xp": 1826,
+      "level": 6,
+      "messages": 83,
+      "username": "dylan048618",
+      "discriminator": "0"
+    },
+    "1460831022919979066": {
+      "xp": 748,
+      "level": 3,
+      "messages": 34,
+      "username": "josh.dallas",
+      "discriminator": "0"
+    },
+    "1566164419447099614": {
+      "xp": 22,
+      "level": 0,
+      "messages": 1,
+      "username": "sweetestharprr__46711",
+      "discriminator": "0"
+    },
+    "1525597814455931030": {
+      "xp": 44,
+      "level": 0,
+      "messages": 2,
+      "username": "dalbertsaltxd_00774",
+      "discriminator": "0"
+    },
+    "1561189834415018059": {
+      "xp": 44,
+      "level": 0,
+      "messages": 2,
+      "username": "nightfall0500",
+      "discriminator": "0"
+    },
+    "1336526256879042571": {
+      "xp": 22,
+      "level": 0,
+      "messages": 1,
+      "username": "itz_ithiel",
+      "discriminator": "0"
+    },
+    "1559613905947594827": {
+      "xp": 330,
+      "level": 2,
+      "messages": 15,
+      "username": "sabo_luffybro",
+      "discriminator": "0"
+    },
+    "1534374464597262358": {
+      "xp": 22,
+      "level": 0,
+      "messages": 1,
+      "username": "phoenix_server_08262",
+      "discriminator": "0"
+    },
+    "1541508115302719512": {
+      "xp": 330,
+      "level": 2,
+      "messages": 15,
+      "username": "legend031176",
+      "discriminator": "0"
+    },
+    "1565943495980482610": {
+      "xp": 22,
+      "level": 0,
+      "messages": 1,
+      "username": "melodii.pupcake_41760",
+      "discriminator": "0"
+    },
+    "1430795688786133043": {
+      "xp": 66,
+      "level": 0,
+      "messages": 3,
+      "username": "shawtybae0180",
+      "discriminator": "0"
+    }
   }
 }
