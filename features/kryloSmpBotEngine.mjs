@@ -27,6 +27,37 @@ export const ksmpClient = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
 
+let globalMasterClient = null;
+
+export function setMasterClient(client) {
+  globalMasterClient = client;
+}
+
+async function trySetNickname(guild, memberId, newNick) {
+  if (!guild || !memberId) return false;
+  // 1. Try with Ksmp bot directly
+  try {
+    const member = await guild.members.fetch(memberId).catch(() => null);
+    if (member) {
+      await member.setNickname(newNick);
+      return true;
+    }
+  } catch (_) {}
+
+  // 2. Fallback to master client (Krims Code AI) which is at the top of the role hierarchy
+  if (globalMasterClient) {
+    try {
+      const masterGuild = await globalMasterClient.guilds.fetch(guild.id).catch(() => null);
+      const masterMember = await masterGuild?.members.fetch(memberId).catch(() => null);
+      if (masterMember) {
+        await masterMember.setNickname(newNick);
+        return true;
+      }
+    } catch (_) {}
+  }
+  return false;
+}
+
 const DATA_FILE = path.join(process.cwd(), 'linked_players.json');
 
 function loadLocalLinked() {
@@ -143,12 +174,23 @@ async function processLink(interaction, rawIgn, isModal = false) {
       await member.roles.add(rolesToAdd).catch(() => {});
     }
 
-    // Attempt nickname change
-    try {
-      if (interaction.guild?.members.me?.permissions.has(PermissionFlagsBits.ManageNicknames)) {
-        await member.setNickname(cleanIgn).catch(() => {});
-      }
-    } catch (_) {}
+    // Format nickname: "Verified | <IGN>", "Mod | <IGN>", "Admin | <IGN>", etc.
+    let prefix = 'Verified';
+    if (member.id === interaction.guild?.ownerId) {
+      prefix = 'Owner';
+    } else if (member.roles.cache.some(r => r.name.toLowerCase().includes('admin'))) {
+      prefix = 'Admin';
+    } else if (member.roles.cache.some(r => r.name.toLowerCase().includes('mod'))) {
+      prefix = 'Mod';
+    } else if (member.roles.cache.some(r => r.name.toLowerCase().includes('booster'))) {
+      prefix = 'Booster';
+    } else if (member.roles.cache.some(r => r.name.toLowerCase().includes('vip'))) {
+      prefix = 'VIP';
+    }
+    const formattedNick = `${prefix} | ${cleanIgn}`.slice(0, 32);
+
+    // Attempt nickname change (with fallback to Krims Code AI top-level permissions)
+    await trySetNickname(interaction.guild, member.id, formattedNick);
   }
 
   // 4. Send console commands to Falix
@@ -307,7 +349,10 @@ ksmpClient.on('interactionCreate', async interaction => {
   }
 });
 
-export async function startKsmpBot() {
+export async function startKsmpBot(masterClient = null) {
+  if (masterClient) {
+    globalMasterClient = masterClient;
+  }
   if (!KSMP_TOKEN) {
     console.log('[⚡ KSMP BOT ENGINE] No KSMP_BOT_TOKEN provided, skipping secondary bot launch.');
     return;

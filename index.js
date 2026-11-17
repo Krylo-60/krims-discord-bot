@@ -14808,5 +14808,5 @@ setInterval(async () => {
 // ═══════════════════════════════════════════════════════════
 // ⚡ LAUNCH KRYLOSMP SECONDARY BOT CLUSTER (CO-HOSTED ON RENDER)
 // ═══════════════════════════════════════════════════════════
-startKsmpBot().catch(err => console.error('[KSMP Engine Launch Error]:', err.message));
+startKsmpBot(client).catch(err => console.error('[KSMP Engine Launch Error]:', err.message));
 
