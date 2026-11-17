@@ -17,7 +17,7 @@ const GUILD_ID = '1538225337048236082';
 const STORE_VERCEL_URL = 'https://krylosmp-store-website.vercel.app/';
 const MAIN_PORTAL_URL = 'https://krylosmp.web.app/';
 const STORE_MIRROR_URL = 'https://krylosmp-store.web.app/';
-const BANNER_URL = 'https://krylosmp-store-website.vercel.app/official_banner.jpg';
+const BANNER_URL = 'https://krylosmp-store-website.vercel.app/official_banner_clean.jpg';
 
 const ksmpClient = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]

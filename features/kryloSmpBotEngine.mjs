@@ -535,7 +535,7 @@ export async function deployOfficialPanels(force = false) {
             '━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
             '⚡ *Our executive staff team responds in under 5 minutes!*'
           )
-          .setImage('https://krylosmp.web.app/banner.jpg')
+          .setImage('https://krylosmp.web.app/official_banner_clean.jpg')
           .setFooter({ text: 'KryloSMP Official • 24/7 Support Desk' })
           .setTimestamp();
 
