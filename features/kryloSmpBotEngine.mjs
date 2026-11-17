@@ -1416,11 +1416,10 @@ ksmpClient.on('interactionCreate', async interaction => {
     return interaction.reply({ embeds: [embed], ephemeral: true });
   }
 
-  if (interaction.commandName === 'profile') {
+      if (interaction.commandName === 'profile') {
         const targetUser = interaction.options.getUser('user') || interaction.user;
-        const users = loadLocalLinked();
-        const record = users[targetUser.id];
-        if (!record) {
+        const res = buildProfileEmbed(targetUser);
+        if (!res) {
           return interaction.reply({
             content: targetUser.id === interaction.user.id
               ? '❌ You have not linked your Minecraft account yet! Use `/link` to connect.'
@@ -1428,25 +1427,7 @@ ksmpClient.on('interactionCreate', async interaction => {
             ephemeral: true
           });
         }
-        const isBedrock = record.ign.startsWith('.');
-        const edition = isBedrock ? '📱 Bedrock Edition' : '☕ Java Edition';
-        const linkedDate = record.linkedAt ? new Date(record.linkedAt).toLocaleDateString() : 'Recently';
-
-        const profileEmbed = new EmbedBuilder()
-          .setColor(0x3B82F6)
-          .setTitle(`👤 ${record.ign}'s KryloSMP Profile`)
-          .setAuthor({ name: `${targetUser.username}'s Player Card`, iconURL: targetUser.displayAvatarURL() })
-          .setThumbnail(`https://mc-heads.net/body/${encodeURIComponent(record.ign)}/128`)
-          .addFields(
-            { name: '⛏️ In-Game Name', value: `\`${record.ign}\``, inline: true },
-            { name: '🎮 Platform', value: edition, inline: true },
-            { name: '💰 Balance', value: `\`${Number(record.balance || 0).toLocaleString()} Kr\``, inline: true },
-            { name: '📅 Member Since', value: linkedDate, inline: true },
-            { name: '🛡️ Verification Status', value: '✅ Verified Human Player', inline: true }
-          )
-          .setFooter({ text: 'KryloSMP Network • Profile System' })
-          .setTimestamp();
-        return interaction.reply({ embeds: [profileEmbed] });
+        return interaction.reply({ embeds: [res.embed], components: [res.actionRow] });
       }
 
       if (interaction.commandName === 'mc-status') {
