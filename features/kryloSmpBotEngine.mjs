@@ -521,7 +521,7 @@ export async function deployOfficialPanels(force = false) {
           .setTitle('🎫 KRYLOSMP 24/7 SUPPORT & HELP CENTER')
           .setAuthor({
             name: '👑 KryloSMP Executive Support Protocol',
-            iconURL: 'https://mc-heads.net/avatar/Krylo_MC/64'
+            iconURL: 'https://mc-heads.net/avatar/KryloMCYT/64'
           })
           .setDescription(
             '━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
