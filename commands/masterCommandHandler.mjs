@@ -1278,6 +1278,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
     }
 
     if (commandName === 'link') {
+      if (interaction.guildId === '1538225337048236082') return; // Handled exclusively by KryloSMP Bot (KryloSMP#8705)
       const isSkybase = interaction.guildId === '1549875778575929446';
       const rolesChannel = interaction.guild?.channels?.cache?.find ? interaction.guild.channels.cache.find(c => c.name.toLowerCase().includes('role')) : null;
       const embed = new EmbedBuilder()

@@ -2009,6 +2009,12 @@ async function executeGameBoostOptimization(author) {
 client.on('interactionCreate', async (interaction) => {
   // ⚡ KryloSMP Isolation: Handled exclusively by Ksmp Bot (KryloSMP#8705)
   if (interaction.guildId === '1538225337048236082') {
+    if (interaction.isChatInputCommand()) {
+      const ksmpCmds = ['link', 'unlink', 'profile', 'mc-status', 'mc-power', 'mc-command', 'verify', 'ticket', 'store'];
+      if (ksmpCmds.includes(interaction.commandName)) {
+        return; // Handled exclusively by KryloSMP Bot (KryloSMP#8705)
+      }
+    }
     const cid = interaction.customId;
     if (
       cid?.startsWith('ksmp_') ||
@@ -12232,6 +12238,24 @@ client.on('guildMemberAdd', async (member) => {
           .replace(/{user}/g, `<@${member.id}>`)
           .replace(/{server}/g, member.guild.name)
           .replace(/{count}/g, String(memberCount));
+
+        if (member.guild.id === '1538225337048236082') {
+          try {
+            const { ksmpClient } = await import('./features/kryloSmpBotEngine.mjs');
+            if (ksmpClient && ksmpClient.isReady()) {
+              const ksmpCh = await ksmpClient.channels.fetch(welcomeCh.id).catch(() => null);
+              if (ksmpCh) {
+                if (cardBuffer) {
+                  const attachment = new AttachmentBuilder(cardBuffer, { name: 'welcome-hud-card.png' });
+                  await ksmpCh.send({ content: formattedMsg, files: [attachment] }).catch(() => {});
+                } else {
+                  await ksmpCh.send({ content: formattedMsg }).catch(() => {});
+                }
+                return;
+              }
+            }
+          } catch (_) {}
+        }
 
         if (cardBuffer) {
           const attachment = new AttachmentBuilder(cardBuffer, { name: 'welcome-hud-card.png' });

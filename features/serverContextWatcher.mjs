@@ -20,6 +20,8 @@ let watcherInterval = null;
  */
 export async function scanGuildContext(guild, geminiAskFn) {
   if (!guild || !guild.available) return;
+  // ⚡ KryloSMP server is exclusively handled by KryloSMP Bot (KryloSMP#8705). Krims Code AI must never chime in.
+  if (guild.id === '1538225337048236082') return;
 
   console.log(`[ContextWatcher] 🔍 Running 30-minute contextual scan for guild: "${guild.name}" (${guild.id})...`);
 

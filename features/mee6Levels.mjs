@@ -270,6 +270,19 @@ export async function awardUserXp({ guild, user, xpGain = 20, source = 'chat', c
           .setFooter({ text: 'Krims Code AI • Progression Engine' })
           .setTimestamp();
 
+        if (guildId === '1538225337048236082') {
+          embed.setFooter({ text: 'KryloSMP • Progression Engine' });
+          try {
+            const { ksmpClient } = await import('./kryloSmpBotEngine.mjs');
+            if (ksmpClient && ksmpClient.isReady()) {
+              const ksmpCh = await ksmpClient.channels.fetch(targetChannel.id).catch(() => null);
+              if (ksmpCh) {
+                return Promise.resolve(ksmpCh.send({ embeds: [embed], allowedMentions: { users: [] } })).catch(() => {});
+              }
+            }
+          } catch (_) {}
+        }
+
         // Send WITHOUT user mention ping to keep chat clean and polite
         Promise.resolve(targetChannel.send({ embeds: [embed], allowedMentions: { users: [] } })).catch(() => {});
       }
