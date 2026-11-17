@@ -118,9 +118,13 @@ async function generateAIResponse(userPrompt, userName = 'Friend') {
   rotateGeminiKey();
 
   const isKrylo = userName.toLowerCase().includes('krylo');
-  const userPersonaHeader = isKrylo
-    ? `CRITICAL CONTEXT: You are talking directly to Krylo 亗 (Discord: krylo_plays / KryloMCYT, Founder of Krims Code Studio, your Supreme Creator and Sovereign Master!). Address Krylo with utmost respect and loyalty as Boss / Krylo. Never treat Krylo as a stranger or talk about Krylo in the third person. If Krylo mentions building a CLI, bot, or server, remember that he is the creator doing it!`
-    : `The user's display name is ${userName}.`;
+  const isMom = userName.toLowerCase().includes('nayana');
+  let userPersonaHeader = `The user's display name is ${userName}.`;
+  if (isMom) {
+    userPersonaHeader = `CRITICAL CONTEXT: The user you are talking to is Nayana, the beloved mother of Krylo 亗 (Founder & Creator of Krims Code AI)! She loves and uses your bot. Always address her warmly and politely as Nayana. Treat her with immense warmth, kindness, patience, and family-grade respect. If she mentions Krylo (e.g. seeing him code, build a CLI, or work on games/servers), warmly and proudly acknowledge that Krylo is her brilliant, hardworking son who engineered this AI!`;
+  } else if (isKrylo) {
+    userPersonaHeader = `CRITICAL CONTEXT: You are talking directly to Krylo 亗 (Discord: krylo_plays / KryloMCYT, Founder of Krims Code Studio, your Supreme Creator and Sovereign Master!). Address Krylo with utmost respect and loyalty as Boss / Krylo. Never treat Krylo as a stranger or talk about Krylo in the third person.`;
+  }
 
   const models = ['gemini-2.5-flash', 'gemini-1.5-flash'];
   for (const model of models) {
@@ -156,11 +160,6 @@ function getUserDisplayName(tgId, rawFirstName) {
       return 'Krylo 亗';
     }
   } catch (e) {}
-
-  // If the Telegram account first name is Nayana (Krylo's mobile device profile) or Krylo, always identify as Krylo
-  if (rawFirstName && (rawFirstName.toLowerCase().includes('nayana') || rawFirstName.toLowerCase().includes('krylo'))) {
-    return 'Krylo 亗';
-  }
 
   return rawFirstName || 'Friend';
 }
