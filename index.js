@@ -2007,6 +2007,24 @@ async function executeGameBoostOptimization(author) {
 
 
 client.on('interactionCreate', async (interaction) => {
+  // ⚡ KryloSMP Isolation: Handled exclusively by Ksmp Bot (KryloSMP#8705)
+  if (interaction.guildId === '1538225337048236082') {
+    const cid = interaction.customId;
+    if (
+      cid?.startsWith('ksmp_') ||
+      cid?.startsWith('btn_ksmp_') ||
+      cid?.startsWith('modal_ksmp_') ||
+      cid === 'modal_link_minecraft' ||
+      cid === 'btn_open_ticket' ||
+      cid === 'modal_open_ticket' ||
+      cid === 'btn_verify_account' ||
+      cid === 'role_platform_java' ||
+      cid === 'role_platform_bedrock'
+    ) {
+      return; // Handled exclusively by KryloSMP bot engine
+    }
+  }
+
   // 🔊 Handle Join-to-Create (JTC) Dynamic Voice Channel Controls
   if ((interaction.isButton() || interaction.isModalSubmit()) && (
     interaction.customId.startsWith('jtc_') ||

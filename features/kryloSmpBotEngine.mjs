@@ -9,7 +9,13 @@ import {
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
-  EmbedBuilder
+  EmbedBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
+  ChannelType,
+  OverwriteType
 } from 'discord.js';
 import fs from 'fs';
 import path from 'path';
@@ -22,6 +28,18 @@ dotenv.config();
 const KSMP_TOKEN = process.env.KSMP_BOT_TOKEN;
 const KSMP_CLIENT_ID = process.env.DISCORD_CLIENT_ID || '1540725967864201446';
 const KSMP_GUILD_ID = process.env.DISCORD_GUILD_ID || '1538225337048236082';
+
+const TICKET_CHANNEL_ID = '1542646331502366760'; // 🎫・support-tickets
+const VERIFY_CHANNEL_ID = '1542646204658090054'; // ✅・verify
+const SUPPORT_CATEGORY_ID = '1542646333943316652'; // ╭━━━ 🤖 BOTS & SUPPORT ━━━╮
+const KRIMS_CODE_ID = '1523794466740371586';
+
+const ROLE_VERIFIED = '1538228607644737546';
+const ROLE_MEMBER = '1538230669467979846';
+const ROLE_JAVA = '1542662169575817321';
+const ROLE_BEDROCK = '1542662171937472594';
+const ROLE_ADMIN = '1538228602687078492';
+const ROLE_MOD = '1538228604859879435';
 
 export const ksmpClient = new Client({
   intents: [GatewayIntentBits.Guilds]
@@ -127,7 +145,7 @@ async function registerCommands() {
   }
 }
 
-function formatIgnWithCapital(raw) {
+export function formatIgnWithCapital(raw) {
   if (!raw) return '';
   const trimmed = raw.trim();
   const isBedrock = trimmed.startsWith('.');
@@ -137,7 +155,7 @@ function formatIgnWithCapital(raw) {
   return (isBedrock ? '.' : '') + capitalized;
 }
 
-async function processLink(interaction, rawIgn, isModal = false) {
+export async function processLink(interaction, rawIgn, isModal = false) {
   const cleanIgn = formatIgnWithCapital(rawIgn);
 
   if (!cleanIgn || cleanIgn.length < 3 || cleanIgn.length > 16 || !/^[a-zA-Z0-9_.]+$/.test(cleanIgn)) {
@@ -171,20 +189,20 @@ async function processLink(interaction, rawIgn, isModal = false) {
   const member = interaction.member;
   if (member && member.roles) {
     const rolesToAdd = [];
-    if (!member.roles.cache.has('1538228607644737546')) rolesToAdd.push('1538228607644737546'); // Verified
-    if (!member.roles.cache.has('1538230669467979846')) rolesToAdd.push('1538230669467979846'); // Member
+    if (!member.roles.cache.has(ROLE_VERIFIED)) rolesToAdd.push(ROLE_VERIFIED);
+    if (!member.roles.cache.has(ROLE_MEMBER)) rolesToAdd.push(ROLE_MEMBER);
 
     if (cleanIgn.startsWith('.')) {
-      if (!member.roles.cache.has('1542662171937472594')) rolesToAdd.push('1542662171937472594'); // Bedrock
+      if (!member.roles.cache.has(ROLE_BEDROCK)) rolesToAdd.push(ROLE_BEDROCK);
     } else {
-      if (!member.roles.cache.has('1542662169575817321')) rolesToAdd.push('1542662169575817321'); // Java
+      if (!member.roles.cache.has(ROLE_JAVA)) rolesToAdd.push(ROLE_JAVA);
     }
 
     if (rolesToAdd.length > 0) {
       await member.roles.add(rolesToAdd).catch(() => {});
     }
 
-    // Format nickname: "Verified | <IGN>", "Mod | <IGN>", "Admin | <IGN>", etc.
+    // Format nickname: "Verified | <IGN>", "Owner | <IGN>", "Admin | <IGN>", etc.
     let prefix = 'Verified';
     if (member.id === interaction.guild?.ownerId) {
       prefix = 'Owner';
@@ -222,28 +240,558 @@ async function processLink(interaction, rawIgn, isModal = false) {
       `Hey <@${interaction.user.id}>! Your Discord account is now linked to **\`${cleanIgn}\`**!\n\n` +
       `• ⛏️ **Minecraft IGN:** \`${cleanIgn}\` (${editionTag})\n` +
       `• 💎 **Link Reward:** **+1,000 KryloCoins ($Kr)** deposited to your wallet!\n` +
-      `• 🛡️ **Roles Granted:** <@&1538228607644737546> & <@&${isBedrock ? '1542662171937472594' : '1542662169575817321'}>\n` +
+      `• 🛡️ **Roles Granted:** <@&${ROLE_VERIFIED}> & <@&${isBedrock ? ROLE_BEDROCK : ROLE_JAVA}>\n` +
       `• 🚀 **Server Status:** Pre-registered & whitelisted for server launch!\n\n` +
       `*KryloSMP is launching soon! Keep an eye on announcements for the new server IP!* 🌟`
     )
-    .setFooter({ text: 'KryloSMP • Powered by Krims Code AI' })
+    .setFooter({ text: 'KryloSMP • Official Network System' })
     .setTimestamp();
 
   return interaction.reply({ embeds: [successEmbed], ephemeral: isModal });
 }
 
-ksmpClient.on('interactionCreate', async interaction => {
-  if (interaction.isModalSubmit() && interaction.customId === 'modal_link_minecraft') {
-    const ign = interaction.fields.getTextInputValue('link_mc_ign');
-    return processLink(interaction, ign, true);
+// ═════════════════════════════════════════════════════════════════════════════
+// 🎫 SUPPORT TICKET CATEGORIES & HANDLERS
+// ═════════════════════════════════════════════════════════════════════════════
+
+export const TICKET_CATEGORIES = {
+  report: {
+    id: 'report',
+    prefix: 'report',
+    title: '🛡️ Player Report / Cheater Violation',
+    desc: 'Submit video proof of hackers or rulebreakers',
+    emoji: '🛡️',
+    color: 0xEF4444,
+    modalTitle: '🛡️ Report Rulebreaker / Cheater',
+    inputLabel: 'Player IGN and violation details',
+    inputPlaceholder: 'Rulebreaker IGN, rule broken, video/screenshot link...'
+  },
+  billing: {
+    id: 'billing',
+    prefix: 'billing',
+    title: '💎 Billing & Store Support',
+    desc: 'Questions regarding ranks, vouchers, or payments',
+    emoji: '💎',
+    color: 0x3B82F6,
+    modalTitle: '💎 Billing & Store Support',
+    inputLabel: 'Describe your payment or store inquiry',
+    inputPlaceholder: 'Transaction ID, package name, IGN, payment issue...'
+  },
+  bug: {
+    id: 'bug',
+    prefix: 'bug',
+    title: '🐛 Bug / Exploit Bounty',
+    desc: 'Report server glitches to claim massive KryloCoins!',
+    emoji: '🐛',
+    color: 0x10B981,
+    modalTitle: '🐛 Bug / Exploit Bounty Report',
+    inputLabel: 'Describe the bug / glitch and steps',
+    inputPlaceholder: 'Bug description, steps to reproduce, coordinates/proof...'
+  },
+  partner: {
+    id: 'partner',
+    prefix: 'creator',
+    title: '🤝 Creator & Partner Inquiries',
+    desc: 'Apply for Media / Content Creator rank',
+    emoji: '🤝',
+    color: 0xA855F7,
+    modalTitle: '🤝 Media & Creator Application',
+    inputLabel: 'YouTube / Twitch / TikTok channel link',
+    inputPlaceholder: 'Channel link, subscriber count, upload frequency...'
+  },
+  general: {
+    id: 'general',
+    prefix: 'general',
+    title: '❓ General Assistance',
+    desc: 'Account issues, gameplay questions, and rank recovery',
+    emoji: '❓',
+    color: 0xF59E0B,
+    modalTitle: '❓ General Assistance',
+    inputLabel: 'How can the KryloSMP staff help you?',
+    inputPlaceholder: 'Describe your question or issue in detail...'
+  }
+};
+
+async function showTicketModal(interaction, catKey) {
+  const cat = TICKET_CATEGORIES[catKey] || TICKET_CATEGORIES.general;
+  const modal = new ModalBuilder()
+    .setCustomId(`modal_ksmp_ticket_${cat.id}`)
+    .setTitle(cat.modalTitle.slice(0, 45));
+
+  const inquiryInput = new TextInputBuilder()
+    .setCustomId('ticket_inquiry')
+    .setLabel(cat.inputLabel.slice(0, 45))
+    .setStyle(TextInputStyle.Paragraph)
+    .setPlaceholder(cat.inputPlaceholder.slice(0, 100))
+    .setMinLength(5)
+    .setMaxLength(1000)
+    .setRequired(true);
+
+  modal.addComponents(new ActionRowBuilder().addComponents(inquiryInput));
+  return interaction.showModal(modal);
+}
+
+async function handleTicketModalSubmit(interaction, catKey) {
+  const cat = TICKET_CATEGORIES[catKey] || TICKET_CATEGORIES.general;
+  const inquiryText = interaction.fields.getTextInputValue('ticket_inquiry');
+
+  await interaction.deferReply({ ephemeral: true });
+
+  const guild = interaction.guild;
+  if (!guild) {
+    return interaction.editReply({ content: '❌ Tickets can only be created inside the KryloSMP Discord server.' });
   }
 
-  if (!interaction.isChatInputCommand()) return;
+  const cleanName = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15) || 'user';
+
+  // Check if user already has an active ticket
+  const existingTicket = guild.channels.cache.find(c => 
+    c.type === ChannelType.GuildText &&
+    c.name.startsWith('ticket-') &&
+    (c.topic?.includes(interaction.user.id) || c.name.endsWith(cleanName))
+  );
+
+  if (existingTicket) {
+    return interaction.editReply({
+      content: `❌ You already have an open ticket in <#${existingTicket.id}>! Please send your questions there.`
+    });
+  }
+
+  const overwrites = [
+    {
+      id: guild.roles.everyone.id,
+      type: OverwriteType.Role,
+      deny: [PermissionFlagsBits.ViewChannel]
+    },
+    {
+      id: interaction.user.id,
+      type: OverwriteType.Member,
+      allow: [
+        PermissionFlagsBits.ViewChannel,
+        PermissionFlagsBits.SendMessages,
+        PermissionFlagsBits.AttachFiles,
+        PermissionFlagsBits.EmbedLinks,
+        PermissionFlagsBits.ReadMessageHistory
+      ]
+    },
+    {
+      id: ksmpClient.user.id,
+      type: OverwriteType.Member,
+      allow: [
+        PermissionFlagsBits.ViewChannel,
+        PermissionFlagsBits.SendMessages,
+        PermissionFlagsBits.ManageChannels,
+        PermissionFlagsBits.AttachFiles,
+        PermissionFlagsBits.EmbedLinks,
+        PermissionFlagsBits.ReadMessageHistory
+      ]
+    }
+  ];
+
+  if (guild.ownerId) {
+    overwrites.push({
+      id: guild.ownerId,
+      type: OverwriteType.Member,
+      allow: [
+        PermissionFlagsBits.ViewChannel,
+        PermissionFlagsBits.SendMessages,
+        PermissionFlagsBits.AttachFiles,
+        PermissionFlagsBits.EmbedLinks,
+        PermissionFlagsBits.ReadMessageHistory
+      ]
+    });
+  }
+
+  const adminRole = guild.roles.cache.get(ROLE_ADMIN);
+  if (adminRole) {
+    overwrites.push({
+      id: adminRole.id,
+      type: OverwriteType.Role,
+      allow: [
+        PermissionFlagsBits.ViewChannel,
+        PermissionFlagsBits.SendMessages,
+        PermissionFlagsBits.AttachFiles,
+        PermissionFlagsBits.EmbedLinks,
+        PermissionFlagsBits.ReadMessageHistory
+      ]
+    });
+  }
+
+  const modRole = guild.roles.cache.get(ROLE_MOD);
+  if (modRole) {
+    overwrites.push({
+      id: modRole.id,
+      type: OverwriteType.Role,
+      allow: [
+        PermissionFlagsBits.ViewChannel,
+        PermissionFlagsBits.SendMessages,
+        PermissionFlagsBits.AttachFiles,
+        PermissionFlagsBits.EmbedLinks,
+        PermissionFlagsBits.ReadMessageHistory
+      ]
+    });
+  }
 
   try {
-    if (interaction.commandName === 'link') {
-      const ignOption = interaction.options.getString('username');
-      if (!ignOption) {
+    const channelName = `ticket-${cat.prefix}-${cleanName}`.slice(0, 32);
+    const ticketChannel = await guild.channels.create({
+      name: channelName,
+      type: ChannelType.GuildText,
+      parent: SUPPORT_CATEGORY_ID,
+      topic: `KryloSMP Support Ticket | Category: ${cat.title} | User: @${interaction.user.tag} | ID: ${interaction.user.id}`,
+      permissionOverwrites: overwrites
+    });
+
+    const ticketEmbed = new EmbedBuilder()
+      .setColor(cat.color)
+      .setTitle(`🎫 KryloSMP Support • ${cat.title}`)
+      .setAuthor({
+        name: 'KryloSMP Executive Support Desk',
+        iconURL: guild.iconURL() || interaction.user.displayAvatarURL()
+      })
+      .setDescription(
+        `Welcome <@${interaction.user.id}>! Staff has been alerted to your inquiry.\n\n` +
+        `• 📁 **Category:** ${cat.title}\n` +
+        `• 👤 **Opened By:** <@${interaction.user.id}>\n` +
+        `• 📝 **Inquiry / Details:**\n> ${inquiryText.replace(/\n/g, '\n> ')}\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `*Our staff will be with you shortly. Feel free to upload any screenshots or logs below.*`
+      )
+      .setFooter({ text: 'KryloSMP Support Core • Click Close Ticket when resolved' })
+      .setTimestamp();
+
+    const actionRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('btn_ksmp_close_ticket')
+        .setLabel('🔒 Close Ticket')
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId('btn_ksmp_claim_ticket')
+        .setLabel('🛡️ Claim Ticket')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+    const pingText = `👋 <@${interaction.user.id}> | Staff notification: <@&${ROLE_ADMIN}> <@&${ROLE_MOD}>`;
+    await ticketChannel.send({
+      content: pingText,
+      embeds: [ticketEmbed],
+      components: [actionRow]
+    });
+
+    return interaction.editReply({
+      content: `✅ **Ticket created successfully!** Please proceed to <#${ticketChannel.id}>.`
+    });
+  } catch (err) {
+    console.error('[KSMP Ticket Creation Error]:', err);
+    return interaction.editReply({
+      content: `❌ Could not create ticket channel: ${err.message}`
+    });
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 🚀 DEPLOY OFFICIAL KRYLOSMP PANELS
+// ═════════════════════════════════════════════════════════════════════════════
+
+export async function deployOfficialPanels(force = false) {
+  if (!ksmpClient.isReady()) return;
+
+  try {
+    // 1. Support Tickets Panel
+    const ticketChannel = await ksmpClient.channels.fetch(TICKET_CHANNEL_ID).catch(() => null);
+    if (ticketChannel) {
+      const msgs = await ticketChannel.messages.fetch({ limit: 10 }).catch(() => null);
+      let needsPost = force;
+      if (msgs) {
+        for (const m of msgs.values()) {
+          if (m.author.id === KRIMS_CODE_ID) {
+            await m.delete().catch(() => {});
+            needsPost = true;
+          }
+        }
+        const hasKsmpMsg = msgs.some(m => m.author.id === ksmpClient.user.id);
+        if (!hasKsmpMsg) needsPost = true;
+      } else {
+        needsPost = true;
+      }
+
+      if (needsPost) {
+        const supportEmbed = new EmbedBuilder()
+          .setColor(0x00F2FF)
+          .setTitle('🎫 KRYLOSMP 24/7 SUPPORT & HELP CENTER')
+          .setAuthor({
+            name: '👑 KryloSMP Executive Support Protocol',
+            iconURL: 'https://mc-heads.net/avatar/Krylo_MC/64'
+          })
+          .setDescription(
+            '━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+            'Need assistance from the **KryloSMP Administration Team**? Select the category matching your inquiry below to open a private encrypted ticket!\n\n' +
+            '📌 **TICKET CATEGORIES:**\n' +
+            '• 🛡️ **Player Report / Cheater Violation**: Submit video proof of hackers or rulebreakers.\n' +
+            '• 💎 **Billing & Store Support**: Questions regarding ranks, vouchers, or payments.\n' +
+            '• 🐛 **Bug / Exploit Bounty**: Report server glitches to claim massive KryloCoins!\n' +
+            '• 🤝 **Creator & Partner Inquiries**: Apply for Media / Content Creator rank.\n' +
+            '• ❓ **General Assistance**: Account issues, gameplay questions, and rank recovery.\n' +
+            '━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+            '⚡ *Our executive staff team responds in under 5 minutes!*'
+          )
+          .setImage('https://krylosmp.web.app/banner.jpg')
+          .setFooter({ text: 'KryloSMP Official • 24/7 Support Desk' })
+          .setTimestamp();
+
+        const selectRow = new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId('ksmp_ticket_select')
+            .setPlaceholder('📂 Choose a ticket category to open a ticket...')
+            .addOptions(
+              new StringSelectMenuOptionBuilder()
+                .setValue('report')
+                .setLabel('Player Report / Cheater Violation')
+                .setDescription('Submit video proof of hackers or rulebreakers')
+                .setEmoji('🛡️'),
+              new StringSelectMenuOptionBuilder()
+                .setValue('billing')
+                .setLabel('Billing & Store Support')
+                .setDescription('Questions regarding ranks, vouchers, or payments')
+                .setEmoji('💎'),
+              new StringSelectMenuOptionBuilder()
+                .setValue('bug')
+                .setLabel('Bug / Exploit Bounty')
+                .setDescription('Report server glitches to claim massive KryloCoins!')
+                .setEmoji('🐛'),
+              new StringSelectMenuOptionBuilder()
+                .setValue('partner')
+                .setLabel('Creator & Partner Inquiries')
+                .setDescription('Apply for Media / Content Creator rank')
+                .setEmoji('🤝'),
+              new StringSelectMenuOptionBuilder()
+                .setValue('general')
+                .setLabel('General Assistance')
+                .setDescription('Account issues, gameplay questions, and rank recovery')
+                .setEmoji('❓')
+            )
+        );
+
+        const buttonRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('btn_ksmp_ticket_report')
+            .setLabel('Player Report')
+            .setEmoji('🛡️')
+            .setStyle(ButtonStyle.Danger),
+          new ButtonBuilder()
+            .setCustomId('btn_ksmp_ticket_billing')
+            .setLabel('Billing & Store')
+            .setEmoji('💎')
+            .setStyle(ButtonStyle.Primary),
+          new ButtonBuilder()
+            .setCustomId('btn_ksmp_ticket_bug')
+            .setLabel('Bug Bounty')
+            .setEmoji('🐛')
+            .setStyle(ButtonStyle.Success),
+          new ButtonBuilder()
+            .setCustomId('btn_ksmp_ticket_partner')
+            .setLabel('Creator Rank')
+            .setEmoji('🤝')
+            .setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder()
+            .setCustomId('btn_ksmp_ticket_general')
+            .setLabel('General Help')
+            .setEmoji('❓')
+            .setStyle(ButtonStyle.Secondary)
+        );
+
+        await ticketChannel.send({
+          embeds: [supportEmbed],
+          components: [selectRow, buttonRow]
+        });
+        console.log('[⚡ KSMP BOT ENGINE] Official Support Panel deployed to #🎫・support-tickets');
+      }
+    }
+
+    // 2. Verification Panel
+    const verifyChannel = await ksmpClient.channels.fetch(VERIFY_CHANNEL_ID).catch(() => null);
+    if (verifyChannel) {
+      const msgs = await verifyChannel.messages.fetch({ limit: 10 }).catch(() => null);
+      let needsPost = force;
+      if (msgs) {
+        for (const m of msgs.values()) {
+          if (m.author.id === KRIMS_CODE_ID) {
+            await m.delete().catch(() => {});
+            needsPost = true;
+          }
+        }
+        const ksmpCount = msgs.filter(m => m.author.id === ksmpClient.user.id).size;
+        if (ksmpCount < 2) needsPost = true;
+      } else {
+        needsPost = true;
+      }
+
+      if (needsPost) {
+        const syncEmbed = new EmbedBuilder()
+          .setColor(0x00F2FF)
+          .setTitle('🎮 KRYLOSMP — MINECRAFT ACCOUNT SYNC & PERKS')
+          .setDescription(
+            '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+            '🌐 **SERVER IS 100% PUBLIC FOR EVERYONE TO JOIN!**\n' +
+            '• **Server IP:** `krylosmp.falix.gg`\n' +
+            '• **Port (Java & Bedrock):** `29273`\n' +
+            '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n' +
+            '### ⚡ Why Sync Your Minecraft Account?\n' +
+            'Linking your Discord account to your in-game username enables automatic store fulfillment, stats tracking, and perks:\n\n' +
+            '🎁 **Perks Unlocked When Synced:**\n' +
+            '• 💰 **+1,000 KryloCoins** instant welcome bonus\n' +
+            '• 📦 **Automated In-Game Delivery** for all web store kits & ranks\n' +
+            '• 🏰 **Clan Roster & Leaderboard** integration\n' +
+            '• 🛡️ **Verified Member Role** in Discord\n\n' +
+            '### 🚀 How to Sync in 5 Seconds:\n' +
+            '1️⃣ Click the **🎮 Sync Minecraft Account** button below.\n' +
+            '2️⃣ Enter your **Minecraft In-Game Name (IGN)** in the pop-up modal.\n' +
+            '3️⃣ That\'s it! Your account is instantly linked.\n\n' +
+            '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+            '*Need assistance? Open a support ticket in <#1542646331502366760>!*'
+          )
+          .setFooter({ text: 'KryloSMP Account Sync Engine • Free Public Server ⚡' })
+          .setTimestamp();
+
+        const syncRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('btn_ksmp_verify_modal')
+            .setLabel('🎮 Sync Minecraft Account')
+            .setStyle(ButtonStyle.Success),
+          new ButtonBuilder()
+            .setLabel('🛒 Web Store')
+            .setStyle(ButtonStyle.Link)
+            .setURL('https://krylosmp.web.app')
+        );
+
+        const platformEmbed = new EmbedBuilder()
+          .setColor(0x5865F2)
+          .setTitle('🎮 CHOOSE YOUR MINECRAFT PLATFORM')
+          .setDescription(
+            'Select your Minecraft edition to unlock platform-specific alerts, chat badges, and guides:\n\n' +
+            '• ☕ **Java Edition:** PC / Mac / Linux players (`krylosmp.falix.gg:29273`)\n' +
+            '• 📱 **Bedrock Edition:** Mobile / Console / Windows 10 (`krylosmp.falix.gg:29273`)\n\n' +
+            '*Click the buttons below to claim or toggle your platform roles!*'
+          )
+          .setFooter({ text: 'KryloSMP Crossplay Protocol • Java & Bedrock 1.21.x ⚡' });
+
+        const platformRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('btn_ksmp_role_java')
+            .setLabel('☕ Java Player')
+            .setStyle(ButtonStyle.Primary),
+          new ButtonBuilder()
+            .setCustomId('btn_ksmp_role_bedrock')
+            .setLabel('📱 Bedrock Player')
+            .setStyle(ButtonStyle.Primary)
+        );
+
+        await verifyChannel.send({ embeds: [syncEmbed], components: [syncRow] });
+        await verifyChannel.send({ embeds: [platformEmbed], components: [platformRow] });
+        console.log('[⚡ KSMP BOT ENGINE] Official Verification & Platform Panels deployed to #✅・verify');
+      }
+    }
+  } catch (err) {
+    console.warn('[⚡ KSMP BOT ENGINE] deployOfficialPanels error:', err.message);
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ⚡ INTERACTION CREATE ROUTING (KSMP BOT)
+// ═════════════════════════════════════════════════════════════════════════════
+
+ksmpClient.on('interactionCreate', async interaction => {
+  try {
+    // 1. Modal Submissions
+    if (interaction.isModalSubmit()) {
+      if (interaction.customId === 'modal_link_minecraft') {
+        const ign = interaction.fields.getTextInputValue('link_mc_ign');
+        return processLink(interaction, ign, true);
+      }
+
+      if (interaction.customId.startsWith('modal_ksmp_ticket_')) {
+        const catKey = interaction.customId.replace('modal_ksmp_ticket_', '');
+        return handleTicketModalSubmit(interaction, catKey);
+      }
+    }
+
+    // 2. Select Menus
+    if (interaction.isStringSelectMenu()) {
+      if (interaction.customId === 'ksmp_ticket_select') {
+        const chosen = interaction.values[0];
+        return showTicketModal(interaction, chosen);
+      }
+    }
+
+    // 3. Buttons
+    if (interaction.isButton()) {
+      // Direct ticket category buttons
+      if (interaction.customId.startsWith('btn_ksmp_ticket_')) {
+        const catKey = interaction.customId.replace('btn_ksmp_ticket_', '');
+        return showTicketModal(interaction, catKey);
+      }
+
+      // Close ticket button
+      if (interaction.customId === 'btn_ksmp_close_ticket') {
+        const confirmRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('btn_ksmp_confirm_close')
+            .setLabel('✅ Yes, Close & Delete')
+            .setStyle(ButtonStyle.Danger),
+          new ButtonBuilder()
+            .setCustomId('btn_ksmp_cancel_close')
+            .setLabel('❌ Cancel')
+            .setStyle(ButtonStyle.Secondary)
+        );
+        return interaction.reply({
+          content: '⚠️ **Are you sure you want to close and delete this ticket channel?**',
+          components: [confirmRow],
+          ephemeral: true
+        });
+      }
+
+      // Confirm close
+      if (interaction.customId === 'btn_ksmp_confirm_close') {
+        await interaction.update({
+          content: '🔒 Ticket confirmed closed. Deleting channel in 5 seconds...',
+          components: []
+        });
+        await interaction.channel.send(`🔒 **Ticket closed by <@${interaction.user.id}>. This channel will self-destruct in 5 seconds...**`).catch(() => {});
+        setTimeout(() => {
+          interaction.channel.delete('Ticket closed by user').catch(() => {});
+        }, 5000);
+        return;
+      }
+
+      // Cancel close
+      if (interaction.customId === 'btn_ksmp_cancel_close') {
+        return interaction.update({
+          content: 'Ticket closure cancelled.',
+          components: []
+        });
+      }
+
+      // Claim ticket
+      if (interaction.customId === 'btn_ksmp_claim_ticket') {
+        const isStaff = interaction.member?.permissions?.has(PermissionFlagsBits.ManageMessages) ||
+          interaction.member?.roles?.cache?.has(ROLE_ADMIN) ||
+          interaction.member?.roles?.cache?.has(ROLE_MOD) ||
+          interaction.user.id === interaction.guild?.ownerId;
+
+        if (!isStaff) {
+          return interaction.reply({
+            content: '❌ Only staff members can claim support tickets!',
+            ephemeral: true
+          });
+        }
+
+        return interaction.reply({
+          content: `🛡️ **<@${interaction.user.id}> has claimed this ticket!** They will be assisting with this inquiry.`
+        });
+      }
+
+      // Verification modal button
+      if (interaction.customId === 'btn_ksmp_verify_modal') {
         const modal = new ModalBuilder()
           .setCustomId('modal_link_minecraft')
           .setTitle('🎮 Link Minecraft Account');
@@ -260,99 +808,149 @@ ksmpClient.on('interactionCreate', async interaction => {
         modal.addComponents(new ActionRowBuilder().addComponents(ignInput));
         return interaction.showModal(modal);
       }
-      return processLink(interaction, ignOption, false);
+
+      // Java role toggle
+      if (interaction.customId === 'btn_ksmp_role_java') {
+        const member = interaction.member;
+        if (!member) return;
+        if (member.roles.cache.has(ROLE_JAVA)) {
+          await member.roles.remove(ROLE_JAVA).catch(() => {});
+          return interaction.reply({ content: '☕ Removed **Java Player** role.', ephemeral: true });
+        } else {
+          await member.roles.add(ROLE_JAVA).catch(() => {});
+          return interaction.reply({ content: '☕ Added **Java Player** role!', ephemeral: true });
+        }
+      }
+
+      // Bedrock role toggle
+      if (interaction.customId === 'btn_ksmp_role_bedrock') {
+        const member = interaction.member;
+        if (!member) return;
+        if (member.roles.cache.has(ROLE_BEDROCK)) {
+          await member.roles.remove(ROLE_BEDROCK).catch(() => {});
+          return interaction.reply({ content: '📱 Removed **Bedrock Player** role.', ephemeral: true });
+        } else {
+          await member.roles.add(ROLE_BEDROCK).catch(() => {});
+          return interaction.reply({ content: '📱 Added **Bedrock Player** role!', ephemeral: true });
+        }
+      }
     }
 
-    if (interaction.commandName === 'unlink') {
-      const users = loadLocalLinked();
-      const record = users[interaction.user.id];
-      if (!record) {
-        return interaction.reply({ content: "❌ You don't have any linked Minecraft account.", ephemeral: true });
-      }
-      const oldIgn = record.ign;
-      delete users[interaction.user.id];
-      saveLocalLinked(users);
-      if (interaction.member) {
-        await interaction.member.roles.remove(['1538228607644737546', '1542662169575817321', '1542662171937472594']).catch(() => {});
-      }
-      const unlinkEmbed = new EmbedBuilder()
-        .setColor(0xEF4444)
-        .setTitle('🔓 Account Unlinked')
-        .setDescription(`Your Discord has been unlinked from **\`${oldIgn}\`**.\nYou can link a new account anytime with \`/link\`!`)
-        .setFooter({ text: 'KryloSMP Network' })
-        .setTimestamp();
-      return interaction.reply({ embeds: [unlinkEmbed], ephemeral: true });
-    }
+    // 4. Slash Commands
+    if (interaction.isChatInputCommand()) {
+      if (interaction.commandName === 'link') {
+        const ignOption = interaction.options.getString('username');
+        if (!ignOption) {
+          const modal = new ModalBuilder()
+            .setCustomId('modal_link_minecraft')
+            .setTitle('🎮 Link Minecraft Account');
 
-    if (interaction.commandName === 'profile') {
-      const targetUser = interaction.options.getUser('user') || interaction.user;
-      const users = loadLocalLinked();
-      const record = users[targetUser.id];
-      if (!record) {
-        return interaction.reply({
-          content: targetUser.id === interaction.user.id
-            ? '❌ You have not linked your Minecraft account yet! Use `/link` to connect.'
-            : `❌ <@${targetUser.id}> has not linked their Minecraft account yet.`,
-          ephemeral: true
-        });
-      }
-      const isBedrock = record.ign.startsWith('.');
-      const edition = isBedrock ? '📱 Bedrock Edition' : '☕ Java Edition';
-      const linkedDate = record.linkedAt ? new Date(record.linkedAt).toLocaleDateString() : 'Recently';
+          const ignInput = new TextInputBuilder()
+            .setCustomId('link_mc_ign')
+            .setLabel('Minecraft Username (IGN)')
+            .setStyle(TextInputStyle.Short)
+            .setPlaceholder('e.g. Krylo_Plays, Steve, Notch')
+            .setMinLength(3)
+            .setMaxLength(16)
+            .setRequired(true);
 
-      const profileEmbed = new EmbedBuilder()
-        .setColor(0x3B82F6)
-        .setTitle(`👤 ${record.ign}'s KryloSMP Profile`)
-        .setAuthor({ name: `${targetUser.username}'s Player Card`, iconURL: targetUser.displayAvatarURL() })
-        .setThumbnail(`https://mc-heads.net/body/${encodeURIComponent(record.ign)}/128`)
-        .addFields(
-          { name: '⛏️ In-Game Name', value: `\`${record.ign}\``, inline: true },
-          { name: '🎮 Platform', value: edition, inline: true },
-          { name: '💰 Balance', value: `\`${Number(record.balance || 0).toLocaleString()} Kr\``, inline: true },
-          { name: '📅 Member Since', value: linkedDate, inline: true },
-          { name: '🛡️ Verification Status', value: '✅ Verified Human Player', inline: true }
-        )
-        .setFooter({ text: 'KryloSMP Network • Profile System' })
-        .setTimestamp();
-      return interaction.reply({ embeds: [profileEmbed] });
-    }
+          modal.addComponents(new ActionRowBuilder().addComponents(ignInput));
+          return interaction.showModal(modal);
+        }
+        return processLink(interaction, ignOption, false);
+      }
 
-    if (interaction.commandName === 'mc-status') {
-      await interaction.deferReply();
-      const statusRes = await getFalixStatus();
-      if (!statusRes.success) {
-        return interaction.editReply(`Could not read status: ${statusRes.error}`);
+      if (interaction.commandName === 'unlink') {
+        const users = loadLocalLinked();
+        const record = users[interaction.user.id];
+        if (!record) {
+          return interaction.reply({ content: "❌ You don't have any linked Minecraft account.", ephemeral: true });
+        }
+        const oldIgn = record.ign;
+        delete users[interaction.user.id];
+        saveLocalLinked(users);
+        if (interaction.member) {
+          await interaction.member.roles.remove([ROLE_VERIFIED, ROLE_JAVA, ROLE_BEDROCK]).catch(() => {});
+        }
+        const unlinkEmbed = new EmbedBuilder()
+          .setColor(0xEF4444)
+          .setTitle('🔓 Account Unlinked')
+          .setDescription(`Your Discord has been unlinked from **\`${oldIgn}\`**.\nYou can link a new account anytime with \`/link\`!`)
+          .setFooter({ text: 'KryloSMP Network' })
+          .setTimestamp();
+        return interaction.reply({ embeds: [unlinkEmbed], ephemeral: true });
       }
-      const status = statusRes.data;
-      const state = status.state || 'unknown';
-      const cpu = status.cpu_absolute ? `${status.cpu_absolute.toFixed(1)}%` : 'unknown';
-      return interaction.editReply(`KryloSMP status: **${state}**\nCPU: ${cpu}`);
-    }
 
-    if (interaction.commandName === 'mc-power') {
-      await interaction.deferReply({ ephemeral: true });
-      if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-        return interaction.editReply('You need Manage Server permission to use this command.');
-      }
-      const signal = interaction.options.getString('signal', true);
-      const res = await sendFalixPowerSignal(signal);
-      if (!res.success) {
-        return interaction.editReply(`Power action failed: ${res.error}`);
-      }
-      return interaction.editReply(`Sent \`${signal}\` signal to server.`);
-    }
+      if (interaction.commandName === 'profile') {
+        const targetUser = interaction.options.getUser('user') || interaction.user;
+        const users = loadLocalLinked();
+        const record = users[targetUser.id];
+        if (!record) {
+          return interaction.reply({
+            content: targetUser.id === interaction.user.id
+              ? '❌ You have not linked your Minecraft account yet! Use `/link` to connect.'
+              : `❌ <@${targetUser.id}> has not linked their Minecraft account yet.`,
+            ephemeral: true
+          });
+        }
+        const isBedrock = record.ign.startsWith('.');
+        const edition = isBedrock ? '📱 Bedrock Edition' : '☕ Java Edition';
+        const linkedDate = record.linkedAt ? new Date(record.linkedAt).toLocaleDateString() : 'Recently';
 
-    if (interaction.commandName === 'mc-command') {
-      await interaction.deferReply({ ephemeral: true });
-      if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-        return interaction.editReply('You need Manage Server permission to use this command.');
+        const profileEmbed = new EmbedBuilder()
+          .setColor(0x3B82F6)
+          .setTitle(`👤 ${record.ign}'s KryloSMP Profile`)
+          .setAuthor({ name: `${targetUser.username}'s Player Card`, iconURL: targetUser.displayAvatarURL() })
+          .setThumbnail(`https://mc-heads.net/body/${encodeURIComponent(record.ign)}/128`)
+          .addFields(
+            { name: '⛏️ In-Game Name', value: `\`${record.ign}\``, inline: true },
+            { name: '🎮 Platform', value: edition, inline: true },
+            { name: '💰 Balance', value: `\`${Number(record.balance || 0).toLocaleString()} Kr\``, inline: true },
+            { name: '📅 Member Since', value: linkedDate, inline: true },
+            { name: '🛡️ Verification Status', value: '✅ Verified Human Player', inline: true }
+          )
+          .setFooter({ text: 'KryloSMP Network • Profile System' })
+          .setTimestamp();
+        return interaction.reply({ embeds: [profileEmbed] });
       }
-      const cmd = interaction.options.getString('command', true);
-      const res = await sendFalixCommand(cmd);
-      if (!res.success) {
-        return interaction.editReply(`Command failed: ${res.error}`);
+
+      if (interaction.commandName === 'mc-status') {
+        await interaction.deferReply();
+        const statusRes = await getFalixStatus();
+        if (!statusRes.success) {
+          return interaction.editReply(`Could not read status: ${statusRes.error}`);
+        }
+        const status = statusRes.data;
+        const state = status.state || 'unknown';
+        const cpu = status.cpu_absolute ? `${status.cpu_absolute.toFixed(1)}%` : 'unknown';
+        return interaction.editReply(`KryloSMP status: **${state}**\nCPU: ${cpu}`);
       }
-      return interaction.editReply(`Sent command to server.`);
+
+      if (interaction.commandName === 'mc-power') {
+        await interaction.deferReply({ ephemeral: true });
+        if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+          return interaction.editReply('You need Manage Server permission to use this command.');
+        }
+        const signal = interaction.options.getString('signal', true);
+        const res = await sendFalixPowerSignal(signal);
+        if (!res.success) {
+          return interaction.editReply(`Power action failed: ${res.error}`);
+        }
+        return interaction.editReply(`Sent \`${signal}\` signal to server.`);
+      }
+
+      if (interaction.commandName === 'mc-command') {
+        await interaction.deferReply({ ephemeral: true });
+        if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+          return interaction.editReply('You need Manage Server permission to use this command.');
+        }
+        const cmd = interaction.options.getString('command', true);
+        const res = await sendFalixCommand(cmd);
+        if (!res.success) {
+          return interaction.editReply(`Command failed: ${res.error}`);
+        }
+        return interaction.editReply(`Sent command to server.`);
+      }
     }
   } catch (err) {
     console.error('[KSMP Interaction Error]:', err.message);
@@ -368,11 +966,16 @@ export async function startKsmpBot(masterClient = null) {
     return;
   }
 
-  ksmpClient.once('ready', () => {
+  ksmpClient.once('clientReady', async () => {
     console.log('==================================================');
     console.log(`⚡ [KSMP BOT ENGINE] ONLINE as ${ksmpClient.user.tag}`);
     console.log(`🛡️ Running seamlessly inside Krims Code Master Host!`);
     console.log('==================================================');
+    try {
+      await deployOfficialPanels(false);
+    } catch (deployErr) {
+      console.warn('[⚡ KSMP BOT ENGINE] Panel deployment error:', deployErr.message);
+    }
   });
 
   try {
