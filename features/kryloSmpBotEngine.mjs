@@ -42,13 +42,81 @@ const ROLE_ADMIN = '1538228602687078492';
 const ROLE_MOD = '1538228604859879435';
 
 export const ksmpClient = new Client({
-  intents: [GatewayIntentBits.Guilds]
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers]
 });
 
 let globalMasterClient = null;
 
 export function setMasterClient(client) {
   globalMasterClient = client;
+}
+
+
+/**
+ * Real-time Discord to Minecraft Rank Sync Engine
+ */
+export function determineRankFromMember(member) {
+  if (!member) return 'default';
+  const roleNames = member.roles?.cache ? Array.from(member.roles.cache.values()).map(r => r.name.toLowerCase()) : [];
+  const isOwner = member.id === member.guild?.ownerId;
+
+  if (isOwner || roleNames.some(r => r.includes('owner'))) {
+    return 'owner';
+  }
+  if (roleNames.some(r => r.includes('director') || r.includes('co-leader') || r.includes('co-founder'))) {
+    return 'co-leader';
+  }
+  if (roleNames.some(r => r.includes('admin'))) {
+    return 'admin';
+  }
+  if (roleNames.some(r => r.includes('mod') && !r.includes('model') && !r.includes('lord'))) {
+    return 'mod';
+  }
+  if (roleNames.some(r => r.includes('helper'))) {
+    return 'helper';
+  }
+  if (roleNames.some(r => r.includes('media') || r.includes('creator'))) {
+    return 'media';
+  }
+  if (roleNames.some(r => r.includes('mvp') || r.includes('booster'))) {
+    return 'mvp';
+  }
+  if (roleNames.some(r => r.includes('vip'))) {
+    return 'vip';
+  }
+  if (roleNames.some(r => r.includes('verified'))) {
+    return 'verified';
+  }
+  return 'default';
+}
+
+export async function syncMemberRank(member) {
+  if (!member || !member.id) return null;
+  const users = loadLocalLinked();
+  const record = users[member.id];
+  if (!record || !record.ign) return null;
+
+  const targetRank = determineRankFromMember(member);
+  const cleanIgn = record.ign;
+
+  if (record.currentRank === targetRank) {
+    return { synced: false, rank: targetRank, ign: cleanIgn, reason: 'already_synced' };
+  }
+
+  console.log(`[⚡ KSMP Rank Sync] Updating ${member.user?.tag || member.id} (${cleanIgn}) -> ${targetRank.toUpperCase()}...`);
+  try {
+    await sendFalixCommand(`lp user ${cleanIgn} parent set ${targetRank}`);
+    await sendFalixCommand(`tellraw ${cleanIgn} {"text":"§b§l[KryloSMP] §7Your rank has synced to §e${targetRank.toUpperCase()} §7from Discord!","color":"aqua"}`).catch(() => {});
+    
+    record.currentRank = targetRank;
+    record.lastRankSync = new Date().toISOString();
+    saveLocalLinked(users);
+
+    return { synced: true, rank: targetRank, ign: cleanIgn };
+  } catch (err) {
+    console.error(`[⚡ KSMP Rank Sync Error] Failed for ${cleanIgn}:`, err.message);
+    return { synced: false, error: err.message };
+  }
 }
 
 async function trySetNickname(guild, memberId, newNick) {
@@ -131,7 +199,10 @@ const commands = [
     .setDescription('Send one console command to the Minecraft server.')
     .addStringOption(opt =>
       opt.setName('command').setDescription('Single console command').setRequired(true)
-    )
+    ),
+  new SlashCommandBuilder()
+    .setName('sync')
+    .setDescription('⚡ Sync your Discord roles with your in-game Minecraft rank!')
 ].map(c => c.toJSON());
 
 async function registerCommands() {
@@ -223,6 +294,7 @@ export async function processLink(interaction, rawIgn, isModal = false) {
 
   // 4. Send console commands to Falix
   sendFalixCommand(`whitelist add ${cleanIgn}`).catch(() => {});
+    await syncMemberRank(member).catch(() => {});
   sendFalixCommand(`tellraw ${cleanIgn} {"text":"§a§l[KryloSMP] §eLinked with Discord! (+1,000 Kr)","color":"green"}`).catch(() => {});
 
   const isBedrock = cleanIgn.startsWith('.');
@@ -882,7 +954,36 @@ ksmpClient.on('interactionCreate', async interaction => {
         return interaction.reply({ embeds: [unlinkEmbed], ephemeral: true });
       }
 
-      if (interaction.commandName === 'profile') {
+      if (interaction.commandName === 'sync') {
+    const users = loadLocalLinked();
+    const record = users[interaction.user.id];
+    if (!record || !record.ign) {
+      return interaction.reply({
+        content: '❌ **You have not linked your Minecraft account yet!**\nUse the **🎮 Sync Minecraft Account** button in <#1542661596700737606> or type `/link` to connect first.',
+        ephemeral: true
+      });
+    }
+
+    delete record.currentRank; // clear cache to force execute
+    const res = await syncMemberRank(interaction.member);
+    const activeRank = res?.rank || determineRankFromMember(interaction.member);
+
+    const embed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('⚡ KryloSMP Role Sync Complete!')
+      .setDescription(
+        `Hey <@${interaction.user.id}>! Your Discord roles have synced to Minecraft:\n\n` +
+        `• 🎮 **In-Game IGN:** \`${record.ign}\`\n` +
+        `• 👑 **Active Rank:** **\`${activeRank.toUpperCase()}\`**\n` +
+        `• 🛡️ **Badge:** Active in TAB, Chat, and Nametag!`
+      )
+      .setFooter({ text: 'KryloSMP Automatic Role Sync • FalixNodes Network' })
+      .setTimestamp();
+
+    return interaction.reply({ embeds: [embed], ephemeral: true });
+  }
+
+  if (interaction.commandName === 'profile') {
         const targetUser = interaction.options.getUser('user') || interaction.user;
         const users = loadLocalLinked();
         const record = users[targetUser.id];
@@ -965,6 +1066,24 @@ export async function startKsmpBot(masterClient = null) {
   if (!KSMP_TOKEN) {
     console.log('[⚡ KSMP BOT ENGINE] No KSMP_BOT_TOKEN provided, skipping secondary bot launch.');
     return;
+  }
+
+  const handleMemberUpdate = async (oldMember, newMember) => {
+    try {
+      if (newMember.guild?.id !== KSMP_GUILD_ID) return;
+      const oldRoles = oldMember?.roles?.cache;
+      const newRoles = newMember?.roles?.cache;
+      if (!oldRoles || !newRoles || oldRoles.size !== newRoles.size || !oldRoles.equals(newRoles)) {
+        await syncMemberRank(newMember);
+      }
+    } catch (e) {
+      console.warn('[RankSync Update Error]:', e.message);
+    }
+  };
+
+  ksmpClient.on('guildMemberUpdate', handleMemberUpdate);
+  if (globalMasterClient) {
+    globalMasterClient.on('guildMemberUpdate', handleMemberUpdate);
   }
 
   ksmpClient.once('clientReady', async () => {
