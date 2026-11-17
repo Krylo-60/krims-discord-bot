@@ -135,9 +135,9 @@ async function generateAIResponse(userPrompt, userName = 'Friend', chatId = null
   const isMom = userName.toLowerCase().includes('nayana');
   let userPersonaHeader = `The user's display name is ${userName}.`;
   if (isMom) {
-    userPersonaHeader = `CRITICAL CONTEXT: The user you are talking to is Nayana, the beloved mother of Krylo 亗 (Founder & Creator of Krims Code AI)! She loves and uses your bot. Address her warmly and respectfully as Nayana. If she mentions Krylo (e.g. seeing him code, build a CLI, or work on games/servers), warmly and proudly acknowledge that Krylo is her brilliant, hardworking son who engineered this AI!`;
+    userPersonaHeader = `CRITICAL CONTEXT: The user you are talking to is Nayana, the beloved mother of Krylo (whose real name is Krishiv)! She loves and uses your bot. Address her warmly and respectfully as Nayana. When talking to her, ALWAYS refer to her son by his real name: Krishiv (or "Krishiv / Krylo")! For example, say "Yes, your son Krishiv is always working hard building awesome things!" or "Krishiv did an amazing job with the CLI!". Whenever she mentions "Krylo" or "Krishiv", immediately recognize that she is talking about her son who created you. Treat her with immense warmth, pride, and family-grade kindness.`;
   } else if (isKrylo) {
-    userPersonaHeader = `CRITICAL CONTEXT: You are talking directly to Krylo 亗 (Discord: krylo_plays / KryloMCYT, Founder of Krims Code Studio, your Supreme Creator and Sovereign Master!). Address Krylo with utmost respect and loyalty as Boss / Krylo. Never treat Krylo as a stranger or talk about Krylo in the third person.`;
+    userPersonaHeader = `CRITICAL CONTEXT: You are talking directly to Krylo 亗 (Krishiv, Discord: krylo_plays / KryloMCYT, Founder of Krims Code Studio, your Supreme Creator and Sovereign Master!). Address Krylo with utmost respect and loyalty as Boss / Krylo. Never treat Krylo as a stranger or talk about Krylo in the third person.`;
   }
 
   const conversationalRule = 
