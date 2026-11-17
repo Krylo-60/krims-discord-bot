@@ -647,54 +647,72 @@ export function buildProfileEmbed(targetUser) {
   return { embed, actionRow };
 }
 
-function showCreateClanModal(interaction) {
-  const clans = loadClans();
-  const userId = interaction.user.id;
-  const existingClan = Object.values(clans).find(c => c.leaderId === userId);
-  if (existingClan) {
-    return interaction.reply({
-      content: `❌ You are already the leader of **[${existingClan.tag}] ${existingClan.name}**! Disband your current clan before creating a new one.`,
-      ephemeral: true
-    });
+async function showCreateClanModal(interaction) {
+  try {
+    const clans = loadClans();
+    const userId = interaction.user.id;
+    const existingClan = Object.values(clans).find(c => c.leaderId === userId);
+    if (existingClan) {
+      return await interaction.reply({
+        content: `❌ You are already the leader of **[${existingClan.tag}] ${existingClan.name}**! Disband your current clan before creating a new one.`,
+        ephemeral: true
+      });
+    }
+
+    const memberClan = Object.values(clans).find(c => c.members?.includes(userId));
+    if (memberClan) {
+      return await interaction.reply({
+        content: `❌ You are already a member of **[${memberClan.tag}] ${memberClan.name}**! Leave your current clan before creating a new one.`,
+        ephemeral: true
+      });
+    }
+
+    const modal = new ModalBuilder()
+      .setCustomId('modal_ksmp_create_clan')
+      .setTitle('🏰 Form a New KryloSMP Clan');
+
+    const nameInput = new TextInputBuilder()
+      .setCustomId('clan_name')
+      .setLabel('Clan Name')
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('e.g. Shadow Legion, Light Bearers, Phoenix')
+      .setMinLength(3)
+      .setMaxLength(25)
+      .setRequired(true);
+
+    const tagInput = new TextInputBuilder()
+      .setCustomId('clan_tag')
+      .setLabel('Clan Tag (2-6 letters)')
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('e.g. SHADOW, TLB, PHX')
+      .setMinLength(2)
+      .setMaxLength(6)
+      .setRequired(true);
+
+    const descInput = new TextInputBuilder()
+      .setCustomId('clan_desc')
+      .setLabel('Clan Motto / Description')
+      .setStyle(TextInputStyle.Paragraph)
+      .setPlaceholder('Describe your clan, recruitment goals, and playstyle...')
+      .setMaxLength(150)
+      .setRequired(false);
+
+    modal.addComponents(
+      new ActionRowBuilder().addComponents(nameInput),
+      new ActionRowBuilder().addComponents(tagInput),
+      new ActionRowBuilder().addComponents(descInput)
+    );
+
+    return await interaction.showModal(modal);
+  } catch (err) {
+    console.error('[showCreateClanModal Error]:', err);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({
+        content: `❌ Could not open clan creation modal: ${err.message}`,
+        ephemeral: true
+      }).catch(() => {});
+    }
   }
-
-  const modal = new ModalBuilder()
-    .setCustomId('modal_ksmp_create_clan')
-    .setTitle('🏰 Form a New KryloSMP Clan');
-
-  const nameInput = new TextInputBuilder()
-    .setCustomId('clan_name')
-    .setLabel('Clan Name')
-    .setStyle(TextInputStyle.Short)
-    .setPlaceholder('e.g. Shadow Legion, Light Bearers, Phoenix')
-    .setMinLength(3)
-    .setMaxLength(25)
-    .setRequired(true);
-
-  const tagInput = new TextInputBuilder()
-    .setCustomId('clan_tag')
-    .setLabel('Clan Tag (3-6 letters)')
-    .setStyle(TextInputStyle.Short)
-    .setPlaceholder('e.g. SHADOW, TLB, PHX')
-    .setMinLength(2)
-    .setMaxLength(6)
-    .setRequired(true);
-
-  const descInput = new TextInputBuilder()
-    .setCustomId('clan_desc')
-    .setLabel('Clan Motto / Description')
-    .setStyle(TextInputStyle.Paragraph)
-    .setPlaceholder('Describe your clan, recruitment goals, and playstyle...')
-    .setMaxLength(150)
-    .setRequired(false);
-
-  modal.addComponents(
-    new ActionRowBuilder().addComponents(nameInput),
-    new ActionRowBuilder().addComponents(tagInput),
-    new ActionRowBuilder().addComponents(descInput)
-  );
-
-  return interaction.showModal(modal);
 }
 
 async function handleCreateClanModalSubmit(interaction) {
@@ -858,53 +876,67 @@ async function handleCreateClanModalSubmit(interaction) {
   });
 }
 
-function showClanInfo(interaction) {
-  const clans = loadClans();
-  const userId = interaction.user.id;
-  const userClan = Object.values(clans).find(c => c.members?.includes(userId) || c.leaderId === userId);
+async function showClanInfo(interaction) {
+  try {
+    const clans = loadClans();
+    const userId = interaction.user.id;
+    const userClan = Object.values(clans).find(c => c.members?.includes(userId) || c.leaderId === userId);
 
-  if (!userClan) {
-    return interaction.reply({
-      content: '❌ You are not currently in any clan! Click **🏰 Create Clan** to form your own clan!',
-      ephemeral: true
-    });
+    if (!userClan) {
+      return await interaction.reply({
+        content: '❌ You are not currently in any clan! Click **🏰 Create Clan** to form your own clan!',
+        ephemeral: true
+      });
+    }
+
+    const memberMentions = (userClan.members || []).map(m => `<@${m}>`).join(', ') || `<@${userClan.leaderId}>`;
+    const clanEmbed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle(`🏰 [${userClan.tag}] ${userClan.name}`)
+      .setDescription(
+        `• 👑 **Leader:** <@${userClan.leaderId}>\n` +
+        `• 👥 **Members (${userClan.members?.length || 1}):** ${memberMentions}\n` +
+        `• 💰 **Clan Vault:** \`${Number(userClan.vault || 0).toLocaleString()} Kr\`\n` +
+        (userClan.channelId ? `• 💬 **Private Channel:** <#${userClan.channelId}>\n` : '') +
+        (userClan.roleId ? `• 🛡️ **Clan Role:** <@&${userClan.roleId}>\n` : '') +
+        (userClan.desc ? `• 📜 **Motto:** *${userClan.desc}*\n` : '')
+      )
+      .setFooter({ text: 'KryloSMP Clan System' })
+      .setTimestamp();
+
+    return await interaction.reply({ embeds: [clanEmbed], ephemeral: true });
+  } catch (err) {
+    console.error('[showClanInfo Error]:', err);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({ content: `❌ Error loading clan info: ${err.message}`, ephemeral: true }).catch(() => {});
+    }
   }
-
-  const memberMentions = (userClan.members || []).map(m => `<@${m}>`).join(', ') || `<@${userClan.leaderId}>`;
-  const clanEmbed = new EmbedBuilder()
-    .setColor(0x00F2FF)
-    .setTitle(`🏰 [${userClan.tag}] ${userClan.name}`)
-    .setDescription(
-      `• 👑 **Leader:** <@${userClan.leaderId}>\n` +
-      `• 👥 **Members (${userClan.members?.length || 1}):** ${memberMentions}\n` +
-      `• 💰 **Clan Vault:** \`${Number(userClan.vault || 0).toLocaleString()} Kr\`\n` +
-      (userClan.channelId ? `• 💬 **Private Channel:** <#${userClan.channelId}>\n` : '') +
-      (userClan.roleId ? `• 🛡️ **Clan Role:** <@&${userClan.roleId}>\n` : '') +
-      (userClan.desc ? `• 📜 **Motto:** *${userClan.desc}*\n` : '')
-    )
-    .setFooter({ text: 'KryloSMP Clan System' })
-    .setTimestamp();
-
-  return interaction.reply({ embeds: [clanEmbed], ephemeral: true });
 }
 
-function showClanLeaderboard(interaction) {
-  const clans = Object.values(loadClans());
-  if (clans.length === 0) {
-    return interaction.reply({ content: '❌ No clans registered yet! Be the first by clicking **🏰 Create Clan**!', ephemeral: true });
+async function showClanLeaderboard(interaction) {
+  try {
+    const clans = Object.values(loadClans());
+    if (clans.length === 0) {
+      return await interaction.reply({ content: '❌ No clans registered yet! Be the first by clicking **🏰 Create Clan**!', ephemeral: true });
+    }
+
+    const sorted = clans.sort((a, b) => (b.members?.length || 0) - (a.members?.length || 0)).slice(0, 10);
+    const desc = sorted.map((c, i) => `**#${i + 1} [${c.tag}] ${c.name}** — 👥 ${c.members?.length || 1} members • 💰 \`${Number(c.vault || 0).toLocaleString()} Kr\``).join('\n');
+
+    const lbEmbed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('🏆 KRYLOSMP OFFICIAL CLAN LEADERBOARD')
+      .setDescription(desc)
+      .setFooter({ text: 'KryloSMP Network • Clan Rankings' })
+      .setTimestamp();
+
+    return await interaction.reply({ embeds: [lbEmbed], ephemeral: true });
+  } catch (err) {
+    console.error('[showClanLeaderboard Error]:', err);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({ content: `❌ Error loading leaderboard: ${err.message}`, ephemeral: true }).catch(() => {});
+    }
   }
-
-  const sorted = clans.sort((a, b) => (b.members?.length || 0) - (a.members?.length || 0)).slice(0, 10);
-  const desc = sorted.map((c, i) => `**#${i + 1} [${c.tag}] ${c.name}** — 👥 ${c.members?.length || 1} members • 💰 \`${Number(c.vault || 0).toLocaleString()} Kr\``).join('\n');
-
-  const lbEmbed = new EmbedBuilder()
-    .setColor(0x00F2FF)
-    .setTitle('🏆 KRYLOSMP OFFICIAL CLAN LEADERBOARD')
-    .setDescription(desc)
-    .setFooter({ text: 'KryloSMP Network • Clan Rankings' })
-    .setTimestamp();
-
-  return interaction.reply({ embeds: [lbEmbed], ephemeral: true });
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
