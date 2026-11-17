@@ -42,7 +42,7 @@ const ROLE_ADMIN = '1538228602687078492';
 const ROLE_MOD = '1538228604859879435';
 
 export const ksmpClient = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers]
+  intents: [GatewayIntentBits.Guilds]
 });
 
 let globalMasterClient = null;
@@ -383,22 +383,32 @@ export const TICKET_CATEGORIES = {
 };
 
 async function showTicketModal(interaction, catKey) {
-  const cat = TICKET_CATEGORIES[catKey] || TICKET_CATEGORIES.general;
-  const modal = new ModalBuilder()
-    .setCustomId(`modal_ksmp_ticket_${cat.id}`)
-    .setTitle(cat.modalTitle.slice(0, 45));
+  try {
+    const cat = TICKET_CATEGORIES[catKey] || TICKET_CATEGORIES.general;
+    const modal = new ModalBuilder()
+      .setCustomId(`modal_ksmp_ticket_${cat.id}`)
+      .setTitle(cat.modalTitle.slice(0, 45));
 
-  const inquiryInput = new TextInputBuilder()
-    .setCustomId('ticket_inquiry')
-    .setLabel(cat.inputLabel.slice(0, 45))
-    .setStyle(TextInputStyle.Paragraph)
-    .setPlaceholder(cat.inputPlaceholder.slice(0, 100))
-    .setMinLength(5)
-    .setMaxLength(1000)
-    .setRequired(true);
+    const inquiryInput = new TextInputBuilder()
+      .setCustomId('ticket_inquiry')
+      .setLabel(cat.inputLabel.slice(0, 45))
+      .setStyle(TextInputStyle.Paragraph)
+      .setPlaceholder(cat.inputPlaceholder.slice(0, 100))
+      .setMinLength(5)
+      .setMaxLength(1000)
+      .setRequired(true);
 
-  modal.addComponents(new ActionRowBuilder().addComponents(inquiryInput));
-  return interaction.showModal(modal);
+    modal.addComponents(new ActionRowBuilder().addComponents(inquiryInput));
+    return await interaction.showModal(modal);
+  } catch (err) {
+    console.error('[showTicketModal Error]:', err);
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.reply({
+        content: `❌ Could not open ticket form: ${err.message}`,
+        ephemeral: true
+      }).catch(() => {});
+    }
+  }
 }
 
 async function handleTicketModalSubmit(interaction, catKey) {
@@ -1053,7 +1063,14 @@ ksmpClient.on('interactionCreate', async interaction => {
       }
     }
   } catch (err) {
-    console.error('[KSMP Interaction Error]:', err.message);
+    console.error('[KSMP Interaction Error]:', err);
+    try {
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({ content: `❌ Error processing request: ${err.message}`, ephemeral: true });
+      } else if (interaction.deferred && !interaction.replied) {
+        await interaction.editReply(`❌ Error processing request: ${err.message}`);
+      }
+    } catch (_) {}
   }
 });
 
