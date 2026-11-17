@@ -2010,7 +2010,7 @@ client.on('interactionCreate', async (interaction) => {
   // ⚡ KryloSMP Isolation: Handled exclusively by Ksmp Bot (KryloSMP#8705)
   if (interaction.guildId === '1538225337048236082') {
     if (interaction.isChatInputCommand()) {
-      const ksmpCmds = ['link', 'unlink', 'profile', 'mc-status', 'mc-power', 'mc-command', 'verify', 'ticket', 'store'];
+      const ksmpCmds = ['link', 'unlink', 'profile', 'mc-status', 'mc-power', 'mc-command', 'verify', 'ticket', 'store', 'sync'];
       if (ksmpCmds.includes(interaction.commandName)) {
         return; // Handled exclusively by KryloSMP Bot (KryloSMP#8705)
       }
