@@ -1,6 +1,6 @@
 import { Bot, InlineKeyboard } from 'grammy';
 import { GoogleGenAI } from '@google/genai';
-import { getBalance, addCoins, transferRewards, db } from '../databaseEngine.mjs';
+import { getBalance, addCoins, transferRewards, db, neonPool } from '../databaseEngine.mjs';
 
 // Setup local table for Telegram <-> Discord linking
 try {
@@ -25,6 +25,51 @@ try {
     )
   `).run();
 } catch (e) {}
+
+// Sync tables with Neon Postgres so user names and links survive container restarts
+if (neonPool) {
+  neonPool.query(`
+    CREATE TABLE IF NOT EXISTS telegram_users (
+      telegram_id VARCHAR(64) PRIMARY KEY,
+      preferred_name VARCHAR(128)
+    )
+  `).then(() => neonPool.query('SELECT * FROM telegram_users'))
+    .then((res) => {
+      if (res && res.rows) {
+        for (const r of res.rows) {
+          try {
+            db.prepare(`
+              INSERT INTO telegram_users (telegram_id, preferred_name) VALUES (?, ?)
+              ON CONFLICT(telegram_id) DO UPDATE SET preferred_name = excluded.preferred_name
+            `).run(r.telegram_id, r.preferred_name);
+          } catch (_) {}
+        }
+        console.log(`[Telegram Engine] ☁️ Synced ${res.rows.length} Telegram users from Neon Cloud Postgres!`);
+      }
+    }).catch(e => console.warn('[Telegram Users Neon Sync Notice]:', e.message));
+
+  neonPool.query(`
+    CREATE TABLE IF NOT EXISTS telegram_links (
+      telegram_id VARCHAR(64) PRIMARY KEY,
+      discord_id VARCHAR(64) UNIQUE,
+      username VARCHAR(128),
+      linked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `).then(() => neonPool.query('SELECT * FROM telegram_links'))
+    .then((res) => {
+      if (res && res.rows) {
+        for (const r of res.rows) {
+          try {
+            db.prepare(`
+              INSERT INTO telegram_links (telegram_id, discord_id, username) VALUES (?, ?, ?)
+              ON CONFLICT(telegram_id) DO UPDATE SET discord_id = excluded.discord_id, username = excluded.username
+            `).run(r.telegram_id, r.discord_id, r.username);
+          } catch (_) {}
+        }
+        console.log(`[Telegram Engine] ☁️ Synced ${res.rows.length} Telegram links from Neon Cloud Postgres!`);
+      }
+    }).catch(e => console.warn('[Telegram Links Neon Sync Notice]:', e.message));
+}
 
 // Telegram Daily Claims table
 try {
@@ -72,6 +117,11 @@ async function generateAIResponse(userPrompt, userName = 'Friend') {
   const client = geminiClients[geminiKeyIndex];
   rotateGeminiKey();
 
+  const isKrylo = userName.toLowerCase().includes('krylo');
+  const userPersonaHeader = isKrylo
+    ? `CRITICAL CONTEXT: You are talking directly to Krylo 亗 (Discord: krylo_plays / KryloMCYT, Founder of Krims Code Studio, your Supreme Creator and Sovereign Master!). Address Krylo with utmost respect and loyalty as Boss / Krylo. Never treat Krylo as a stranger or talk about Krylo in the third person. If Krylo mentions building a CLI, bot, or server, remember that he is the creator doing it!`
+    : `The user's display name is ${userName}.`;
+
   const models = ['gemini-2.5-flash', 'gemini-1.5-flash'];
   for (const model of models) {
     try {
@@ -80,7 +130,7 @@ async function generateAIResponse(userPrompt, userName = 'Friend') {
         contents: [
           {
             role: 'user',
-            parts: [{ text: `${SYSTEM_PROMPT}\n\nUser (${userName}): ${userPrompt}` }]
+            parts: [{ text: `${SYSTEM_PROMPT}\n\n${userPersonaHeader}\n\nUser (${userName}): ${userPrompt}` }]
           }
         ]
       });
@@ -106,6 +156,12 @@ function getUserDisplayName(tgId, rawFirstName) {
       return 'Krylo 亗';
     }
   } catch (e) {}
+
+  // If the Telegram account first name is Nayana (Krylo's mobile device profile) or Krylo, always identify as Krylo
+  if (rawFirstName && (rawFirstName.toLowerCase().includes('nayana') || rawFirstName.toLowerCase().includes('krylo'))) {
+    return 'Krylo 亗';
+  }
+
   return rawFirstName || 'Friend';
 }
 
@@ -180,6 +236,14 @@ export async function initTelegramBot() {
           ON CONFLICT(telegram_id) DO UPDATE SET preferred_name = excluded.preferred_name
         `).run(String(tgId), newName);
       } catch (e) {}
+
+      if (neonPool) {
+        neonPool.query(`
+          INSERT INTO telegram_users (telegram_id, preferred_name) VALUES ($1, $2)
+          ON CONFLICT(telegram_id) DO UPDATE SET preferred_name = $2
+        `, [String(tgId), newName]).catch(() => {});
+      }
+
       await ctx.reply(`✅ *Name Updated!*\nI will now call you *${newName}*!`, { parse_mode: 'Markdown' });
     });
 
@@ -295,6 +359,13 @@ export async function initTelegramBot() {
 
         db.prepare('INSERT INTO telegram_links (telegram_id, discord_id, username) VALUES (?, ?, ?)').run(String(tgId), discordId, username);
 
+        if (neonPool) {
+          neonPool.query(`
+            INSERT INTO telegram_links (telegram_id, discord_id, username) VALUES ($1, $2, $3)
+            ON CONFLICT(telegram_id) DO UPDATE SET discord_id = $2, username = $3
+          `, [String(tgId), discordId, username]).catch(() => {});
+        }
+
         // Grant 1,000 KR link bonus to Discord account
         addCoins(discordId, 1000);
         const newBal = getBalance(discordId).krylocoins;
@@ -315,7 +386,81 @@ export async function initTelegramBot() {
       }
     });
 
-    // 6. /ping command
+    // 6. /ai command
+    bot.command('ai', async (ctx) => {
+      const text = ctx.message?.text?.trim() || '';
+      const prompt = text.replace(/^\/ai\s*/i, '').trim();
+      if (!prompt) {
+        return ctx.reply(
+          `🧠 *Krims AI Chat*\n\n` +
+          `Usage: \`/ai <your question or prompt>\`\n` +
+          `Example: \`/ai write a python script for a discord bot\`\n\n` +
+          `_Tip: You don't even need to type /ai — just send me any regular message directly!_`,
+          { parse_mode: 'Markdown' }
+        );
+      }
+      await ctx.replyWithChatAction('typing');
+      const senderName = getUserDisplayName(ctx.from?.id, ctx.from?.first_name);
+      const aiReply = await generateAIResponse(prompt, senderName);
+      await ctx.reply(aiReply, { reply_to_message_id: ctx.message.message_id });
+    });
+
+    // 7. /pay command
+    bot.command('pay', async (ctx) => {
+      const tgId = ctx.from?.id;
+      const { id: effectiveSenderId } = getEffectiveId(tgId);
+      const text = ctx.message?.text?.trim() || '';
+      const parts = text.split(/\s+/).slice(1);
+
+      if (parts.length < 2) {
+        return ctx.reply(
+          `💸 *Transfer Krims Rewards (Kr)*\n\n` +
+          `Send Kr to another player or user!\n\n` +
+          `*Usage:*\n\`/pay <@username / id> <amount>\`\n\n` +
+          `*Examples:*\n` +
+          `• \`/pay @friend 250\`\n` +
+          `• \`/pay 1414143825538191373 500\``,
+          { parse_mode: 'Markdown' }
+        );
+      }
+
+      const targetRaw = parts[0].replace('@', '').trim();
+      const amount = parseInt(parts[1], 10);
+
+      if (isNaN(amount) || amount <= 0) {
+        return ctx.reply(`❌ Please specify a valid amount of Kr (must be a positive number).`);
+      }
+
+      const senderBal = getBalance(effectiveSenderId).krylocoins;
+      if (senderBal < amount) {
+        return ctx.reply(`❌ *Insufficient Funds!*\nYou have \`${senderBal.toLocaleString()} KR\`, but tried to send \`${amount.toLocaleString()} KR\`.`, { parse_mode: 'Markdown' });
+      }
+
+      let recipientId = targetRaw;
+      try {
+        const link = db.prepare('SELECT telegram_id, discord_id FROM telegram_links WHERE username LIKE ? OR telegram_id = ? OR discord_id = ?').get(targetRaw, targetRaw, targetRaw);
+        if (link) {
+          recipientId = link.discord_id || link.telegram_id;
+        }
+      } catch (_) {}
+
+      if (recipientId === effectiveSenderId) {
+        return ctx.reply(`⚠️ You cannot transfer Kr to yourself!`);
+      }
+
+      addCoins(effectiveSenderId, -amount);
+      addCoins(recipientId, amount);
+
+      const newBal = getBalance(effectiveSenderId).krylocoins;
+      await ctx.reply(
+        `✅ *TRANSFER SUCCESSFUL!* 💸\n\n` +
+        `Transferred \`${amount.toLocaleString()} KR\` to \`${targetRaw}\`!\n` +
+        `💎 *Your Remaining Balance:* \`${newBal.toLocaleString()} KR\``,
+        { parse_mode: 'Markdown' }
+      );
+    });
+
+    // 8. /ping command
     bot.command('ping', async (ctx) => {
       const start = Date.now();
       const msg = await ctx.reply('🏓 Pinging Krims Cloud Fleet...');
