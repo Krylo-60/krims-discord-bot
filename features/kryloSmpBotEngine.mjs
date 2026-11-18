@@ -1188,7 +1188,7 @@ async function handleCreateClanModalSubmit(interaction) {
   });
 }
 
-async function showClanInfo(interaction) {
+export async function showClanInfo(interaction) {
   try {
     const clans = loadClans();
     const userId = interaction.user.id;
@@ -1202,6 +1202,9 @@ async function showClanInfo(interaction) {
     }
 
     const memberMentions = (userClan.members || []).map(m => `<@${m}>`).join(', ') || `<@${userClan.leaderId}>`;
+    const clanChannel = userClan.channelId ? interaction.guild?.channels.cache.get(userClan.channelId) : null;
+    const clanRole = userClan.roleId ? interaction.guild?.roles.cache.get(userClan.roleId) : null;
+
     const clanEmbed = new EmbedBuilder()
       .setColor(0x00F2FF)
       .setTitle(`🏰 [${userClan.tag}] ${userClan.name}`)
@@ -1209,8 +1212,8 @@ async function showClanInfo(interaction) {
         `• 👑 **Leader:** <@${userClan.leaderId}>\n` +
         `• 👥 **Members (${userClan.members?.length || 1}):** ${memberMentions}\n` +
         `• 💰 **Clan Vault:** \`${Number(userClan.vault || 0).toLocaleString()} Kr\`\n` +
-        (userClan.channelId ? `• 💬 **Private Channel:** <#${userClan.channelId}>\n` : '') +
-        (userClan.roleId ? `• 🛡️ **Clan Role:** <@&${userClan.roleId}>\n` : '') +
+        `• 💬 **Private Channel:** ${clanChannel ? `<#${clanChannel.id}>` : (userClan.channelId ? `<#${userClan.channelId}>` : 'None')}\n` +
+        `• 🛡️ **Clan Role:** ${clanRole ? `<@&${clanRole.id}>` : (userClan.roleId ? `<@&${userClan.roleId}>` : 'None')}\n` +
         (userClan.desc ? `• 📜 **Motto:** *${userClan.desc}*\n` : '')
       )
       .setFooter({ text: 'KryloSMP Clan System' })
