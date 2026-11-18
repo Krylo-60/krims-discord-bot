@@ -9112,6 +9112,7 @@ setInterval(() => {
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
+  if (message.channel?.name?.startsWith('link-')) return;
   const content = (message.content || '').trim();
   const lowerMsg = content.toLowerCase();
   // 🛑 Anti-Scam Guard: Intercept Developer Role Requests in Regular Support Tickets

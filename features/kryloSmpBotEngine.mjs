@@ -324,7 +324,278 @@ export async function processLink(interaction, rawIgn, isModal = false) {
     .setFooter({ text: 'KryloSMP • Official Network System' })
     .setTimestamp();
 
+  if (interaction.channel?.name?.startsWith('link-')) {
+    setTimeout(() => {
+      interaction.channel?.delete('Private link channel completed').catch(() => {});
+    }, 15000);
+  }
+
   return interaction.reply({ embeds: [successEmbed], ephemeral: isModal });
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 🔒 PRIVATE PER-PERSON ACCOUNT LINKING CHANNELS
+// ═════════════════════════════════════════════════════════════════════════════
+
+export async function createPrivateLinkChannel(interaction) {
+  try {
+    await interaction.deferReply({ ephemeral: true });
+
+    const guild = interaction.guild;
+    if (!guild) {
+      return interaction.editReply('❌ Linking can only be done inside the KryloSMP Discord server.');
+    }
+
+    const userId = interaction.user.id;
+    const users = loadLocalLinked();
+    const existing = users[userId];
+
+    if (existing?.ign) {
+      return interaction.editReply(`✅ **Your Discord account is already linked to \`${existing.ign}\`!**\nUse \`/profile\` to view your stats or \`/unlink\` if you wish to switch accounts.`);
+    }
+
+    const cleanName = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15) || 'user';
+
+    // Check if they already have an open link channel
+    const existingChannel = guild.channels.cache.find(c =>
+      c.type === ChannelType.GuildText &&
+      c.name.startsWith('link-') &&
+      (c.topic?.includes(userId) || c.name.endsWith(cleanName))
+    );
+
+    if (existingChannel) {
+      return interaction.editReply(`ℹ️ You already have a private linking channel open: <#${existingChannel.id}>! Please complete your verification there.`);
+    }
+
+    // Find or create VERIFICATION category
+    let verifyCat = guild.channels.cache.find(c => c.type === ChannelType.GuildCategory && c.name.toLowerCase().includes('verification'));
+    if (!verifyCat) {
+      verifyCat = await guild.channels.create({
+        name: '🔒 ACCOUNT VERIFICATION',
+        type: ChannelType.GuildCategory
+      }).catch(() => null);
+    }
+
+    const overwrites = [
+      {
+        id: guild.roles.everyone.id,
+        deny: [PermissionFlagsBits.ViewChannel]
+      },
+      {
+        id: userId,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.AttachFiles,
+          PermissionFlagsBits.EmbedLinks,
+          PermissionFlagsBits.ReadMessageHistory
+        ]
+      },
+      {
+        id: ksmpClient.user.id,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.ManageChannels,
+          PermissionFlagsBits.AttachFiles,
+          PermissionFlagsBits.EmbedLinks,
+          PermissionFlagsBits.ReadMessageHistory
+        ]
+      }
+    ];
+
+    if (guild.ownerId) {
+      overwrites.push({
+        id: guild.ownerId,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.ManageChannels,
+          PermissionFlagsBits.ReadMessageHistory
+        ]
+      });
+    }
+
+    const adminRole = guild.roles.cache.get(ROLE_ADMIN);
+    if (adminRole) {
+      overwrites.push({
+        id: adminRole.id,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.ReadMessageHistory
+        ]
+      });
+    }
+
+    const modRole = guild.roles.cache.get(ROLE_MOD);
+    if (modRole) {
+      overwrites.push({
+        id: modRole.id,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.ReadMessageHistory
+        ]
+      });
+    }
+
+    const channelName = `link-${cleanName}`.slice(0, 32);
+    const privateChan = await guild.channels.create({
+      name: channelName,
+      type: ChannelType.GuildText,
+      parent: verifyCat ? verifyCat.id : SUPPORT_CATEGORY_ID,
+      topic: `Private KryloSMP Account Linking Channel | User: @${interaction.user.tag} | ID: ${userId}`,
+      permissionOverwrites: overwrites
+    });
+
+    const linkEmbed = new EmbedBuilder()
+      .setColor(0x00F2FF)
+      .setTitle('🎮 KRYLOSMP — PRIVATE ACCOUNT LINKING PORTAL')
+      .setAuthor({
+        name: '👑 KryloSMP Executive Verification Desk',
+        iconURL: guild.iconURL() || interaction.user.displayAvatarURL()
+      })
+      .setDescription(
+        `Hey <@${userId}>! Welcome to your private, encrypted account linking channel.\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `### 🚀 How to Link in 10 Seconds:\n` +
+        `1️⃣ Click **\`[⚡ Enter Minecraft IGN / Code]\`** below (or simply type your Minecraft username directly in this chat).\n` +
+        `2️⃣ If you ran \`/link\` in-game, you can enter your 4-digit code instead.\n` +
+        `3️⃣ That's it! Your account will be instantly linked, whitelisted, and rewarded **+1,000 Kr ($)**!\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `*This private channel is visible only to you and the KryloSMP Staff Team.*`
+      )
+      .setFooter({ text: 'KryloSMP Network • Secure Account Linking' })
+      .setTimestamp();
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('btn_ksmp_private_link_modal')
+        .setLabel('⚡ Enter Minecraft IGN / Code')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId('btn_ksmp_close_link_chan')
+        .setLabel('🔒 Cancel & Close Channel')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+    await privateChan.send({
+      content: `<@${userId}> Welcome to your private linking desk!`,
+      embeds: [linkEmbed],
+      components: [row]
+    });
+
+    return interaction.editReply(`🎉 **Your private linking channel is ready!**\n👉 Head over to: <#${privateChan.id}>`);
+  } catch (err) {
+    console.error('[createPrivateLinkChannel Error]:', err);
+    return interaction.editReply(`❌ Could not create private linking channel: ${err.message}`).catch(() => {});
+  }
+}
+
+export async function handleLinkChannelMessage(message) {
+  try {
+    const raw = message.content.trim();
+    if (!raw || raw.startsWith('/') || raw.startsWith('!')) return;
+
+    const cleanIgn = formatIgnWithCapital(raw);
+    if (!cleanIgn || cleanIgn.length < 3 || cleanIgn.length > 16 || !/^[a-zA-Z0-9_.]+$/.test(cleanIgn)) {
+      return message.reply('❌ **Invalid Minecraft Username or Code!**\nPlease enter a valid username (3–16 characters, letters, numbers, underscores) or 4-digit code.').catch(() => {});
+    }
+
+    const userId = message.author.id;
+    // 1. Save in database
+    try {
+      setPlayerVerification(userId, cleanIgn);
+      addCoins(userId, 1000);
+    } catch (dbErr) {
+      console.warn('[KSMP DB Error]:', dbErr.message);
+    }
+
+    // 2. Save in local JSON
+    const users = loadLocalLinked();
+    const existing = users[userId];
+    const balance = (existing?.balance || 0) + (existing ? 0 : 1000);
+
+    users[userId] = {
+      discordId: userId,
+      tag: message.author.tag || message.author.username,
+      ign: cleanIgn,
+      balance: balance,
+      linkedAt: existing?.linkedAt || new Date().toISOString()
+    };
+    saveLocalLinked(users);
+
+    // 3. Assign Discord Roles & Nickname
+    const member = message.member;
+    if (member && member.roles) {
+      const rolesToAdd = [];
+      if (!member.roles.cache.has(ROLE_VERIFIED)) rolesToAdd.push(ROLE_VERIFIED);
+      if (!member.roles.cache.has(ROLE_MEMBER)) rolesToAdd.push(ROLE_MEMBER);
+
+      if (cleanIgn.startsWith('.')) {
+        if (!member.roles.cache.has(ROLE_BEDROCK)) rolesToAdd.push(ROLE_BEDROCK);
+      } else {
+        if (!member.roles.cache.has(ROLE_JAVA)) rolesToAdd.push(ROLE_JAVA);
+      }
+
+      if (rolesToAdd.length > 0) {
+        await member.roles.add(rolesToAdd).catch(() => {});
+      }
+
+      let prefix = 'Verified';
+      if (member.id === message.guild?.ownerId) {
+        prefix = 'Owner';
+      } else if (member.roles.cache.some(r => r.name.toLowerCase().includes('admin'))) {
+        prefix = 'Admin';
+      } else if (member.roles.cache.some(r => r.name.toLowerCase().includes('mod'))) {
+        prefix = 'Mod';
+      } else if (member.roles.cache.some(r => r.name.toLowerCase().includes('booster'))) {
+        prefix = 'Booster';
+      } else if (member.roles.cache.some(r => r.name.toLowerCase().includes('vip'))) {
+        prefix = 'VIP';
+      }
+      const formattedNick = `${prefix} | ${cleanIgn}`.slice(0, 32);
+      await trySetNickname(message.guild, member.id, formattedNick);
+    }
+
+    // 4. Send console commands to Falix
+    sendFalixCommand(`whitelist add ${cleanIgn}`).catch(() => {});
+    await syncMemberRank(member).catch(() => {});
+    sendFalixCommand(`tellraw ${cleanIgn} {"text":"§a§l[KryloSMP] §eLinked with Discord! (+1,000 Kr)","color":"green"}`).catch(() => {});
+
+    const isBedrock = cleanIgn.startsWith('.');
+    const editionTag = isBedrock ? '📱 Bedrock Edition' : '☕ Java Edition';
+
+    const successEmbed = new EmbedBuilder()
+      .setColor(0x10B981)
+      .setTitle('🎮 Account Linked Successfully!')
+      .setAuthor({
+        name: 'KryloSMP Network • Account Verification',
+        iconURL: message.guild?.iconURL() || message.author.displayAvatarURL()
+      })
+      .setThumbnail(`https://mc-heads.net/avatar/${encodeURIComponent(cleanIgn)}/128`)
+      .setDescription(
+        `Hey <@${userId}>! Your Discord account is now linked to **\`${cleanIgn}\`**!\n\n` +
+        `• ⛏️ **Minecraft IGN:** \`${cleanIgn}\` (${editionTag})\n` +
+        `• 💎 **Link Reward:** **+1,000 KryloCoins ($Kr)** deposited to your wallet!\n` +
+        `• 🛡️ **Roles Granted:** <@&${ROLE_VERIFIED}> & <@&${isBedrock ? ROLE_BEDROCK : ROLE_JAVA}>\n` +
+        `• 🚀 **Server Status:** Pre-registered & whitelisted on the server!\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `🔒 **This private channel will automatically self-destruct in 15 seconds...** ⏳`
+      )
+      .setFooter({ text: 'KryloSMP • Official Network System' })
+      .setTimestamp();
+
+    await message.channel.send({ embeds: [successEmbed] });
+
+    setTimeout(() => {
+      message.channel.delete('Private link channel completed').catch(() => {});
+    }, 15000);
+
+  } catch (err) {
+    console.error('[handleLinkChannelMessage Error]:', err);
+  }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1100,9 +1371,10 @@ export async function deployOfficialPanels(force = false) {
             '• 🏰 **Clan Roster & Leaderboard** integration\n' +
             '• 🛡️ **Verified Member Role** in Discord\n\n' +
             '### 🚀 How to Sync in 5 Seconds:\n' +
-            '1️⃣ Click the **🎮 Sync Minecraft Account** button below.\n' +
-            '2️⃣ Enter your **Minecraft In-Game Name (IGN)** in the pop-up modal.\n' +
-            '3️⃣ That\'s it! Your account is instantly linked and whitelisted.\n\n' +
+            '1️⃣ Click the **🔒 Start Private Account Link** button below.\n' +
+            '2️⃣ An exclusive private channel (`#link-<username>`) is instantly created just for you.\n' +
+            '3️⃣ Enter your Minecraft IGN or link code inside your private channel.\n' +
+            '4️⃣ Done! Your account is whitelisted, linked, and rewarded **+1,000 Kr** in complete privacy!\n\n' +
             '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
             '*Need assistance? Open a support ticket in <#1542646331502366760>!*'
           )
@@ -1112,7 +1384,8 @@ export async function deployOfficialPanels(force = false) {
         const syncRow = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
             .setCustomId('btn_ksmp_verify_modal')
-            .setLabel('🎮 Sync Minecraft Account')
+            .setLabel('🔒 Start Private Account Link')
+            .setEmoji('🔒')
             .setStyle(ButtonStyle.Success),
           new ButtonBuilder()
             .setLabel('🛒 Web Store')
@@ -1307,23 +1580,35 @@ ksmpClient.on('interactionCreate', async interaction => {
         });
       }
 
-      // Verification modal button
+      // Verification modal button -> create private linking channel!
       if (interaction.customId === 'btn_ksmp_verify_modal') {
+        return createPrivateLinkChannel(interaction);
+      }
+
+      if (interaction.customId === 'btn_ksmp_private_link_modal') {
         const modal = new ModalBuilder()
           .setCustomId('modal_link_minecraft')
           .setTitle('🎮 Link Minecraft Account');
 
         const ignInput = new TextInputBuilder()
           .setCustomId('link_mc_ign')
-          .setLabel('Minecraft Username (IGN)')
+          .setLabel('Minecraft Username (IGN) or Code')
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder('e.g. Krylo_Plays, Steve, Notch')
+          .setPlaceholder('e.g. Krylo_Plays, 4821, Notch')
           .setMinLength(3)
           .setMaxLength(16)
           .setRequired(true);
 
         modal.addComponents(new ActionRowBuilder().addComponents(ignInput));
         return interaction.showModal(modal);
+      }
+
+      if (interaction.customId === 'btn_ksmp_close_link_chan') {
+        await interaction.reply({ content: '🔒 Closing and deleting this linking channel...', ephemeral: true }).catch(() => {});
+        setTimeout(() => {
+          interaction.channel?.delete('User closed link channel').catch(() => {});
+        }, 1500);
+        return;
       }
 
       // Java role toggle
@@ -1544,6 +1829,17 @@ export async function startKsmpBot(masterClient = null) {
   if (globalMasterClient) {
     globalMasterClient.on('guildMemberUpdate', handleMemberUpdate);
   }
+
+  ksmpClient.on('messageCreate', async message => {
+    try {
+      if (message.author.bot || !message.guild || message.guild.id !== KSMP_GUILD_ID) return;
+      if (message.channel?.name?.startsWith('link-')) {
+        await handleLinkChannelMessage(message);
+      }
+    } catch (e) {
+      console.warn('[KSMP messageCreate Error]:', e.message);
+    }
+  });
 
   ksmpClient.once('clientReady', async () => {
     console.log('==================================================');
