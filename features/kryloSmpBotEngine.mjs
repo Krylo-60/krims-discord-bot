@@ -379,11 +379,13 @@ export async function createPrivateLinkChannel(interaction) {
 
     const overwrites = [
       {
-        id: guild.roles.everyone.id,
+        id: guild.id,
+        type: OverwriteType.Role,
         deny: [PermissionFlagsBits.ViewChannel]
       },
       {
         id: userId,
+        type: OverwriteType.Member,
         allow: [
           PermissionFlagsBits.ViewChannel,
           PermissionFlagsBits.SendMessages,
@@ -394,6 +396,7 @@ export async function createPrivateLinkChannel(interaction) {
       },
       {
         id: ksmpClient.user.id,
+        type: OverwriteType.Member,
         allow: [
           PermissionFlagsBits.ViewChannel,
           PermissionFlagsBits.SendMessages,
@@ -408,6 +411,7 @@ export async function createPrivateLinkChannel(interaction) {
     if (guild.ownerId) {
       overwrites.push({
         id: guild.ownerId,
+        type: OverwriteType.Member,
         allow: [
           PermissionFlagsBits.ViewChannel,
           PermissionFlagsBits.SendMessages,
@@ -421,6 +425,7 @@ export async function createPrivateLinkChannel(interaction) {
     if (adminRole) {
       overwrites.push({
         id: adminRole.id,
+        type: OverwriteType.Role,
         allow: [
           PermissionFlagsBits.ViewChannel,
           PermissionFlagsBits.SendMessages,
@@ -433,6 +438,7 @@ export async function createPrivateLinkChannel(interaction) {
     if (modRole) {
       overwrites.push({
         id: modRole.id,
+        type: OverwriteType.Role,
         allow: [
           PermissionFlagsBits.ViewChannel,
           PermissionFlagsBits.SendMessages,
