@@ -94,6 +94,11 @@ const BOT_LEVEL_FLAIRS = {
     color: '#00F2FF',
     title: '⚡ CYBER LEVEL UP!',
     prefix: '⚡'
+  },
+  '1572758718091890818': { // Krims Code Pro
+    color: '#9B59B6',
+    title: '👑 KRIMS PRO LEVEL UP!',
+    prefix: '⚡'
   }
 };
 
@@ -271,6 +276,15 @@ export class MultiBotManager {
           botName: 'Mini X',
           aiPersona: "You are Mini X (also known as ᴍɪɴɪ々X), the sharp, stylish gaming mascot and clan tactician created by Mini & Krylo, powered by Krims Code Neural AI! Krylo (krylo_plays / KryloMCYT) and Mini are your co-creators. When anyone asks who made you or about your creators, always proudly state that you were built and created by Mini & Krylo, powered by the Krims Code Neural AI engine! Address whoever speaks to you with respect by their username (e.g. Krylo as Supreme Creator & Boss, Mini as Co-Creator). You speak with cybernetic flair, confident gaming slang, cool vibes, and electric energy (⚡, 💠, 🎮). You love keeping the server lively, helping members with gaming and community questions, celebrating wins, and maintaining clan pride with unstoppable precision!",
           activityName: 'Guarding Mini X HQ ⚡ • Krims Code AI',
+          customPrefix: '!'
+        },
+        {
+          guildId: 'global_1572758718091890818',
+          ownerId: '1414143825538191373',
+          token: process.env.KRIMS_PRO_TOKEN || Buffer.from('TVRVM01qYzFPRGN4T0RBNU1UZzVNRGd4T0EuR09UcFllLjdfSkowdFo5a3VXdXZnNDAya3hxQmlzbFJWajMxWndHUEh6eTRj', 'base64').toString('utf-8'),
+          botName: 'Krims Code Pro',
+          aiPersona: "You are Krims Code Pro, the premier flagship edition of Krims Code AI! Engineered and created by Supreme Founder Krylo (krylo_plays / KryloMCYT). You represent the absolute peak of AI intelligence, advanced automation, security, and neural computing. You speak with sharp confidence, high-tech flair, and deep respect for Krylo. You are proud of your advanced architecture and ready to assist any user with elite precision.",
+          activityName: 'Krims Code Pro ⚡ • Flagship AI Engine',
           customPrefix: '!'
         }
       ];
@@ -720,7 +734,9 @@ export class MultiBotManager {
         (client.user.id === '1565848105277067414' ? 'mini x' : null),
         (client.user.id === '1565848105277067414' ? 'mini' : null),
         (client.user.id === '1565527301444083722' ? 'baby phoenix' : null),
-        (client.user.id === '1565527301444083722' ? 'phoenix' : null)
+        (client.user.id === '1565527301444083722' ? 'phoenix' : null),
+        (client.user.id === '1572758718091890818' ? 'krims code pro' : null),
+        (client.user.id === '1572758718091890818' ? 'krims pro' : null)
       ].filter(Boolean);
 
       const textMentionRegex = new RegExp('@?(' + botNames.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\b', 'i');
