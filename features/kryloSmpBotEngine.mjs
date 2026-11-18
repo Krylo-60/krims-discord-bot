@@ -377,6 +377,8 @@ export async function createPrivateLinkChannel(interaction) {
       }).catch(() => null);
     }
 
+    const botId = interaction.client?.user?.id || ksmpClient.user?.id || KSMP_CLIENT_ID;
+
     const overwrites = [
       {
         id: guild.id,
@@ -395,7 +397,7 @@ export async function createPrivateLinkChannel(interaction) {
         ]
       },
       {
-        id: ksmpClient.user.id,
+        id: botId,
         type: OverwriteType.Member,
         allow: [
           PermissionFlagsBits.ViewChannel,
@@ -408,7 +410,7 @@ export async function createPrivateLinkChannel(interaction) {
       }
     ];
 
-    if (guild.ownerId) {
+    if (guild.ownerId && typeof guild.ownerId === 'string' && guild.ownerId !== userId) {
       overwrites.push({
         id: guild.ownerId,
         type: OverwriteType.Member,
@@ -422,7 +424,7 @@ export async function createPrivateLinkChannel(interaction) {
     }
 
     const adminRole = guild.roles.cache.get(ROLE_ADMIN);
-    if (adminRole) {
+    if (adminRole && typeof adminRole.id === 'string') {
       overwrites.push({
         id: adminRole.id,
         type: OverwriteType.Role,
@@ -435,7 +437,7 @@ export async function createPrivateLinkChannel(interaction) {
     }
 
     const modRole = guild.roles.cache.get(ROLE_MOD);
-    if (modRole) {
+    if (modRole && typeof modRole.id === 'string') {
       overwrites.push({
         id: modRole.id,
         type: OverwriteType.Role,
@@ -447,14 +449,40 @@ export async function createPrivateLinkChannel(interaction) {
       });
     }
 
+    let parentId = verifyCat?.id;
+    if (!parentId && guild.channels.cache.has(SUPPORT_CATEGORY_ID)) {
+      parentId = SUPPORT_CATEGORY_ID;
+    }
+
     const channelName = `link-${cleanName}`.slice(0, 32);
-    const privateChan = await guild.channels.create({
-      name: channelName,
-      type: ChannelType.GuildText,
-      parent: verifyCat ? verifyCat.id : SUPPORT_CATEGORY_ID,
-      topic: `Private KryloSMP Account Linking Channel | User: @${interaction.user.tag} | ID: ${userId}`,
-      permissionOverwrites: overwrites
-    });
+    let privateChan = null;
+    try {
+      privateChan = await guild.channels.create({
+        name: channelName,
+        type: ChannelType.GuildText,
+        parent: parentId || null,
+        topic: `Private KryloSMP Account Linking Channel | User: @${interaction.user.tag} | ID: ${userId}`,
+        permissionOverwrites: overwrites
+      });
+    } catch (createErr) {
+      console.warn('[createPrivateLinkChannel] Primary create failed, trying fallback:', createErr.message);
+      privateChan = await guild.channels.create({
+        name: channelName,
+        type: ChannelType.GuildText,
+        permissionOverwrites: [
+          { id: guild.id, type: OverwriteType.Role, deny: [PermissionFlagsBits.ViewChannel] },
+          { id: userId, type: OverwriteType.Member, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] },
+          { id: botId, type: OverwriteType.Member, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.ReadMessageHistory] }
+        ]
+      }).catch(e => {
+        console.error('[createPrivateLinkChannel Fallback Error]:', e);
+        return null;
+      });
+    }
+
+    if (!privateChan) {
+      return interaction.editReply('❌ Could not create private linking channel. Please contact a server admin.');
+    }
 
     const linkEmbed = new EmbedBuilder()
       .setColor(0x00F2FF)

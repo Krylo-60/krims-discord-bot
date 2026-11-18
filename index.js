@@ -644,6 +644,15 @@ GuildChannelManager.prototype.create = async function(options) {
                      options.name.includes('SUPPORT')
                    ));
   const isDuel = stack.includes('activeDuel') || stack.includes('duelChannel') || (options && options.name && options.name.includes('duel-'));
+  const isLinkChannel = stack.includes('createPrivateLinkChannel') || 
+                        stack.includes('kryloSmpBotEngine') || 
+                        stack.includes('handleLinkChannel') ||
+                        (this.guild?.id === '1538225337048236082') ||
+                        (options && options.name && (
+                          options.name.startsWith('link-') || 
+                          options.name.includes('VERIFICATION') || 
+                          options.name.includes('verify')
+                        ));
   const isJtc = stack.includes('jtc') || 
                 stack.includes('joinToCreate') || 
                 stack.includes('handleJtc') || 
@@ -654,7 +663,7 @@ GuildChannelManager.prototype.create = async function(options) {
                   options.name.includes('VOICE')
                 ));
 
-  if (!isTicket && !isDuel && !isJtc) {
+  if (!isTicket && !isDuel && !isJtc && !isLinkChannel) {
     console.warn(`[🛡️ SAFETY SHIELD BLOCKED] Intercepted unauthorized channel creation on guild "${this.guild?.name}" (${this.guild?.id}):`, options?.name);
     return null;
   }
