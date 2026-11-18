@@ -214,8 +214,9 @@ async function registerCommands() {
   if (!KSMP_TOKEN) return;
   try {
     const rest = new REST({ version: '10' }).setToken(KSMP_TOKEN);
+    await rest.put(Routes.applicationCommands(KSMP_CLIENT_ID), { body: commands }).catch(() => {});
     await rest.put(Routes.applicationGuildCommands(KSMP_CLIENT_ID, KSMP_GUILD_ID), { body: commands });
-    console.log('[⚡ KSMP BOT ENGINE] Slash commands registered successfully in guild', KSMP_GUILD_ID);
+    console.log('[⚡ KSMP BOT ENGINE] Slash commands registered successfully both globally and in guild', KSMP_GUILD_ID);
   } catch (err) {
     console.warn('[⚡ KSMP BOT ENGINE] Failed to register slash commands:', err.message);
   }
