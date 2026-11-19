@@ -957,6 +957,13 @@ export class MultiBotManager {
         const handled = await handleTradeButtonInteraction(interaction);
         if (handled !== false) return;
       }
+
+      // 🎉 Giveaway Enter Button (giveaway_enter_)
+      if (interaction.isButton() && interaction.customId.startsWith('giveaway_enter_')) {
+        const { handleGiveawayButton } = await import('./features/giveawayManager.mjs');
+        const handled = await handleGiveawayButton(interaction);
+        if (handled) return;
+      }
       if (!interaction.isChatInputCommand()) return;
 
       if (interaction.commandName === 'jtc' || interaction.commandName === 'setupjtc') {

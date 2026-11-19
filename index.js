@@ -3614,22 +3614,9 @@ client.on('interactionCreate', async (interaction) => {
 
     // Giveaway enter button
     if (customId.startsWith('giveaway_enter_')) {
-      const giveawayId = customId.replace('giveaway_enter_', '');
-      await interaction.deferReply({ ephemeral: true });
-
-      if (!giveawayEntries.has(giveawayId)) {
-        giveawayEntries.set(giveawayId, new Set());
-      }
-
-      const entries = giveawayEntries.get(giveawayId);
-      if (entries.has(interaction.user.id)) {
-        entries.delete(interaction.user.id);
-        await interaction.editReply('✗ You left the giveaway.');
-      } else {
-        entries.add(interaction.user.id);
-        await interaction.editReply(`🎉 You entered the giveaway! (${entries.size} total entries)`);
-      }
-      return;
+      const { handleGiveawayButton } = await import('./features/giveawayManager.mjs');
+      const handled = await handleGiveawayButton(interaction);
+      if (handled) return;
     }
 
     // ══════════════════════════════════════════════════════════

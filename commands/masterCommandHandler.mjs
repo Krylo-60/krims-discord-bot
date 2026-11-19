@@ -2597,43 +2597,8 @@ if (commandName === 'pay' || commandName === 'tip' || commandName === 'gift') {
     }
 
     if (commandName === 'giveaway') {
-      const prize = interaction.options.getString('prize');
-      const rawDur = interaction.options.getString('duration') || '10m';
-
-      let durationMinutes = 10;
-      if (typeof rawDur === 'string') {
-        const match = rawDur.match(/^(\d+)([mhd]?)$/i);
-        if (match) {
-          const num = parseInt(match[1]);
-          const unit = (match[2] || 'm').toLowerCase();
-          if (unit === 'h') durationMinutes = num * 60;
-          else if (unit === 'd') durationMinutes = num * 1440;
-          else durationMinutes = num;
-        }
-      }
-
-      const endTimestamp = Math.floor(Date.now() / 1000) + (durationMinutes * 60);
-
-      const embed = new EmbedBuilder()
-        .setColor(0xFFD700)
-        .setTitle('🎉 ACTIVE GIVEAWAY!')
-        .setDescription(
-          `**Prize:** 🎁 **${prize}**\n\n` +
-          `• ⏰ **Ends:** <t:${endTimestamp}:R> (<t:${endTimestamp}:f>)\n` +
-          `• 👑 **Hosted by:** <@${interaction.user.id}>\n\n` +
-          `*Click the button below to enter!*`
-        )
-        .setFooter({ text: 'Krylo Network Giveaways • 0 Entries' })
-        .setTimestamp();
-
-      const enterButton = new ButtonBuilder()
-        .setCustomId(`giveaway_enter_${Date.now()}`)
-        .setLabel('Enter (0)')
-        .setStyle(ButtonStyle.Success)
-        .setEmoji('🎉');
-
-      const row = new ActionRowBuilder().addComponents(enterButton);
-      return await interaction.reply({ embeds: [embed], components: [row] });
+      const { handleGiveawayCommand } = await import('../features/giveawayManager.mjs');
+      return await handleGiveawayCommand(interaction);
     }
 
     if (commandName === 'announce') {
