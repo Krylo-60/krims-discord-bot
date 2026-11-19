@@ -116,8 +116,8 @@ export function buildKrTradeProposalPayload({ tradeId, senderId, recipientId, am
     .setTitle('🤝 SECURE KRIMS TRADE PROPOSAL')
     .setColor(0x9B59B6) // Royal Purple
     .setDescription(
-      `Hey <@${recipientId}>, you have received a secure KryloCoin ($Kr) trade offer from <@${senderId}>!\n\n` +
-      `🪙 **KryloCoins Offered:** \`\`\`fix\n+${amount.toLocaleString()} KR\n\`\`\`\n` +
+      `Hey <@${recipientId}>, you have received a secure Krims Rewards (KR) trade offer from <@${senderId}>!\n\n` +
+      `🪙 **Krims Rewards Offered:** \`\`\`fix\n+${amount.toLocaleString()} KR\n\`\`\`\n` +
       (itemWanted 
         ? `📦 **Requested In Exchange:**\n> **${itemWanted}**\n\n` 
         : `📦 **Exchange Type:**\n> **Direct Coin Transfer / In-Game Exchange**\n\n`) +
@@ -179,7 +179,7 @@ export async function handleTradeSlashCommand(interaction) {
       }
 
       if (recipient.bot) {
-        return interaction.reply({ content: '❌ You cannot trade KryloCoins with bot accounts.', ephemeral: true });
+        return interaction.reply({ content: '❌ You cannot trade Krims Rewards with bot accounts.', ephemeral: true });
       }
 
       if (!amount || amount <= 0 || !Number.isInteger(amount)) {
@@ -387,7 +387,7 @@ export async function handleTradeButtonInteraction(interaction) {
           .setTitle('❌ TRADE FAILED — INSUFFICIENT FUNDS')
           .setColor(0xE74C3C)
           .setDescription(
-            `⚠️ The trade could not be completed because <@${trade.sender_id}> no longer has enough KryloCoins.\n\n` +
+            `⚠️ The trade could not be completed because <@${trade.sender_id}> no longer has enough Krims Rewards (KR).\n\n` +
             `• Required: **${trade.amount.toLocaleString()} KR**\n` +
             `• Available: **${curSenderCoins.toLocaleString()} KR**`
           )
@@ -553,7 +553,7 @@ export async function handleTradePrefixCommand(message, args = []) {
     }
 
     if (targetUser.bot) {
-      return message.reply('❌ You cannot trade KryloCoins with bot accounts.');
+      return message.reply('❌ You cannot trade Krims Rewards with bot accounts.');
     }
 
     const senderBal = getBalance(message.author.id);
@@ -598,7 +598,7 @@ export async function handleTradePrefixCommand(message, args = []) {
   // Fallback help
   return message.reply(
     `🤝 **Krims Secure Trade System**\n\n` +
-    `• \`/trade kr user: @player amount: <number> [item: string]\` — Propose a KryloCoin ($Kr) trade\n` +
+    `• \`/trade kr user: @player amount: <number> [item: string]\` — Propose a Krims Rewards (KR) trade\n` +
     `• \`!trade kr @player <amount> [item]\` — Prefix command to propose a KR trade\n` +
     `• \`/trade item player: @player offer: <item> [for: string]\` — Propose an item exchange\n\n` +
     `*All KR trades are escrow-verified and recorded in the database ledger.*`
