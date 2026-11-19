@@ -3,6 +3,7 @@ import {
   handleSetTicketsCommand,
   handleWelcomeTicketInteraction
 } from './features/welcomeTicketsManager.mjs';
+import { handleGiveawayButton } from './features/giveawayManager.mjs';
 import {
   handleBetCommand,
   handleRpsCommand,
@@ -925,46 +926,46 @@ export class MultiBotManager {
 
     // 2. Interaction Event Listener (Commands like /about and /getbot)
     client.on('interactionCreate', async (interaction) => {
-      // 🔊 Handle Join-to-Create (JTC) Dynamic Voice Channel Controls
-      if ((interaction.isButton() || interaction.isModalSubmit()) && (
-        interaction.customId.startsWith('jtc_') ||
-        interaction.customId.startsWith('modal_jtc_')
-      )) {
-        const handled = await handleJtcInteraction(interaction);
-        if (handled) return;
-      }
+      try {
+        // 🔊 Handle Join-to-Create (JTC) Dynamic Voice Channel Controls
+        if ((interaction.isButton() || interaction.isModalSubmit()) && (
+          interaction.customId.startsWith('jtc_') ||
+          interaction.customId.startsWith('modal_jtc_')
+        )) {
+          const handled = await handleJtcInteraction(interaction);
+          if (handled) return;
+        }
 
-      if ((interaction.isButton() || interaction.isModalSubmit()) && (
-        interaction.customId.startsWith('welcome_') || 
-        interaction.customId.startsWith('tickets_') || 
-        interaction.customId.startsWith('ticket_') || 
-        interaction.customId === 'open_ticket' || 
-        interaction.customId.startsWith('role_') ||
-        interaction.customId.startsWith('dev_') ||
-        interaction.customId.startsWith('modal_dev_')
-      )) {
-        const handled = await handleWelcomeTicketInteraction(interaction);
-        if (handled) return;
-      }
+        if ((interaction.isButton() || interaction.isModalSubmit()) && (
+          interaction.customId.startsWith('welcome_') || 
+          interaction.customId.startsWith('tickets_') || 
+          interaction.customId.startsWith('ticket_') || 
+          interaction.customId === 'open_ticket' || 
+          interaction.customId.startsWith('role_') ||
+          interaction.customId.startsWith('dev_') ||
+          interaction.customId.startsWith('modal_dev_')
+        )) {
+          const handled = await handleWelcomeTicketInteraction(interaction);
+          if (handled) return;
+        }
 
-      // 🤝 Secure Trade System Buttons (trade_kr_accept_, trade_kr_cancel_, etc.)
-      if (interaction.isButton() && (
-        interaction.customId.startsWith('trade_kr_') ||
-        interaction.customId.startsWith('trade_accept_') ||
-        interaction.customId.startsWith('trade_decline_')
-      )) {
-        const { handleTradeButtonInteraction } = await import('./features/tradeSystem.mjs');
-        const handled = await handleTradeButtonInteraction(interaction);
-        if (handled !== false) return;
-      }
+        // 🤝 Secure Trade System Buttons (trade_kr_accept_, trade_kr_cancel_, etc.)
+        if (interaction.isButton() && (
+          interaction.customId.startsWith('trade_kr_') ||
+          interaction.customId.startsWith('trade_accept_') ||
+          interaction.customId.startsWith('trade_decline_')
+        )) {
+          const { handleTradeButtonInteraction } = await import('./features/tradeSystem.mjs');
+          const handled = await handleTradeButtonInteraction(interaction);
+          if (handled !== false) return;
+        }
 
-      // 🎉 Giveaway Enter Button (giveaway_enter_)
-      if (interaction.isButton() && interaction.customId.startsWith('giveaway_enter_')) {
-        const { handleGiveawayButton } = await import('./features/giveawayManager.mjs');
-        const handled = await handleGiveawayButton(interaction);
-        if (handled) return;
-      }
-      if (!interaction.isChatInputCommand()) return;
+        // 🎉 Giveaway Enter Button (giveaway_enter_)
+        if (interaction.isButton() && interaction.customId.startsWith('giveaway_enter_')) {
+          const handled = await handleGiveawayButton(interaction);
+          if (handled) return;
+        }
+        if (!interaction.isChatInputCommand()) return;
 
       if (interaction.commandName === 'jtc' || interaction.commandName === 'setupjtc') {
         if (!interaction.guild) {
@@ -1057,7 +1058,17 @@ export class MultiBotManager {
           await interaction.reply({ content: '⚠️ An error occurred executing this command.', ephemeral: true }).catch(() => {});
         }
       }
-    });
+    } catch (unhandledErr) {
+      console.error(`[CustomBot ${client.user?.tag || 'Bot'}] Unhandled interaction error:`, unhandledErr);
+      try {
+        if (interaction.deferred) {
+          await interaction.editReply({ content: '⚠️ An error occurred while processing this action.' }).catch(() => {});
+        } else if (!interaction.replied) {
+          await interaction.reply({ content: '⚠️ An error occurred while processing this action.', ephemeral: true }).catch(() => {});
+        }
+      } catch (_) {}
+    }
+  });
 
     // 3. Automated Welcome Engine for New Members
     client.on('guildMemberAdd', async (member) => {

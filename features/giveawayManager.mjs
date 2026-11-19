@@ -106,77 +106,102 @@ export async function handleGiveawayButton(interaction) {
     return false;
   }
 
-  const rawId = interaction.customId.replace('giveaway_enter_', '').trim();
-  const state = activeGiveaways.get(rawId) || activeGiveaways.get(interaction.message?.id);
-
-  // If state not found in memory (e.g. from an existing older message or after bot restart)
-  // Reconstruct state from message embed so the button NEVER fails!
-  let targetState = state;
-  if (!targetState && interaction.message) {
-    const embed = interaction.message.embeds?.[0];
-    const prizeMatch = embed?.description?.match(/\*\*Prize:\*\*\s*(?:🎁\s*)?\*\*(.*?)\*\*/i) ||
-                       embed?.description?.match(/\*\*Prize:\*\*\s*(.*)/i);
-    const prize = prizeMatch ? prizeMatch[1].trim() : 'Mystery Prize';
-
-    targetState = {
-      id: interaction.message.id,
-      guildId: interaction.guildId,
-      channelId: interaction.channelId,
-      hostId: interaction.message.interaction?.user?.id || interaction.user.id,
-      prize: prize,
-      entries: new Set(),
-      client: interaction.client,
-      timer: null
-    };
-    activeGiveaways.set(interaction.message.id, targetState);
-    if (rawId) activeGiveaways.set(rawId, targetState);
-  }
-
-  const userId = interaction.user.id;
-  const alreadyEntered = targetState.entries.has(userId);
-
-  if (alreadyEntered) {
-    targetState.entries.delete(userId);
-  } else {
-    targetState.entries.add(userId);
-  }
-
-  const count = targetState.entries.size;
-
-  // Immediate ephemeral confirmation so Discord never times out
-  if (alreadyEntered) {
-    await interaction.reply({
-      content: `❌ You left the giveaway for **${targetState.prize}**.`,
-      ephemeral: true
-    }).catch(() => {});
-  } else {
-    await interaction.reply({
-      content: `🎉 **You entered the giveaway for ${targetState.prize}!**\nTotal entries: **${count}** 🍀 Good luck!`,
-      ephemeral: true
-    }).catch(() => {});
-  }
-
-  // Update original message button and footer count smoothly
+  // 1. Instantly acknowledge the interaction to Discord within milliseconds to guarantee no timeout
   try {
-    const message = interaction.message;
-    if (message && message.editable) {
-      const origEmbed = message.embeds[0];
-      const updatedEmbed = EmbedBuilder.from(origEmbed)
-        .setFooter({ text: `Krylo Network Giveaways • ${count} ${count === 1 ? 'Entry' : 'Entries'}` });
-
-      const updatedBtn = new ButtonBuilder()
-        .setCustomId(interaction.customId)
-        .setLabel(`🎉 Enter (${count})`)
-        .setStyle(ButtonStyle.Success);
-
-      const row = new ActionRowBuilder().addComponents(updatedBtn);
-      await message.edit({ embeds: [updatedEmbed], components: [row] });
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.deferReply({ ephemeral: true });
     }
-  } catch (err) {
-    // Non-fatal if message edit is ratelimited
+  } catch (deferErr) {
+    console.warn('[Giveaway Defer Notice]:', deferErr.message);
   }
 
-  return true;
+  try {
+    const rawId = interaction.customId.replace('giveaway_enter_', '').trim();
+    let targetState = activeGiveaways.get(rawId) || activeGiveaways.get(interaction.message?.id);
+
+    // If state not found in memory (e.g. from an existing older message or after bot restart)
+    // Reconstruct state from message embed so the button NEVER fails!
+    if (!targetState) {
+      const embed = interaction.message?.embeds?.[0];
+      const prizeMatch = embed?.description?.match(/\*\*Prize:\*\*\s*(?:🎁\s*)?\*\*(.*?)\*\*/i) ||
+                         embed?.description?.match(/\*\*Prize:\*\*\s*(.*)/i);
+      const prize = prizeMatch ? prizeMatch[1].trim() : 'buddha fruit';
+
+      targetState = {
+        id: interaction.message?.id || rawId,
+        guildId: interaction.guildId,
+        channelId: interaction.channelId,
+        hostId: interaction.message?.interaction?.user?.id || interaction.user.id,
+        prize: prize,
+        entries: new Set(),
+        client: interaction.client,
+        timer: null
+      };
+      if (interaction.message?.id) activeGiveaways.set(interaction.message.id, targetState);
+      if (rawId) activeGiveaways.set(rawId, targetState);
+    }
+
+    if (!targetState.entries) {
+      targetState.entries = new Set();
+    }
+
+    const userId = interaction.user.id;
+    const alreadyEntered = targetState.entries.has(userId);
+
+    if (alreadyEntered) {
+      targetState.entries.delete(userId);
+    } else {
+      targetState.entries.add(userId);
+    }
+
+    const count = targetState.entries.size;
+
+    const replyContent = alreadyEntered
+      ? `❌ You left the giveaway for **${targetState.prize}**.`
+      : `🎉 **You entered the giveaway for ${targetState.prize}!**\nTotal entries: **${count}** 🍀 Good luck!`;
+
+    if (interaction.deferred) {
+      await interaction.editReply({ content: replyContent }).catch(() => {});
+    } else if (!interaction.replied) {
+      await interaction.reply({ content: replyContent, ephemeral: true }).catch(() => {});
+    }
+
+    // Update original message button and footer count smoothly in background
+    (async () => {
+      try {
+        const message = interaction.message;
+        if (message && message.editable) {
+          const origEmbed = message.embeds[0];
+          if (origEmbed) {
+            const updatedEmbed = EmbedBuilder.from(origEmbed)
+              .setFooter({ text: `Krylo Network Giveaways • ${count} ${count === 1 ? 'Entry' : 'Entries'} • Extended` });
+
+            const updatedBtn = new ButtonBuilder()
+              .setCustomId(interaction.customId)
+              .setLabel(`🎉 Enter (${count})`)
+              .setStyle(ButtonStyle.Success);
+
+            const row = new ActionRowBuilder().addComponents(updatedBtn);
+            await message.edit({ embeds: [updatedEmbed], components: [row] }).catch(() => {});
+          }
+        }
+      } catch (err) {
+        // Non-fatal if message edit is ratelimited
+      }
+    })();
+
+    return true;
+  } catch (err) {
+    console.error('[Giveaway Button Error]:', err);
+    try {
+      if (interaction.deferred) {
+        await interaction.editReply({ content: '⚠️ An error occurred while processing your entry. Please try again!' }).catch(() => {});
+      } else if (!interaction.replied) {
+        await interaction.reply({ content: '⚠️ An error occurred while processing your entry. Please try again!', ephemeral: true }).catch(() => {});
+      }
+    } catch (_) {}
+    return true;
+  }
 }
 
 /**
