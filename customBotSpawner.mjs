@@ -96,8 +96,8 @@ const BOT_LEVEL_FLAIRS = {
     prefix: '⚡'
   },
   '1572758718091890818': { // Krims Code Pro
-    color: '#9B59B6',
-    title: '👑 KRIMS PRO LEVEL UP!',
+    color: '#8A2BE2', // Mystic Purple
+    title: '🔮 KRIMS PRO LEVEL UP!',
     prefix: '⚡'
   }
 };
