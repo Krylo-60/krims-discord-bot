@@ -53,6 +53,7 @@ import {
 
 import { handlePremiumCommand } from '../features/premiumManager.mjs';
 import { handleEliteSmpCommand } from '../features/eliteSmpKnowledge.mjs';
+import { handleTradeSlashCommand } from '../features/tradeSystem.mjs';
 import { fetchLiveWeather } from '../features/weatherService.mjs';
 import { syncGuildAutoMod, getGlobalAutoModRuleCount } from '../features/autoModSyncEngine.mjs';
 
@@ -2770,26 +2771,7 @@ if (commandName === 'pay' || commandName === 'tip' || commandName === 'gift') {
     }
 
     if (commandName === 'trade') {
-      const player = interaction.options.getUser('player');
-      const offer = interaction.options.getString('offer');
-
-      if (player.id === interaction.user.id) {
-        return await interaction.reply({ content: '❌ You cannot trade with yourself.', ephemeral: true });
-      }
-
-      const embed = new EmbedBuilder()
-        .setTitle('🤝 TRADE OFFER')
-        .setColor(0x5865F2)
-        .setDescription(`<@${player.id}>, you received a trade offer from <@${interaction.user.id}>!\n\n**Offer:** ${offer}`)
-        .setFooter({ text: 'Accept or Decline below' })
-        .setTimestamp();
-
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`trade_accept_${interaction.user.id}_${player.id}`).setLabel('Accept').setStyle(ButtonStyle.Success).setEmoji('✅'),
-        new ButtonBuilder().setCustomId(`trade_decline_${interaction.user.id}_${player.id}`).setLabel('Decline').setStyle(ButtonStyle.Danger).setEmoji('❌')
-      );
-
-      return await interaction.reply({ content: `<@${player.id}>`, embeds: [embed], components: [row] });
+      return await handleTradeSlashCommand(interaction);
     }
 
     if (commandName === 'pet') {

@@ -400,8 +400,14 @@ export class MultiBotManager {
           const { REST, Routes } = await import('discord.js');
           const { customBotCommandJson } = await import('./commands/masterCommandRegistry.mjs');
           const rest = new REST({ version: '10' }).setToken(config.token);
-          await rest.put(Routes.applicationCommands(client.user.id), { body: customBotCommandJson });
-          console.log(`[MultiBotManager] 🚀 Synced ${customBotCommandJson.length} curated global slash commands for ${client.user.tag} (${client.user.id})`);
+          let existingCmds = [];
+          try {
+            existingCmds = await rest.get(Routes.applicationCommands(client.user.id));
+          } catch (_) {}
+          const entryPoints = (Array.isArray(existingCmds) ? existingCmds : []).filter(c => c.type === 4);
+          const bodyToDeploy = [...entryPoints, ...customBotCommandJson.filter(c => c.name !== 'launch')];
+          await rest.put(Routes.applicationCommands(client.user.id), { body: bodyToDeploy });
+          console.log(`[MultiBotManager] 🚀 Synced ${bodyToDeploy.length} curated global slash commands for ${client.user.tag} (${client.user.id})`);
 
           // ⚡ Immediate Guild Deployment for Zero-Delay Discovery
           for (const g of client.guilds.cache.values()) {
@@ -610,6 +616,11 @@ export class MultiBotManager {
       }
 
       // Free Community & Casino Commands: !bet, !rps, !trivia, !roast, !compliment, !partners
+      if (cleanText.startsWith('!trade') || cleanText.startsWith(`${p}trade`)) {
+        const args = message.content.trim().split(/\s+/).slice(1);
+        const { handleTradePrefixCommand } = await import('./features/tradeSystem.mjs');
+        return handleTradePrefixCommand(message, args);
+      }
       if (cleanText.startsWith('!bet') || cleanText.startsWith('!gamble') || cleanText.startsWith(`${p}bet`)) {
         const args = message.content.trim().split(/\s+/).slice(1);
         return handleBetCommand(message, args);
@@ -934,6 +945,17 @@ export class MultiBotManager {
       )) {
         const handled = await handleWelcomeTicketInteraction(interaction);
         if (handled) return;
+      }
+
+      // 🤝 Secure Trade System Buttons (trade_kr_accept_, trade_kr_cancel_, etc.)
+      if (interaction.isButton() && (
+        interaction.customId.startsWith('trade_kr_') ||
+        interaction.customId.startsWith('trade_accept_') ||
+        interaction.customId.startsWith('trade_decline_')
+      )) {
+        const { handleTradeButtonInteraction } = await import('./features/tradeSystem.mjs');
+        const handled = await handleTradeButtonInteraction(interaction);
+        if (handled !== false) return;
       }
       if (!interaction.isChatInputCommand()) return;
 
@@ -1267,8 +1289,12 @@ export class MultiBotManager {
       const { REST, Routes } = await import('discord.js');
       const { customBotCommandJson } = await import('./commands/masterCommandRegistry.mjs');
       const rest = new REST({ version: '10' }).setToken(token);
-      await rest.put(Routes.applicationCommands(discordUser.id), { body: customBotCommandJson });
-      console.log(`[MultiBotManager] 🚀 Auto-deployed ${customBotCommandJson.length} curated slash commands to bot ${discordUser.username} (${discordUser.id})`);
+      let existingCmds = [];
+      try { existingCmds = await rest.get(Routes.applicationCommands(discordUser.id)); } catch (_) {}
+      const entryPoints = (Array.isArray(existingCmds) ? existingCmds : []).filter(c => c.type === 4);
+      const bodyToDeploy = [...entryPoints, ...customBotCommandJson.filter(c => c.name !== 'launch')];
+      await rest.put(Routes.applicationCommands(discordUser.id), { body: bodyToDeploy });
+      console.log(`[MultiBotManager] 🚀 Auto-deployed ${bodyToDeploy.length} curated slash commands to bot ${discordUser.username} (${discordUser.id})`);
     } catch (deployErr) {
       console.warn(`[MultiBotManager] ⚠️ Slash command auto-deploy notice:`, deployErr.message);
     }

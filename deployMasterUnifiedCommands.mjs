@@ -25,8 +25,16 @@ async function deploy() {
       }
     }
 
-    console.log(`[+] Registering ${masterCommandJson.length} global slash commands...`);
-    await rest.put(Routes.applicationCommands(appId), { body: masterCommandJson });
+    console.log(`[+] Fetching existing commands to preserve Discord Entry Point commands...`);
+    const existingCmds = await rest.get(Routes.applicationCommands(appId));
+    const entryPoints = existingCmds.filter(c => c.type === 4);
+    if (entryPoints.length > 0) {
+      console.log(`[+] Preserving ${entryPoints.length} Discord Entry Point activity command(s) (${entryPoints.map(e => e.name).join(', ')})...`);
+    }
+
+    const bodyToDeploy = [...entryPoints, ...masterCommandJson.filter(c => c.name !== 'launch')];
+    console.log(`[+] Registering ${bodyToDeploy.length} global slash commands...`);
+    await rest.put(Routes.applicationCommands(appId), { body: bodyToDeploy });
     console.log(`[✅ GLOBAL SLASH COMMANDS DEPLOYED WITHOUT DUPLICATES!]`);
   } catch (err) {
     console.error('[-] Fatal deployment error:', err);

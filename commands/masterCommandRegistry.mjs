@@ -678,9 +678,21 @@ export const masterCommandBuilders = [
 
   new SlashCommandBuilder()
     .setName('trade')
-    .setDescription('🤝 Trade items and KryloCoins with another player securely!')
-    .addUserOption(opt => opt.setName('player').setDescription('Player to trade with').setRequired(true))
-    .addStringOption(opt => opt.setName('offer').setDescription('What you are offering').setRequired(true)),
+    .setDescription('🤝 Trade KryloCoins ($Kr) and items with another player securely!')
+    .addSubcommand(sub =>
+      sub.setName('kr')
+        .setDescription('🪙 Trade KryloCoins / Krims Rewards ($Kr) with another player securely!')
+        .addUserOption(opt => opt.setName('user').setDescription('Player to trade with').setRequired(true))
+        .addIntegerOption(opt => opt.setName('amount').setDescription('Amount of KR to offer').setRequired(true).setMinValue(1))
+        .addStringOption(opt => opt.setName('item').setDescription('Item, gear, or note you are trading for (optional)').setRequired(false))
+    )
+    .addSubcommand(sub =>
+      sub.setName('item')
+        .setDescription('📦 Propose an item trade offer with another player')
+        .addUserOption(opt => opt.setName('player').setDescription('Player to trade with').setRequired(true))
+        .addStringOption(opt => opt.setName('offer').setDescription('What you are offering').setRequired(true))
+        .addStringOption(opt => opt.setName('for').setDescription('What you want in return (optional)').setRequired(false))
+    ),
 
   new SlashCommandBuilder()
     .setName('pet')
@@ -846,7 +858,7 @@ export const CUSTOM_BOT_SLASH_COMMANDS = new Set([
   // Identity & User tools
   'serverinfo', 'userinfo', 'avatar', 'ping', 'remind',
   // Economy & Progression
-  'daily', 'balance', 'pay', 'work', 'rank', 'profile', 'leaderboard', 'store', 'redeem',
+  'daily', 'balance', 'pay', 'trade', 'work', 'rank', 'profile', 'leaderboard', 'store', 'redeem',
   // Games, Counting & Tournaments
   'counting', 'setupcounting', 'tournament', 'challenge', 'duel', 'pvp', 'slots', 'spin', 'chest', 'jackpot'
 ]);

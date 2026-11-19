@@ -3204,46 +3204,11 @@ client.on('interactionCreate', async (interaction) => {
       });
     }
 
-    // Item Trade Accept / Decline Button Handling
-    if (customId.startsWith('trade_accept_') || customId.startsWith('trade_decline_')) {
-      const parts = customId.split('_');
-      const action = parts[1]; // 'accept' or 'decline'
-      const senderId = parts[2];
-      const targetId = parts[3];
-
-      if (interaction.user.id !== targetId) {
-        await interaction.reply({ content: '❌ Only the targeted player can respond to this trade offer!', flags: 64 });
-        return;
-      }
-
-      await interaction.deferUpdate();
-
-      if (action === 'accept') {
-        const acceptEmbed = new EmbedBuilder()
-          .setTitle('🤝 TRADE OFFER ACCEPTED!')
-          .setDescription(`✅ <@${targetId}> has **ACCEPTED** the trade offer from <@${senderId}>!\n\n*Please conduct your item or KryloCoin exchange safely in-game!*`)
-          .setColor(0x00FF77)
-          .setTimestamp();
-
-        await interaction.editReply({
-          content: `🎉 **Trade Accepted between <@${senderId}> and <@${targetId}>!**`,
-          embeds: [acceptEmbed],
-          components: []
-        });
-      } else {
-        const declineEmbed = new EmbedBuilder()
-          .setTitle('❌ TRADE OFFER DECLINED')
-          .setDescription(`❌ <@${targetId}> has **DECLINED** the trade offer from <@${senderId}>.`)
-          .setColor(0xFF0055)
-          .setTimestamp();
-
-        await interaction.editReply({
-          content: `❌ **Trade Offer Declined.**`,
-          embeds: [declineEmbed],
-          components: []
-        });
-      }
-      return;
+    // Item & KryloCoins ($Kr) Trade Accept / Decline Button Handling
+    if (customId.startsWith('trade_kr_') || customId.startsWith('trade_accept_') || customId.startsWith('trade_decline_')) {
+      const { handleTradeButtonInteraction } = await import('./features/tradeSystem.mjs');
+      const handled = await handleTradeButtonInteraction(interaction);
+      if (handled !== false) return;
     }
 
     // PvP Accept/Decline Button Handling
@@ -8499,33 +8464,8 @@ if (commandName === 'bounty') {
 }
 
 if (commandName === 'trade') {
-    const player = interaction.options.getUser('player');
-    const offer = interaction.options.getString('offer');
-    
-    if (player.id === interaction.user.id) {
-        if (interaction.deferred || interaction.replied) await interaction.editReply({ content: '❌ You cannot trade with yourself.' });
-        else await interaction.reply({ content: '❌ You cannot trade with yourself.', flags: 64 });
-        return;
-    }
-    
-    const embed = new EmbedBuilder()
-        .setTitle('🤝 TRADE OFFER')
-        .setColor(0x5865F2)
-        .setDescription(`<@${player.id}>, you have received a trade offer from <@${interaction.user.id}>!\n\n**Offer:** ${offer}`)
-        .setFooter({ text: 'Accept or Decline below.' })
-        .setTimestamp();
-        
-    const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`trade_accept_${interaction.user.id}_${player.id}`).setLabel('Accept').setStyle(ButtonStyle.Success).setEmoji('✅'),
-        new ButtonBuilder().setCustomId(`trade_decline_${interaction.user.id}_${player.id}`).setLabel('Decline').setStyle(ButtonStyle.Danger).setEmoji('❌')
-    );
-    
-    if (interaction.deferred || interaction.replied) {
-        await interaction.editReply({ content: `<@${player.id}>`, embeds: [embed], components: [row] });
-    } else {
-        await interaction.reply({ content: `<@${player.id}>`, embeds: [embed], components: [row] });
-    }
-    return;
+    const { handleTradeSlashCommand } = await import('./features/tradeSystem.mjs');
+    return await handleTradeSlashCommand(interaction);
 }
 
 if (commandName === 'pet') {
@@ -10687,6 +10627,13 @@ client.on('messageCreate', async (message) => {
 
     await message.reply({ embeds: [dailyEmbed] });
     return;
+  }
+
+  // Command: !trade kr @user <amount> [item/note]
+  if (lowerMsg.startsWith('!trade')) {
+    const args = content.trim().split(/\s+/).slice(1);
+    const { handleTradePrefixCommand } = await import('./features/tradeSystem.mjs');
+    return handleTradePrefixCommand(message, args);
   }
 
   // Command: !pay @user <amount>
