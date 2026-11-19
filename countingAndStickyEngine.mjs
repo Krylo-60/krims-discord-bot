@@ -470,12 +470,8 @@ export async function handleCountingMessage(message) {
   if (message.author.bot || !message.guild) return false;
 
   let state = null;
-  try {
-    state = db.prepare('SELECT * FROM counting_state WHERE channel_id = ?').get(message.channel.id);
-  } catch (_) {}
-
-  // If not in local SQLite, query directly from Neon Postgres before anything else
-  if (!state && neonPool) {
+  // Always query authoritative Neon Postgres first if connected, then fallback to local SQLite cache
+  if (neonPool) {
     try {
       const pgClient = await neonPool.connect();
       const res = await pgClient.query('SELECT * FROM counting_state WHERE channel_id = $1', [message.channel.id]);
@@ -490,8 +486,14 @@ export async function handleCountingMessage(message) {
         } catch (_) {}
       }
     } catch (e) {
-      console.warn('[Direct Neon Fallback Notice]:', e.message);
+      console.warn('[Neon Counting Query Notice]:', e.message);
     }
+  }
+
+  if (!state) {
+    try {
+      state = db.prepare('SELECT * FROM counting_state WHERE channel_id = ?').get(message.channel.id);
+    } catch (_) {}
   }
 
   // If not explicitly linked in DB, check if channel name has 'counting' (supports Unicode / fonts)
