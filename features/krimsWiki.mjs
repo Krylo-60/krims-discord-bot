@@ -125,9 +125,9 @@ export const WIKI_SECTIONS = [
     id: 'custom-bot-spawner',
     title: '⚙️ Custom Bot Fleet Spawner',
     badge: 'Advanced',
-    summary: 'Host and spawn your own custom-branded Discord bot using Krims Code AI brain.',
+    summary: 'Krims has the code for ur bot! Host and spawn your own custom-branded Discord bot using Krims Code AI brain.',
     content: `
-      <h3>Spawn Your Own Custom Discord Bot</h3>
+      <h3>Krims Code — Krims Has the Code for Ur Bot</h3>
       <p>Did you know server owners can spawn their very own custom-branded Discord bots running the Krims Code AI multi-process engine at <strong>$0 cost</strong>?</p>
 
       <h4>How to Deploy Your Bot (<code>/setupbot</code>):</h4>
