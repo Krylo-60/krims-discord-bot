@@ -13284,12 +13284,54 @@ async function handleTicketMessage(message) {
   // Guard 1: Ignore all bot messages to prevent loop spam
   if (message.author.bot) return;
 
-  // Guard 2: Restrict updates/actions strictly to ticket channels in KryloSMP Server
+  // Guard 2: Restrict updates/actions strictly to ticket channels
   if (!message.guild || !message.channel.name.startsWith('ticket-')) {
     return;
   }
 
-  // // AI bot responds to all ticket messages
+  // Guard 3: NEVER trigger if author is Krylo, Server Owner, or Staff!
+  const isKrylo = message.author.id === '1414143825538191373';
+  const isOwner = message.author.id === message.guild.ownerId;
+  const isStaff = isKrylo || isOwner || (message.member && (
+    message.member.permissions.has(PermissionFlagsBits.Administrator) ||
+    message.member.permissions.has(PermissionFlagsBits.ManageMessages) ||
+    message.member.roles.cache.some(r => ['admin', 'moderator', 'staff', 'owner', 'founder'].includes(r.name.toLowerCase()))
+  ));
+
+  if (isStaff) {
+    return; // Founders/Staff are speaking directly; bot stays silent
+  }
+
+  // Guard 4: If staff is already active in this ticket or bot already greeted recently, only speak if explicitly mentioned
+  const isExplicitlyPinged = message.mentions.has(client.user) || message.content.toLowerCase().includes('krims');
+
+  if (!isExplicitlyPinged) {
+    try {
+      const recentMessages = await message.channel.messages.fetch({ limit: 15 });
+      // Check if human staff has spoken in this ticket
+      const hasActiveHumanStaff = recentMessages.some(m => 
+        !m.author.bot && 
+        (m.author.id === '1414143825538191373' || 
+         m.author.id === message.guild.ownerId || 
+         m.member?.permissions?.has(PermissionFlagsBits.ManageMessages) ||
+         m.member?.permissions?.has(PermissionFlagsBits.Administrator))
+      );
+      if (hasActiveHumanStaff) {
+        return; // Human staff is actively chatting with the user; do not intrude!
+      }
+
+      // Check if bot has already provided an automated response in this ticket
+      const botMessages = recentMessages.filter(m => m.author.id === client.user.id);
+      if (botMessages.size >= 1) {
+        const lastBotMsg = botMessages.first();
+        if (Date.now() - lastBotMsg.createdTimestamp < 15 * 60 * 1000) {
+          return; // Already assisted within last 15 mins; don't reply to casual short messages
+        }
+      }
+    } catch {}
+  }
+
+  // AI bot responds to ticket messages
   try {
     await message.channel.sendTyping();
 

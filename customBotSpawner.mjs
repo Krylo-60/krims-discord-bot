@@ -1132,6 +1132,11 @@ export class MultiBotManager {
         const author = message.author;
         if (author?.bot) return;
 
+        // 🛡️ Deduplication & Guild Scoping: Only dedicated bot logs for each server
+        if (guildId && guildId !== 'global' && !guildId.startsWith('global_') && guild.id !== guildId) return;
+        if (client.user.id === MINI_X_BOT_ID && guild.id === PHOENIX_DEN_GUILD_ID) return;
+        if (client.user.id === BABY_PHOENIX_BOT_ID && guild.id === MINI_ROBLOX_GUILD_ID) return;
+
         // 🔒 SECRET PIN & PRIVACY SHIELD: Never log secret commands or pins to mod-logs!
         const rawContent = (message.content || '').toLowerCase();
         if (rawContent.includes('24714') || rawContent.startsWith('!reset') || rawContent.includes('pin 24714')) {
@@ -1205,6 +1210,11 @@ export class MultiBotManager {
 
         const author = newMsg.author || oldMsg.author;
         if (author?.bot) return;
+
+        // 🛡️ Deduplication & Guild Scoping: Only dedicated bot logs for each server
+        if (guildId && guildId !== 'global' && !guildId.startsWith('global_') && guild.id !== guildId) return;
+        if (client.user.id === MINI_X_BOT_ID && guild.id === PHOENIX_DEN_GUILD_ID) return;
+        if (client.user.id === BABY_PHOENIX_BOT_ID && guild.id === MINI_ROBLOX_GUILD_ID) return;
 
         const oldContent = oldMsg.content || '*Unknown previous text (uncached)*';
         const newContent = newMsg.content || '*Empty*';

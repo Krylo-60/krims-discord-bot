@@ -45,6 +45,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } from 'discord.js';
 import { handleChatModeration } from './chatModEngine.mjs';
+import { neonPool } from '../databaseEngine.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -62,6 +63,7 @@ export const GIVEAWAY_PING_ID = '1568426782065959063';    // 🎁・𝑮𝒊𝒗
 export const TOURNAMENT_CHAMP_ROLE_ID = '1568426763120541857'; // 🏆𓆪・𝑻𝒐𝒖𝒓𝒏𝒂𝒎𝒆𝒏𝒕 𝑪𝒉𝒂𝒎𝒑𝒊𝒐𝒏『🥇』
 
 let db;
+let neonMiniInitialized = false;
 function getDb() {
   if (!db) {
     db = new Database(DB_PATH);
@@ -81,6 +83,41 @@ function getDb() {
       );
     `);
   }
+
+  if (neonPool && !neonMiniInitialized) {
+    neonMiniInitialized = true;
+    neonPool.query(`
+      CREATE TABLE IF NOT EXISTS mini_roblox_economy (
+        user_id VARCHAR(64) PRIMARY KEY,
+        shards BIGINT DEFAULT 0,
+        last_daily BIGINT DEFAULT 0,
+        streak INTEGER DEFAULT 0
+      );
+      CREATE TABLE IF NOT EXISTS mini_roblox_activity (
+        user_id VARCHAR(64),
+        week_key VARCHAR(32),
+        message_count BIGINT DEFAULT 0,
+        PRIMARY KEY (user_id, week_key)
+      );
+    `).then(() => {
+      return neonPool.query('SELECT * FROM mini_roblox_activity');
+    }).then(res => {
+      if (res && res.rows && res.rows.length > 0) {
+        const upsert = db.prepare(`
+          INSERT INTO mini_roblox_activity (user_id, week_key, message_count)
+          VALUES (?, ?, ?)
+          ON CONFLICT(user_id, week_key) DO UPDATE SET message_count = excluded.message_count
+        `);
+        for (const row of res.rows) {
+          upsert.run(row.user_id, row.week_key, Number(row.message_count || 0));
+        }
+        console.log(`[MiniEngine] 🚀 Synced ${res.rows.length} activity records from Neon Postgres!`);
+      }
+    }).catch(err => {
+      console.warn('[MiniEngine Neon Sync Warning]:', err.message);
+    });
+  }
+
   return db;
 }
 
@@ -101,6 +138,14 @@ export function trackMiniServerActivity(userId) {
       VALUES (?, ?, 1) 
       ON CONFLICT(user_id, week_key) DO UPDATE SET message_count = message_count + 1
     `).run(userId, weekKey);
+
+    if (neonPool) {
+      neonPool.query(`
+        INSERT INTO mini_roblox_activity (user_id, week_key, message_count)
+        VALUES ($1, $2, 1)
+        ON CONFLICT(user_id, week_key) DO UPDATE SET message_count = mini_roblox_activity.message_count + 1
+      `).catch(() => {});
+    }
   } catch (err) {
     console.error('[MiniEngine] Error tracking activity:', err.message);
   }
@@ -266,25 +311,41 @@ export async function handleMiniRobloxServerMessage(client, message, customPrefi
     lower === `${p}topmessages` || lower === `${p}weekly` || lower === `${p}motw` || lower === `${p}active`
   ) {
     const weekKey = getWeekKey();
-    const rows = database.prepare(
+    let rows = database.prepare(
       `SELECT user_id, message_count FROM mini_roblox_activity WHERE week_key = ? ORDER BY message_count DESC LIMIT 10`
     ).all(weekKey);
 
+    let isAllTime = false;
     if (!rows || rows.length === 0) {
-      return message.reply('📊 No message activity recorded for this week yet! Start chatting in #general-chat to top the charts!');
+      try {
+        const fallback = database.prepare(
+          `SELECT discord_id as user_id, messages_count as message_count FROM leveling WHERE messages_count > 0 ORDER BY messages_count DESC LIMIT 10`
+        ).all();
+        if (fallback && fallback.length > 0) {
+          rows = fallback;
+          isAllTime = true;
+        }
+      } catch {}
     }
 
-    let desc = '👑 **Top Active Chatters This Week:**\n\n';
+    if (!rows || rows.length === 0) {
+      return message.reply('📊 No message activity recorded yet! Start chatting in #general-chat to top the charts!');
+    }
+
+    let desc = isAllTime 
+      ? '👑 **Top Active Chatters (Server Leaderboard):**\n\n'
+      : '👑 **Top Active Chatters This Week:**\n\n';
+
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
       const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '🔹';
-      desc += `${medal} **#${i + 1}** <@${r.user_id}> — **${r.message_count.toLocaleString()} messages**\n`;
+      desc += `${medal} **#${i + 1}** <@${r.user_id}> — **${Number(r.message_count).toLocaleString()} messages**\n`;
     }
-    desc += `\n*The top member at the end of the week earns **Member of the Week** status & 2,500 bonus ⚡ Shards!* 🏆`;
+    desc += `\n*The top member earns **Member of the Week** status & 2,500 bonus ⚡ Shards!* 🏆`;
 
     const embed = new EmbedBuilder()
       .setColor(0x00F2FF)
-      .setTitle('⭐ MEMBER OF THE WEEK • ACTIVITY LEADERBOARD')
+      .setTitle('⭐ MINI\'S SERVER • ACTIVITY LEADERBOARD')
       .setDescription(desc)
       .setFooter({ text: 'Mini X • Activity Tracker' })
       .setTimestamp();
@@ -323,13 +384,23 @@ export async function handleMiniRobloxServerMessage(client, message, customPrefi
     const cleanHex = hex.startsWith('#') ? hex : `#${hex}`;
     const member = message.member;
 
-    const hasPerk = member.roles.cache.some(r => 
+    const isStaffOrExempt = 
+      member.id === '1414143825538191373' || 
+      member.id === message.guild.ownerId ||
+      member.permissions.has(PermissionFlagsBits.Administrator) ||
+      member.permissions.has(PermissionFlagsBits.ManageGuild) ||
+      member.permissions.has(PermissionFlagsBits.ManageRoles) ||
+      member.permissions.has(PermissionFlagsBits.ManageMessages);
+
+    const hasPerk = isStaffOrExempt || member.roles.cache.some(r => 
       r.id === CYBER_VIP_ROLE_ID || 
       r.name.includes('FOUNDER') || 
       r.name.includes('CO-FOUNDER') ||
       r.name.includes('Moderator') ||
       r.name.includes('Role Maker') ||
-      r.name.includes('BOOSTER')
+      r.name.includes('BOOSTER') ||
+      r.name.includes('Staff') ||
+      r.name.includes('Admin')
     );
 
     if (!hasPerk) {
@@ -350,6 +421,12 @@ export async function handleMiniRobloxServerMessage(client, message, customPrefi
           reason: `Custom Color Role for ${member.user.username} via Mini X`
         });
         await member.roles.add(customRole);
+      }
+
+      // Ensure color role is hoisted below bot's highest role so color is visible
+      const botMember = message.guild.members.me;
+      if (botMember && botMember.roles.highest.position > 1) {
+        await customRole.setPosition(botMember.roles.highest.position - 1).catch(() => {});
       }
 
       return message.reply(`🎨 **Color Applied!** Your custom role color is now **\`${cleanHex.toUpperCase()}\`**! ✨`);
