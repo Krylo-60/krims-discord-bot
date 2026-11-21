@@ -51,7 +51,7 @@ import { afkUsers, handleMute, handleUnmute, handleKick, handleBan, handleLockdo
 import { handleDevLogsCommand } from './features/devAuditLogger.mjs';
 import { getFalixStatus, sendFalixPowerSignal, sendFalixCommand } from './falixServerEngine.mjs';
 import { deliverStoreItem, STORE_CATALOG } from './storeDeliveryEngine.mjs';
-import { setPlayerVerification, getPlayer, getPlayerByIgn, addCoins, removeCoins, getBalance, claimDaily, transferCoins, getCustomBotById, setCustomBotPassword, updateCustomBotConfig, logCustomBotEvent, getCustomBotLogs, db, waitForNeonSync } from './databaseEngine.mjs';
+import { setPlayerVerification, getPlayer, getPlayerByIgn, addCoins, removeCoins, getBalance, claimDaily, transferCoins, getCustomBotById, setCustomBotPassword, updateCustomBotConfig, logCustomBotEvent, getCustomBotLogs, db, waitForNeonSync, recordLemonSqueezyOrder, getBotOrder, getUserBotOrders } from './databaseEngine.mjs';
 import { hashDashboardPassword, verifyDashboardPassword } from './tokenSecurity.mjs';
 import { aiOperator } from './aiConsoleOperator.mjs';
 import { setupAIConsoleChannel, handleAIConsoleMessage } from './aiConsoleChatHandler.mjs';
@@ -14562,6 +14562,186 @@ Provide an ultra-clear, professional diagnostic breakdown with:
       }
     });
     return;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 🍋 LEMON SQUEEZY OFFICIAL PAYMENT WEBHOOK HANDLER
+  // ═══════════════════════════════════════════════════════════
+  if ((url.pathname === '/webhooks/lemonsqueezy' || url.pathname === '/api/webhooks/lemonsqueezy') && req.method === 'POST') {
+    let rawBody = '';
+    req.on('data', chunk => { rawBody += chunk; });
+    req.on('end', async () => {
+      try {
+        const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET || process.env.LEMON_SQUEEZY_SECRET || '';
+        const signature = req.headers['x-signature'];
+
+        // 1. Verify HMAC-SHA256 Signature
+        if (secret) {
+          if (!signature) {
+            console.warn('[Lemon Squeezy Webhook] Missing X-Signature header');
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'Missing X-Signature header' }));
+          }
+
+          const hmac = crypto.createHmac('sha256', secret);
+          const digest = Buffer.from(hmac.update(rawBody).digest('hex'), 'utf8');
+          const signatureBuffer = Buffer.from(signature, 'utf8');
+
+          if (digest.length !== signatureBuffer.length || !crypto.timingSafeEqual(digest, signatureBuffer)) {
+            console.warn('[Lemon Squeezy Webhook] Invalid signature verification failed');
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'Invalid webhook signature' }));
+          }
+        } else {
+          console.warn('[Lemon Squeezy Webhook] Warning: LEMONSQUEEZY_WEBHOOK_SECRET not set, accepting webhook in sandbox mode.');
+        }
+
+        const payload = JSON.parse(rawBody || '{}');
+        const eventName = payload.meta?.event_name || 'unknown';
+        const customData = payload.meta?.custom_data || {};
+
+        console.log(`[Lemon Squeezy Webhook] 🔔 Received event: ${eventName}`);
+
+        // Only process order_created or order_refunded events
+        if (eventName !== 'order_created' && eventName !== 'subscription_created' && eventName !== 'order_paid') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ ok: true, ignored: true, message: `Event ${eventName} ignored` }));
+        }
+
+        const data = payload.data || {};
+        const attributes = data.attributes || {};
+        const orderId = String(data.id || attributes.order_number || Date.now());
+        const status = (attributes.status || '').toLowerCase();
+
+        // Ensure order is paid
+        if (status !== 'paid' && status !== 'active' && status !== '') {
+          console.log(`[Lemon Squeezy Webhook] Order ${orderId} has status '${status}', waiting for paid status.`);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ ok: true, status, message: 'Order not marked paid yet' }));
+        }
+
+        // Extract custom discord_id passed from checkout button
+        const discordId = customData.discord_id || customData.discordId || customData.user_id || customData.userId || null;
+        if (!discordId) {
+          console.warn(`[Lemon Squeezy Webhook] No discord_id found in custom_data for order ${orderId}`);
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ error: 'Missing discord_id in checkout custom data' }));
+        }
+
+        // Determine points to credit
+        let pointsToAdd = parseInt(customData.points || customData.points_to_add, 10);
+        const firstItem = attributes.first_order_item || {};
+        const variantId = String(firstItem.variant_id || '');
+        const productName = (firstItem.variant_name || firstItem.product_name || '').toLowerCase();
+        const amountCents = attributes.total || attributes.subtotal || 0;
+        const currency = attributes.currency || 'USD';
+        const userEmail = attributes.user_email || '';
+
+        if (!pointsToAdd || isNaN(pointsToAdd) || pointsToAdd <= 0) {
+          // Dynamic tier deduction based on variant name or amount
+          if (productName.includes('starter') || productName.includes('1,000') || productName.includes('1000')) {
+            pointsToAdd = 1000;
+          } else if (productName.includes('pro') || productName.includes('5,000') || productName.includes('5000')) {
+            pointsToAdd = 5000;
+          } else if (productName.includes('executive') || productName.includes('15,000') || productName.includes('15000')) {
+            pointsToAdd = 15000;
+          } else if (productName.includes('whale') || productName.includes('enterprise') || productName.includes('50,000') || productName.includes('50000')) {
+            pointsToAdd = 50000;
+          } else if (amountCents > 0) {
+            // Default rate: $1.00 (100 cents) = 500 KR points
+            pointsToAdd = Math.max(500, Math.round((amountCents / 100) * 500));
+          } else {
+            pointsToAdd = 1000;
+          }
+        }
+
+        // Idempotently record order in Neon Postgres & SQLite, crediting points
+        const recordResult = await recordLemonSqueezyOrder(
+          orderId,
+          discordId,
+          pointsToAdd,
+          amountCents,
+          currency,
+          variantId,
+          userEmail
+        );
+
+        if (recordResult.alreadyProcessed) {
+          console.log(`[Lemon Squeezy Webhook] Order ${orderId} was previously fulfilled. Returning idempotent 200 OK.`);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({
+            ok: true,
+            orderId,
+            alreadyProcessed: true,
+            message: 'Order already fulfilled'
+          }));
+        }
+
+        // 3. Dispatch confirmation DM to the Discord User
+        try {
+          const user = await client.users.fetch(discordId).catch(() => null);
+          if (user) {
+            const purchaseEmbed = new EmbedBuilder()
+              .setColor(0x00FFB3) // Neon mint
+              .setTitle('🍋 Krims Rewards (KR) Payment Confirmed!')
+              .setDescription(`Thank you for supporting **Krims Code**! Your order has been fulfilled instantly and your points have been credited.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n💎 **Points Added:** \`+${pointsToAdd.toLocaleString()} KR\`\n💳 **Amount Paid:** \`$${(amountCents / 100).toFixed(2)} ${currency}\`\n🧾 **Order ID:** \`#${orderId}\`\n🏦 **Current Balance:** \`${(recordResult.newBalance || 0).toLocaleString()} KR\`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
+              .addFields(
+                { name: '✨ What to do next?', value: 'Use `/balance` or `/stake` in Discord, or visit the [Rewards Dashboard](https://krims-bot-dashboard.vercel.app/rewards) to redeem Premium Passes and mint license keys!' }
+              )
+              .setFooter({ text: 'Lemon Squeezy Merchant of Record • Krims Code v6.1' })
+              .setTimestamp();
+
+            await user.send({ embeds: [purchaseEmbed] }).catch(() => {
+              console.log(`[Lemon Squeezy DM] Could not DM user ${discordId} (DMs might be closed).`);
+            });
+          }
+        } catch (dmErr) {
+          console.warn('[Lemon Squeezy DM Warning]:', dmErr.message);
+        }
+
+        // 4. Log to official staff/store logs channel
+        try {
+          const logChannel = client.channels.cache.find(c =>
+            c && c.isTextBased() && (c.name.includes('bot-logs') || c.name.includes('store') || c.name.includes('audit'))
+          );
+          if (logChannel) {
+            const logEmbed = new EmbedBuilder()
+              .setColor(0xFFA500)
+              .setTitle('💰 New Lemon Squeezy Order Fulfilled')
+              .setDescription(`• **Customer:** <@${discordId}> (\`${discordId}\`)\n• **Credited:** \`+${pointsToAdd.toLocaleString()} KR\`\n• **Total:** \`$${(amountCents / 100).toFixed(2)} ${currency}\`\n• **Order ID:** \`#${orderId}\`\n• **Email:** \`${userEmail || 'N/A'}\``)
+              .setTimestamp();
+            await logChannel.send({ embeds: [logEmbed] }).catch(() => {});
+          }
+        } catch (_) {}
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          ok: true,
+          orderId,
+          discordId,
+          pointsAdded,
+          newBalance: recordResult.newBalance,
+          message: 'Order verified, logged in Neon Postgres, and credited successfully'
+        }));
+      } catch (err) {
+        console.error('[Lemon Squeezy Webhook Exception]:', err);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // Get user order history from Neon Postgres / SQLite
+  if (url.pathname === '/api/orders/user' && req.method === 'GET') {
+    const discordId = url.searchParams.get('discordId') || url.searchParams.get('userId');
+    if (!discordId) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: 'discordId parameter is required' }));
+    }
+    const orders = getUserBotOrders(discordId);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ ok: true, discordId, orders }));
   }
 
   // ═══════════════════════════════════════════════════════════

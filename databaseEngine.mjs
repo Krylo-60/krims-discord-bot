@@ -403,6 +403,19 @@ db.exec(`
     verified_at INTEGER NOT NULL,
     verification_method TEXT DEFAULT 'bio_challenge'
   );
+
+  -- 13. Lemon Squeezy Payment Orders & Bot Points Audit Ledger (Idempotent Webhook Engine)
+  CREATE TABLE IF NOT EXISTS bot_orders (
+    order_id TEXT PRIMARY KEY,
+    discord_id TEXT NOT NULL,
+    points_added INTEGER NOT NULL,
+    amount_cents INTEGER DEFAULT 0,
+    currency TEXT DEFAULT 'USD',
+    variant_id TEXT,
+    customer_email TEXT,
+    status TEXT DEFAULT 'paid',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 `);
 
 
@@ -1038,6 +1051,17 @@ if (neonPool) {
       verified_at BIGINT NOT NULL,
       verification_method VARCHAR(64) DEFAULT 'bio_challenge'
     );
+    CREATE TABLE IF NOT EXISTS bot_orders (
+      order_id VARCHAR(128) PRIMARY KEY,
+      discord_id VARCHAR(64) NOT NULL,
+      points_added INT NOT NULL,
+      amount_cents INT DEFAULT 0,
+      currency VARCHAR(16) DEFAULT 'USD',
+      variant_id VARCHAR(64),
+      customer_email VARCHAR(255),
+      status VARCHAR(32) DEFAULT 'paid',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
   `).catch(e => console.warn('[Neon Staking/CLI Table Init Warning]:', e.message));
 }
 
@@ -1339,5 +1363,139 @@ export function unlinkVerifiedGitHub(discordId) {
   } catch (err) {
     console.error('[DB] unlinkVerifiedGitHub error:', err.message);
     return false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🍋 LEMON SQUEEZY PAYMENT & BOT POINTS IDEMPOTENCY ENGINE
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Idempotently records an order from Lemon Squeezy and credits points to user
+ * Prevents double-crediting via Neon PostgreSQL & SQLite PRIMARY KEY on order_id.
+ */
+export async function recordLemonSqueezyOrder(orderId, discordId, pointsAdded, amountCents = 0, currency = 'USD', variantId = '', customerEmail = '') {
+  if (!orderId || !discordId) {
+    return { success: false, reason: 'Missing orderId or discordId' };
+  }
+
+  const strOrderId = String(orderId).trim();
+  const strDiscordId = String(discordId).trim();
+  const pts = parseInt(pointsAdded, 10) || 0;
+  const cents = parseInt(amountCents, 10) || 0;
+  const curr = (currency || 'USD').toUpperCase();
+  const varId = String(variantId || '').trim();
+  const email = (customerEmail || '').trim().toLowerCase();
+
+  // 1. Check local SQLite memory pool
+  try {
+    const existing = db.prepare('SELECT * FROM bot_orders WHERE order_id = ?').get(strOrderId);
+    if (existing) {
+      console.log(`[Lemon Squeezy] Order ${strOrderId} already fulfilled in SQLite. Skipping duplicate credit.`);
+      return { success: false, alreadyProcessed: true, order: existing };
+    }
+  } catch (err) {
+    console.warn('[SQLite bot_orders check error]:', err.message);
+  }
+
+  // 2. Check Neon PostgreSQL
+  if (neonPool) {
+    try {
+      const pgCheck = await neonPool.query('SELECT order_id FROM bot_orders WHERE order_id = $1', [strOrderId]);
+      if (pgCheck.rows && pgCheck.rows.length > 0) {
+        console.log(`[Lemon Squeezy] Order ${strOrderId} already exists in Neon Postgres. Skipping duplicate credit.`);
+        return { success: false, alreadyProcessed: true, order: pgCheck.rows[0] };
+      }
+    } catch (pgErr) {
+      console.warn('[Neon bot_orders check warning]:', pgErr.message);
+    }
+  }
+
+  // 3. Insert into SQLite ledger (Atomic guard)
+  try {
+    db.prepare(`
+      INSERT INTO bot_orders (order_id, discord_id, points_added, amount_cents, currency, variant_id, customer_email, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'paid')
+    `).run(strOrderId, strDiscordId, pts, cents, curr, varId, email);
+  } catch (sqlErr) {
+    if (sqlErr.message && sqlErr.message.includes('UNIQUE constraint failed')) {
+      console.log(`[Lemon Squeezy] SQLite UNIQUE constraint hit for ${strOrderId}. Skipping.`);
+      return { success: false, alreadyProcessed: true };
+    }
+    console.error('[SQLite bot_orders insert error]:', sqlErr.message);
+  }
+
+  // 4. Insert into Neon PostgreSQL ledger (Cloud Idempotent Guard)
+  if (neonPool) {
+    try {
+      await neonPool.query(`
+        INSERT INTO bot_orders (order_id, discord_id, points_added, amount_cents, currency, variant_id, customer_email, status)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, 'paid')
+        ON CONFLICT (order_id) DO NOTHING
+      `, [strOrderId, strDiscordId, pts, cents, curr, varId, email]);
+      console.log(`[Neon Postgres] 🐘 Successfully recorded order ${strOrderId} for user ${strDiscordId}`);
+    } catch (neonErr) {
+      console.warn('[Neon bot_orders insert warning]:', neonErr.message);
+    }
+  }
+
+  // 5. Increment user's economy points (Krims Rewards / KryloCoins)
+  // addCoins automatically updates SQLite and syncs to Neon Lakebase Postgres economy table!
+  const newBal = addCoins(strDiscordId, pts);
+
+  // 6. Sync to MongoDB Atlas (if active)
+  if (mongoDb) {
+    try {
+      await mongoDb.collection('users').updateOne(
+        { discord_id: strDiscordId },
+        {
+          $inc: { points: pts, krylocoins: pts },
+          $set: { last_purchase_at: new Date() }
+        },
+        { upsert: true }
+      );
+      await mongoDb.collection('bot_orders').insertOne({
+        order_id: strOrderId,
+        discord_id: strDiscordId,
+        points_added: pts,
+        amount_cents: cents,
+        currency: curr,
+        variant_id: varId,
+        customer_email: email,
+        created_at: new Date()
+      });
+      console.log(`[MongoDB Atlas] 🍃 Logged order ${strOrderId} and incremented points for ${strDiscordId}`);
+    } catch (mErr) {
+      console.warn('[MongoDB Atlas bot_orders sync warning]:', mErr.message);
+    }
+  }
+
+  console.log(`[Lemon Squeezy] 💎 Credited +${pts.toLocaleString()} KR points to Discord user ${strDiscordId} (Order: ${strOrderId}). New Balance: ${newBal?.krylocoins ?? 'synced'}`);
+
+  return {
+    success: true,
+    alreadyProcessed: false,
+    orderId: strOrderId,
+    discordId: strDiscordId,
+    pointsAdded: pts,
+    newBalance: newBal?.krylocoins
+  };
+}
+
+export function getBotOrder(orderId) {
+  if (!orderId) return null;
+  try {
+    return db.prepare('SELECT * FROM bot_orders WHERE order_id = ?').get(String(orderId)) || null;
+  } catch (err) {
+    return null;
+  }
+}
+
+export function getUserBotOrders(discordId) {
+  if (!discordId) return [];
+  try {
+    return db.prepare('SELECT * FROM bot_orders WHERE discord_id = ? ORDER BY created_at DESC').all(String(discordId)) || [];
+  } catch (err) {
+    return [];
   }
 }
