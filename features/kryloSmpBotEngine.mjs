@@ -1811,6 +1811,34 @@ ksmpClient.on('interactionCreate', async interaction => {
         const signal = interaction.options.getString('signal', true);
         const res = await sendFalixPowerSignal(signal);
         if (!res.success) {
+          try {
+            const parsed = typeof res.error === 'string' ? JSON.parse(res.error) : res.error;
+            const errObj = parsed?.error || parsed;
+            if (errObj?.code === 'verification_required' && errObj?.action_url) {
+              const verifyEmbed = new EmbedBuilder()
+                .setColor(0xFFA500)
+                .setTitle('⚠️ FalixNodes Verification Required')
+                .setDescription(
+                  `FalixNodes Free Plan requires a quick human verification before starting the server.\n\n` +
+                  `1️⃣ Click the **Verify on FalixNodes** button below.\n` +
+                  `2️⃣ Complete the captcha within **5 minutes**.\n` +
+                  `3️⃣ Re-run \`/mc-power signal:start\` to boot the server!`
+                )
+                .setFooter({ text: 'FalixNodes Free Tier Protection' });
+
+              const verifyButton = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                  .setLabel('🔗 Verify on FalixNodes')
+                  .setStyle(ButtonStyle.Link)
+                  .setURL(errObj.action_url)
+              );
+
+              return interaction.editReply({
+                embeds: [verifyEmbed],
+                components: [verifyButton]
+              });
+            }
+          } catch (_) {}
           return interaction.editReply(`Power action failed: ${res.error}`);
         }
         return interaction.editReply(`Sent \`${signal}\` signal to server.`);
