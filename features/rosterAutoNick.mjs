@@ -100,11 +100,6 @@ export async function handleRosterMessage(message) {
     const member = message.member || await message.guild.members.fetch(message.author.id).catch(() => null);
     if (!member) return false;
 
-    // Immunize server owners & admins
-    if (message.guild.ownerId === member.id || member.permissions.has('Administrator')) {
-      return false;
-    }
-
     // 🧠 Learn member IGN into persistent server AI memory
     learnServerFact(
       message.guild.id,
@@ -119,6 +114,13 @@ export async function handleRosterMessage(message) {
         console.warn('[RosterAutoNick] Welcome Card update notice:', err.message);
       });
     } catch (_) {}
+
+    // Immunize server owners & admins from nickname change, but welcome card was updated above
+    if (message.guild.ownerId === member.id || member.permissions.has('Administrator')) {
+      await message.react('🏷️').catch(() => {});
+      await message.react('✅').catch(() => {});
+      return true;
+    }
 
     // Already matches
     if (member.nickname === ign || (!member.nickname && member.user.username === ign)) {

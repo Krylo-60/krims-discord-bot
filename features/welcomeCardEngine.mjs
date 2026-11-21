@@ -42,6 +42,12 @@ export const HALF_LIFES_CREED_CHANNEL_ID = '1557855862146465922';   // 📜・�
 export const HALF_LIFES_ROLES_CHANNEL_ID = '1559251032465219587';   // 🏷️・𝖱oles
 export const HALF_LIFES_TEAM_CHAT_CHANNEL_ID = '1557855867897127054'; // 💬・𝖳eam-𝖢hat
 
+export const KRYLOSMP_GUILD_ID = '1538225337048236082';
+export const KRYLOSMP_WELCOME_CHANNEL_ID = '1542646201684467885'; // #👋・welcome
+export const KRYLOSMP_VERIFY_CHANNEL_ID = '1542646204658090054';  // #✅・verify
+export const KRYLOSMP_RULES_CHANNEL_ID = '1542646197100224552';   // #📌・rules
+export const KRYLOSMP_GENERAL_CHANNEL_ID = '1542646245028401253'; // #💬・general-chat
+
 /**
  * Render the high-resolution welcome card via the Python Pillow generator
  */
@@ -121,50 +127,73 @@ export async function renderWelcomeCard({
  * Handle new operative join: Post Phase 1 Welcome Card
  */
 export async function handleGuildMemberAddWelcome(member) {
-  if (member.guild.id !== HALF_LIFES_GUILD_ID) return;
+  const isTLB = member.guild.id === HALF_LIFES_GUILD_ID;
+  const isKrylo = member.guild.id === KRYLOSMP_GUILD_ID;
+  if (!isTLB && !isKrylo) return;
 
   try {
-    const welcomeCh = member.guild.channels.cache.get(HALF_LIFES_WELCOME_CHANNEL_ID) ||
+    const welcomeChannelId = isKrylo ? KRYLOSMP_WELCOME_CHANNEL_ID : HALF_LIFES_WELCOME_CHANNEL_ID;
+    const welcomeCh = member.guild.channels.cache.get(welcomeChannelId) ||
                       member.guild.channels.cache.find(c => c.name.includes('welcome'));
     if (!welcomeCh) return;
 
     const memberCount = member.guild.memberCount;
     const avatarUrl = member.user.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true });
 
-    console.log(`[WelcomeCardEngine] Rendering Phase 1 Welcome Card for @${member.user.username}...`);
+    console.log(`[WelcomeCardEngine] Rendering Phase 1 Welcome Card for @${member.user.username} in ${member.guild.name}...`);
     const cardBuffer = await renderWelcomeCard({
       avatarUrl,
       username: member.user.username,
       memberCount,
-      serverName: "THE LIGHT BEARERS",
-      phase: 1
+      serverName: isKrylo ? "KryloSMP" : "THE LIGHT BEARERS",
+      phase: 1,
+      theme: isKrylo ? 'ksmp' : 'cyber-cyan'
     });
 
-    const embed = new EmbedBuilder()
-      .setColor(0xFFD700)
-      .setTitle('✨ NEW GUARDIAN DEPLOYED — THE LIGHT BEARERS')
-      .setDescription(
-        `Welcome <@${member.id}> to **The Light Bearers**! 🛡️✨\n\n` +
-        `• 📜 **Read Guild Creed & Rules:** <#${HALF_LIFES_CREED_CHANNEL_ID}>\n` +
-        `• 📋 **Drop your Minecraft IGN in** <#${HALF_LIFES_ROSTER_CHANNEL_ID}> to verify your roster card & unlock your 3D skin badge!\n` +
-        `• 🎨 **Pick your chat color & specialty in** <#${HALF_LIFES_ROLES_CHANNEL_ID}>\n` +
-        `• 💬 **Introduce yourself in** <#${HALF_LIFES_TEAM_CHAT_CHANNEL_ID}>`
-      )
-      .setFooter({ text: `✨ CO-LEADER: KryloMCYT • 👑 LEADER: Jonesy / st1LLkill3r • Guardian #${memberCount}` })
-      .setTimestamp();
+    let embed;
+    let messageContent;
+
+    if (isKrylo) {
+      embed = new EmbedBuilder()
+        .setColor(0x00F2FF)
+        .setTitle('⚔️ NEW SURVIVOR JOINED — KRYLOSMP')
+        .setDescription(
+          `Welcome <@${member.id}> to **KryloSMP: Season 1 Survival**! 💎⚡\n\n` +
+          `• 📌 **Read the Server Rules:** <#${KRYLOSMP_RULES_CHANNEL_ID}>\n` +
+          `• ✅ **Link Minecraft IGN in** <#${KRYLOSMP_VERIFY_CHANNEL_ID}> to verify your account & unlock full chat!\n` +
+          `• 💬 **Chat with the community in** <#${KRYLOSMP_GENERAL_CHANNEL_ID}>`
+        )
+        .setFooter({ text: `⚔️ KryloSMP Official Network • Survivor #${memberCount} [UNVERIFIED]` })
+        .setTimestamp();
+      messageContent = `⚡ Welcome to the server, <@${member.id}>! Verify your Minecraft IGN in <#${KRYLOSMP_VERIFY_CHANNEL_ID}> to unlock full access.`;
+    } else {
+      embed = new EmbedBuilder()
+        .setColor(0xFFD700)
+        .setTitle('✨ NEW GUARDIAN DEPLOYED — THE LIGHT BEARERS')
+        .setDescription(
+          `Welcome <@${member.id}> to **The Light Bearers**! 🛡️✨\n\n` +
+          `• 📜 **Read Guild Creed & Rules:** <#${HALF_LIFES_CREED_CHANNEL_ID}>\n` +
+          `• 📋 **Drop your Minecraft IGN in** <#${HALF_LIFES_ROSTER_CHANNEL_ID}> to verify your roster card & unlock your 3D skin badge!\n` +
+          `• 🎨 **Pick your chat color & specialty in** <#${HALF_LIFES_ROLES_CHANNEL_ID}>\n` +
+          `• 💬 **Introduce yourself in** <#${HALF_LIFES_TEAM_CHAT_CHANNEL_ID}>`
+        )
+        .setFooter({ text: `✨ CO-LEADER: KryloMCYT • 👑 LEADER: Jonesy / st1LLkill3r • Guardian #${memberCount}` })
+        .setTimestamp();
+      messageContent = `✨ Welcome to the light, <@${member.id}>! Stand together as The Light Bearers.`;
+    }
 
     let sentMsg;
     if (cardBuffer) {
       const attachment = new AttachmentBuilder(cardBuffer, { name: 'welcome_card.png' });
       embed.setImage('attachment://welcome_card.png');
       sentMsg = await welcomeCh.send({
-        content: `✨ Welcome to the light, <@${member.id}>! Stand together as The Light Bearers.`,
+        content: messageContent,
         embeds: [embed],
         files: [attachment]
       });
     } else {
       sentMsg = await welcomeCh.send({
-        content: `✨ Welcome to the light, <@${member.id}>! Stand together as The Light Bearers.`,
+        content: messageContent,
         embeds: [embed]
       });
     }
@@ -190,7 +219,9 @@ export async function handleGuildMemberAddWelcome(member) {
  * Handle Minecraft IGN verification: Edit original Welcome Card to Phase 2
  */
 export async function handleRosterIgnWelcomeUpdate(guild, userId, ign) {
-  if (guild.id !== HALF_LIFES_GUILD_ID) return;
+  const isTLB = guild.id === HALF_LIFES_GUILD_ID;
+  const isKrylo = guild.id === KRYLOSMP_GUILD_ID;
+  if (!isTLB && !isKrylo) return;
 
   try {
     const record = db.prepare(`
@@ -198,7 +229,8 @@ export async function handleRosterIgnWelcomeUpdate(guild, userId, ign) {
       WHERE user_id = ? AND guild_id = ?
     `).get(userId, guild.id);
 
-    const welcomeCh = await guild.channels.fetch(HALF_LIFES_WELCOME_CHANNEL_ID).catch(() => null) ||
+    const welcomeChannelId = isKrylo ? KRYLOSMP_WELCOME_CHANNEL_ID : HALF_LIFES_WELCOME_CHANNEL_ID;
+    const welcomeCh = await guild.channels.fetch(welcomeChannelId).catch(() => null) ||
                       guild.channels.cache.find(c => c.name.includes('welcome'));
     if (!welcomeCh) {
       console.warn('[WelcomeCardEngine] Welcome channel not found');
@@ -210,14 +242,15 @@ export async function handleRosterIgnWelcomeUpdate(guild, userId, ign) {
     const avatarUrl = member ? member.user.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true }) : 'https://cdn.discordapp.com/embed/avatars/0.png';
     const mcHeadUrl = `https://mc-heads.net/avatar/${ign}/128.png`;
 
-    console.log(`[WelcomeCardEngine] Rendering Phase 2 Verified Card for ${ign}...`);
+    console.log(`[WelcomeCardEngine] Rendering Phase 2 Verified Card for ${ign} in ${guild.name}...`);
     const cardBuffer = await renderWelcomeCard({
       avatarUrl,
       mcHeadUrl,
       username: `${ign}`,
       memberCount,
-      serverName: "THE LIGHT BEARERS",
-      phase: 2
+      serverName: isKrylo ? "KryloSMP" : "THE LIGHT BEARERS",
+      phase: 2,
+      theme: isKrylo ? 'ksmp' : 'cyber-cyan'
     });
 
     if (!cardBuffer) {
@@ -226,26 +259,47 @@ export async function handleRosterIgnWelcomeUpdate(guild, userId, ign) {
     }
 
     const attachment = new AttachmentBuilder(cardBuffer, { name: 'welcome_card_verified.png' });
-    const embed = new EmbedBuilder()
-      .setColor(0xFFD700)
-      .setTitle('✅ GUARDIAN VERIFIED & ROSTER DEPLOYED')
-      .setDescription(
-        `<@${userId}> has officially linked Minecraft IGN **\`${ign}\`**! ✨🛡️\n\n` +
-        `• 🏷️ **Verified In-Game Name:** \`${ign}\`\n` +
-        `• 🌐 **SMP Status:** Active Light Bearer Guardian\n` +
-        `• 💬 **Guild Chat:** <#${HALF_LIFES_TEAM_CHAT_CHANNEL_ID}>\n` +
-        `• ✨ **All sanctuary communications & project channels unlocked!**`
-      )
-      .setImage('attachment://welcome_card_verified.png')
-      .setFooter({ text: `✨ CO-LEADER: KryloMCYT • 👑 LEADER: Jonesy / st1LLkill3r • Guardian #${memberCount} [VERIFIED]` })
-      .setTimestamp();
+    let embed;
+    let editMessageContent;
+
+    if (isKrylo) {
+      embed = new EmbedBuilder()
+        .setColor(0x00F2FF)
+        .setTitle('✅ SURVIVOR VERIFIED & LINKED — KRYLOSMP')
+        .setDescription(
+          `<@${userId}> has officially linked Minecraft IGN **\`${ign}\`**! ⚔️💎\n\n` +
+          `• 🏷️ **Verified In-Game Name:** \`${ign}\`\n` +
+          `• 🌐 **SMP Status:** Official Verified Survivor\n` +
+          `• 💬 **General Chat:** <#${KRYLOSMP_GENERAL_CHANNEL_ID}>\n` +
+          `• ⚔️ **All KryloSMP community channels unlocked!**`
+        )
+        .setImage('attachment://welcome_card_verified.png')
+        .setFooter({ text: `⚔️ KryloSMP Official Network • Survivor #${memberCount} [VERIFIED]` })
+        .setTimestamp();
+      editMessageContent = `✅ **Survivor Verified:** <@${userId}> is officially verified as **\`${ign}\`**! Welcome to KryloSMP!`;
+    } else {
+      embed = new EmbedBuilder()
+        .setColor(0xFFD700)
+        .setTitle('✅ GUARDIAN VERIFIED & ROSTER DEPLOYED')
+        .setDescription(
+          `<@${userId}> has officially linked Minecraft IGN **\`${ign}\`**! ✨🛡️\n\n` +
+          `• 🏷️ **Verified In-Game Name:** \`${ign}\`\n` +
+          `• 🌐 **SMP Status:** Active Light Bearer Guardian\n` +
+          `• 💬 **Guild Chat:** <#${HALF_LIFES_TEAM_CHAT_CHANNEL_ID}>\n` +
+          `• ✨ **All sanctuary communications & project channels unlocked!**`
+        )
+        .setImage('attachment://welcome_card_verified.png')
+        .setFooter({ text: `✨ CO-LEADER: KryloMCYT • 👑 LEADER: Jonesy / st1LLkill3r • Guardian #${memberCount} [VERIFIED]` })
+        .setTimestamp();
+      editMessageContent = `✨ **Guardian Roster Updated:** <@${userId}> is officially verified as **\`${ign}\`**!`;
+    }
 
     if (record && record.message_id) {
       try {
         const targetMsg = await welcomeCh.messages.fetch(record.message_id).catch(() => null);
         if (targetMsg) {
           await targetMsg.edit({
-            content: `✨ **Guardian Roster Updated:** <@${userId}> is officially verified as **\`${ign}\`**!`,
+            content: editMessageContent,
             embeds: [embed],
             files: [attachment]
           });
@@ -265,7 +319,7 @@ export async function handleRosterIgnWelcomeUpdate(guild, userId, ign) {
 
     // If no prior message was recorded, send verification confirmation in welcome channel
     const sent = await welcomeCh.send({
-      content: `🛡️ **Operative Verified:** <@${userId}> has officially linked Minecraft IGN **\`${ign}\`**!`,
+      content: editMessageContent,
       embeds: [embed],
       files: [attachment]
     });
@@ -278,6 +332,12 @@ export async function handleRosterIgnWelcomeUpdate(guild, userId, ign) {
         channel_id = excluded.channel_id,
         minecraft_ign = excluded.minecraft_ign,
         updated_at = CURRENT_TIMESTAMP
+    `).run(userId, guild.id, sent.id, welcomeCh.id, memberCount, ign);
+
+  } catch (err) {
+    console.error('[WelcomeCardEngine] Error in handleRosterIgnWelcomeUpdate:', err);
+  }
+}
     `).run(userId, guild.id, sent.id, welcomeCh.id, memberCount, ign);
 
   } catch (err) {
