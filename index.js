@@ -5300,37 +5300,56 @@ client.on('interactionCreate', async (interaction) => {
     return interaction.reply({ embeds: [termsEmbed], ephemeral: true });
   }
 
-  // /pricin// /pricing
+  // /pricing (Krims Code Premium & KryloSMP Direct Funding Tier Ladder)
   if (commandName === 'pricing') {
     const pricingEmbed = new EmbedBuilder()
-      .setColor('#F59E0B')
-      .setTitle('💎 Krims Code AI — Tier Ladder & Launch Status')
-      .setDescription('Scale your Discord community with custom bots, dedicated 0ms Neural compute, and AI brains:')
+      .setColor('#00F2FF')
+      .setTitle('💎 Krims Code Premium & KryloSMP Funding Ladder')
+      .setDescription(
+        'Scale your Discord community with custom bots, dedicated 0ms Neural AI reasoning, and **directly fund 24/7 dedicated hosting & 3D custom crates for KryloSMP (`play.krylosmp.xyz`)**!\n\n' +
+        'Choose how you want to unlock: **Pay with Krims Rewards (KR)** earned in chat or **Pay with Real Money (Lemon Squeezy)**!'
+      )
       .addFields(
         { 
-          name: '👑 Premium ($0.00 / FREE RIGHT NOW!)', 
-          value: '• **STATUS: OUT NOW & 100% FREE!**\n• Dedicated 0ms Proprietary Neural Compute\n• Automatic 3.0x VIP XP Multiplier on Chat & Voice\n• Golden VIP Rank Cards, Badges & 100 Commands\n• [Add Krims Code Premium](https://discord.com/oauth2/authorize?client_id=1562586215822266599&permissions=8&scope=bot%20applications.commands)', 
+          name: '⚡ 7-Day Starter Sprint — 2,500 KR or $2.99 USD', 
+          value: '• 0ms Priority Neural AI reasoning (no queue)\n• 1 Dedicated Custom Bot Slot with AI persona\n• 2x Voice & Chat XP Leveling Multiplier\n• 🎮 **KryloSMP Perk:** Knight Rank + 5x Rare Keys + $5,000 In-Game Coins', 
           inline: false 
         },
         { 
-          name: '🎁 Founder 100 ($0 / forever)', 
-          value: '• 1 Custom-Branded Bot (/setupbot)\n• Full Neural AI Brain\n• Web Dashboard Control Room\n• 100% Free Lifetime Slot', 
-          inline: true 
+          name: '👑 30-Day Pro Season Pass — 8,000 KR or $7.99 USD (Most Popular)', 
+          value: '• All Sprint features + Unlimited Neural Memory Context\n• Up to 3 Dedicated Custom Bot Slots with AutoMod\n• VIP Lounge access & golden Discord nameplate\n• 🎮 **KryloSMP Perk:** Champion Rank + 10x Legendary Keys + $25,000 In-Game Coins', 
+          inline: false 
         },
         { 
-          name: '⏳ Pro Tier (COMING SOON)', 
-          value: '• **STATUS: IN ACTIVE DEVELOPMENT**\n• Dedicated White-Label Cloud Clusters\n• Custom Subdomains & Private Priority LPUs\n• Launching soon!', 
-          inline: true 
+          name: '🌟 Enterprise Lifetime Access — 25,000 KR or $19.99 USD', 
+          value: '• Permanent Lifetime Krims Code Premium\n• Unlimited Custom Bot Slots with 0ms ping\n• Executive VIP Role & Golden Server Badges\n• 🎮 **KryloSMP Perk:** Sovereign Rank (`/fly`, `/god`) + 10x Godly Keys + $100,000 In-Game Coins', 
+          inline: false 
         },
         { 
-          name: '🛠️ Enterprise (Turnkey Custom Builds)', 
-          value: '• Turnkey Discord & Minecraft Server Builds\n• 5min – 3hr Staff SLA Response\n• [Open a Creation Ticket](https://discord.gg/sYaVJtXgQb)', 
+          name: '🎮 Why Your Support Matters for KryloSMP', 
+          value: '100% of proceeds from Premium Passes and KR Top-Ups directly pay for FalixNodes / dedicated Minecraft server hosting, anti-cheat licenses, 3D custom weapon/crate textures, and lag-free gameplay for our community!', 
           inline: false 
         }
       )
-      .setFooter({ text: '⚡ Powered by Krims Code AI • Premium is 100% Free' });
+      .setFooter({ text: 'Krims Code v6.1 • Powered by Lemon Squeezy Merchant of Record' })
+      .setTimestamp();
 
-    return interaction.reply({ embeds: [pricingEmbed], ephemeral: true });
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setLabel('💎 Pay with KR Points')
+        .setStyle(ButtonStyle.Link)
+        .setURL('https://krims-bot-dashboard.vercel.app/rewards'),
+      new ButtonBuilder()
+        .setLabel('🍋 Buy with Money ($2.99+)')
+        .setStyle(ButtonStyle.Link)
+        .setURL('https://krims-bot-dashboard.vercel.app/rewards#buy-points-section'),
+      new ButtonBuilder()
+        .setLabel('🎮 KryloSMP (play.krylosmp.xyz)')
+        .setStyle(ButtonStyle.Link)
+        .setURL('https://discord.gg/sYaVJtXgQb')
+    );
+
+    return interaction.reply({ embeds: [pricingEmbed], components: [row], ephemeral: true });
   }
 
   // /apply
@@ -7018,10 +7037,21 @@ client.on('interactionCreate', async (interaction) => {
         `Use \`!buy <number or item name>\` in chat to purchase an item!`
       )
       .addFields(itemFields)
-      .setFooter({ text: `${interaction.guild?.name || 'Community'} • Powered by Krims Code AI` })
+      .setFooter({ text: `${interaction.guild?.name || 'Community'} • Powered by Krims Code AI • Purchases Support KryloSMP` })
       .setTimestamp();
 
-    await interaction.reply({ embeds: [embed] });
+    const storeRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setLabel('🌐 Web Rewards Vault')
+        .setStyle(ButtonStyle.Link)
+        .setURL('https://krims-bot-dashboard.vercel.app/rewards'),
+      new ButtonBuilder()
+        .setLabel('🍋 Buy KR with Money (Lemon Squeezy)')
+        .setStyle(ButtonStyle.Link)
+        .setURL('https://krims-bot-dashboard.vercel.app/rewards#buy-points-section')
+    );
+
+    await interaction.reply({ embeds: [embed], components: [storeRow] });
     return;
   }
 
