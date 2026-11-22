@@ -51,7 +51,7 @@ import { afkUsers, handleMute, handleUnmute, handleKick, handleBan, handleLockdo
 import { handleDevLogsCommand } from './features/devAuditLogger.mjs';
 import { getFalixStatus, sendFalixPowerSignal, sendFalixCommand } from './falixServerEngine.mjs';
 import { deliverStoreItem, STORE_CATALOG } from './storeDeliveryEngine.mjs';
-import { setPlayerVerification, getPlayer, getPlayerByIgn, addCoins, removeCoins, getBalance, claimDaily, transferCoins, getCustomBotById, setCustomBotPassword, updateCustomBotConfig, logCustomBotEvent, getCustomBotLogs, db, waitForNeonSync, recordLemonSqueezyOrder, getBotOrder, getUserBotOrders } from './databaseEngine.mjs';
+import { setPlayerVerification, getPlayer, getPlayerByIgn, addCoins, removeCoins, getBalance, claimDaily, transferCoins, getCustomBotById, setCustomBotPassword, updateCustomBotConfig, logCustomBotEvent, getCustomBotLogs, db, waitForNeonSync, recordLemonSqueezyOrder, getBotOrder, getUserBotOrders, saveGuildSettings, getGuildSettings } from './databaseEngine.mjs';
 import { hashDashboardPassword, verifyDashboardPassword } from './tokenSecurity.mjs';
 import { aiOperator } from './aiConsoleOperator.mjs';
 import { setupAIConsoleChannel, handleAIConsoleMessage } from './aiConsoleChatHandler.mjs';
@@ -13805,6 +13805,53 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Custom Bots Multi-Tenant Endpoint
+  
+  // ── GUILD SETTINGS CLOUD DB SYNC (DASHBOARD REAL-TIME API) ──
+  if (url.pathname === '/api/guild/settings') {
+    if (req.method === 'GET') {
+      const guildId = url.searchParams.get('guild_id') || url.searchParams.get('guildId');
+      if (!guildId) {
+        res.writeHead(400, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        return res.end(JSON.stringify({ error: 'guild_id query parameter is required' }));
+      }
+      try {
+        const data = await getGuildSettings(guildId);
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        return res.end(JSON.stringify({ ok: true, ...data }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        return res.end(JSON.stringify({ error: err.message }));
+      }
+    }
+
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', async () => {
+        try {
+          const payload = JSON.parse(body || '{}');
+          const { guildId, settings } = payload;
+          if (!guildId || !settings) {
+            res.writeHead(400, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+            return res.end(JSON.stringify({ error: 'guildId and settings are required' }));
+          }
+
+          // Persist to Neon Postgres + SQLite
+          await saveGuildSettings(guildId, settings);
+          console.log(`[Dashboard Cloud Sync] ✅ Settings saved to DB for Guild ID: ${guildId}`);
+
+          res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          return res.end(JSON.stringify({ ok: true, message: 'Settings saved to cloud database and synced to bot runtime!' }));
+        } catch (e) {
+          console.error('[Dashboard Cloud Sync Error]:', e.message);
+          res.writeHead(500, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          return res.end(JSON.stringify({ error: e.message }));
+        }
+      });
+      return;
+    }
+  }
+
   if (url.pathname === '/api/custom-bots') {
     if (req.method === 'GET') {
       try {
