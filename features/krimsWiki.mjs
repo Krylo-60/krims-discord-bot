@@ -6,7 +6,7 @@ import {
   StringSelectMenuBuilder 
 } from 'discord.js';
 
-export const WIKI_BASE_URL = 'https://krims-discord-bot-d57m.onrender.com/wiki';
+export const WIKI_BASE_URL = 'https://krimscode.net/wiki.html';
 
 /**
  * Core Wiki Knowledge Base & Command Dictionary
@@ -758,7 +758,7 @@ export function renderKrimsWikiHtml(statusData = null) {
 <body>
   <!-- Header -->
   <header class="wiki-header">
-    <a href="https://krims-bot-dashboard.vercel.app" class="brand-link">
+    <a href="https://krimscode.net" class="brand-link">
       <img src="${master.avatarUrl}" alt="Krims Code AI" class="brand-logo" />
       <div>
         <span class="brand-title">KRIMS WIKI</span>
@@ -768,13 +768,13 @@ export function renderKrimsWikiHtml(statusData = null) {
     <nav class="notifyme-nav-links">
       <a href="https://discord.gg/sYaVJtXgQb" target="_blank" class="notifyme-nav-link">Support</a>
       <a href="/wiki" class="notifyme-nav-link active">Guide</a>
-      <a href="https://krims-bot-dashboard.vercel.app/custombot" class="notifyme-nav-link">Custom Bot</a>
-      <a href="https://krims-bot-dashboard.vercel.app/updates" class="notifyme-nav-link" style="color: #00f2ff; font-weight: 700;">🚀 Updates</a>
-      <a href="https://krims-bot-dashboard.vercel.app/rewards" class="notifyme-nav-link" style="color: #00f2ff; font-weight: 700; text-shadow: 0 0 10px rgba(0, 242, 255, 0.4);">💎 Rewards (Beta)</a>
+      <a href="https://krimscode.net/custombot" class="notifyme-nav-link">Custom Bot</a>
+      <a href="https://krimscode.net/updates" class="notifyme-nav-link" style="color: #00f2ff; font-weight: 700;">🚀 Updates</a>
+      <a href="https://krimscode.net/rewards" class="notifyme-nav-link" style="color: #00f2ff; font-weight: 700; text-shadow: 0 0 10px rgba(0, 242, 255, 0.4);">💎 Rewards (Beta)</a>
       <a href="/" class="notifyme-nav-link">Status</a>
       <a href="https://top.gg/bot/1523794466740371586/vote" target="_blank" class="notifyme-nav-link">Vote</a>
       <a href="https://discord.com/api/oauth2/authorize?client_id=1523794466740371586&permissions=8&scope=bot%20applications.commands" target="_blank" class="btn-nav-invite">Add Bot</a>
-      <a href="https://krims-bot-dashboard.vercel.app" class="btn-nav-login">Dashboard</a>
+      <a href="https://krimscode.net" class="btn-nav-login">Dashboard</a>
     </nav>
   </header>
 
@@ -949,7 +949,7 @@ export async function handleWikiCommand(interaction) {
       `• ⚙️ **Bot Spawner:** \`/setupbot\` custom bot hosting for free\n` +
       `• 🛡️ **Moderation:** Warnings, mute, purge, and lockdowns\n` +
       `• 📚 **100-Command Table:** Search all slash & prefix commands\n\n` +
-      `*Explore the full interactive documentation website at [krims-discord-bot-d57m.onrender.com/wiki](${WIKI_BASE_URL})!*`
+      `*Explore the full interactive documentation website at [krimscode.net/wiki.html](${WIKI_BASE_URL})!*`
     )
     .setThumbnail('https://cdn.discordapp.com/avatars/1523794466740371586/a_906dd0ce7ccf09e15e48c6a5bda79fa6.gif?size=256')
     .setFooter({ text: 'Krims Code AI • Knowledge & Docs' })
@@ -1043,7 +1043,7 @@ export async function handleWikiMessage(message, args = []) {
       `• ⚙️ **Bot Spawner:** \`/setupbot\` custom bot hosting for free\n` +
       `• 🛡️ **Moderation:** Warnings, mute, purge, and lockdowns\n` +
       `• 📚 **100-Command Table:** Search all slash & prefix commands\n\n` +
-      `*Explore the full interactive documentation website at [krims-discord-bot-d57m.onrender.com/wiki](${WIKI_BASE_URL})!*`
+      `*Explore the full interactive documentation website at [krimscode.net/wiki.html](${WIKI_BASE_URL})!*`
     )
     .setThumbnail('https://cdn.discordapp.com/avatars/1523794466740371586/a_906dd0ce7ccf09e15e48c6a5bda79fa6.gif?size=256')
     .setFooter({ text: 'Krims Code AI • Knowledge & Docs' })

@@ -86,7 +86,7 @@ export function getLiveStatusData(client, customBotManager = null) {
       nodeVersion: process.version,
       platform: process.platform,
       processUptime: formatUptime(process.uptime() * 1000),
-      topggWebhookUrl: 'https://krims-discord-bot-d57m.onrender.com/api/topgg/webhook',
+      topggWebhookUrl: 'https://krimscode.net/api/topgg/webhook',
       topggWebhookStatus: 'ONLINE'
     }
   };
@@ -688,7 +688,7 @@ export function renderLiveStatusHtml(data) {
   <div class="container">
     <!-- Vercel Winning Navbar -->
     <header class="navbar notifyme-nav-bar">
-      <a href="https://krims-bot-dashboard.vercel.app" class="brand">
+      <a href="https://krimscode.net" class="brand">
         <img src="${master.avatarUrl}" alt="Krims Code AI" class="brand-logo" />
         <div class="brand-text">
           <h1>KRIMS CODE AI</h1>
@@ -698,14 +698,14 @@ export function renderLiveStatusHtml(data) {
       
       <nav class="notifyme-nav-links">
         <a href="https://discord.gg/sYaVJtXgQb" target="_blank" class="notifyme-nav-link">Support</a>
-        <a href="https://krims-bot-dashboard.vercel.app/wiki" class="notifyme-nav-link">Guide</a>
-        <a href="https://krims-bot-dashboard.vercel.app/custombot" class="notifyme-nav-link">Custom Bot</a>
-        <a href="https://krims-bot-dashboard.vercel.app/updates" class="notifyme-nav-link" style="color: #00f2ff; font-weight: 700;">🚀 Updates</a>
-        <a href="https://krims-bot-dashboard.vercel.app/rewards" class="notifyme-nav-link" style="color: #00f2ff; font-weight: 700; text-shadow: 0 0 10px rgba(0, 242, 255, 0.4);">💎 Rewards (Beta)</a>
+        <a href="https://krimscode.net/wiki.html" class="notifyme-nav-link">Guide</a>
+        <a href="https://krimscode.net/custombot" class="notifyme-nav-link">Custom Bot</a>
+        <a href="https://krimscode.net/updates" class="notifyme-nav-link" style="color: #00f2ff; font-weight: 700;">🚀 Updates</a>
+        <a href="https://krimscode.net/rewards" class="notifyme-nav-link" style="color: #00f2ff; font-weight: 700; text-shadow: 0 0 10px rgba(0, 242, 255, 0.4);">💎 Rewards (Beta)</a>
         <a href="/" class="notifyme-nav-link active">Status</a>
         <a href="https://top.gg/bot/1523794466740371586/vote" target="_blank" class="notifyme-nav-link">Vote</a>
         <a href="https://discord.com/api/oauth2/authorize?client_id=1523794466740371586&permissions=8&scope=bot%20applications.commands" target="_blank" class="btn-nav-invite">Add Bot</a>
-        <a href="https://krims-bot-dashboard.vercel.app" class="btn-nav-login">
+        <a href="https://krimscode.net" class="btn-nav-login">
           <span>Dashboard</span>
         </a>
       </nav>
@@ -826,7 +826,7 @@ export function renderLiveStatusHtml(data) {
             <div class="service-name">🟣 Krims Code Twitch Bot</div>
             <span class="badge-pill-green" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">${twitch.isOnline ? 'ONLINE' : 'CONNECTING'}</span>
           </div>
-          <p class="service-desc">Official Twitch Chat Bot co-hosted on Render. Features interactive chat minigames (!duel, !heist, !trivia, !points, !daily), Minecraft build ratings, and dual-brain neural chat assistance.</p>
+          <p class="service-desc">Official Twitch Chat Bot running on Krims Dedicated Cloud Shards. Features interactive chat minigames (!duel, !heist, !trivia, !points, !daily), Minecraft build ratings, and dual-brain neural chat assistance.</p>
           <div class="service-meta">
             <span class="text-sub">Channels: <code class="code-tag">${(twitch.channels || []).join(', ')}</code></span>
             <span class="${twitch.isOnline ? 'text-green' : 'text-sub'}">🟣 ${twitch.status || 'ONLINE'}</span>
@@ -841,7 +841,7 @@ export function renderLiveStatusHtml(data) {
           <p class="service-desc">Complete interactive knowledge base with guides for Krims Neural AI, quiet leveling formulas, 2.0x Top.gg vote boosters, and live searchable command index.</p>
           <div class="service-meta">
             <span class="text-sub">Portal: <code class="code-tag">/wiki</code></span>
-            <a href="/wiki" style="color: var(--cyan); text-decoration: none; font-weight: 700;">Explore Wiki →</a>
+            <a href="https://krimscode.net/wiki.html" target="_blank" style="color: var(--cyan); text-decoration: none; font-weight: 700;">Explore Wiki →</a>
           </div>
         </div>
       </div>

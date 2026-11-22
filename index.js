@@ -15129,7 +15129,7 @@ setInterval(async () => {
 }, 300000); // Every 5 minutes
 
 // ═══════════════════════════════════════════════════════════
-// ⚡ LAUNCH KRYLOSMP SECONDARY BOT CLUSTER (CO-HOSTED ON RENDER)
+// ⚡ LAUNCH KRYLOSMP SECONDARY BOT CLUSTER (DEDICATED CLUSTER)
 // ═══════════════════════════════════════════════════════════
 startKsmpBot(client).catch(err => console.error('[KSMP Engine Launch Error]:', err.message));
 

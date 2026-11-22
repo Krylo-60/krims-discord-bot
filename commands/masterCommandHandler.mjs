@@ -638,7 +638,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           `**Choose an option below:**\n` +
           `• **Option 1: Deploy Custom Bot (BYOT):** Paste your bot token and we'll power it.\n` +
           `• **Option 2: 1-Click Official Bot:** Invite our pre-made Krylo AI bot directly without tokens!\n\n` +
-          `⚡ *Enterprise performance • Zero-downtime clustering • Cloud hosted on Render*`
+          `⚡ *Enterprise performance • Zero-downtime clustering • Dedicated Cloud Shards*`
         )
         .setFooter({ text: 'Krims Code Multi-Bot Cloud • Neural AI Core' })
         .setTimestamp();
@@ -879,7 +879,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           { name: '🕒 Bot Uptime', value: `\`${uptimeHrs} hours\``, inline: true },
           { name: '🏰 Guilds Cached', value: `\`${client.guilds.cache.size}\``, inline: true },
           { name: 'Node.js Version', value: `\`${process.version}\``, inline: true },
-          { name: 'Render Service', value: '`srv-danuvho473hc73ar1go0` (Live)', inline: true }
+          { name: 'Cluster Shard', value: '`shard-prod-alpha-01` (Online)', inline: true }
         )
         .setTimestamp();
 
