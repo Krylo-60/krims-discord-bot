@@ -147,7 +147,7 @@ export async function handleGuildMemberAddWelcome(member) {
       memberCount,
       serverName: isKrylo ? "KryloSMP" : "THE LIGHT BEARERS",
       phase: 1,
-      theme: isKrylo ? 'ksmp' : 'cyber-cyan'
+      theme: isKrylo ? 'ksmp' : 'tlb'
     });
 
     let embed;
@@ -250,7 +250,7 @@ export async function handleRosterIgnWelcomeUpdate(guild, userId, ign) {
       memberCount,
       serverName: isKrylo ? "KryloSMP" : "THE LIGHT BEARERS",
       phase: 2,
-      theme: isKrylo ? 'ksmp' : 'cyber-cyan'
+      theme: isKrylo ? 'ksmp' : 'tlb'
     });
 
     if (!cardBuffer) {
