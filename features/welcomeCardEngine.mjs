@@ -338,9 +338,3 @@ export async function handleRosterIgnWelcomeUpdate(guild, userId, ign) {
     console.error('[WelcomeCardEngine] Error in handleRosterIgnWelcomeUpdate:', err);
   }
 }
-    `).run(userId, guild.id, sent.id, welcomeCh.id, memberCount, ign);
-
-  } catch (err) {
-    console.error('[WelcomeCardEngine] Error in handleRosterIgnWelcomeUpdate:', err);
-  }
-}
