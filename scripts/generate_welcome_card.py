@@ -165,23 +165,30 @@ def render_ksmp_card(avatar_input, mc_head_input, username, member_count, server
 
     text_x = av_x + av_size + 28
 
+    badge_layer = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    bd = ImageDraw.Draw(badge_layer)
+
     if is_phase_1:
         badge_txt = "UNVERIFIED SURVIVOR"
-        bb = draw.textbbox((0, 0), badge_txt, font=font_badge)
+        bb = bd.textbbox((0, 0), badge_txt, font=font_badge)
         bw_px = bb[2] - bb[0]
-        badge_y = card_top + 22
-        draw.rounded_rectangle([text_x, badge_y, text_x + bw_px + 28, badge_y + 24], radius=6, fill=(245, 185, 35, 30), outline=(245, 185, 35, 180), width=1)
-        draw.text((text_x + 14, badge_y + 4), badge_txt, font=font_badge, fill=(245, 205, 75, 255))
+        badge_y = card_top + 20
+        bd.rounded_rectangle([text_x, badge_y, text_x + bw_px + 28, badge_y + 26], radius=6, fill=(35, 26, 16, 230), outline=(245, 185, 35, 220), width=1)
+        img = Image.alpha_composite(img, badge_layer)
+        draw = ImageDraw.Draw(img)
+        draw.text((text_x + 14, badge_y + 5), badge_txt, font=font_badge, fill=(255, 215, 80, 255))
     else:
         badge_txt = "VERIFIED SURVIVOR"
-        bb = draw.textbbox((0, 0), badge_txt, font=font_badge)
+        bb = bd.textbbox((0, 0), badge_txt, font=font_badge)
         bw_px = bb[2] - bb[0]
-        badge_y = card_top + 22
-        draw.rounded_rectangle([text_x, badge_y, text_x + bw_px + 28, badge_y + 24], radius=6, fill=(0, 180, 220, 35), outline=(0, 220, 240, 180), width=1)
-        draw.text((text_x + 14, badge_y + 4), badge_txt, font=font_badge, fill=(0, 242, 255, 255))
+        badge_y = card_top + 20
+        bd.rounded_rectangle([text_x, badge_y, text_x + bw_px + 28, badge_y + 26], radius=6, fill=(16, 32, 48, 230), outline=(0, 220, 240, 220), width=1)
+        img = Image.alpha_composite(img, badge_layer)
+        draw = ImageDraw.Draw(img)
+        draw.text((text_x + 14, badge_y + 5), badge_txt, font=font_badge, fill=(0, 242, 255, 255))
 
     w_title = heading or "WELCOME!"
-    welcome_y = badge_y + 32
+    welcome_y = badge_y + 34
     draw.text((text_x, welcome_y), w_title, font=font_welcome, fill=(255, 255, 255, 255))
 
     display_user = f"@{username}" if not username.startswith('@') else username
@@ -206,7 +213,12 @@ def render_ksmp_card(avatar_input, mc_head_input, username, member_count, server
     pb1 = draw.textbbox((0, 0), p1, font=font_pill)
     pw1 = pb1[2] - pb1[0]
     p1_r = text_x + pw1 + 28
-    draw.rounded_rectangle([text_x, pill_y, p1_r, pill_y + 26], radius=6, fill=(18, 30, 48, 230), outline=(245, 185, 35, 160), width=1)
+    
+    bot_pill_layer = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    bpd = ImageDraw.Draw(bot_pill_layer)
+    bpd.rounded_rectangle([text_x, pill_y, p1_r, pill_y + 26], radius=6, fill=(18, 30, 48, 230), outline=(245, 185, 35, 180), width=1)
+    img = Image.alpha_composite(img, bot_pill_layer)
+    draw = ImageDraw.Draw(img)
     draw.text((text_x + 14, pill_y + 5), p1, font=font_pill, fill=(245, 205, 75, 255))
 
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
