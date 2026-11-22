@@ -78,7 +78,7 @@ export async function deployClanReactionRolePanel(channel) {
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
       `👉 **Click any emoji below to receive the role!** Click it again anytime to remove it.`
     )
-    .setThumbnail('https://krims-discord-bot-d57m.onrender.com/gifs/the_half_lifes.gif')
+    .setThumbnail('https://krimscode.net/logo.png')
     .setFooter({ text: 'The Light Bearers • Automated Role Dispatcher' })
     .setTimestamp();
 
@@ -124,7 +124,7 @@ export async function deployClanColorRolesPanel(channel) {
       `👉 **Click any color emoji below to equip your color!**\n` +
       `*(Selecting a new color automatically swaps your color so you only have 1 active color. Unclick your reaction to reset to default.)*`
     )
-    .setThumbnail('https://krims-discord-bot-d57m.onrender.com/gifs/the_half_lifes.gif')
+    .setThumbnail('https://krimscode.net/logo.png')
     .setFooter({ text: 'The Light Bearers • Cosmetic Color Picker' })
     .setTimestamp();
 

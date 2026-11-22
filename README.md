@@ -136,7 +136,7 @@ All primary commands can be triggered with the standard `!` prefix across both b
   * Custom Bot Portal: [https://krims-bot-dashboard.vercel.app/custombot](https://krims-bot-dashboard.vercel.app/custombot)
   * Live Wiki Portal: [https://krims-bot-dashboard.vercel.app/wiki](https://krims-bot-dashboard.vercel.app/wiki)
   * Official Discord Support: [https://discord.gg/sYaVJtXgQb](https://discord.gg/sYaVJtXgQb)
-  * Telemetry API: [https://krims-discord-bot-d57m.onrender.com/api/status](https://krims-discord-bot-d57m.onrender.com/api/status)
+  * Telemetry API: [https://krimscode.net](https://krimscode.net)
 
 ---
 

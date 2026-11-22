@@ -30,7 +30,7 @@ export async function searchKlipy(query, type = 'gifs', limit = 15) {
     if (lowerQ.includes('krylo') || lowerQ.includes('light') || lowerQ.includes('tlb') || lowerQ.includes('clan')) {
       items.unshift({
         title: '✨ The Light Bearers Clan Animation • Krylo 👑',
-        url: 'https://krims-discord-bot-d57m.onrender.com/gifs/the_half_lifes.gif',
+        url: 'https://krimscode.net/logo.png',
         slug: 'the-light-bearers-clan-gif'
       });
     }
