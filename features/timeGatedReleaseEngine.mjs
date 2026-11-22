@@ -76,7 +76,7 @@ export const SCHEDULED_RELEASES = [
     version: 'v6.0.0 GA',
     title: '🌟 KRIMS CODE v6.0.0 — THE GRAND GA CONVERGENCE IS LIVE! 🚀',
     color: 0x00F2FF,
-    banner: 'https://krims-bot-dashboard.vercel.app/logo.png',
+    banner: 'https://krims-code.net/logo.png',
     summary: 'Full General Availability, KR Vault, Redemption Store & Staking',
     description:
       `### The Wait Is Over: Official General Availability Released!\n\n` +
@@ -88,7 +88,7 @@ export const SCHEDULED_RELEASES = [
       `• 📦 **Dual-CLI Integration Live:** Connect directly to your terminal via \`npm i -g @krishivpb60/krims-code-cli\` and \`pip install krims-code-cli\` using your \`/cli-key\`.\n` +
       `• 🏆 **Global Rich List:** Check \`/kr-top\` to see the wealthiest guardians across the network!\n` +
       `• 👋 **Universal Welcome 2.0 & Support Hub 2.0:** Auto-provisioned for all joined servers.\n\n` +
-      `🔗 **Access the Live Web Vault:** [krims-bot-dashboard.vercel.app/rewards](https://krims-bot-dashboard.vercel.app/rewards)`
+      `🔗 **Access the Live Web Vault:** [krims-code.net/rewards](https://krims-code.net/rewards)`
   },
   {
     id: 'stage_2_diwali_finale',
@@ -96,7 +96,7 @@ export const SCHEDULED_RELEASES = [
     version: 'v6.0.5 Event Finale',
     title: '🪔✨ DIWALI FESTIVAL FINALE & SACRED MEMORIAL ✨🪔',
     color: 0xF59E0B,
-    banner: 'https://krims-bot-dashboard.vercel.app/logo.png',
+    banner: 'https://krims-code.net/logo.png',
     summary: '5-Day Diwali Cultural Festival Concludes With Final Community Stats',
     description:
       `### 🕯️ Shubh Deepavali • Festival Concluded!\n\n` +
@@ -114,7 +114,7 @@ export const SCHEDULED_RELEASES = [
     version: 'v6.0.8 Cyber Drop',
     title: '⚔️ KRIMS CODE v6.0.8 — CLAN WARS & MID-MONTH BOUNTY SURGE! ⚡',
     color: 0x6366F1,
-    banner: 'https://krims-bot-dashboard.vercel.app/logo.png',
+    banner: 'https://krims-code.net/logo.png',
     summary: 'Mid-Month Clan Battle Surge, Team Bounties & Leaderboard XP Rush',
     description:
       `### Mid-Month Clan Battle Surge Activated!\n\n` +
@@ -131,7 +131,7 @@ export const SCHEDULED_RELEASES = [
     version: 'v6.1.0 Harvest',
     title: '🌾 KRIMS CODE v6.1.0 — THE HARVEST FEAST & 2X BOOST IS LIVE! 🦃',
     color: 0xEAB308,
-    banner: 'https://krims-bot-dashboard.vercel.app/logo.png',
+    banner: 'https://krims-code.net/logo.png',
     summary: 'Harvest Festival, 2x XP & Coins Weekend, and Community Bounty Drop',
     description:
       `### Celebrate The Season of Gratitude & Abundance!\n\n` +
@@ -149,7 +149,7 @@ export const SCHEDULED_RELEASES = [
     version: 'v6.1.5 Cyber Vault',
     title: '🏷️ KRIMS CODE v6.1.5 — BLACK FRIDAY & CYBER VAULT 50% SALE! 💥',
     color: 0x10B981,
-    banner: 'https://krims-bot-dashboard.vercel.app/logo.png',
+    banner: 'https://krims-code.net/logo.png',
     summary: '50% Off All /redeem Items, Double Daily Rewards & Flash Store',
     description:
       `### The Biggest Sale Event of 2026 Has Arrived!\n\n` +
@@ -166,7 +166,7 @@ export const SCHEDULED_RELEASES = [
     version: 'v6.2.0 Winter',
     title: '❄️ KRIMS CODE v6.2.0 — WINTER WONDERLAND & ADVENT CALENDAR! ⛄',
     color: 0x38BDF8,
-    banner: 'https://krims-bot-dashboard.vercel.app/logo.png',
+    banner: 'https://krims-code.net/logo.png',
     summary: 'Winter Season Launch, Daily Advent Calendar & Snowball Minigame',
     description:
       `### Welcome to December in the Krims Ecosystem!\n\n` +
@@ -184,7 +184,7 @@ export const SCHEDULED_RELEASES = [
     version: 'v6.2.5 Glacial PvP',
     title: '🧊 KRIMS CODE v6.2.5 — GLACIAL ARENA & FROST BOUNTY! ⚔️',
     color: 0x06B6D4,
-    banner: 'https://krims-bot-dashboard.vercel.app/logo.png',
+    banner: 'https://krims-code.net/logo.png',
     summary: 'Mid-Winter Glacial Duel Arena, Frostbite Minigames & Chat Snow Battles',
     description:
       `### The Freeze Deepens — Glacial PvP Mode Unlocked!\n\n` +
@@ -201,7 +201,7 @@ export const SCHEDULED_RELEASES = [
     version: 'v6.2.9 Solstice',
     title: '🌌 KRIMS CODE v6.2.9 — WINTER SOLSTICE & LONGEST NIGHT DROP! 🌙',
     color: 0x818CF8,
-    banner: 'https://krims-bot-dashboard.vercel.app/logo.png',
+    banner: 'https://krims-code.net/logo.png',
     summary: 'Longest Night Staking Multiplier, Midnight Coin Bounty & Starry Aura',
     description:
       `### Marking the Winter Solstice — The Turn Toward the Sun!\n\n` +
@@ -217,7 +217,7 @@ export const SCHEDULED_RELEASES = [
     version: 'v6.3.0 Holiday',
     title: '🎄 MERRY CHRISTMAS 2026 — THE MEGA HOLIDAY AIRDROP IS LIVE! 🎁',
     color: 0x22C55E,
-    banner: 'https://krims-bot-dashboard.vercel.app/logo.png',
+    banner: 'https://krims-code.net/logo.png',
     summary: 'Christmas Mega Drop: 2,500 Coin Holiday Bonus, Santa Gift Bounties',
     description:
       `### 🎅 Season's Greetings from Krims Code & Krylo!\n\n` +
@@ -234,7 +234,7 @@ export const SCHEDULED_RELEASES = [
     version: 'v6.3.5 Year-End',
     title: '📊 KRIMS CODE v6.3.5 — 2026 YEAR IN REVIEW & RECAP! 🏆',
     color: 0xA855F7,
-    banner: 'https://krims-bot-dashboard.vercel.app/logo.png',
+    banner: 'https://krims-code.net/logo.png',
     summary: '2026 Annual Summary, Server Leaderboard Snapshot & 2027 Previews',
     description:
       `### Looking Back on An Incredible 2026!\n\n` +
@@ -252,7 +252,7 @@ export const SCHEDULED_RELEASES = [
     version: 'v7.0.0 Revolution',
     title: '🎆 HAPPY NEW YEAR 2027 — THE KRIMS CODE REVOLUTION! 🚀👑',
     color: 0xEC4899,
-    banner: 'https://krims-bot-dashboard.vercel.app/logo.png',
+    banner: 'https://krims-code.net/logo.png',
     summary: 'Official Launch of the 2027 Era, Annual Leaderboard & Founder Trophies',
     description:
       `### 🥂 WELCOME TO 2027!\n\n` +
@@ -541,7 +541,7 @@ export async function checkAndTriggerGABroadcast(client) {
         new ButtonBuilder()
           .setLabel('🌐 Web Dashboard')
           .setStyle(ButtonStyle.Link)
-          .setURL('https://krims-bot-dashboard.vercel.app/updates')
+          .setURL('https://krims-code.net/updates')
       );
 
       // 1. 📢 Dispatch to Main Updates Channel (#🚀・𝖡ot-𝖴pdates)

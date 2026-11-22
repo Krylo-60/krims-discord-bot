@@ -410,8 +410,8 @@ export async function handlePartnersCommand(message) {
       `>>> JavaScript/TypeScript client library to integrate with Krims Cloud Lakebase, XP, and economy APIs.`
     )
     .addFields(
-      { name: '🌐 Live Dashboard', value: '[Open Dashboard](https://krims-bot-dashboard.vercel.app)', inline: true },
-      { name: '⏳ v6.0 Radar', value: '[View Roadmap](https://krims-bot-dashboard.vercel.app/updates)', inline: true }
+      { name: '🌐 Live Dashboard', value: '[Open Dashboard](https://krims-code.net)', inline: true },
+      { name: '⏳ v6.0 Radar', value: '[View Roadmap](https://krims-code.net/updates)', inline: true }
     )
     .setFooter({ text: 'Krims Code Core v6.0 Ready' })
     .setTimestamp();

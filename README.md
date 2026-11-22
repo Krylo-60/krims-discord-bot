@@ -132,9 +132,9 @@ All primary commands can be triggered with the standard `!` prefix across both b
   * Neon Serverless PostgreSQL — Cloud economy, clan inventories, and player portal sync.
   * FalixNodes MySQL — Direct in-game Minecraft plugin bridge.
 * **Deployment:** Hosted 24/7 on [Render](https://render.com) Linux cloud containers with automated zero-downtime CI/CD.
-  * Live Web Dashboard: [https://krims-bot-dashboard.vercel.app/](https://krims-bot-dashboard.vercel.app/)
-  * Custom Bot Portal: [https://krims-bot-dashboard.vercel.app/custombot](https://krims-bot-dashboard.vercel.app/custombot)
-  * Live Wiki Portal: [https://krims-bot-dashboard.vercel.app/wiki](https://krims-bot-dashboard.vercel.app/wiki)
+  * Live Web Dashboard: [https://krims-code.net/](https://krims-code.net/)
+  * Custom Bot Portal: [https://krims-code.net/custombot](https://krims-code.net/custombot)
+  * Live Wiki Portal: [https://krims-code.net/wiki](https://krims-code.net/wiki)
   * Official Discord Support: [https://discord.gg/sYaVJtXgQb](https://discord.gg/sYaVJtXgQb)
   * Telemetry API: [https://krimscode.net](https://krimscode.net)
 

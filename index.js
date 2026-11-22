@@ -1292,7 +1292,7 @@ function updateBotPresence() {
       type: ActivityType.Watching 
     },
     { 
-      name: 'krims-bot-dashboard.vercel.app', 
+      name: 'krims-code.net', 
       type: ActivityType.Watching 
     },
     { 
@@ -2661,8 +2661,8 @@ client.on('interactionCreate', async (interaction) => {
             { name: '🪙 Economy & Vault', value: '`/balance`, `/daily`, `/pay`, `/coinflip`, `/work`', inline: true },
             { name: '🎫 24/7 Support Hub', value: '`/ticket` drop-in panels with instant AI triage', inline: true },
             { name: '🏆 Levels & Ranks', value: '`/rank`, `/leaderboard`, and voice leveling', inline: true },
-            { name: '🌐 Web Control Room', value: '[krims-bot-dashboard.vercel.app](https://krims-bot-dashboard.vercel.app)', inline: true },
-            { name: '📜 Terms & Privacy', value: '[Terms of Service](https://krims-bot-dashboard.vercel.app/terms) • [Privacy Policy](https://krims-bot-dashboard.vercel.app/privacy)', inline: true }
+            { name: '🌐 Web Control Room', value: '[krims-code.net](https://krims-code.net)', inline: true },
+            { name: '📜 Terms & Privacy', value: '[Terms of Service](https://krims-code.net/terms) • [Privacy Policy](https://krims-code.net/privacy)', inline: true }
           )
           .setThumbnail(interaction.client.user.displayAvatarURL())
           .setFooter({ text: 'Krims Code Public Matrix • Global Cloud ⚡' })
@@ -5152,7 +5152,7 @@ client.on('interactionCreate', async (interaction) => {
           `• 🔒 Buttons are disabled, and new submissions are locked out.\n\n` +
           `*Closed by <@${interaction.user.id}>*`
         )
-        .setImage('https://krims-bot-dashboard.vercel.app/skybase_banner.png')
+        .setImage('https://krims-code.net/skybase_banner.png')
         .setFooter({ text: 'Krylo\'s Skybase • Production Applications' })
         .setTimestamp();
       return interaction.editReply({ embeds: [stopEmbed] });
@@ -5228,11 +5228,11 @@ client.on('interactionCreate', async (interaction) => {
         `🛠️ **Made by Krylo and Krims studio**`
       )
       .addFields(
-        { name: '🌐 Web Dashboard', value: '[Open Dashboard](https://krims-bot-dashboard.vercel.app)', inline: true },
+        { name: '🌐 Web Dashboard', value: '[Open Dashboard](https://krims-code.net)', inline: true },
         { name: '👑 Add To Server', value: `[Invite Bot](https://discord.com/api/oauth2/authorize?client_id=${interaction.client.user.id}&permissions=1099780079632&scope=bot%20applications.commands)`, inline: true },
         { name: '💬 Support Server', value: '[Join Support](https://discord.gg/sYaVJtXgQb)', inline: true }
       )
-      .setImage('https://krims-bot-dashboard.vercel.app/banners/krims_code_support_banner.jpg')
+      .setImage('https://krims-code.net/banners/krims_code_support_banner.jpg')
       .setFooter({ text: '⚡ “Dream higher, build higher.” • Made by Krylo and Krims studio' });
 
     return interaction.reply({ embeds: [aboutEmbed], ephemeral: true });
@@ -5261,7 +5261,7 @@ client.on('interactionCreate', async (interaction) => {
         `Any user or server owner may request total data wipeout at any time by opening a ticket with staff or contacting 71krishivpb@gmail.com.`
       )
       .addFields(
-        { name: '🌐 Full Policy Online', value: '[Privacy Policy Document](https://krims-bot-dashboard.vercel.app/privacy)', inline: true },
+        { name: '🌐 Full Policy Online', value: '[Privacy Policy Document](https://krims-code.net/privacy)', inline: true },
         { name: '💬 Support & Requests', value: '[Join Support Guild](https://discord.gg/wVbVz9aPcz)', inline: true }
       )
       .setFooter({ text: 'Krims Code AI • Privacy, Trust & Security First' })
@@ -5291,7 +5291,7 @@ client.on('interactionCreate', async (interaction) => {
         `*For inquiries, feedback, or support, reach out in our official support community.*`
       )
       .addFields(
-        { name: '🌐 Full Terms Online', value: '[Terms of Service Document](https://krims-bot-dashboard.vercel.app/terms)', inline: true },
+        { name: '🌐 Full Terms Online', value: '[Terms of Service Document](https://krims-code.net/terms)', inline: true },
         { name: '👑 Developer & Creator', value: 'Krylo (Krylo-60) & Krims Code AI Studio', inline: true }
       )
       .setFooter({ text: 'Krims Code AI • Fair, Modular & Community-Driven' })
@@ -5338,11 +5338,11 @@ client.on('interactionCreate', async (interaction) => {
       new ButtonBuilder()
         .setLabel('💎 Pay with KR Points')
         .setStyle(ButtonStyle.Link)
-        .setURL('https://krims-bot-dashboard.vercel.app/rewards'),
+        .setURL('https://krims-code.net/rewards'),
       new ButtonBuilder()
         .setLabel('🍋 Buy with Money ($2.99+)')
         .setStyle(ButtonStyle.Link)
-        .setURL('https://krims-bot-dashboard.vercel.app/rewards#buy-points-section'),
+        .setURL('https://krims-code.net/rewards#buy-points-section'),
       new ButtonBuilder()
         .setLabel('🎮 KryloSMP (play.krylosmp.xyz)')
         .setStyle(ButtonStyle.Link)
@@ -6878,7 +6878,7 @@ client.on('interactionCreate', async (interaction) => {
         description: 'Access the unified portal and ecosystem source codes below:',
         fields: [
           { name: '🌐 Developer Portal', value: '[krims-code-portal.vercel.app](https://krims-code-portal.vercel.app)' },
-          { name: '🤖 Bot Control Panel', value: '[krims-bot-dashboard.vercel.app](https://krims-bot-dashboard.vercel.app)' },
+          { name: '🤖 Bot Control Panel', value: '[krims-code.net](https://krims-code.net)' },
           { name: '📂 Bot Repository', value: '[github.com/Krylo-60/krims-discord-bot](https://github.com/Krylo-60/krims-discord-bot)' }
         ],
         timestamp: new Date().toISOString()
@@ -7044,11 +7044,11 @@ client.on('interactionCreate', async (interaction) => {
       new ButtonBuilder()
         .setLabel('🌐 Web Rewards Vault')
         .setStyle(ButtonStyle.Link)
-        .setURL('https://krims-bot-dashboard.vercel.app/rewards'),
+        .setURL('https://krims-code.net/rewards'),
       new ButtonBuilder()
         .setLabel('🍋 Buy KR with Money (Lemon Squeezy)')
         .setStyle(ButtonStyle.Link)
-        .setURL('https://krims-bot-dashboard.vercel.app/rewards#buy-points-section')
+        .setURL('https://krims-code.net/rewards#buy-points-section')
     );
 
     await interaction.reply({ embeds: [embed], components: [storeRow] });
@@ -7079,7 +7079,7 @@ client.on('interactionCreate', async (interaction) => {
         { name: '🪙 Economy & Vault', value: '`/balance`, `/daily`, `/work`, `/pay`, `/slots`', inline: true },
         { name: '🎫 24/7 Ticketing', value: '`/ticket` drop-in panels with instant AI triage', inline: true },
         { name: '🏆 Levels & Ranks', value: '`/rank`, `/leaderboard`, voice leveling', inline: true },
-        { name: '🌐 Web Control Room', value: '[krims-bot-dashboard.vercel.app](https://krims-bot-dashboard.vercel.app)', inline: true }
+        { name: '🌐 Web Control Room', value: '[krims-code.net](https://krims-code.net)', inline: true }
       )
       .setThumbnail(interaction.client.user.displayAvatarURL())
       .setFooter({ text: 'Krims Code Public Matrix • Fast, Modular & Free', iconURL: interaction.client.user.displayAvatarURL() })
@@ -7129,7 +7129,7 @@ client.on('interactionCreate', async (interaction) => {
       new ButtonBuilder()
         .setLabel('Web Dashboard')
         .setStyle(ButtonStyle.Link)
-        .setURL('https://krims-bot-dashboard.vercel.app')
+        .setURL('https://krims-code.net')
         .setEmoji('🌐'),
       new ButtonBuilder()
         .setLabel('Invite Bot')
@@ -9744,7 +9744,7 @@ client.on('messageCreate', async (message) => {
           `• 🛡️ Applications will be forwarded to <#1549883558208868373> for staff review.\n\n` +
           `*Opened by <@${message.author.id}>*`
         )
-        .setImage('https://krims-bot-dashboard.vercel.app/skybase_banner.png')
+        .setImage('https://krims-code.net/skybase_banner.png')
         .setFooter({ text: 'Krylo\'s Skybase • Production Applications' })
         .setTimestamp();
       return message.reply({ embeds: [openEmbed] });
@@ -9775,7 +9775,7 @@ client.on('messageCreate', async (message) => {
           `• 🔒 Buttons are disabled, and new submissions are locked out.\n\n` +
           `*Closed by <@${message.author.id}>*`
         )
-        .setImage('https://krims-bot-dashboard.vercel.app/skybase_banner.png')
+        .setImage('https://krims-code.net/skybase_banner.png')
         .setFooter({ text: 'Krylo\'s Skybase • Production Applications' })
         .setTimestamp();
       return message.reply({ embeds: [stopEmbed] });
@@ -10126,7 +10126,7 @@ client.on('messageCreate', async (message) => {
         { name: '🛡️ Server', value: '`' + (message.guild ? message.guild.name : 'DM') + '`', inline: true },
         { name: '⚡ Bot Prefix', value: '`!`', inline: true },
         { name: '🤖 AI Model', value: '`Krims AI v5 (Online)`', inline: true },
-        { name: '🌐 Dashboard', value: '[krims-bot-dashboard.vercel.app](https://krims-bot-dashboard.vercel.app/)', inline: true }
+        { name: '🌐 Dashboard', value: '[krims-code.net](https://krims-code.net/)', inline: true }
       )
       .setFooter({ text: 'Krims Code Studio • 24/7 Bot Engine' })
       .setTimestamp();
@@ -11206,7 +11206,7 @@ client.on('messageCreate', async (message) => {
         // 5. External Link Filter (Allow only trusted domains)
         const urlRegex = /(https?:\/\/[^\s]+)/gi;
         if (urlRegex.test(message.content)) {
-          const allowedDomains = ['youtube.com', 'youtu.be', 'play.hosting', 'onrender.com', 'discord.com', 'tenor.com', 'giphy.com', 'github.com', 'krims-code-chatbot.vercel.app', 'krims-bot-dashboard.vercel.app'];
+          const allowedDomains = ['youtube.com', 'youtu.be', 'play.hosting', 'onrender.com', 'discord.com', 'tenor.com', 'giphy.com', 'github.com', 'krims-code-chatbot.vercel.app', 'krims-code.net'];
           const urls = message.content.match(urlRegex) || [];
           let blockLink = false;
           let blockedUrl = '';
@@ -11834,7 +11834,7 @@ client.on('messageCreate', async (message) => {
     const helpEmbed = {
       color: 0x00f2ff,
       title: '🤖 Krims Code AI — Official Command Guide',
-      description: 'The all-in-one AI assistant and community management engine by **Krims Code Studio**.\n\n🌐 **Web Dashboard:** [krims-bot-dashboard.vercel.app](https://krims-bot-dashboard.vercel.app)',
+      description: 'The all-in-one AI assistant and community management engine by **Krims Code Studio**.\n\n🌐 **Web Dashboard:** [krims-code.net](https://krims-code.net)',
       fields: [
         { name: '🤖 AI Chat & Multimodal Vision', value: isDM ? 'Type any message or upload an image directly in DM.' : `\`${botPrefix}ask <prompt>\` — High-speed Krims Code AI neural chat.` },
         { name: '🪙 Economy & Custom Store', value: `\`!balance\`, \`!daily\`, \`!shop\`, \`!buy <item>\`, \`!pay @user <amt>\`, \`!coinflip <amt>\`` },
@@ -14110,7 +14110,7 @@ const server = http.createServer(async (req, res) => {
             client_id: clientId,
             client_secret: clientSecret,
             code,
-            redirect_uri: redirect_uri || 'https://krims-bot-dashboard.vercel.app/api/auth/github/callback'
+            redirect_uri: redirect_uri || 'https://krims-code.net/api/auth/github/callback'
           })
         });
 
@@ -14763,7 +14763,7 @@ Provide an ultra-clear, professional diagnostic breakdown with:
               .setTitle('🍋 Krims Rewards (KR) Payment Confirmed!')
               .setDescription(`Thank you for supporting **Krims Code**! Your order has been fulfilled instantly and your points have been credited.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n💎 **Points Added:** \`+${pointsToAdd.toLocaleString()} KR\`\n💳 **Amount Paid:** \`$${(amountCents / 100).toFixed(2)} ${currency}\`\n🧾 **Order ID:** \`#${orderId}\`\n🏦 **Current Balance:** \`${(recordResult.newBalance || 0).toLocaleString()} KR\`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
               .addFields(
-                { name: '✨ What to do next?', value: 'Use `/balance` or `/stake` in Discord, or visit the [Rewards Dashboard](https://krims-bot-dashboard.vercel.app/rewards) to redeem Premium Passes and mint license keys!' }
+                { name: '✨ What to do next?', value: 'Use `/balance` or `/stake` in Discord, or visit the [Rewards Dashboard](https://krims-code.net/rewards) to redeem Premium Passes and mint license keys!' }
               )
               .setFooter({ text: 'Lemon Squeezy Merchant of Record • Krims Code v6.1' })
               .setTimestamp();
@@ -15094,7 +15094,7 @@ client.on('guildCreate', async (guild) => {
           .setEmoji('🎫'),
         new ButtonBuilder()
           .setLabel('Web Dashboard')
-          .setURL('https://krims-bot-dashboard.vercel.app')
+          .setURL('https://krims-code.net')
           .setStyle(ButtonStyle.Link)
           .setEmoji('🌐')
       );

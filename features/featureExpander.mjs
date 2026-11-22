@@ -185,11 +185,11 @@ export async function sendExecutiveFeatureReminder(client, channelId = EXECUTIVE
       new ButtonBuilder()
         .setLabel('📖 View 100-Command Wiki')
         .setStyle(ButtonStyle.Link)
-        .setURL('https://krims-bot-dashboard.vercel.app/wiki'),
+        .setURL('https://krims-code.net/wiki'),
       new ButtonBuilder()
         .setLabel('🚀 Live Updates')
         .setStyle(ButtonStyle.Link)
-        .setURL('https://krims-bot-dashboard.vercel.app/#updates')
+        .setURL('https://krims-code.net/#updates')
     );
 
     const msg = await channel.send({

@@ -600,7 +600,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           `• 🔒 Buttons are disabled, and new submissions are locked out.\n\n` +
           `*Closed by <@${interaction.user.id}>*`
         )
-        .setImage('https://krims-bot-dashboard.vercel.app/skybase_banner.png')
+        .setImage('https://krims-code.net/skybase_banner.png')
         .setFooter({ text: 'Krylo\'s Skybase • Production Applications' })
         .setTimestamp();
       return await interaction.editReply({ embeds: [stopEmbed] });
@@ -667,21 +667,21 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           `• **🛠️ All-In-One Utilities:** Instant translation, formula calculation, worldwide weather & reminders (\`/translate\`, \`/calc\`, \`/weather\`, \`/remind\`).\n` +
           `• **📡 Minecraft SMP Integration:** Real-time server telemetry, player locator radars, and webstore integration (\`/ip\`, \`/status\`, \`/store\`).\n\n` +
           `📜 **Terms & Privacy Policies:**\n` +
-          `• **Terms of Service:** [krims-bot-dashboard.vercel.app/terms](https://krims-bot-dashboard.vercel.app/terms)\n` +
-          `• **Privacy Policy:** [krims-bot-dashboard.vercel.app/privacy](https://krims-bot-dashboard.vercel.app/privacy)\n\n` +
+          `• **Terms of Service:** [krims-code.net/terms](https://krims-code.net/terms)\n` +
+          `• **Privacy Policy:** [krims-code.net/privacy](https://krims-code.net/privacy)\n\n` +
           `❤️ **Love Krims Code? Support Us:**\n` +
           `• Add Krims Code AI to your other servers for **FREE** by clicking on the bot's profile or running \`/getbot\`!\n` +
           `• Share it with your friends, moderators, and communities to support our development!`
         )
-        .setImage('https://krims-bot-dashboard.vercel.app/banners/krims_code_support_banner.jpg')
+        .setImage('https://krims-code.net/banners/krims_code_support_banner.jpg')
         .setFooter({ text: 'Krims Code AI • Created with pride by Krylo Team' })
         .setTimestamp();
 
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('btn_open_byot_modal').setLabel('Deploy Free Bot').setStyle(ButtonStyle.Success).setEmoji('🤖'),
-        new ButtonBuilder().setLabel('Dashboard').setStyle(ButtonStyle.Link).setURL('https://krims-bot-dashboard.vercel.app'),
-        new ButtonBuilder().setLabel('Terms of Service').setStyle(ButtonStyle.Link).setURL('https://krims-bot-dashboard.vercel.app/terms'),
-        new ButtonBuilder().setLabel('Privacy Policy').setStyle(ButtonStyle.Link).setURL('https://krims-bot-dashboard.vercel.app/privacy')
+        new ButtonBuilder().setLabel('Dashboard').setStyle(ButtonStyle.Link).setURL('https://krims-code.net'),
+        new ButtonBuilder().setLabel('Terms of Service').setStyle(ButtonStyle.Link).setURL('https://krims-code.net/terms'),
+        new ButtonBuilder().setLabel('Privacy Policy').setStyle(ButtonStyle.Link).setURL('https://krims-code.net/privacy')
       );
 
       return await interaction.reply({ embeds: [embed], components: [row] });
@@ -894,7 +894,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setDescription(
           `Explore our open source bot repositories and community tools!\n\n` +
           `• 📦 **Krims Discord Bot:** [github.com/Krylo-60/krims-discord-bot](https://github.com/Krylo-60/krims-discord-bot)\n` +
-          `• ⚡ **AI Personalizer Portal:** [krims-bot-dashboard.vercel.app](https://krims-bot-dashboard.vercel.app/)`
+          `• ⚡ **AI Personalizer Portal:** [krims-code.net](https://krims-code.net/)`
         )
         .setTimestamp();
 
@@ -962,19 +962,19 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
       const dashBtn = new ButtonBuilder()
         .setLabel('Web Dashboard')
         .setStyle(ButtonStyle.Link)
-        .setURL('https://krims-bot-dashboard.vercel.app')
+        .setURL('https://krims-code.net')
         .setEmoji('🌐');
 
       const termsBtn = new ButtonBuilder()
         .setLabel('Terms')
         .setStyle(ButtonStyle.Link)
-        .setURL('https://krims-bot-dashboard.vercel.app/terms')
+        .setURL('https://krims-code.net/terms')
         .setEmoji('📜');
 
       const privacyBtn = new ButtonBuilder()
         .setLabel('Privacy')
         .setStyle(ButtonStyle.Link)
-        .setURL('https://krims-bot-dashboard.vercel.app/privacy')
+        .setURL('https://krims-code.net/privacy')
         .setEmoji('🔒');
 
       const row = new ActionRowBuilder().addComponents(dashBtn, inviteBtn, supportBtn, termsBtn, privacyBtn);
@@ -1477,7 +1477,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setColor(0xFF0000)
         .setTitle('🔴 KRYLO IS LIVE!')
         .setDescription(`**${title}**\n\nJoin the live stream right now on YouTube!\nhttps://youtube.com/@Krylo-60`)
-        .setImage('https://krims-bot-dashboard.vercel.app/skybase_banner.png')
+        .setImage('https://krims-code.net/skybase_banner.png')
         .setTimestamp();
 
       return await interaction.reply({ content: '@everyone', embeds: [embed] });
@@ -1504,7 +1504,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           `• 📍 **Location:** Community Event Stage\n` +
           `• ⚠️ **Warning:** Special event rules apply. Have fun and collect loot!`
         )
-        .setImage('https://krims-bot-dashboard.vercel.app/skybase_banner.png')
+        .setImage('https://krims-code.net/skybase_banner.png')
         .setTimestamp();
 
       return await interaction.reply({ content: '@everyone', embeds: [embed] });
@@ -1802,7 +1802,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
         .setTimestamp();
 
       if (isSkybase) {
-        embed.setImage('https://krims-bot-dashboard.vercel.app/skybase_banner.png');
+        embed.setImage('https://krims-code.net/skybase_banner.png');
       } else if (interaction.guild?.bannerURL()) {
         embed.setImage(interaction.guild.bannerURL({ size: 1024 }));
       }
@@ -1955,7 +1955,7 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
           `🪙 **Available Balance:** \`${balDisplay} KR\`\n` +
           `🔒 **Staking Status:** Enabled (v5.8 Enterprise Cloud)\n` +
           `🌐 **Synced Platform:** Discord • Minecraft • Web Dashboard\n\n` +
-          `Spend your KR on custom colors (\`/color\`), transfer to friends (\`/pay\`), or manage at [krims-bot-dashboard.vercel.app](https://krims-bot-dashboard.vercel.app/rewards)!`
+          `Spend your KR on custom colors (\`/color\`), transfer to friends (\`/pay\`), or manage at [krims-code.net](https://krims-code.net/rewards)!`
         )
         .setFooter({ text: `${interaction.guild?.name || "Community"} • Krims Rewards Protocol v5.8.0` })
         .setTimestamp();
@@ -2224,7 +2224,7 @@ if (commandName === 'pay' || commandName === 'tip' || commandName === 'gift') {
                 `**${interaction.user.tag}** sent you **+${amount.toLocaleString()} KR** in **${interaction.guild?.name || 'the server'}**!\n\n` +
                 (note ? `📝 **Note:** *"${note}"*\n` : '') +
                 `💎 **Your New Balance:** \`${transferResult.recipientNewBalance.toLocaleString()} KR\`\n\n` +
-                `Spend or stake your KR on the [Web Dashboard](https://krims-bot-dashboard.vercel.app/rewards)!`
+                `Spend or stake your KR on the [Web Dashboard](https://krims-code.net/rewards)!`
               )
               .setTimestamp()
           ]
@@ -2622,7 +2622,7 @@ if (commandName === 'pay' || commandName === 'tip' || commandName === 'gift') {
         .setTimestamp();
 
       if (isSkybase) {
-        embed.setImage('https://krims-bot-dashboard.vercel.app/skybase_banner.png');
+        embed.setImage('https://krims-code.net/skybase_banner.png');
       } else if (interaction.guild?.bannerURL()) {
         embed.setImage(interaction.guild.bannerURL({ size: 1024 }));
       }

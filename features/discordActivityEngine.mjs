@@ -181,7 +181,7 @@ export const DISCORD_ACTIVITIES = {
     category: 'AI Assistant & Games',
     description: 'Launch the official Krims Code AI Web Console and Community Portal inside Discord!',
     color: 0x00E5FF,
-    banner: 'https://krims-bot-dashboard.vercel.app/logo.png'
+    banner: 'https://krims-code.net/logo.png'
   }
 };
 

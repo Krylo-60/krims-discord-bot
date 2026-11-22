@@ -62,7 +62,7 @@ export function extractWeatherQueryCity(text) {
   return null;
 }
 
-const BOT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) KrimsCodeBot/6.0 (Discord; +https://krims-bot-dashboard.vercel.app; support@krimscode.org)';
+const BOT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) KrimsCodeBot/6.0 (Discord; +https://krims-code.net; support@krimscode.org)';
 
 /**
  * Fallback to wttr.in JSON API.

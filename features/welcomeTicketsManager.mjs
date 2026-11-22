@@ -597,14 +597,14 @@ export async function handleWelcomeTicketInteraction(interaction) {
         `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
         `✨ *Once verified, your GitHub is permanently linked to your Discord profile and your ticket will open immediately!*`
       )
-      .setThumbnail(ghProfile?.avatar_url || 'https://krims-bot-dashboard.vercel.app/logo.png')
+      .setThumbnail(ghProfile?.avatar_url || 'https://krims-code.net/logo.png')
       .setFooter({ text: 'Krims Code AI • Vercel OAuth & Anti-Impostor Protocol' });
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setLabel('⚡ 1-Click Authorize (Vercel)')
         .setStyle(ButtonStyle.Link)
-        .setURL(`https://krims-bot-dashboard.vercel.app/api/auth/github?discord_id=${user.id}`),
+        .setURL(`https://krims-code.net/api/auth/github?discord_id=${user.id}`),
       new ButtonBuilder()
         .setCustomId(`dev_github_confirm_${ghUsername}`)
         .setLabel('✅ Verify via Bio Code')

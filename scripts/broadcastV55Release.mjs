@@ -43,16 +43,16 @@ client.once('ready', async () => {
       `• **🎱 AI Mystic 8-Ball Oracle & Comedy Engine:**\n` +
       `  Dynamic, witty, and mystical prophecies with \`/eightball\` and hilarious fresh developer & gamer humor with \`/joke\` and \`/meme\`.\n\n` +
       `• **💎 Web Dashboard-Exclusive Premium:**\n` +
-      `  VIP perks and license activations are now unified exclusively through our high-speed web portal at [krims-bot-dashboard.vercel.app](https://krims-bot-dashboard.vercel.app).\n\n` +
+      `  VIP perks and license activations are now unified exclusively through our high-speed web portal at [krims-code.net](https://krims-code.net).\n\n` +
       `• **📺 Co-Hosted Twitch & Discord Sync:**\n` +
       `  Integrated Twitch stream bridge and automatic subscriber verification in the same production cloud container.\n\n` +
       `• **👑 100% Free Lifetime Founder Guilds:**\n` +
       `  All official community headquarters enjoy permanently unlocked Enterprise VIP compute pipelines with zero fees forever.\n\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `📖 **Official Documentation & Wiki:** [krims-bot-dashboard.vercel.app/wiki](https://krims-bot-dashboard.vercel.app/wiki)\n` +
-      `📜 **Terms & Privacy Policies:** [krims-bot-dashboard.vercel.app/terms](https://krims-bot-dashboard.vercel.app/terms) • [krims-bot-dashboard.vercel.app/privacy](https://krims-bot-dashboard.vercel.app/privacy)`
+      `📖 **Official Documentation & Wiki:** [krims-code.net/wiki](https://krims-code.net/wiki)\n` +
+      `📜 **Terms & Privacy Policies:** [krims-code.net/terms](https://krims-code.net/terms) • [krims-code.net/privacy](https://krims-code.net/privacy)`
     )
-    .setImage('https://krims-bot-dashboard.vercel.app/banners/krims_code_support_banner.jpg')
+    .setImage('https://krims-code.net/banners/krims_code_support_banner.jpg')
     .setFooter({ text: '⚡ “Dream higher, build higher.” • Made by Krylo and Krims studio' })
     .setTimestamp();
 
@@ -90,13 +90,13 @@ client.once('ready', async () => {
       `3️⃣ **Automated Raid & Flood Shielding:**\n` +
       `   Background anti-flood filters, spam mitigation, and strict privilege guards are active to keep your server channels clean.\n\n` +
       `4️⃣ **Web Dashboard Configuration:**\n` +
-      `   Manage your server leveling, welcome channels, and custom bots at anytime directly from [krims-bot-dashboard.vercel.app](https://krims-bot-dashboard.vercel.app).\n\n` +
+      `   Manage your server leveling, welcome channels, and custom bots at anytime directly from [krims-code.net](https://krims-code.net).\n\n` +
       `5️⃣ **Lifetime Free Operations:**\n` +
       `   Your server has been grandfathered with lifetime enterprise privileges at zero cost.\n\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `Thank you for powering your community with Krims Code! If you need custom bot features or developer assistance, open a ticket anytime in our Official Support Server!`
     )
-    .setImage('https://krims-bot-dashboard.vercel.app/banners/krims_code_support_banner.jpg')
+    .setImage('https://krims-code.net/banners/krims_code_support_banner.jpg')
     .setFooter({ text: 'Krims Code AI • Executive Server Owner Telemetry' })
     .setTimestamp();
 

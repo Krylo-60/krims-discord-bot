@@ -84,7 +84,7 @@ const INITIAL_UPDATES = [
       '🌐 AI Everywhere Integration: All interactive commands (/calc, /eightball, /joke, /meme, /ask, mentions) and prefix commands (!ai, !calc, !weather, !eightball) now utilize full neural intelligence',
       '🌦️ Dual-Stage Global Weather Radar: Instant atmospheric forecasting with OpenStreetMap Photon fuzzy geocoding, resolving typos and phonetic city spellings automatically',
       '🧮 AI Quantum Math Engine: Natural language arithmetic, word problems, algebra, physics, and science equations solved step-by-step with zero LaTeX errors',
-      '💎 Web Dashboard-Exclusive Premium: Unified license claiming and perk management strictly accessible via https://krims-bot-dashboard.vercel.app',
+      '💎 Web Dashboard-Exclusive Premium: Unified license claiming and perk management strictly accessible via https://krims-code.net',
       '📺 Render Co-Hosted Twitch & Discord Bot: Seamless Twitch stream chat bridge, subscriber verification, and Discord role synchronization',
       '👑 100% Free Lifetime Founder Guilds: Grandfathered unlimited VIP compute pipelines for community headquarters with zero fees'
     ],
@@ -102,7 +102,7 @@ const INITIAL_UPDATES = [
     highlights: [
       '🧠 Krims AI v3.1 Neural Engine: Distributed low-latency neural processing with persistent guild memory and multimodal vision',
       '🔑 Single-Key Modular Expander: Automatically activates high-tier features (Voice TTS, Quantum Math, Live Weather) with just 1 API key in config',
-      '📖 Enterprise Wiki Live: Interactive 100-command documentation with live search at https://krims-bot-dashboard.vercel.app/wiki',
+      '📖 Enterprise Wiki Live: Interactive 100-command documentation with live search at https://krims-code.net/wiki',
       '🗳️ Universal Top.gg 2.0x Vote Booster: Live vote tracking with 12h/24h double XP multipliers across all 7 servers',
       '🛡️ Autonomous White-Label Shield: Complete proprietary security perimeter with zero external leak vectors',
       '⚡ Instant Guild Command Deduplication: Global 100-command fleet synchronized across Discord with 0 duplicate registrations'
@@ -119,7 +119,7 @@ const INITIAL_UPDATES = [
     category: 'Major Release',
     summary: 'Launch of the Official Krims Wiki with 100-command directory, slash command deduplication, and universal 2.0x Top.gg vote booster.',
     highlights: [
-      '📖 Official Krims Wiki live at https://krims-bot-dashboard.vercel.app/wiki',
+      '📖 Official Krims Wiki live at https://krims-code.net/wiki',
       '🧹 Slash Command Deduplication: Cleared redundant guild commands across all 7 servers',
       '🗳️ Universal Top.gg Vote Booster Hub: Active in #🗳️・𝖵ote-𝖫ogs with 2.0x XP multiplier',
       '🏷️ Unicode Title Case Channel Formatting: Standardized 42 community channels',
@@ -257,7 +257,7 @@ export function buildUpdateActionRow() {
     new ButtonBuilder()
       .setLabel('📖 Open Krims Wiki')
       .setStyle(ButtonStyle.Link)
-      .setURL('https://krims-bot-dashboard.vercel.app/wiki'),
+      .setURL('https://krims-code.net/wiki'),
     new ButtonBuilder()
       .setLabel('🗳️ Vote on Top.gg (2x XP)')
       .setStyle(ButtonStyle.Link)
@@ -265,7 +265,7 @@ export function buildUpdateActionRow() {
     new ButtonBuilder()
       .setLabel('🎛️ Dashboard')
       .setStyle(ButtonStyle.Link)
-      .setURL('https://krims-bot-dashboard.vercel.app/')
+      .setURL('https://krims-code.net/')
   );
 }
 

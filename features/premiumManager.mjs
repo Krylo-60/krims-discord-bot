@@ -348,7 +348,7 @@ export function buildPremiumPerksEmbed(guildId = null) {
     .setColor(0x00F2FF)
     .setAuthor({
       name: 'Krims Code • 100% Free Forever Enterprise Ecosystem',
-      iconURL: 'https://krims-bot-dashboard.vercel.app/logo.png'
+      iconURL: 'https://krims-code.net/logo.png'
     })
     .setTitle('💎 Enterprise Power — 100% Free Forever for Every Server!')
     .setDescription(
@@ -389,7 +389,7 @@ export function buildPremiumPerksEmbed(guildId = null) {
     )
     .setFooter({
       text: 'Made by Krylo and Krims studio • "Dream higher, build higher."',
-      iconURL: 'https://krims-bot-dashboard.vercel.app/logo.png'
+      iconURL: 'https://krims-code.net/logo.png'
     })
     .setTimestamp();
 
@@ -404,15 +404,15 @@ export function buildPremiumActionRow() {
     new ButtonBuilder()
       .setLabel('👑 Claim Premium in Dashboard')
       .setStyle(ButtonStyle.Link)
-      .setURL('https://krims-bot-dashboard.vercel.app/'),
+      .setURL('https://krims-code.net/'),
     new ButtonBuilder()
       .setLabel('🎛️ Open Dashboard')
       .setStyle(ButtonStyle.Link)
-      .setURL('https://krims-bot-dashboard.vercel.app/'),
+      .setURL('https://krims-code.net/'),
     new ButtonBuilder()
       .setLabel('📖 Wiki & Docs')
       .setStyle(ButtonStyle.Link)
-      .setURL('https://krims-bot-dashboard.vercel.app/wiki.html'),
+      .setURL('https://krims-code.net/wiki.html'),
     new ButtonBuilder()
       .setLabel('💬 Support Server')
       .setStyle(ButtonStyle.Link)
@@ -456,7 +456,7 @@ export async function handlePremiumCommand(interaction) {
         .setColor(0xF59E0B)
         .setAuthor({
           name: 'Krims Code • Premium Activation Portal',
-          iconURL: 'https://krims-bot-dashboard.vercel.app/logo.png'
+          iconURL: 'https://krims-code.net/logo.png'
         })
         .setTitle('👑 Premium is Exclusively Claimable in the Web Dashboard!')
         .setDescription(
@@ -475,7 +475,7 @@ export async function handlePremiumCommand(interaction) {
         new ButtonBuilder()
           .setLabel('👑 Claim Premium in Dashboard')
           .setStyle(ButtonStyle.Link)
-          .setURL('https://krims-bot-dashboard.vercel.app/'),
+          .setURL('https://krims-code.net/'),
         new ButtonBuilder()
           .setLabel('💬 Support Server')
           .setStyle(ButtonStyle.Link)
@@ -489,7 +489,7 @@ export async function handlePremiumCommand(interaction) {
 
     if (!result.success) {
       return interaction.reply({
-        content: `❌ **Activation Failed:** ${result.error}\n\n👉 **Tip:** You can claim Premium 100% free directly on our dashboard: https://krims-bot-dashboard.vercel.app/`,
+        content: `❌ **Activation Failed:** ${result.error}\n\n👉 **Tip:** You can claim Premium 100% free directly on our dashboard: https://krims-code.net/`,
         ephemeral: true
       });
     }
@@ -553,11 +553,11 @@ export async function handlePremiumMessage(message, args = []) {
 
   if (args[0] === 'activate') {
     if (!args[1]) {
-      return message.reply(`👑 **Krims Code Premium is exclusively claimable in the Web Dashboard!**\nLog in and claim Free Enterprise VIP for your server here:\n👉 **https://krims-bot-dashboard.vercel.app/**`);
+      return message.reply(`👑 **Krims Code Premium is exclusively claimable in the Web Dashboard!**\nLog in and claim Free Enterprise VIP for your server here:\n👉 **https://krims-code.net/**`);
     }
     const result = await redeemLicenseKey(message.guildId, args[1]);
     if (!result.success) {
-      return message.reply(`❌ **Activation Failed:** ${result.error}\n👉 You can claim Premium 100% free on the dashboard: https://krims-bot-dashboard.vercel.app/`);
+      return message.reply(`❌ **Activation Failed:** ${result.error}\n👉 You can claim Premium 100% free on the dashboard: https://krims-code.net/`);
     }
     return message.reply(`🎉 **Success!** Unlocked **${result.tierName}** on this server!`);
   }

@@ -375,7 +375,7 @@ export async function initTelegramBot() {
         .text('🎁 Claim Daily Kr', 'action_daily')
         .row()
         .url('🎮 Join Discord Server', 'https://discord.gg/sYaVJtXgQb')
-        .url('🌐 Open Web Dashboard', 'https://krims-bot-dashboard.vercel.app');
+        .url('🌐 Open Web Dashboard', 'https://krims-code.net');
 
       const welcomeMsg = 
         `⚡ *Welcome to Krims Code on Telegram!* ⚡\n\n` +
@@ -437,7 +437,7 @@ export async function initTelegramBot() {
         `⚙️ *System:*\n` +
         `• \`/ping\` — Check bot latency and cloud health\n` +
         `• \`/start\` — Re-open main hub menu\n\n` +
-        `🌐 *Dashboard:* https://krims-bot-dashboard.vercel.app`;
+        `🌐 *Dashboard:* https://krims-code.net`;
 
       await ctx.reply(helpText, { parse_mode: 'Markdown' });
     });
@@ -450,7 +450,7 @@ export async function initTelegramBot() {
 
       const keyboard = new InlineKeyboard()
         .text('🎁 Claim Daily', 'action_daily')
-        .url('💎 Rewards Vault', 'https://krims-bot-dashboard.vercel.app/rewards');
+        .url('💎 Rewards Vault', 'https://krims-code.net/rewards');
 
       const text = 
         `💎 *KRIMS REWARDS WALLET*\n\n` +

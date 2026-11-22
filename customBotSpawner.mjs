@@ -1039,7 +1039,7 @@ export class MultiBotManager {
             `The first 100 server owners get a **FREE custom bot** with custom name and avatar!`
           )
           .addFields(
-            { name: '🌐 Dashboard & Claim Bot', value: '[Open Dashboard](https://krims-bot-dashboard.vercel.app)', inline: true },
+            { name: '🌐 Dashboard & Claim Bot', value: '[Open Dashboard](https://krims-code.net)', inline: true },
             { name: '🚀 Creators', value: (client.user.id === '1565848105277067414' ? 'Mini & Krylo' : 'Krims Code & Krylo'), inline: true },
             { name: '⚡ Neural Engine', value: 'Krims Code AI', inline: true }
           )

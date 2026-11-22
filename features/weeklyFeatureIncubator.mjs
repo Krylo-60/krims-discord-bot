@@ -269,7 +269,7 @@ export async function promoteBetaFeatureToMain(client, featureId, promotedBy = '
           `**${f.title}** has graduated from beta testing with community approval!\n\n` +
           `• **New Version:** \`Krims Code v5.4.0 (Powered by Krims AI v3.1)\`\n` +
           `• **Live Announcement:** See <#${BOT_UPDATES_CHANNEL_ID}>\n` +
-          `• **Wiki Docs:** Available in https://krims-bot-dashboard.vercel.app/wiki\n\n` +
+          `• **Wiki Docs:** Available in https://krims-code.net/wiki\n\n` +
           `Thank you to all <@&${BETA_TESTER_ROLE_ID}> and <@&${DEV_ROLE_ID}> members who stress-tested this release!`
         )
         .setTimestamp();

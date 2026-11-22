@@ -155,7 +155,7 @@ async function refreshAllChannels(guild) {
         { name: '🎮 Server Address', value: '`KryloSmp.play.hosting`', inline: true },
         { name: '🌍 Version', value: 'Paper 1.21.1', inline: true },
         { name: '💎 Edition', value: 'Java + Bedrock', inline: true },
-        { name: '🔗 Useful Links', value: `🌐 [Web Portal](https://krims-code-portal.vercel.app)\n📊 [Bot Dashboard](https://krims-bot-dashboard.vercel.app)\n🛒 Check out ${storeMention} for shop!` }
+        { name: '🔗 Useful Links', value: `🌐 [Web Portal](https://krims-code-portal.vercel.app)\n📊 [Bot Dashboard](https://krims-code.net)\n🛒 Check out ${storeMention} for shop!` }
       )
       .setImage('https://media1.tenor.com/m/Gv6Km11XjzIAAAAd/minecraft.gif')
       .setFooter({ text: 'KryloSMP • Stay tuned for updates' })
@@ -199,7 +199,7 @@ async function refreshAllChannels(guild) {
         { name: '📢 Announcements Channel', value: `Keep an eye on ${announceMention} for server updates!`, inline: false },
         { name: '🛒 Server Store', value: `Buy ranks, kits & cosmetics in ${storeMention}!`, inline: false },
         { name: '📺 YouTube', value: '[Watch KryloSMP Videos](https://www.youtube.com/@Krylo-60)', inline: true },
-        { name: '📊 Bot Dashboard', value: '[krims-bot-dashboard.vercel.app](https://krims-bot-dashboard.vercel.app)', inline: true }
+        { name: '📊 Bot Dashboard', value: '[krims-code.net](https://krims-code.net)', inline: true }
       )
       .setImage('https://media1.tenor.com/m/7E7bxrqFYTgAAAAd/minecraftbuilding-minecraft.gif')
       .setFooter({ text: 'KryloSMP • Connect with us!' })
