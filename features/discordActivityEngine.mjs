@@ -15,23 +15,23 @@ import {
 export const DISCORD_ACTIVITIES = {
   youtube: {
     id: 'youtube',
-    name: 'YouTube Together',
-    appId: '880218394199220234',
+    name: 'Watch Together (YouTube)',
+    appId: '880218394199220334',
     emoji: '📺',
     category: 'Media & Videos',
     description: 'Watch YouTube videos synchronously with your friends in voice chat!',
     color: 0xFF0000,
-    banner: 'https://cdn.discordapp.com/app-icons/880218394199220234/a_d714ce9bf13de554b72ec184d2f62363.png'
+    banner: 'https://cdn.discordapp.com/app-icons/880218394199220334/ec48acbad4c32efab4275cb9f3ca3a58.png'
   },
   chess: {
     id: 'chess',
     name: 'Chess in the Park',
-    appId: '832012774040141824',
+    appId: '832012774040141894',
     emoji: '♟️',
     category: 'Strategy & Board Games',
     description: 'Play competitive or casual chess against server members with classic time controls.',
     color: 0x8B5A2B,
-    banner: 'https://cdn.discordapp.com/app-icons/832012774040141824/60a2b02ef0a02f354f7389a444f6f369.png'
+    banner: 'https://cdn.discordapp.com/app-icons/832012774040141894/3b3981ddf67c8702920fae10b5f123ed.png'
   },
   poker: {
     id: 'poker',
@@ -56,12 +56,12 @@ export const DISCORD_ACTIVITIES = {
   puttparty: {
     id: 'puttparty',
     name: 'Putt Party (Mini Golf)',
-    appId: '945737671539415040',
+    appId: '945737671223947305',
     emoji: '⛳',
     category: 'Sports & Arcade',
     description: 'Fast-paced multiplayer mini-golf with courses, obstacles, and wild powerups.',
     color: 0x2ECC71,
-    banner: 'https://cdn.discordapp.com/app-icons/945737671539415040/4d552684803964ee7149a65f97f74ea7.png'
+    banner: 'https://cdn.discordapp.com/app-icons/945737671223947305/12ee915c2f75d7f2c7d551819534f158.png'
   },
   bobble: {
     id: 'bobble',
@@ -106,12 +106,12 @@ export const DISCORD_ACTIVITIES = {
   spellcast: {
     id: 'spellcast',
     name: 'SpellCast',
-    appId: '852509694341283840',
+    appId: '852509694341283871',
     emoji: '🧙',
     category: 'Word & Magic',
     description: 'Cast mystical spells by assembling magical letter grids and words.',
     color: 0x8E44AD,
-    banner: 'https://cdn.discordapp.com/app-icons/852509694341283840/c0205837be9d8dcfbfb2c3d0b2db48d5.png'
+    banner: 'https://cdn.discordapp.com/app-icons/852509694341283871/9a4a52c760994654a416740ae0b19fbb.png'
   },
   checkers: {
     id: 'checkers',
@@ -126,52 +126,52 @@ export const DISCORD_ACTIVITIES = {
   blazing8s: {
     id: 'blazing8s',
     name: 'Blazing 8s',
-    appId: '832025144384774184',
+    appId: '832025144389533716',
     emoji: '🎴',
     category: 'Cards & Uno',
     description: 'Crazy Eights / Uno card game with action cards, color shifts, and fast rounds.',
     color: 0xE74C3C,
-    banner: 'https://cdn.discordapp.com/app-icons/832025144384774184/a_ec8eb496057ff744fc8dbd30a846c406.png'
+    banner: 'https://cdn.discordapp.com/app-icons/832025144389533716/a_ec8eb496057ff744fc8dbd30a846c406.png'
   },
   landio: {
     id: 'landio',
     name: 'Land-io',
-    appId: '903100365269786695',
+    appId: '903769130790969345',
     emoji: '🗺️',
     category: 'Arcade & Battle',
     description: 'Claim territory, encircle rivals, and dominate the arena in real time.',
     color: 0x16A085,
-    banner: 'https://cdn.discordapp.com/app-icons/903100365269786695/d5bcfdca6469cf36fc5fa1248c8b4172.png'
+    banner: 'https://cdn.discordapp.com/app-icons/903769130790969345/0a6b8f4795c66ba12afbc766dd920bfb.png'
   },
   colonist: {
     id: 'colonist',
     name: 'Colonist (Catan)',
-    appId: '1107689953867010118',
+    appId: '1106787098452832296',
     emoji: '🌾',
     category: 'Strategy & Trading',
     description: 'Strategic board game based on Catan. Harvest resources, trade, and build settlements!',
     color: 0xF1C40F,
-    banner: 'https://cdn.discordapp.com/app-icons/1107689953867010118/38a08c0efee7b6058097b69c4c23ba7d.png'
+    banner: 'https://cdn.discordapp.com/app-icons/1106787098452832296/2f15038b8c83e221182c3c6fb6ea0814.png'
   },
   meme: {
     id: 'meme',
     name: 'Know What I Meme',
-    appId: '950536550771327016',
+    appId: '950505761862189096',
     emoji: '🧠',
     category: 'Party & Humor',
     description: 'Match hilarious captions with trending GIF memes and vote on the champion meme!',
     color: 0x00CEC9,
-    banner: 'https://cdn.discordapp.com/app-icons/950536550771327016/547e12e2c07ef4f0a2ba19e48fa3959c.png'
+    banner: 'https://cdn.discordapp.com/app-icons/950505761862189096/6f547114b2979b8bc83e4ba91b4d770d.png'
   },
   jamspace: {
     id: 'jamspace',
-    name: 'Jamspace (Whiteboard)',
-    appId: '1070088174712123493',
+    name: 'Whiteboard (Jamspace)',
+    appId: '1070087967294631976',
     emoji: '📝',
     category: 'Collaboration & Art',
     description: 'Collaborative infinite digital whiteboard for brainstorming, notes, diagrams, and doodles.',
     color: 0x6C5CE7,
-    banner: 'https://cdn.discordapp.com/app-icons/1070088174712123493/9c2ba43491fba3d527ca36b3e34b9d5c.png'
+    banner: 'https://cdn.discordapp.com/app-icons/1070087967294631976/9a04eab3b9f50302006577b769354520.png'
   },
   krimscode: {
     id: 'krimscode',
