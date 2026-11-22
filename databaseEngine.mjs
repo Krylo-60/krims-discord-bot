@@ -74,6 +74,11 @@ if (neonUrl && neonUrl.startsWith('postgres')) {
 
     // Auto-sync custom bots from Neon Postgres into local SQLite memory pool
     neonSyncPromise = neonPool.query(`
+      CREATE TABLE IF NOT EXISTS guild_settings (
+        guild_id VARCHAR(64) PRIMARY KEY,
+        config_json JSONB NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
       CREATE TABLE IF NOT EXISTS custom_bots (
         guild_id VARCHAR(64) PRIMARY KEY,
         owner_id VARCHAR(64) NOT NULL,
@@ -1501,12 +1506,26 @@ export function getUserBotOrders(discordId) {
 }
 
 
+// Ensure local SQLite has guild_settings table for rock-solid zero-loss persistence
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS guild_settings (
+      guild_id TEXT PRIMARY KEY,
+      config_json TEXT NOT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+} catch (e) {
+  console.warn('[SQLite guild_settings table init notice]:', e.message);
+}
+
 // ==========================================
 // GUILD SETTINGS PERSISTENCE (POSTGRES + SQLITE)
 // ==========================================
 export async function saveGuildSettings(guildId, config) {
   if (!guildId || !config) return false;
   const strGuildId = String(guildId);
+  const jsonStr = JSON.stringify(config);
 
   // 1. Neon Lakebase Postgres (Primary Cloud DB)
   if (neonPool) {
@@ -1516,14 +1535,23 @@ export async function saveGuildSettings(guildId, config) {
         VALUES ($1, $2, CURRENT_TIMESTAMP)
         ON CONFLICT (guild_id)
         DO UPDATE SET config_json = $2, updated_at = CURRENT_TIMESTAMP
-      `, [strGuildId, JSON.stringify(config)]);
+      `, [strGuildId, jsonStr]);
     } catch (e) {
       console.warn('[Neon saveGuildSettings error]:', e.message);
     }
   }
 
-  // 2. SQLite local fallback
+  // 2. SQLite local fallback with full JSON schema + legacy columns
   try {
+    const stmtFull = db.prepare(`
+      INSERT INTO guild_settings (guild_id, config_json, updated_at)
+      VALUES (?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(guild_id) DO UPDATE SET
+        config_json=excluded.config_json,
+        updated_at=CURRENT_TIMESTAMP
+    `);
+    stmtFull.run(strGuildId, jsonStr);
+
     const stmt = db.prepare(`
       INSERT INTO server_config (guild_id, prefix, welcome_channel, rules_channel, logs_channel, tickets_category, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -1559,14 +1587,27 @@ export async function getGuildSettings(guildId) {
     try {
       const res = await neonPool.query('SELECT config_json, updated_at FROM guild_settings WHERE guild_id = $1 LIMIT 1', [strGuildId]);
       if (res.rows.length > 0) {
-        return { settings: res.rows[0].config_json, updatedAt: res.rows[0].updated_at };
+        let parsed = res.rows[0].config_json;
+        if (typeof parsed === 'string') {
+          try { parsed = JSON.parse(parsed); } catch (e) {}
+        }
+        return { settings: parsed, updatedAt: res.rows[0].updated_at };
       }
     } catch (e) {
       console.warn('[Neon getGuildSettings error]:', e.message);
     }
   }
 
-  // 2. Fallback to SQLite
+  // 2. Fallback to SQLite full config_json
+  try {
+    const rowFull = db.prepare('SELECT config_json, updated_at FROM guild_settings WHERE guild_id = ?').get(strGuildId);
+    if (rowFull && rowFull.config_json) {
+      let parsed = JSON.parse(rowFull.config_json);
+      return { settings: parsed, updatedAt: rowFull.updated_at };
+    }
+  } catch (e) {}
+
+  // 3. Fallback to legacy SQLite server_config
   try {
     const row = db.prepare('SELECT * FROM server_config WHERE guild_id = ?').get(strGuildId);
     if (row) {
