@@ -33,12 +33,17 @@ export function getLiveStatusData(client, customBotManager = null) {
     totalMembers = client.guilds.cache.reduce((acc, g) => acc + (g.memberCount || 0), 0);
   }
 
-  // Get custom bots fleet
+  // Get custom bots fleet (exclude flagship Krims Code Pro from user customBots count)
   const customBots = [];
+  let isProOnline = false;
   if (customBotManager && customBotManager.clients) {
     for (const [guildId, subClient] of customBotManager.clients.entries()) {
       const isSubReady = subClient && subClient.isReady && subClient.isReady();
       const subUser = subClient?.user;
+      if (subUser?.id === '1572758718091890818' || guildId === 'global_1572758718091890818') {
+        isProOnline = isSubReady;
+        continue;
+      }
       customBots.push({
         guildId,
         id: subUser?.id || 'Unknown',
@@ -75,6 +80,7 @@ export function getLiveStatusData(client, customBotManager = null) {
       alpha: { name: 'Krims Code Alpha', isOnline: !!(alphaClient?.isReady && alphaClient.isReady()) },
       beta: { name: 'Krims Code Beta', isOnline: !!(betaClient?.isReady && betaClient.isReady()) },
       premium: { name: 'Krims Code Premium', isOnline: !!(premClient?.isReady && premClient.isReady()) },
+      pro: { name: 'Krims Code Pro', isOnline: isProOnline },
       twitch: getTwitchBotStatus()
     },
     customBots: {
