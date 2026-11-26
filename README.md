@@ -1,160 +1,102 @@
-# Krims Code AI 🤖 • Tactical Clan & Enterprise Bot Fleet (v5.5)
+# Krims Code AI 🤖 • All-in-One Neural Discord Bot & Cloud Platform (v6.0 GA)
 
-[![Version](https://img.shields.io/badge/Release-v5.5%20Fleet%20Architecture-00FFFF?logo=rocket&logoColor=white)](#)
+[![Version](https://img.shields.io/badge/Release-v6.0%20GA%20Cloud%20Fleet-00FFD2?logo=rocket&logoColor=black)](#)
+[![Website](https://img.shields.io/badge/Portal-krims--code.net-00E5FF?logo=googlechrome&logoColor=white)](https://krims-code.net/)
+[![Dashboard](https://img.shields.io/badge/Dashboard-dash.krims--code.net-5865F2?logo=discord&logoColor=white)](https://dash.krims-code.net/)
 [![Discord Support](https://img.shields.io/badge/Support-Discord%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/sYaVJtXgQb)
-[![Discord.js](https://img.shields.io/badge/Discord.js-v14.14-5865F2?logo=discord&logoColor=white)](https://discord.js.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-v20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![AI Engine](https://img.shields.io/badge/AI-Krims%200ms%20Neural%20Core-00F2FF?logo=probot&logoColor=white)](#)
-[![Hosting](https://img.shields.io/badge/Deploy-Render%20Cloud-46E3B7?logo=render&logoColor=white)](https://render.com/)
-[![Founder](https://img.shields.io/badge/Founder-krylo__plays-FFD700?logo=discord&logoColor=black)](#-leadership--ownership)
+[![DiscordBotList](https://img.shields.io/badge/DiscordBotList-Live%20Listing-FF3366?logo=discord&logoColor=white)](https://discordbotlist.com/bots/krims-code-ai)
+[![Node.js](https://img.shields.io/badge/Node.js-v24%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/License-Proprietary%20%7C%20All%20Rights%20Reserved-FF0055.svg)](#-license)
 
-**Krims Code AI** is an advanced, autonomous multi-bot Discord operations platform engineered by **Krylo** (`krylo_plays` / `KryloMCYT`) and **Krims Code Studio**. It powers competitive Minecraft SMP team headquarters (**The Light Bearers [TLB]**) and content studios (**Krylo's Skybase**) with dual-phase adaptive welcome cards, real-time Cloudflare SMP synchronization, persistent multi-turn conversational memory, automated Minecraft roster linking, and enterprise VIP intelligence.
+> **"You run the server. Krims runs the code."**
+
+**Krims Code AI** is an autonomous, all-in-one Discord bot platform and free custom bot cloud engineered by **Krylo 亗** (`krylo_plays` / `KryloMCYT`) and **Krims Code Studio**. Built from the ground up to replace overpriced `$15–$25/mo` shared-pod platforms, Krims Code delivers enterprise AI, AutoMod defense, Voice & Chat XP leveling, economy, and a **30-second Custom Bot Spawner** on isolated **Krims Dedicated Cloud Shards**.
 
 ---
 
-## 🚀 The Krims Code Bot Fleet
+## 🚀 The Official Krims Code Fleet
 
-The ecosystem runs as a coordinated fleet of specialized bot instances, each tailored for specific operational roles:
-
-| Bot Instance | Client ID | Avatar Theme | Primary Role & Capabilities |
+| Bot Instance | Client ID | Theme | Primary Role & Capabilities |
 | :--- | :---: | :---: | :--- |
-| **Krims Code AI** *(Master)* | `1523794466740371586` | 💎 Electric Cyan | Core community operations, 100 slash commands, leveling, moderation, tickets, and Minecraft database bridge. |
-| **Krims Code Premium** *(VIP)* | `1562586215822266599` | 👑 Golden Amber | Dedicated 0ms Neural compute, 3x XP multiplier, full 100-command powerhouse suite + `/premium`, and real-time Elite SMP leaderboard sync. |
-| **Krims Code Alpha** *(Experimental)* | `1562208078517243977` | 🔴 Electric Crimson | Tactical combat analytics, PvP telemetry, and experimental feature sandbox. |
-| **Krims Code Beta** *(Experimental)* | `1562208157777133598` | 🟣 Quantum Amethyst | Development staging, rapid prototyping, and automated unit verification. |
+| **Krims Code AI** *(Master)* | `1523794466740371586` | 💎 Electric Cyan | Core community operations, 93+ live slash commands, Neural AI, leveling, AutoMod, economy, and tickets. |
+| **Krims Code Pro** *(Flagship)* | `1572758718091890818` | ⚡ Cyber Emerald | Flagship multi-server AI engine with dedicated neural routing and priority command execution. |
+| **Krims Code Premium** *(VIP)* | `1562586215822266599` | 👑 Golden Amber | Dedicated `0ms` Neural compute, `3.0x` XP multiplier, `/premium` suite, and Pro Fleet perks. |
+| **Krims Code Alpha** *(Staging)* | `1562208078517243977` | 🔴 Electric Crimson | Experimental feature sandbox and combat/event telemetry. |
+| **Krims Code Beta** *(Staging)* | `1562208157777133598` | 🟣 Quantum Amethyst | Rapid prototyping and automated verification staging. |
 
 ---
 
 ## ⚡ Flagship Systems & Capabilities
 
-### ⚔️ 1. Live Elite SMP Cloudflare Integration (`/elitesmp`)
-Directly integrated with the official **Elite SMP** (`elitesmp.gg`) live Cloudflare Worker API:
-* **Live Team Leaderboard:** Fetches real-time kills, treasuries, member counts, and clan stages directly from `elite-smp-leaderboard.smpcurios.workers.dev/leaderboard`.
-  * Top Rivals: **VenomX** (#1, 182 kills, Top Player `ODYSSEAS12345`) and **Team_Rocket** (#2, 181 kills, Top Player `Jamkeju`, Treasury `$511k`).
-  * Official Clan Ally: **BAT** (#6, Top Player `.acesbedoya`) — officially partnered with **The Light Bearers [TLB]**!
-* **Cross-Play Connection Hub (`/elitesmp join`):** Live server addresses and port guides for Java (`elitesmp.gg:25565`) and Bedrock (`elitesmp.gg:19132`, prefix `.`, spaces as `_`).
-* **In-Game Rules & Mechanics (`/elitesmp rules` & `/elitesmp wiki`):** Full guides on raiding permissions (100% legal), combat tagging (15s combat log instant death), grace periods, and weekly legendary kits.
-* **Custom Spawner Crafting (`/elitesmp craftings`):** In-game recipes for Skeleton, Zombie, Spider, Cave Spider, and Magma Cube spawners.
+### 🤖 1. Free 30-Second Custom Bot Spawner (BYOT)
+- **Zero Monthly Paywalls:** Every server owner can spawn **1 custom-branded Discord bot** (`$0.00 Free Forever`, no credit card required) at **[krims-code.net/custombot](https://krims-code.net/custombot)**.
+- **Isolated Cloud Shards:** Unlike commercial platforms that cram 1,000–2,000 bots onto one shared pod, every bot runs in an isolated container pipeline with `~18ms` execution latency.
+- **Full Custom Branding:** Runs under your own Discord Application name, avatar, custom status, and custom AI persona.
+
+### 🧠 2. Proprietary Neural Conversational AI & Vision
+- **Persistent Multi-Turn Memory (`/ask` & `@mention`):** Remembers channel context across messages for natural conversations, coding help, and community Q&A.
+- **Multimodal Image Vision:** Attach screenshots, diagrams, or error logs and let Krims Code AI analyze and troubleshoot them in real time.
+
+### 🛡️ 3. Autonomous AutoMod & Anti-Raid Defense
+- **Zero-Lag Security:** Instant raid quarantine, anti-nuke protection, token-grabber blocking, and malicious invite/link filtering.
+- **Native Discord AutoMod Sync:** Integrates directly with Discord's native AutoMod rules for instant enforcement.
+- **Self-Healing Architecture:** Global fault isolation catches runtime exceptions and logs diagnostics cleanly without crashing the fleet.
+
+### 🎙️ 4. Voice & Chat XP Leveling + Vote Boosters
+- **Dynamic Rank Cards (`/rank`, `/leaderboard`):** Custom graphical rank cards, cubic XP scaling, dual Voice + Message leaderboards, and automatic role rewards.
+- **Quiet Leveling Mode:** Zero spam in public chat channels.
+- **Dual Vote Rewards (`Top.gg` + `DiscordBotList`):** Voting via `/vote` automatically grants a **2.0x XP Multiplier** for 12h (24h on weekends) plus **+500 to +1,000 Bonus XP** and live shoutouts.
+
+### ⛏️ 5. KryloSMP & Game Network Bridge
+- **Official Network Integration:** **KryloSMP** is officially acquired and powered by **Krims Code**, merging Minecraft survival with Krims Dedicated Cloud infrastructure, Discord cross-chat, and Krims Rewards (KR). *(Public server IP remains classified until launch.)*
 
 ---
 
-### 🧠 2. Persistent AI Dialogue Memory Matrix (`features/aiMemoryEngine.mjs`)
-Shared SQLite-backed dialogue memory giving both bots deep contextual awareness:
-* **Multi-Turn Memory:** Bots remember the last 6+ messages exchanged in the channel. Follow-up queries (*"and who leads it?"* or *"what about them?"*) work naturally without re-explaining context.
-* **Server Knowledge Seeding:** Automatically stores and recalls server facts, clan creeds, builder assignments, and alliance logs.
-* **Grounded Leadership Recognition:**
-  * **Team Leader:** `st1llkill3r` (Jonesy) — Official Leader of The Light Bearers clan in Elite SMP.
-  * **Team Co-Leader & Supreme Owner:** `krylo_plays` (`KryloMCYT` / `1414143825538191373`) — Official Co-Leader of The Light Bearers and Supreme Founder of Krims Code.
-  * **Lead Builder & Redstone Engineer:** `CrazyCoolCam`
-  * **Official Ally:** `BAT`
-* **Supreme Founder Clearance:** Automatically salutes Krylo (`krylo_plays`) with 100% loyalty and recognizes his **Lifetime Founder License ($0.00 Free Forever)**.
+## ⚔️ Why Server Owners Switch to Krims Code AI
+
+| Feature | Commercial Platforms | ⚡ Krims Code AI™ | 👑 Krims Pro Fleet |
+| :--- | :--- | :--- | :--- |
+| **Monthly Price** | `$15.00–$25.00/mo` (Card) | **`$0.00` (100% Free Forever)** | `$4.99/mo` (Up to 5 Bots) |
+| **Shard Architecture** | 1,000–2,000 bots per shared pod | **Isolated Cloud Shards (~18ms)** | High-Priority Cloud Clusters |
+| **AI & Neural Engine** | Basic static blocks | **Multi-Turn Neural AI + Vision** | Multi-Persona Studio + 3.0x XP |
+| **Custom Branding** | Paid paywall | **Free 30s BYOT Spawner** | Unlimited White-Label Fleet |
 
 ---
 
-### 💎 3. Krims Code Premium Architecture (`features/premiumManager.mjs`)
-Engineered as an all-in-one VIP upgrade that includes **everything from the main bot** plus exclusive enterprise capabilities:
-* **0ms Neural Compute:** Runs on dedicated proprietary neural nodes with 0ms queue wait times.
-* **Automatic 2x VIP XP Multiplier:** All messages in servers with Krims Code Premium automatically award double XP for leveling and rank cards.
-* **Full 100-Command Powerhouse Suite:** Supports all 100 master slash commands plus `/premium` and `/elitesmp`.
-* **Full Prefix System (`!`):** Responds to `!help`, `!rank`, `!daily`, `!balance`, `!leaderboard`, `!elitesmp`, and `!premium` with Golden VIP Embeds.
-* **Anti-Hallucination Directives:** Strictly grounded to real server databases, never inventing fictional clans or imaginary rivals.
+## 📋 Command Overview (`93+` Slash Commands & `!` Prefix)
+Run **`/help`** or **`!help`** in any server to browse the full interactive command directory:
+- **AI & Diagnostics:** `/ask`, `/memory`, `/diagnose`, `/setupbot`, `/getbot`, `/translate`, `/ping`, `/uptime`
+- **Moderation & AutoMod:** `/warn`, `/mute`, `/unmute`, `/kick`, `/ban`, `/purge`, `/lockdown`, `/unlock`, `/slowmode`
+- **Leveling & Voting:** `/rank`, `/level`, `/leaderboard`, `/rewards`, `/quests`, `/vote`
+- **Economy & Mini-Games:** `/balance`, `/daily`, `/pay`, `/store`, `/giveaway`, `/work`, `/duel`, `/pvp`, `/trade`, `/lootbox`
+- **Utilities & Community:** `/help`, `/status`, `/announce`, `/poll`, `/suggest`, `/ticket`, `/activity`, `/embed`, `/wiki`
 
 ---
 
-### 🛡️ 4. The Light Bearers [TLB] Elite Clan Operations
-* **Dual-Phase Adaptive Welcome Cards:**
-  * **Phase 1 (Arrival):** Generates a custom Dark Cyber welcome card in `#👋・𝖶elcome` with member count and `⏳ PENDING MINECRAFT IGN`.
-  * **Phase 2 (Roster Verified):** When an operative posts their IGN in `#📋・𝖱oster`, the bot **live-edits the original welcome message in real time**, attaching their 3D Minecraft skin head badge and updating their status to `✅ VERIFIED SMP ROSTER`.
-* **Automatic Minecraft IGN Nickname Synchronization:** Parses IGNs from `#📋・𝖱oster` and syncs nicknames automatically.
-* **Cosmetic Chat Color & Regional Roles:** Self-service reaction panels for 9 cosmetic colors and single-region assignment (NA, EU, Asia).
-* **43 Custom Tactical Emojis & Stickers:** Tailor-made icons (`:team_halfheart:`, `:team_lambda:`, `:team_crest:`, `:team_mace:`, `:anim_team_radar:`).
-
----
-
-### 🛡️ 5. Autonomous Security, Auto-Mod & Self-Healing
-* **Zero-Crash Fault Isolation:** Catches unhandled rejections and runtime exceptions globally, keeping the fleet 100% online.
-* **Automated AI Root-Cause Analysis:** Connects runtime stack traces to the multi-brain router to diagnose bugs and log recommended patches to `#📋・𝖲taff-logs`.
-* **Anti-Raid & Server Security Guard:** Real-time invite link blocking, anti-flood protection (5+ messages in 3s), and profanity filtering.
-* **Continuous Auto-Deploy:** Pulls updates from GitHub origin every 5 minutes and hot-restarts without downtime.
-
----
-
-### 🎬 6. Skybase Video Production & Community Tools
-* **Film Crew Auditions:** Staff controls (`/startcrewapp`, `/stopcrewapp`) with interactive Discord modal forms.
-* **Custom Graphical Rank Cards:** Dynamic Jimp canvas rank cards rendered on the fly (`/rank`).
-* **Top.gg Vote Multipliers:** Webhook listener awarding 2.0x XP bonuses and streak rewards.
-* **Discord Activities Hub:** Instant launch links for YouTube Together, Poker Night, Chess, and Gartic Phone via `/activity`.
-
----
-
-## 📋 Master Slash Command Directory (100 Commands)
-
-| Module | Available Slash Commands |
-| :--- | :--- |
-| **🤖 AI & Diagnostics** | `/ask`, `/memory`, `/diagnose`, `/setupbot`, `/getbot`, `/about`, `/github`, `/translate`, `/ping`, `/uptime` |
-| **💎 Premium & VIP** | `/premium`, `/elitesmp` |
-| **🛡️ Moderation** | `/warn`, `/mute`, `/unmute`, `/kick`, `/ban`, `/purge`, `/lockdown`, `/unlock`, `/slowmode`, `/afk` |
-| **📈 Leveling & Progression** | `/rank`, `/level`, `/leaderboard`, `/rewards`, `/quests`, `/clan` |
-| **💰 Economy & Store** | `/balance`, `/daily`, `/pay`, `/store`, `/giveaway`, `/work`, `/counting`, `/slots`, `/spin`, `/jackpot` |
-| **🏰 Clan & Warfare** | `/clan create`, `/clan info`, `/clan leaderboard`, `/bounty`, `/raid` |
-| **⚔️ Games & Duels** | `/duel`, `/challenge`, `/endduel`, `/pvp`, `/tournament`, `/trade`, `/pet`, `/fish`, `/mine`, `/craft`, `/enchant`, `/heist`, `/rob`, `/lottery`, `/lootbox` |
-| **📡 Community & Utilities** | `/help`, `/rules`, `/status`, `/ip`, `/announce`, `/poll`, `/suggest`, `/serverinfo`, `/userinfo`, `/avatar`, `/embed`, `/wiki`, `/ticket`, `/close`, `/activity`, `/gif`, `/coinflip`, `/roll`, `/eightball`, `/joke`, `/meme`, `/bday`, `/gameboost`, `/voice`, `/emojis` |
-| **🟣 Twitch & Creator Tools** | `/verifytwitch`, `/supporters`, `/crew`, `/apply`, `/startstream`, `/stopstream`, `/link`, `/verify`, `/devlogs` |
-
----
-
-## 💬 Prefix Command Quick-Reference (`!`)
-
-All primary commands can be triggered with the standard `!` prefix across both bots:
-
-```bash
-!help            # Displays the Master Feature Suite and documentation
-!premium         # Opens the VIP Architecture & perks dashboard
-!elitesmp        # Displays live Elite SMP team rankings, rules, and connection IPs
-!rank            # Renders your graphical level and XP rank card
-!balance         # Checks your KryloCoins vault balance
-!daily           # Claims your daily streak reward (with 2x VIP bonus)
-!leaderboard     # Shows the top server chat and XP leaderboard
-!clan            # Opens clan management and territory intel
-!ping            # Tests bot gateway WebSocket latency
-```
-
----
-
-## 🏗️ Technical Stack & Infrastructure
-
-* **Runtime:** Node.js v20+ (ES Modules) + Python 3 (Pillow graphical asset generator)
-* **Libraries:** `discord.js` v14.14, `@discordjs/voice`, `@neondatabase/serverless`, `better-sqlite3`
-* **Inference Engines:** Krims Proprietary 0ms Neural Multi-Brain Engine
-* **Databases:**
-  * SQLite (WAL Mode) — Local ultra-fast state, level cards, and AI dialogue memory.
-  * Neon Serverless PostgreSQL — Cloud economy, clan inventories, and player portal sync.
-  * FalixNodes MySQL — Direct in-game Minecraft plugin bridge.
-* **Deployment:** Hosted 24/7 on [Render](https://render.com) Linux cloud containers with automated zero-downtime CI/CD.
-  * Live Web Dashboard: [https://krims-code.net/](https://krims-code.net/)
-  * Custom Bot Portal: [https://krims-code.net/custombot](https://krims-code.net/custombot)
-  * Live Wiki Portal: [https://krims-code.net/wiki](https://krims-code.net/wiki)
-  * Official Discord Support: [https://discord.gg/sYaVJtXgQb](https://discord.gg/sYaVJtXgQb)
-  * Telemetry API: [https://krims-code.net](https://krims-code.net)
+## 🏗️ Technical Stack & Official Endpoints
+- **Runtime:** Node.js v24+ (ES Modules) + Python 3
+- **Core Stack:** `discord.js v14`, `@discordjs/voice`, SQLite (WAL Mode), Serverless PostgreSQL
+- **Infrastructure:** **Krims Dedicated Cloud Shards** with automated zero-downtime CI/CD
+- **Main Web Portal:** [https://krims-code.net/](https://krims-code.net/)
+- **Control Dashboard:** [https://dash.krims-code.net/](https://dash.krims-code.net/)
+- **Documentation & Wiki:** [https://krims-code.net/wiki](https://krims-code.net/wiki)
+- **Interactive Devlog:** [https://krims-code.net/vlog](https://krims-code.net/vlog)
+- **Live Cloud Status API:** [https://www.krims-code.net/api/status](https://www.krims-code.net/api/status)
+- **DiscordBotList:** [https://discordbotlist.com/bots/krims-code-ai](https://discordbotlist.com/bots/krims-code-ai)
+- **Support Discord:** [https://discord.gg/sYaVJtXgQb](https://discord.gg/sYaVJtXgQb)
+- **Support Email:** `support@krims-code.net`
 
 ---
 
 ## 👑 Leadership & Ownership
-
-* **Creator & Supreme Founder:** **Krylo** (`krylo_plays` / `KryloMCYT` / `st1llkill3r` — User ID: `1414143825538191373`)
-* **The Light Bearers [TLB] Clan Leader:** `st1llkill3r` (Jonesy)
-* **The Light Bearers [TLB] Clan Co-Leader:** `krylo_plays` (Krylo 亗)
-* **Development Studio:** **Krims Code Studio**
+- **Creator & Supreme Founder:** **Krylo 亗** (`krylo_plays` / `KryloMCYT` — `1414143825538191373`)
+- **Development Studio:** **Krims Code Studio**
 
 ---
 
 ## 📜 License
+**Copyright © 2026 KryloMCYT & Krims Code Studio. All rights reserved.**  
+This software, its source code, visual assets, algorithms, and documentation are strictly proprietary and confidential.
 
-**Copyright © 2026 KryloMCYT & Krims Code Studio. All rights reserved.**
-
-This software, its source code, visual cards, algorithms, and documentation are **strictly proprietary and confidential**. 
-
-> [!CAUTION]
-> **STRICTLY NO COPYING, FORKING, REDISTRIBUTION, OR REVERSE ENGINEERING.**
+> **⚠️ STRICTLY NO COPYING, FORKING, REDISTRIBUTION, OR REVERSE ENGINEERING.**  
 > No part of this software may be copied, reproduced, cloned, mirrored, sold, or distributed in any form without explicit, prior written permission from KryloMCYT.
