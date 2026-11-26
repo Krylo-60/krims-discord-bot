@@ -14913,7 +14913,7 @@ Provide an ultra-clear, professional diagnostic breakdown with:
     return;
   }
 
-  if ((url.pathname === '/api/topgg/webhook' || url.pathname === '/api/vote/webhook') && (req.method === 'POST' || req.method === 'GET')) {
+  if ((url.pathname === '/api/topgg/webhook' || url.pathname === '/api/dbl/webhook' || url.pathname === '/api/vote/webhook') && (req.method === 'POST' || req.method === 'GET')) {
     return handleTopggWebhook(req, res, client);
   }
 

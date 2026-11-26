@@ -248,6 +248,7 @@ export async function handleVoteCommand(interaction) {
   const info = getVoteBoosterInfo(userId);
 
   const voteUrl = 'https://top.gg/bot/1523794466740371586/vote';
+  const dblVoteUrl = 'https://discordbotlist.com/bots/krims-code-ai/upvote';
 
   const embed = new EmbedBuilder()
     .setColor(info.isActive ? 0x00E5FF : 0xF59E0B)
@@ -273,9 +274,13 @@ export async function handleVoteCommand(interaction) {
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setLabel('🗳️ Vote on Top.gg (Get 2x XP)')
+      .setLabel('🗳️ Vote on Top.gg (2x XP)')
       .setStyle(ButtonStyle.Link)
       .setURL(voteUrl),
+    new ButtonBuilder()
+      .setLabel('🗳️ Vote on DiscordBotList (2x XP)')
+      .setStyle(ButtonStyle.Link)
+      .setURL(dblVoteUrl),
     new ButtonBuilder()
       .setCustomId('btn_refresh_vote_status')
       .setLabel('🔄 Refresh Status')
@@ -293,6 +298,7 @@ export async function handleVoteMessage(message) {
   const info = getVoteBoosterInfo(userId);
 
   const voteUrl = 'https://top.gg/bot/1523794466740371586/vote';
+  const dblVoteUrl = 'https://discordbotlist.com/bots/krims-code-ai/upvote';
 
   const embed = new EmbedBuilder()
     .setColor(info.isActive ? 0x00E5FF : 0xF59E0B)
@@ -318,9 +324,13 @@ export async function handleVoteMessage(message) {
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setLabel('🗳️ Vote on Top.gg (Get 2x XP)')
+      .setLabel('🗳️ Vote on Top.gg (2x XP)')
       .setStyle(ButtonStyle.Link)
       .setURL(voteUrl),
+    new ButtonBuilder()
+      .setLabel('🗳️ Vote on DiscordBotList (2x XP)')
+      .setStyle(ButtonStyle.Link)
+      .setURL(dblVoteUrl),
     new ButtonBuilder()
       .setCustomId('btn_refresh_vote_status')
       .setLabel('🔄 Refresh Status')
@@ -350,10 +360,18 @@ export async function handleTopggWebhook(req, res, client) {
 
   const authHeader = req.headers['authorization'];
   const expectedAuth = process.env.TOPGG_WEBHOOK_AUTH || process.env.TOPGG_AUTH;
+  const dblAuth = process.env.DBL_WEBHOOK_AUTH || expectedAuth;
+  const isDblPath = req.url && req.url.includes('/api/dbl/webhook');
 
   // Verify webhook authorization token if configured
-  if (expectedAuth && authHeader !== expectedAuth) {
+  if (!isDblPath && expectedAuth && authHeader !== expectedAuth) {
     console.warn('[TopggWebhook] Unauthorized webhook request rejected');
+    res.writeHead(401, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Unauthorized webhook' }));
+    return;
+  }
+  if (isDblPath && dblAuth && authHeader && authHeader !== dblAuth) {
+    console.warn('[DblWebhook] Unauthorized webhook request rejected');
     res.writeHead(401, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Unauthorized webhook' }));
     return;
@@ -364,24 +382,28 @@ export async function handleTopggWebhook(req, res, client) {
   req.on('end', async () => {
     try {
       const payload = JSON.parse(body || '{}');
-      const voterId = payload.user;
+      const isDbl = isDblPath || (!!payload.id && !payload.user);
+      const voterId = payload.user || payload.id;
 
-      // Top.gg test ping or validation check
+      // Test ping or validation check
       if (!voterId || payload.type === 'test') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
           success: true,
-          message: 'Top.gg webhook test ping received successfully! Endpoint is active.'
+          message: `${isDbl ? 'DiscordBotList' : 'Top.gg'} webhook test ping received successfully! Endpoint is active.`
         }));
         return;
       }
 
-      console.log(`[TopggWebhook] Received vote notification for user: ${voterId} (Weekend: ${payload.isWeekend})`);
+      const sourceName = isDbl ? 'DiscordBotList' : 'Top.gg';
+      const nowDay = new Date().getUTCDay();
+      const autoWeekend = nowDay === 0 || nowDay === 6 || nowDay === 5;
+      console.log(`[VoteWebhook] Received ${sourceName} vote for user: ${voterId}`);
 
       const result = await recordUserVote(voterId, {
-        isWeekend: payload.isWeekend || false,
+        isWeekend: payload.isWeekend ?? autoWeekend,
         client,
-        source: 'Top.gg'
+        source: sourceName
       });
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
