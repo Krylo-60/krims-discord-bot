@@ -6,14 +6,9 @@
 
 > **"You run the server. Krims runs the code."**
 
-[![Release](https://img.shields.io/badge/Release-v6.0%20GA-00FFD2?style=for-the-badge&logo=rocket&logoColor=black)](#)
-[![Portal](https://img.shields.io/badge/Portal-krims--code.net-00E5FF?style=for-the-badge&logo=vercel&logoColor=white)](https://krims-code.net/)
-[![Dashboard](https://img.shields.io/badge/Dashboard-dash.krims--code.net-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://dash.krims-code.net/)
-[![Discord Support](https://img.shields.io/badge/Support-Discord%20Server-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/sYaVJtXgQb)
-[![DiscordBotList](https://img.shields.io/badge/DiscordBotList-Upvote%20Now-FF3366?style=for-the-badge&logo=discord&logoColor=white)](https://discordbotlist.com/bots/krims-code-ai)
-[![License](https://img.shields.io/badge/License-Proprietary-FF0055?style=for-the-badge)](#-license)
+`v6.0 GA` • `Node.js v24+` • `93+ Slash Commands` • `Krims Dedicated Cloud Shards`
 
-[**🌐 Web Portal**](https://krims-code.net/) • [**🎛️ Control Dashboard**](https://dash.krims-code.net/) • [**🤖 Free Bot Spawner**](https://krims-code.net/custombot) • [**📖 Wiki & Docs**](https://krims-code.net/wiki) • [**📺 Devlog**](https://krims-code.net/vlog)
+[**🌐 Web Portal**](https://krims-code.net/) • [**🎛️ Control Dashboard**](https://dash.krims-code.net/) • [**🤖 Free Bot Spawner**](https://krims-code.net/custombot) • [**📖 Wiki & Docs**](https://krims-code.net/wiki) • [**📺 Devlog**](https://krims-code.net/vlog) • [**🗳️ DiscordBotList**](https://discordbotlist.com/bots/krims-code-ai) • [**💬 Support Discord**](https://discord.gg/sYaVJtXgQb)
 
 </div>
 
