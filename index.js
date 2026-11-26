@@ -1266,6 +1266,19 @@ async function updateDynamicServerVoiceStats() {
         await statusCh.setName(statusChannelName).catch(() => {});
       }
     }
+
+    // Update Krims Code • Support & Updates live member counter channel
+    const supportGuild = client.guilds.cache.get('1561174283294609479');
+    if (supportGuild) {
+      const targetMemberName = `👥・Members: ${supportGuild.memberCount}`;
+      const memCh =
+        supportGuild.channels.cache.get('1575661868255547526') ||
+        (await supportGuild.channels.fetch('1575661868255547526').catch(() => null)) ||
+        supportGuild.channels.cache.find(c => c && c.isVoiceBased() && c.name.includes('Members:'));
+      if (memCh && memCh.name !== targetMemberName) {
+        await memCh.setName(targetMemberName).catch(() => {});
+      }
+    }
   } catch (err) {
     console.warn('[Dynamic Stats Updater] Check error:', err.message);
   }
