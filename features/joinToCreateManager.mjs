@@ -322,14 +322,25 @@ export async function handleJtcVoiceStateUpdate(oldState, newState, client) {
         }
       ];
 
-      // Create the dynamic voice channel
-      const tempChannel = await guild.channels.create({
-        name: targetName,
-        type: ChannelType.GuildVoice,
-        parent: parentCategory?.id || null,
-        userLimit: config.default_limit || 0,
-        permissionOverwrites
-      });
+      // Create the dynamic voice channel (with safe fallback if bot lacks PrioritySpeaker overwrite permission)
+      let tempChannel = null;
+      try {
+        tempChannel = await guild.channels.create({
+          name: targetName,
+          type: ChannelType.GuildVoice,
+          parent: parentCategory?.id || null,
+          userLimit: config.default_limit || 0,
+          permissionOverwrites
+        });
+      } catch (permErr) {
+        console.warn('[JTC Full Overwrite Fallback]:', permErr.message);
+        tempChannel = await guild.channels.create({
+          name: targetName,
+          type: ChannelType.GuildVoice,
+          parent: parentCategory?.id || null,
+          userLimit: config.default_limit || 0
+        });
+      }
 
       if (tempChannel && tempChannel.id) {
         // Move member into their brand new voice channel!

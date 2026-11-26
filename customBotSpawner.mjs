@@ -1073,8 +1073,9 @@ export class MultiBotManager {
     // 3. Automated Welcome Engine for New Members
     client.on('guildMemberAdd', async (member) => {
       try {
-        if (!member.guild) return;
+        if (!member.guild || member.user?.bot) return;
         const guild = member.guild;
+        if (guild.id === '1561174283294609479') return; // Master Krims Code AI handles main support server welcomes
 
         // Auto-assign community roles on join (Members, Update Ping, Announcements Ping, Role Ping)
         const assignedRoles = await assignMiniCommunityAutoRoles(member);
