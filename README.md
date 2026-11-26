@@ -1,14 +1,21 @@
-# Krims Code AI 🤖 • All-in-One Neural Discord Bot & Cloud Platform (v6.0 GA)
+<div align="center">
 
-[![Version](https://img.shields.io/badge/Release-v6.0%20GA%20Cloud%20Fleet-00FFD2?logo=rocket&logoColor=black)](#)
-[![Website](https://img.shields.io/badge/Portal-krims--code.net-00E5FF?logo=googlechrome&logoColor=white)](https://krims-code.net/)
-[![Dashboard](https://img.shields.io/badge/Dashboard-dash.krims--code.net-5865F2?logo=discord&logoColor=white)](https://dash.krims-code.net/)
-[![Discord Support](https://img.shields.io/badge/Support-Discord%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/sYaVJtXgQb)
-[![DiscordBotList](https://img.shields.io/badge/DiscordBotList-Live%20Listing-FF3366?logo=discord&logoColor=white)](https://discordbotlist.com/bots/krims-code-ai)
-[![Node.js](https://img.shields.io/badge/Node.js-v24%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![License](https://img.shields.io/badge/License-Proprietary%20%7C%20All%20Rights%20Reserved-FF0055.svg)](#-license)
+<img src="https://krims-code.net/logo.png" alt="Krims Code AI Logo" width="110" />
+
+# Krims Code AI 🤖 • All-in-One Neural Discord Bot & Cloud Platform (`v6.0 GA`)
 
 > **"You run the server. Krims runs the code."**
+
+[![Release](https://img.shields.io/badge/Release-v6.0%20GA-00FFD2?style=for-the-badge&logo=rocket&logoColor=black)](#)
+[![Portal](https://img.shields.io/badge/Portal-krims--code.net-00E5FF?style=for-the-badge&logo=vercel&logoColor=white)](https://krims-code.net/)
+[![Dashboard](https://img.shields.io/badge/Dashboard-dash.krims--code.net-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://dash.krims-code.net/)
+[![Discord Support](https://img.shields.io/badge/Support-Discord%20Server-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/sYaVJtXgQb)
+[![DiscordBotList](https://img.shields.io/badge/DiscordBotList-Upvote%20Now-FF3366?style=for-the-badge&logo=discord&logoColor=white)](https://discordbotlist.com/bots/krims-code-ai)
+[![License](https://img.shields.io/badge/License-Proprietary-FF0055?style=for-the-badge)](#-license)
+
+[**🌐 Web Portal**](https://krims-code.net/) • [**🎛️ Control Dashboard**](https://dash.krims-code.net/) • [**🤖 Free Bot Spawner**](https://krims-code.net/custombot) • [**📖 Wiki & Docs**](https://krims-code.net/wiki) • [**📺 Devlog**](https://krims-code.net/vlog)
+
+</div>
 
 **Krims Code AI** is an autonomous, all-in-one Discord bot platform and free custom bot cloud engineered by **Krylo 亗** (`krylo_plays` / `KryloMCYT`) and **Krims Code Studio**. Built from the ground up to replace overpriced `$15–$25/mo` shared-pod platforms, Krims Code delivers enterprise AI, AutoMod defense, Voice & Chat XP leveling, economy, and a **30-second Custom Bot Spawner** on isolated **Krims Dedicated Cloud Shards**.
 
