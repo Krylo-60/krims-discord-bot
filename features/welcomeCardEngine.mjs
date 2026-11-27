@@ -124,6 +124,57 @@ export async function renderWelcomeCard({
 }
 
 /**
+ * Render the original Krims Code Aura HUD Welcome Card for free servers & Support Hub
+ */
+export async function renderKrimsAuraWelcomeCard({
+  avatarUrl,
+  username,
+  memberCount = 1,
+  serverName = 'Krims Code'
+}) {
+  const scriptPath = path.join(rootDir, 'scripts', 'generate_krims_aura_welcome.py');
+  const tempOut = path.join(rootDir, 'data', `krims_aura_welcome_${Date.now()}_${Math.floor(Math.random() * 10000)}.png`);
+
+  if (!fs.existsSync(path.dirname(tempOut))) {
+    fs.mkdirSync(path.dirname(tempOut), { recursive: true });
+  }
+
+  const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+  const args = [
+    scriptPath,
+    '--avatar', avatarUrl || '',
+    '--username', username || 'Member',
+    '--member_count', String(memberCount),
+    '--server_name', serverName || 'Krims Code',
+    '--out', tempOut
+  ];
+
+  return new Promise((resolve) => {
+    const proc = spawn(pythonCmd, args);
+    let stderr = '';
+    proc.stderr.on('data', data => { stderr += data.toString(); });
+    proc.on('close', code => {
+      if (code !== 0 || !fs.existsSync(tempOut)) {
+        console.error(`[KrimsAuraWelcome] Python generator failed (code ${code}):`, stderr);
+        return resolve(null);
+      }
+      try {
+        const buffer = fs.readFileSync(tempOut);
+        fs.unlink(tempOut, () => {});
+        resolve(buffer);
+      } catch (err) {
+        console.error('[KrimsAuraWelcome] Failed to read buffer:', err);
+        resolve(null);
+      }
+    });
+    proc.on('error', err => {
+      console.error('[KrimsAuraWelcome] Could not spawn Python:', err);
+      resolve(null);
+    });
+  });
+}
+
+/**
  * Handle new operative join: Post Phase 1 Welcome Card
  */
 export async function handleGuildMemberAddWelcome(member) {

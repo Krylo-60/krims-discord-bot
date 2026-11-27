@@ -143,7 +143,8 @@ import {
 } from './features/reactionRolesEngine.mjs';
 import { 
   handleGuildMemberAddWelcome, 
-  renderWelcomeCard, 
+  renderWelcomeCard,
+  renderKrimsAuraWelcomeCard, 
   HALF_LIFES_GUILD_ID 
 } from './features/welcomeCardEngine.mjs';
 import { 
@@ -12152,6 +12153,8 @@ async function generateWelcomeCard(avatarUrl, username, memberCount) {
 }
 
 client.on('guildMemberAdd', async (member) => {
+  if (!member.guild || member.user?.bot) return;
+
   // ✨ The Light Bearers (TLB) Clan Operative Arrival Terminal System
   if (member.guild.id === HALF_LIFES_GUILD_ID || member.guild.name.toLowerCase().includes('light') || member.guild.name.toLowerCase().includes('bearer') || member.guild.name.toLowerCase().includes('half')) {
     try {
@@ -12171,22 +12174,35 @@ client.on('guildMemberAdd', async (member) => {
         await member.roles.add(commRole);
         console.log(`[Support Welcome] Auto-assigned 👥 Community Member to ${member.user.username}`);
       }
-      const welcomeCh = member.guild.channels.cache.find(c => c.name.includes('welcome'));
+      const welcomeCh = member.guild.channels.cache.find(c => c.name.toLowerCase().includes('welcome'));
       if (welcomeCh) {
+        const avatarUrl = member.user.displayAvatarURL({ extension: 'png', size: 256 });
+        const auraCard = await renderKrimsAuraWelcomeCard({
+          avatarUrl,
+          username: member.user.username,
+          memberCount: member.guild.memberCount,
+          serverName: member.guild.name
+        });
         const joinEmbed = new EmbedBuilder()
           .setColor(0x00F2FF)
-          .setTitle('👋 Welcome to Krims Code Support & Updates!')
+          .setTitle('👋 Welcome to Krims Code • Support & Updates!')
           .setDescription(
             `Welcome <@${member.id}> to our official headquarters!\n\n` +
-            `• 📜 Review community guidelines in <#1561175617830129734>\n` +
-            `• 🏷️ Choose your notification pings & chat color in <#1561181313367412766>\n` +
-            `• 🎫 Open a support ticket or request features in <#1561175618589167738>\n` +
-            `• 💬 Say hello in <#1561175619943792680>!`
+            `• 📜 Review community guidelines in <#1561175625589334096>\n` +
+            `• 🏷️ Pick your ping roles & name color in <#1561181315640983612>\n` +
+            `• 🎫 Open a support ticket in <#1561175631067226232>\n` +
+            `• 💬 Say hello in <#1561175635940876308>!`
           )
-          .setThumbnail(member.user.displayAvatarURL({ extension: 'png', size: 256 }))
-          .setFooter({ text: `Member #${member.guild.memberCount}` })
+          .setFooter({ text: `Krims Code AI • Member #${member.guild.memberCount}` })
           .setTimestamp();
-        await welcomeCh.send({ content: `👋 Welcome <@${member.id}>!`, embeds: [joinEmbed] });
+        if (auraCard) {
+          const attachment = new AttachmentBuilder(auraCard, { name: 'krims-aura-welcome.png' });
+          joinEmbed.setImage('attachment://krims-aura-welcome.png');
+          await welcomeCh.send({ content: `👋 Welcome <@${member.id}>!`, embeds: [joinEmbed], files: [attachment] });
+        } else {
+          joinEmbed.setThumbnail(avatarUrl);
+          await welcomeCh.send({ content: `👋 Welcome <@${member.id}>!`, embeds: [joinEmbed] });
+        }
       }
     } catch (err) {
       console.warn('[Support Welcome Error]:', err.message);
@@ -12244,27 +12260,37 @@ client.on('guildMemberAdd', async (member) => {
         const theme = cfg?.welcomeCardTheme || 'cyber-cyan';
 
         let cardBuffer = null;
+        const isKsmp = member.guild.id === '1538225337048236082';
         try {
-          cardBuffer = await renderWelcomeCard({
-            avatarUrl,
-            username: member.user.username,
-            memberCount,
-            serverName: member.guild.name,
-            heading: headingText,
-            subtext: subText,
-            theme
-          });
+          if (isKsmp) {
+            cardBuffer = await renderWelcomeCard({
+              avatarUrl,
+              username: member.user.username,
+              memberCount,
+              serverName: member.guild.name,
+              heading: headingText,
+              subtext: subText,
+              theme
+            });
+          } else {
+            cardBuffer = await renderKrimsAuraWelcomeCard({
+              avatarUrl,
+              username: member.user.username,
+              memberCount,
+              serverName: member.guild.name
+            });
+          }
         } catch (cardErr) {
           console.warn('[Welcome Card Render Warning]:', cardErr.message);
         }
 
-        const rawWelcomeMsg = cfg?.welcomeMessage || 'Welcome to the server, {user}! We are glad to have you here!';
+        const rawWelcomeMsg = cfg?.welcomeMessage || 'Hey {user}, welcome to **{server}**! You are **Member #{count}** — glad to have you here!';
         const formattedMsg = rawWelcomeMsg
           .replace(/{user}/g, `<@${member.id}>`)
           .replace(/{server}/g, member.guild.name)
           .replace(/{count}/g, String(memberCount));
 
-        if (member.guild.id === '1538225337048236082') {
+        if (isKsmp) {
           try {
             const { ksmpClient } = await import('./features/kryloSmpBotEngine.mjs');
             if (ksmpClient && ksmpClient.isReady()) {
@@ -12282,14 +12308,27 @@ client.on('guildMemberAdd', async (member) => {
           } catch (_) {}
         }
 
+        const freeWelcomeEmbed = new EmbedBuilder()
+          .setColor(0x00F2FF)
+          .setTitle(`👋 Welcome to ${member.guild.name}!`)
+          .setDescription(formattedMsg)
+          .setFooter({ text: `Krims Code AI • Member #${memberCount}` })
+          .setTimestamp();
+
         if (cardBuffer) {
-          const attachment = new AttachmentBuilder(cardBuffer, { name: 'welcome-hud-card.png' });
+          const attachment = new AttachmentBuilder(cardBuffer, { name: 'krims-aura-welcome.png' });
+          freeWelcomeEmbed.setImage('attachment://krims-aura-welcome.png');
           await welcomeCh.send({
-            content: formattedMsg,
+            content: `👋 Welcome <@${member.id}>!`,
+            embeds: [freeWelcomeEmbed],
             files: [attachment]
           }).catch(() => {});
         } else {
-          await welcomeCh.send({ content: formattedMsg }).catch(() => {});
+          freeWelcomeEmbed.setThumbnail(avatarUrl);
+          await welcomeCh.send({
+            content: `👋 Welcome <@${member.id}>!`,
+            embeds: [freeWelcomeEmbed]
+          }).catch(() => {});
         }
       }
 
