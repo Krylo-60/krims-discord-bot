@@ -12,8 +12,8 @@
 ## ⚡ What Makes Krims Code Premium Stand Out
 
 ### 1. Priority Multi-Model Neural Compute
-Krims Code Premium routes AI requests through high-speed multi-model inference with live web fallback:
-* **Inference Core:** Groq LPU + Gemini Flash + Tavily Web Search Fallback
+Krims Code Premium routes AI requests through high-speed multi-model inference with real-time web fallback:
+* **Inference Core:** Krims Multi-Model Neural Engine
 * **High-Context Awareness:** Automatically injects real-time server facts, live weather, and persistent multi-turn memory.
 
 ### 2. Automatic 3x XP Multiplier

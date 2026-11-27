@@ -20,7 +20,7 @@
 
 | Bot Instance | Client ID | Theme | Primary Role & Capabilities |
 | :--- | :---: | :---: | :--- |
-| **Krims Code AI** *(Master)* | `1523794466740371586` | 💎 Electric Cyan | Core community operations, 91 live slash commands, Neural AI + Tavily fallback, leveling, AutoMod, economy, and tickets. |
+| **Krims Code AI** *(Master)* | `1523794466740371586` | 💎 Electric Cyan | Core community operations, 91 live slash commands, Neural AI + live web fallback, leveling, AutoMod, economy, and tickets. |
 | **Krims Code Pro** *(Flagship)* | `1572758718091890818` | ⚡ Cyber Emerald | Flagship multi-server AI engine with priority command execution and Aura welcome cards. |
 | **Krims Code Premium** *(VIP)* | `1562586215822266599` | 👑 Golden Amber | Priority Neural AI routing, `3.0x` XP multiplier, `/premium` suite, and Pro Fleet perks. |
 | **Krims Code Alpha** *(Staging)* | `1562208078517243977` | 🔴 Electric Crimson | Experimental feature sandbox and combat/event telemetry. |
