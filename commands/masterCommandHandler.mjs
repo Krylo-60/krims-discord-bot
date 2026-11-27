@@ -81,6 +81,7 @@ import { getApplicationEmojis } from '../utils/applicationEmojis.mjs';
 
 import { getLocatorColor } from '../features/locatorBarEngine.mjs';
 import { handleRankCommand, handleLeaderboardCommand } from '../features/mee6Levels.mjs';
+import { handleSetWelcomeSlash } from '../features/welcomeTicketsManager.mjs';
 import { handleVoteCommand, getVoteBoosterInfo } from '../features/voteBoosterManager.mjs';
 import { 
   getBalance, 
@@ -165,6 +166,10 @@ export async function handleMasterSlashCommand(interaction, client, context = {}
   const clanData = context.clanData || {};
 
   try {
+    if (commandName === 'setwelcome') {
+      return await handleSetWelcomeSlash(interaction);
+    }
+
     // ──────────────────────────────────────────────────────────
     // 1. 📡 /ip — Connection Details
     // ──────────────────────────────────────────────────────────

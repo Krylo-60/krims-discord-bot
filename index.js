@@ -1,7 +1,9 @@
 import {
   handleSetWelcomeCommand,
+  handleSetWelcomeSlash,
   handleSetTicketsCommand,
-  handleWelcomeTicketInteraction
+  handleWelcomeTicketInteraction,
+  getGuildServerConfig
 } from './features/welcomeTicketsManager.mjs';
 import {
   handleBetCommand,
@@ -5735,6 +5737,10 @@ client.on('interactionCreate', async (interaction) => {
       .setTimestamp();
 
     return interaction.reply({ embeds: [embed] });
+  }
+
+  if (commandName === 'setwelcome') {
+    return await handleSetWelcomeSlash(interaction);
   }
 
   if (commandName === 'counting' || commandName === 'setupcounting') {
@@ -12239,9 +12245,12 @@ client.on('guildMemberAdd', async (member) => {
     const welcomeEnabled = cfg ? cfg.welcomeEnabled !== false : true;
 
     if (welcomeEnabled) {
+      const localWelcomeCfg = getGuildServerConfig(member.guild.id);
       let welcomeCh = null;
       if (cfg?.welcomeChannel && cfg.welcomeChannel !== 'none') {
         welcomeCh = member.guild.channels.cache.get(cfg.welcomeChannel);
+      } else if (localWelcomeCfg?.welcome_channel) {
+        welcomeCh = member.guild.channels.cache.get(localWelcomeCfg.welcome_channel);
       }
       if (!welcomeCh) {
         welcomeCh = member.guild.channels.cache.find(c => 

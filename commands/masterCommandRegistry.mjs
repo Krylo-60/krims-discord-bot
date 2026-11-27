@@ -41,8 +41,23 @@ export const masterCommandBuilders = [
     .setDescription('⚖️ View Krims Code AI official Terms of Service and acceptable use policy'),
 
   new SlashCommandBuilder()
-    .setName('diwali')
-    .setDescription('🪔 Celebrate Diwali Festival of Lights with glowing diyas, blessings & festival rewards!'),
+    .setName('setwelcome')
+    .setDescription('👋 Configure the Krims Code Aura Welcome Card & channel for this server')
+    .addChannelOption(opt =>
+      opt.setName('channel')
+        .setDescription('Channel to send welcome cards in (leave empty for setup panel)')
+        .setRequired(false)
+    )
+    .addStringOption(opt =>
+      opt.setName('format')
+        .setDescription('Choose welcome display style')
+        .setRequired(false)
+        .addChoices(
+          { name: '🖼️ Aura Image Card (Recommended)', value: 'card' },
+          { name: '📝 Text Embed Only', value: 'embed' }
+        )
+    )
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
 
 
   new SlashCommandBuilder()
@@ -647,16 +662,6 @@ export const masterCommandBuilders = [
         { name: '💬 Messages (Chat Activity)', value: 'messages' },
         { name: '⚡ XP & Levels', value: 'xp' }
       )),
-  new SlashCommandBuilder()
-    .setName('lb')
-    .setDescription('🏆 Quick alias: View top community messages & XP leaderboards!')
-    .addStringOption(opt => opt.setName('type')
-      .setDescription('Leaderboard category to display')
-      .setRequired(false)
-      .addChoices(
-        { name: '💬 Messages (Chat Activity)', value: 'messages' },
-        { name: '⚡ XP & Levels', value: 'xp' }
-      )),
 
   new SlashCommandBuilder()
     .setName('clan')
@@ -852,7 +857,7 @@ export const CUSTOM_BOT_SLASH_COMMANDS = new Set([
   // Moderation
   'warn', 'mute', 'unmute', 'kick', 'ban', 'purge', 'lockdown', 'unlock', 'slowmode', 'automod',
   // Support & Tickets
-  'ticket', 'close',
+  'ticket', 'close', 'setwelcome',
   // Community engagement
   'announce', 'poll', 'giveaway', 'suggest',
   // Identity & User tools

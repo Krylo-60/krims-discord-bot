@@ -133,6 +133,71 @@ export async function handleSetWelcomeCommand(message, args) {
   return message.reply({ embeds: [embed], components: [row] });
 }
 
+export async function handleSetWelcomeSlash(interaction) {
+  if (!interaction.guild) {
+    return interaction.reply({ content: '❌ This command can only be used inside servers!', ephemeral: true });
+  }
+
+  const isStaff = interaction.user.id === '1414143825538191373' ||
+    interaction.member?.permissions?.has(PermissionFlagsBits.Administrator) ||
+    interaction.member?.permissions?.has(PermissionFlagsBits.ManageGuild);
+
+  if (!isStaff) {
+    return interaction.reply({ content: '❌ **Missing Permissions:** You need the `Manage Server` permission to configure the Welcome System!', ephemeral: true });
+  }
+
+  const targetChannel = interaction.options.getChannel('channel');
+  const formatChoice = interaction.options.getString('format');
+
+  if (targetChannel || formatChoice) {
+    const updates = {};
+    if (targetChannel) updates.welcome_channel = targetChannel.id;
+    if (formatChoice) updates.welcome_format = formatChoice === 'embed' ? 'embed' : 'card';
+    updateGuildServerConfig(interaction.guild.id, updates);
+
+    const parts = [];
+    if (targetChannel) parts.push(`Channel set to <#${targetChannel.id}>`);
+    if (formatChoice) parts.push(`Format set to **${formatChoice === 'embed' ? '📝 Text Embed' : '🖼️ Aura Image Card'}**`);
+    return interaction.reply({ content: `✅ **Welcome System Updated!** ${parts.join(' • ')}.`, ephemeral: true });
+  }
+
+  const config = getGuildServerConfig(interaction.guild.id);
+  const currentCh = config.welcome_channel ? `<#${config.welcome_channel}>` : '*Auto-Detect (#welcome or system)*';
+  const currentFmt = config.welcome_format === 'embed' ? '📝 Text Embed' : '🖼️ Aura Image Card';
+
+  const embed = new EmbedBuilder()
+    .setColor(0x00F2FF)
+    .setTitle('👋 Krims Code Aura Welcome Configuration')
+    .setDescription(
+      `Customize how new members are greeted when joining **${interaction.guild.name}**!\n\n` +
+      `📍 **Current Destination:** ${currentCh}\n` +
+      `🎨 **Current Format:** \`${currentFmt}\`\n\n` +
+      `**Quick Setup Options:**\n` +
+      `• Click **[➕ Create #👋・welcome]** to auto-create a dedicated welcome channel.\n` +
+      `• Toggle between **[📝 Text Embed]** and **[🖼️ Image Card]** below.\n` +
+      `• Or run \`/setwelcome channel:#your-channel\``
+    )
+    .setFooter({ text: 'Krims Code AI • Free Community Suite' })
+    .setTimestamp();
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`welcome_create_${interaction.guild.id}`)
+      .setLabel('➕ Create #👋・welcome')
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(`welcome_fmt_embed_${interaction.guild.id}`)
+      .setLabel('📝 Text Embed')
+      .setStyle(config.welcome_format === 'embed' ? ButtonStyle.Success : ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(`welcome_fmt_card_${interaction.guild.id}`)
+      .setLabel('🖼️ Image Card')
+      .setStyle(config.welcome_format !== 'embed' ? ButtonStyle.Success : ButtonStyle.Secondary)
+  );
+
+  return interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // 2. 🎟️ !settickets / !ticketconfig
 // ═════════════════════════════════════════════════════════════════════════════
