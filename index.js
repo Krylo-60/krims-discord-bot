@@ -112,6 +112,7 @@ import {
   getGuildPremiumStatus
 } from './features/premiumManager.mjs';
 import { fetchLiveWeather, extractWeatherQueryCity, WMO_WEATHER_CODES } from './features/weatherService.mjs';
+import { tavilyFallbackSearch } from './features/tavilySearchEngine.mjs';
 import { TopggManager } from './features/topggManager.mjs';
 import { handleMasterSlashCommand } from './commands/masterCommandHandler.mjs';
 import { masterCommandJson } from './commands/masterCommandRegistry.mjs';
@@ -538,6 +539,14 @@ export async function geminiDirectAsk(prompt, systemInstruction = '', guildName 
       }
     }
   }
+
+  // 3. Final Rate-Limit Fallback — Tavily Live Web Search
+  try {
+    const tavilyAns = await tavilyFallbackSearch(prompt);
+    if (tavilyAns) {
+      return sanitizeDiscordFormatting(tavilyAns);
+    }
+  } catch (_) {}
 
   return isDM 
     ? `👋 Hello ${userName || ''}! I am **Krims Code AI**, your friendly AI assistant! How can I help you today?`
