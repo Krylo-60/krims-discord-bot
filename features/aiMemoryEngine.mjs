@@ -72,13 +72,12 @@ const DEFAULT_SERVER_FACTS = {
     { key: 'server_identity', value: "Krims Code AI Official Headquarters — Central hub for AI development, Discord bot fleet, coding, and multi-bot network." },
     { key: 'founder_and_boss', value: "Krylo (krylo_plays / KryloMCYT, Discord ID: 1414143825538191373) is the Founder, Mastermind, and Supreme Creator of Krims Code AI." }
   ],
-  // The Light Bearers (TLB) Elite SMP Guild Server
+  // The Light Bearers (TLB) Guild Server
   '1557852594242719775': [
     { key: 'team_identity', value: 'The Light Bearers (TLB) — Noble Minecraft SMP guild dedicated to being a light in the dark, building underground sanctuaries, defending members against griefers, and trading resources as a united team.' },
     { key: 'team_leader', value: 'Jonesy / st1LLkill3r (IGN: st1LLkill3r) is the official Guild Leader of The Light Bearers.' },
-    { key: 'team_co_leader', value: 'Krylo (Discord: krylo_plays / KryloMCYT, Minecraft IGN: KryloMCYT) is the official Guild Co-Leader of The Light Bearers, owner of KryloSMP, and Supreme Creator of Krims Code. Note: Krylo is NOT the owner of Elite SMP (Elite SMP is owned by MCCurios and Fiforious_).' },
+    { key: 'team_co_leader', value: 'Krylo (Discord: krylo_plays / KryloMCYT, Minecraft IGN: KryloMCYT) is the official Guild Co-Leader of The Light Bearers, owner of KryloSMP, and Supreme Creator of Krims Code.' },
     { key: 'builder_specialist', value: 'CrazyCoolCam (Minecraft IGN: CrazyCoolCam) — Master Builder, Merchant, Redstone Engineer, and underground architect.' },
-    { key: 'minecraft_server', value: 'Elite SMP by Ledgy. Java IP: EliteSmp.gg | Bedrock IP: Mc.eliteSmp.gg (Port 19132) | Discord: https://discord.gg/XBgjQxbWpb' },
     { key: 'team_creed', value: 'We are a light in the darkness. We stand together, rebuild from the ashes, protect base coordinates with our lives, and stand up for all guild members.' }
   ],
   // Krylo\'s Skybase Community Server

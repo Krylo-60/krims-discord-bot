@@ -126,7 +126,7 @@ export function buildTeamApplicationPanel() {
       `We are a united, competitive Minecraft SMP guild dedicated to being a beacon of light in the darkness. We stand against bullies and griefers, engineer subterranean sanctuaries, master automated redstone farms, and grind resources as one family.\n\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
       `### 📋 RECRUITMENT REQUIREMENTS:\n` +
-      `• **Active SMP Player:** Plays actively on our target SMP (Elite SMP).\n` +
+      `• **Active SMP Player:** Plays actively with The Light Bearers SMP division.\n` +
       `• **Guild Loyalty:** Unbreakable trust — **never** leak base coordinates or betray teammates.\n` +
       `• **Team Culture:** Mature, respectful, focused on team growth, and ready to stand with us.\n` +
       `• **Voice & Comms:** Active in Discord text & voice during key operations.\n\n` +

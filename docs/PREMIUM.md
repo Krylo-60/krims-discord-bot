@@ -23,14 +23,8 @@ Every server running Krims Code Premium automatically activates the **3.0x VIP X
 * `/rank` cards render with exclusive Golden VIP borders and badges.
 * Integrated with voice XP timers and Top.gg upvote bonuses.
 
-### 3. Real-Time Elite SMP Integration (`/elitesmp`)
-Directly synchronizes with the `elitesmp.gg` Cloudflare Worker API:
-* **Live Team Leaderboard:** Displays top teams (VenomX #1, Team_Rocket #2, Curiocity #3) and highlights clan allies (**BAT** #6).
-* **Raiding & Combat Rules:** Raiding permissions, 15-second combat tags, and grace period timers.
-* **Spawner Crafting Recipes:** Custom in-game crafting guides for mob spawners.
-
-### 4. Full Master 100-Command Powerhouse Suite
-Unlike stripped-down premium add-ons, Krims Code Premium supports **all 100 master slash commands**:
+### 3. Full Master Command Powerhouse Suite
+Krims Code Premium supports the **full master slash command suite**:
 * **Moderation:** `/ban`, `/kick`, `/mute`, `/unmute`, `/warn`, `/purge`, `/lockdown`, `/slowmode`
 * **Economy & Store:** `/balance`, `/daily`, `/pay`, `/store`, `/givecoins`, `/slots`, `/jackpot`
 * **Leveling:** `/rank`, `/leaderboard`, `/rewards`, `/quests`
@@ -38,10 +32,10 @@ Unlike stripped-down premium add-ons, Krims Code Premium supports **all 100 mast
 * **Utilities & Games:** `/activity`, `/ticket`, `/poll`, `/embed`, `/duel`, `/rps`, `/dice`
 * **VIP Config:** `/premium`
 
-### 5. Dual-Mode Invocation: Slash (`/`) + Prefix (`!`)
+### 4. Dual-Mode Invocation: Slash (`/`) + Prefix (`!`)
 Run commands your way:
-* Standard Discord slash commands (`/premium`, `/elitesmp`, `/rank`, `/balance`).
-* High-speed prefix shortcuts (`!help`, `!rank`, `!daily`, `!balance`, `!leaderboard`, `!elitesmp`, `!premium`) styled with **Golden VIP Embeds**.
+* Standard Discord slash commands (`/premium`, `/rank`, `/balance`).
+* High-speed prefix shortcuts (`!help`, `!rank`, `!daily`, `!balance`, `!leaderboard`, `!premium`) styled with **Golden VIP Embeds**.
 
 ---
 

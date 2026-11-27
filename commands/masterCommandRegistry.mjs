@@ -1,5 +1,4 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
-import { ELITE_SMP_COMMAND_DEFINITION } from '../features/eliteSmpKnowledge.mjs';
 
 /**
  * MASTER COMMAND REGISTRY
@@ -871,5 +870,3 @@ export const CUSTOM_BOT_SLASH_COMMANDS = new Set([
 export const customBotCommandJson = masterCommandBuilders
   .map(cmd => typeof cmd?.toJSON === 'function' ? cmd.toJSON() : cmd)
   .filter(cmd => CUSTOM_BOT_SLASH_COMMANDS.has(cmd.name));
-
-export { ELITE_SMP_COMMAND_DEFINITION };

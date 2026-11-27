@@ -1,4 +1,3 @@
-import { getEliteSmpSystemPrompt, ELITE_SMP_COMMAND_DEFINITION, handleEliteSmpCommand } from './eliteSmpKnowledge.mjs';
 import { recordConversationTurn, getRecentServerMemory, buildServerMemoryContext } from './aiMemoryEngine.mjs';
 import { fetchLiveWeather, extractWeatherQueryCity } from './weatherService.mjs';
 import { masterCommandJson } from '../commands/masterCommandRegistry.mjs';
@@ -660,15 +659,12 @@ export async function askPremiumAi(prompt, guildName = '', userName = 'Member', 
           `• Wind Velocity: ${liveWeather.windKm} km/h (${liveWeather.windMph} mph)\n` +
           `• Today's Peak / Valley (High / Low): ${liveWeather.highC} / ${liveWeather.lowC}\n` +
           `• Local Measurement Time: ${liveWeather.time}\n` +
-          `CRITICAL INSTRUCTION: The user is inquiring about real-world weather for "${liveWeather.placeName}". Even though you have Elite SMP and gaming lore, this is a REAL-WORLD geographic location inquiry. Do NOT confuse this with Minecraft biomes, do NOT tell the user to use /weather in-game, and do NOT claim you lack live weather data. Answer their inquiry accurately, warmly, and concisely using this real-time report, mentioning both °C and °F and conditions with the emoji!`;
+          `CRITICAL INSTRUCTION: The user is inquiring about real-world weather for "${liveWeather.placeName}". This is a REAL-WORLD geographic location inquiry. Do NOT confuse this with Minecraft biomes, do NOT tell the user to use /weather in-game, and do NOT claim you lack live weather data. Answer their inquiry accurately, warmly, and concisely using this real-time report, mentioning both °C and °F and conditions with the emoji!`;
       }
     } catch (e) {}
   }
 
-  const isTLB = guildId === '1557852594242719775';
-  const eliteIntel = isTLB ? await getEliteSmpSystemPrompt() : '';
-  const vipSystemPrompt = `${eliteIntel}
-${serverFactsContext}
+  const vipSystemPrompt = `${serverFactsContext}
 ${weatherDirective}
 
 You are Krims Code Premium, the elite, high-performance VIP AI Intelligence for ${guildName || 'this Discord server'}.
@@ -677,7 +673,6 @@ You are noticeably sharper, faster, more articulate, and more insightful than st
 • SUPREME CREATOR & OWNER RECOGNITION (ABSOLUTE LAW):
 - Krylo (Discord username: krylo_plays, Display: KryloMCYT / krylo_60, ID: 1414143825538191373, Minecraft IGN: KryloMCYT) is your CREATOR, FOUNDER, AND SUPREME BOSS.
 - Krylo is the owner of KryloSMP and the mastermind behind Krims Code & Krims Code Premium.
-- ELITE SMP TRUTH: Krylo is NOT the owner of Elite SMP! Elite SMP is an external public server owned by MCCurios and Fiforious_. Krylo plays on Elite SMP as the official Team Co-Leader of The Light Bearers (TLB) clan (st1llkill3r / Jonesy is the Team Leader). NEVER claim or say Krylo owns Elite SMP!
 - Krylo's Minecraft IGN is KryloMCYT (NOT Krylo_MC).
 - LICENSE & OWNER ACCESS:
   * For Krylo, Krims Code Premium is 100% PERMANENTLY FREE, UNLIMITED, AND UNRESTRICTED FOREVER under his Supreme Founder License.
@@ -690,7 +685,6 @@ You are noticeably sharper, faster, more articulate, and more insightful than st
 - Current Interlocutor: ${userName} ${isKrylo ? '(⭐ SUPREME CREATOR & SERVER OWNER)' : ''}
 - Tone: Highly knowledgeable, friendly, witty, confident, loyal, and engaging.
 - Domain expertise: Master of Minecraft SMP mechanics, base defense, PvP warfare, clan strategy, Discord server management, programming, logic, and gaming tactics.
-- Real SMP World Grounding: When answering questions about teams, players, rivals, allies, or server mechanics, you MUST strictly use the official Elite SMP knowledge and live team leaderboard provided above (e.g. VenomX, Team_Rocket, Curiocity, BAT). Never make up fictional Minecraft users or fictional clan names.
 - Formatting: Clean, structured Discord markdown with bold headings and organized bullet points. Keep it clear, readable, and punchy.
 - CRITICAL: Discord DOES NOT support LaTeX. Never output \\boxed{}, \\frac, or math symbols. Write math and numbers in standard plain text.
 - Be concise yet thorough and insightful.`;
@@ -799,7 +793,6 @@ export function initPremiumBotInstance() {
       premClient.on('interactionCreate', async (interaction) => {
         if (!interaction.isChatInputCommand()) return;
         if (interaction.commandName === 'premium') return handlePremiumCommand(interaction);
-        if (interaction.commandName === 'elitesmp') return handleEliteSmpCommand(interaction);
 
         // Full Master Slash Command Suite for Krims Code Premium
         try {
@@ -831,18 +824,7 @@ export function initPremiumBotInstance() {
           return handlePremiumMessage(message, args);
         }
 
-        // 2. Prefix !elitesmp command
-        if (contentLower.startsWith('!elitesmp')) {
-          const args = contentLower.split(/\s+/);
-          const sub = args[1] || 'teams';
-          const fakeInteraction = {
-            options: { getSubcommand: () => sub, getString: () => null },
-            reply: (payload) => message.reply(payload)
-          };
-          return handleEliteSmpCommand(fakeInteraction);
-        }
-
-        // 3. Prefix !balance command
+        // 2. Prefix !balance command
         if (contentLower === '!balance' || contentLower === '!bal' || contentLower === '!coins') {
           const bal = getBalance(message.author.id);
           const embed = new EmbedBuilder()

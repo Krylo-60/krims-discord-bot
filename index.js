@@ -105,7 +105,6 @@ import {
   handleAlphaButtonInteraction,
   initAlphaBetaBotInstances
 } from './features/alphaBetaSuite.mjs';
-import { getEliteSmpSystemPrompt, ELITE_SMP_COMMAND_DEFINITION, handleEliteSmpCommand } from './features/eliteSmpKnowledge.mjs';
 import {
   handlePremiumCommand,
   handlePremiumMessage,
@@ -428,9 +427,7 @@ export async function geminiDirectAsk(prompt, systemInstruction = '', guildName 
     }
   }
 
-  const creatorRecognition = (guildId === '1557852594242719775')
-    ? '\n• SUPREME CREATOR & OWNER RECOGNITION (ABSOLUTE LAW):\n- Krylo (Discord: krylo_plays / KryloMCYT, ID: 1414143825538191373, Minecraft IGN: KryloMCYT) is your CREATOR, FOUNDER, AND SUPREME BOSS.\n- Owner of KryloSMP and mastermind behind Krims Code AI & Krims Code Premium.\n- ELITE SMP CLARIFICATION: Krylo is NOT the owner of Elite SMP! Elite SMP is an external public server owned by MCCurios and Fiforious_. On Elite SMP, Krylo plays as the official Team Co-Leader of The Light Bearers clan (Jonesy / st1llkill3r is the Team Leader). Never claim or imply Krylo owns Elite SMP.\n- Krylo holds a permanent Lifetime Founder License (100% Free Forever). When Krylo speaks, always salute him and recognize his supreme authority!\n'
-    : '\n• SUPREME CREATOR & OWNER RECOGNITION (ABSOLUTE LAW):\n- Krylo (Discord: krylo_plays / KryloMCYT, ID: 1414143825538191373, Minecraft IGN: KryloMCYT) is your CREATOR, FOUNDER, AND SUPREME BOSS.\n- Mastermind behind Krims Code AI, the Krims Bot Network, and Krims Code Premium.\n- Krylo holds a permanent Lifetime Founder License (100% Free Forever). When Krylo speaks, always salute him and recognize his supreme authority!\n';
+  const creatorRecognition = '\n• SUPREME CREATOR & OWNER RECOGNITION (ABSOLUTE LAW):\n- Krylo (Discord: krylo_plays / KryloMCYT, ID: 1414143825538191373, Minecraft IGN: KryloMCYT) is your CREATOR, FOUNDER, AND SUPREME BOSS.\n- Mastermind behind Krims Code AI, KryloSMP, the Krims Bot Network, and Krims Code Premium.\n- Krylo holds a permanent Lifetime Founder License (100% Free Forever). When Krylo speaks, always salute him and recognize his supreme authority!\n';
 
   const userContext = userId 
     ? `\n• CURRENT SPEAKER CONTEXT (MANDATORY IDENTITY RULE):\n` +
@@ -440,13 +437,8 @@ export async function geminiDirectAsk(prompt, systemInstruction = '', guildName 
       `- CRITICAL: The real member talking to you right now is "${userName || 'Member'}". NEVER address them by any other member's name or past chatters in memory (such as sabo_luffybro or previous speakers)!\n`
     : '';
 
-  const isTLB = guildId === '1557852594242719775';
-
   defaultSys += memoryContext;
   defaultSys += weatherContext;
-  if (isTLB) {
-    defaultSys += await getEliteSmpSystemPrompt();
-  }
   defaultSys += creatorRecognition;
   defaultSys += userContext;
   if (extraContext) {
@@ -1448,8 +1440,7 @@ client.once('ready', async () => {
     const tlbGuild = client.guilds.cache.get(HALF_LIFES_GUILD_ID);
     if (tlbGuild) {
       await tlbGuild.commands.create(HALF_LIFES_PING_COMMAND_DEF).catch(e => console.warn('[TLB Cmd] Register notice:', e.message));
-      await tlbGuild.commands.create(ELITE_SMP_COMMAND_DEFINITION).catch(e => console.warn('[TLB Cmd] Register notice:', e.message));
-      console.log('[+] Guild-specific /pingroles and /elitesmp synced exclusively to The Light Bearers (TLB)!');
+      console.log('[+] Guild-specific /pingroles synced exclusively to The Light Bearers (TLB)!');
     }
     console.log('[+] Slash commands registered globally & locally in Skybase and The Light Bearers (TLB)!');
 
@@ -2283,7 +2274,7 @@ client.on('interactionCreate', async (interaction) => {
       if (interaction.guildId === '1557852594242719775') {
         const eliteEmbed = new EmbedBuilder()
           .setColor(0x8B5CF6)
-          .setTitle('🏰 Elite SMP • Known Factions & Standings')
+          .setTitle('🏰 The Light Bearers • Known Factions & Standings')
           .setDescription(
             '**1. ✨ The Light Bearers**\n' +
             '• Leadership: <@1533703991882416373> (Jonesy) & <@1414143825538191373> (Krylo)\n' +
@@ -2293,7 +2284,7 @@ client.on('interactionCreate', async (interaction) => {
             '**3. ⚔️ Void Walkers**\n' +
             '• Standing: 🔴 Hostile / Enemy Faction'
           )
-          .setFooter({ text: 'The Light Bearers • Elite SMP Diplomacy' });
+          .setFooter({ text: 'The Light Bearers • Clan Diplomacy' });
         return await interaction.reply({ embeds: [eliteEmbed], ephemeral: true });
       }
 
@@ -2355,7 +2346,7 @@ client.on('interactionCreate', async (interaction) => {
         'halflife_ticket_general': {
           title: 'General Clan Support',
           subjectLabel: 'Question / Topic',
-          subjectPlaceholder: 'e.g. Verification help / Rank promotion / Elite SMP help',
+          subjectPlaceholder: 'e.g. Verification help / Rank promotion / Clan help',
           detailsLabel: 'Description',
           detailsPlaceholder: 'How can Clan Command assist you?'
         }
@@ -11198,9 +11189,8 @@ client.on('messageCreate', async (message) => {
         }
 
         // 2. Anti-Server Advertisement & Invite Link Filter
-        const isWhitelistedServer = message.guild?.id === '1557852594242719775' && (msgContent.includes('elitesmp.gg') || msgContent.includes('xbgjqxbwpb'));
         const serverAdRegex = /(discord\.(gg|io|me|li)\/.+|discord(app)?\.com\/invite\/.+|join\s+(?:my|this|another|our|new)\s+server|\.aternos\.me|\.minehut\.gg|\.falix\.gg|insanityz)/i;
-        if (!isWhitelistedServer && serverAdRegex.test(msgContent)) {
+        if (serverAdRegex.test(msgContent)) {
           await handleViolation(message, 'mentioning or advertising other servers is strictly prohibited', `Content: \`${message.content}\``);
           return;
         }
