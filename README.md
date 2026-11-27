@@ -6,7 +6,7 @@
 
 > **"You run the server. Krims runs the code."**
 
-`v6.0 GA` • `Node.js v24+` • `93+ Slash Commands` • `Krims Dedicated Cloud Shards`
+`v6.0 GA` • `Node.js v24+` • `91 Slash Commands` • `Krims Dedicated Cloud Shards`
 
 [**🌐 Web Portal**](https://krims-code.net/) • [**🎛️ Control Dashboard**](https://dash.krims-code.net/) • [**🤖 Free Bot Spawner**](https://krims-code.net/custombot) • [**📖 Wiki & Docs**](https://krims-code.net/wiki) • [**📺 Devlog**](https://krims-code.net/vlog) • [**🗳️ DiscordBotList**](https://discordbotlist.com/bots/krims-code-ai) • [**💬 Support Discord**](https://discord.gg/sYaVJtXgQb)
 
@@ -20,9 +20,9 @@
 
 | Bot Instance | Client ID | Theme | Primary Role & Capabilities |
 | :--- | :---: | :---: | :--- |
-| **Krims Code AI** *(Master)* | `1523794466740371586` | 💎 Electric Cyan | Core community operations, 93+ live slash commands, Neural AI, leveling, AutoMod, economy, and tickets. |
-| **Krims Code Pro** *(Flagship)* | `1572758718091890818` | ⚡ Cyber Emerald | Flagship multi-server AI engine with dedicated neural routing and priority command execution. |
-| **Krims Code Premium** *(VIP)* | `1562586215822266599` | 👑 Golden Amber | Dedicated `0ms` Neural compute, `3.0x` XP multiplier, `/premium` suite, and Pro Fleet perks. |
+| **Krims Code AI** *(Master)* | `1523794466740371586` | 💎 Electric Cyan | Core community operations, 91 live slash commands, Neural AI + Tavily fallback, leveling, AutoMod, economy, and tickets. |
+| **Krims Code Pro** *(Flagship)* | `1572758718091890818` | ⚡ Cyber Emerald | Flagship multi-server AI engine with priority command execution and Aura welcome cards. |
+| **Krims Code Premium** *(VIP)* | `1562586215822266599` | 👑 Golden Amber | Priority Neural AI routing, `3.0x` XP multiplier, `/premium` suite, and Pro Fleet perks. |
 | **Krims Code Alpha** *(Staging)* | `1562208078517243977` | 🔴 Electric Crimson | Experimental feature sandbox and combat/event telemetry. |
 | **Krims Code Beta** *(Staging)* | `1562208157777133598` | 🟣 Quantum Amethyst | Rapid prototyping and automated verification staging. |
 
@@ -32,7 +32,7 @@
 
 ### 🤖 1. Free 30-Second Custom Bot Spawner (BYOT)
 - **Zero Monthly Paywalls:** Every server owner can spawn **1 custom-branded Discord bot** (`$0.00 Free Forever`, no credit card required) at **[krims-code.net/custombot](https://krims-code.net/custombot)**.
-- **Isolated Cloud Shards:** Unlike commercial platforms that cram 1,000–2,000 bots onto one shared pod, every bot runs in an isolated container pipeline with `~18ms` execution latency.
+- **Isolated Cloud Shards:** Runs each custom bot instance cleanly without cramming thousands of unrelated bots onto a single congested pod.
 - **Full Custom Branding:** Runs under your own Discord Application name, avatar, custom status, and custom AI persona.
 
 ### 🧠 2. Proprietary Neural Conversational AI & Vision
@@ -58,20 +58,20 @@
 
 | Feature | Commercial Platforms | ⚡ Krims Code AI™ | 👑 Krims Pro Fleet |
 | :--- | :--- | :--- | :--- |
-| **Monthly Price** | `$15.00–$25.00/mo` (Card) | **`$0.00` (100% Free Forever)** | `$4.99/mo` (Up to 5 Bots) |
-| **Shard Architecture** | 1,000–2,000 bots per shared pod | **Isolated Cloud Shards (~18ms)** | High-Priority Cloud Clusters |
+| **Monthly Price** | `$15.00–$25.00/mo` (Card) | **`$0.00` (100% Free Forever)** | **Krims Rewards (KR)** |
+| **Shard Architecture** | 1,000–2,000 bots per shared pod | **Isolated Cloud Shards** | Priority Cloud Clusters |
 | **AI & Neural Engine** | Basic static blocks | **Multi-Turn Neural AI + Vision** | Multi-Persona Studio + 3.0x XP |
 | **Custom Branding** | Paid paywall | **Free 30s BYOT Spawner** | Unlimited White-Label Fleet |
 
 ---
 
-## 📋 Command Overview (`93+` Slash Commands & `!` Prefix)
+## 📋 Command Overview (`91` Slash Commands & `!` Prefix)
 Run **`/help`** or **`!help`** in any server to browse the full interactive command directory:
-- **AI & Diagnostics:** `/ask`, `/memory`, `/diagnose`, `/setupbot`, `/getbot`, `/translate`, `/ping`, `/uptime`
-- **Moderation & AutoMod:** `/warn`, `/mute`, `/unmute`, `/kick`, `/ban`, `/purge`, `/lockdown`, `/unlock`, `/slowmode`
-- **Leveling & Voting:** `/rank`, `/level`, `/leaderboard`, `/rewards`, `/quests`, `/vote`
-- **Economy & Mini-Games:** `/balance`, `/daily`, `/pay`, `/store`, `/giveaway`, `/work`, `/duel`, `/pvp`, `/trade`, `/lootbox`
-- **Utilities & Community:** `/help`, `/status`, `/announce`, `/poll`, `/suggest`, `/ticket`, `/activity`, `/embed`, `/wiki`
+- **AI & Diagnostics:** `/ask`, `/memory`, `/diagnose`, `/setupbot`, `/translate`, `/ping`, `/uptime`
+- **Moderation & AutoMod:** `/warn`, `/mute`, `/unmute`, `/kick`, `/ban`, `/purge`, `/lockdown`, `/unlock`, `/slowmode`, `/automod`
+- **Leveling & Voting:** `/rank`, `/leaderboard`, `/quests`, `/vote`
+- **Economy & Mini-Games:** `/balance`, `/daily`, `/pay`, `/store`, `/stake`, `/redeem`, `/giveaway`, `/work`, `/duel`, `/pvp`, `/trade`, `/lootbox`
+- **Utilities & Community:** `/help`, `/setwelcome`, `/jtc`, `/counting`, `/status`, `/announce`, `/poll`, `/suggest`, `/ticket`, `/activity`, `/embed`, `/wiki`
 
 ---
 
