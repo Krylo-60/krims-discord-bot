@@ -34,7 +34,8 @@ import {
   buildJtcControlPanel,
   activeTempVoiceChannels
 } from './features/joinToCreateManager.mjs';
-import { Client, GatewayIntentBits, Partials, ActivityType, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import { Client, GatewayIntentBits, Partials, ActivityType, EmbedBuilder, AttachmentBuilder, PermissionFlagsBits } from 'discord.js';
+import { renderKrimsAuraWelcomeCard, HALF_LIFES_GUILD_ID, KRYLOSMP_GUILD_ID } from './features/welcomeCardEngine.mjs';
 import fetch from 'node-fetch';
 import { encryptToken, decryptToken } from './tokenSecurity.mjs';
 import { recordConversationTurn } from './features/aiMemoryEngine.mjs';
@@ -1094,6 +1095,7 @@ export class MultiBotManager {
         if (!member.guild || member.user?.bot) return;
         const guild = member.guild;
         if (guild.id === '1561174283294609479') return; // Master Krims Code AI handles main support server welcomes
+        if (guild.id === HALF_LIFES_GUILD_ID || guild.id === KRYLOSMP_GUILD_ID) return; // Keep TLB & KSMP welcomes untouched
         if (client.user.id === MINI_X_BOT_ID && guild.id === PHOENIX_DEN_GUILD_ID) return;
         if (client.user.id === BABY_PHOENIX_BOT_ID && guild.id === MINI_ROBLOX_GUILD_ID) return;
 
@@ -1114,6 +1116,14 @@ export class MultiBotManager {
           rolesText = `\n• 🏷️ **Auto-Roles Assigned:** ${assignedRoles.map(r => `\`${r.name}\``).join(', ')}`;
         }
 
+        const avatarUrl = member.user.displayAvatarURL({ extension: 'png', size: 256 });
+        const auraCard = await renderKrimsAuraWelcomeCard({
+          avatarUrl,
+          username: member.user.username,
+          memberCount: guild.memberCount,
+          serverName: guild.name
+        });
+
         const welcomeEmbed = new EmbedBuilder()
           .setColor(isMiniX ? '#00F2FF' : botFlair.color)
           .setTitle(isMiniX ? `⚡ WELCOME TO ${guild.name.toUpperCase()}!` : `👋 Welcome to ${guild.name}!`)
@@ -1124,17 +1134,26 @@ export class MultiBotManager {
             `• ⚡ **Member #${guild.memberCount}**\n\n` +
             `*Have fun and enjoy your stay!* ⚔️✨`
           )
-          .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
           .setFooter({
             text: isMiniX
               ? 'Mini X • Co-Created by Mini & Krylo • Powered by Krims Code AI'
               : `${client.user.username} • Powered by Krims Fleet Network`
           })
           .setTimestamp();
-        await welcomeChannel.send({
+
+        const sendPayload = {
           content: `👋 Welcome <@${member.id}> to **${guild.name}**!`,
           embeds: [welcomeEmbed]
-        }).catch(err => {
+        };
+        if (auraCard) {
+          const attachment = new AttachmentBuilder(auraCard, { name: 'krims-aura-welcome.png' });
+          welcomeEmbed.setImage('attachment://krims-aura-welcome.png');
+          sendPayload.files = [attachment];
+        } else {
+          welcomeEmbed.setThumbnail(avatarUrl);
+        }
+
+        await welcomeChannel.send(sendPayload).catch(err => {
           console.warn(`[CustomBot ${client.user.tag}] Welcome send failed in ${guild.name}:`, err.message);
         });
       } catch (err) {
