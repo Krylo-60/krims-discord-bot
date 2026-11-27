@@ -235,11 +235,31 @@ export function buildJtcControlPanel(ownerId, channelName, isLocked = false, isH
 // 3. 🎙️ VOICE STATE UPDATE HANDLER (Event: voiceStateUpdate)
 // ═════════════════════════════════════════════════════════════════════════════
 const activeJtcCreations = new Set();
+const activeJtcCleanups = new Set();
+
+const MASTER_BOT_ID = '1523794466740371586';
+const PRO_BOT_ID = '1572758718091890818';
+const MINI_X_BOT_ID = '1565848105277067414';
+const PHOENIX_DEN_GUILD_ID = '1534016405693796462';
+const MINI_ROBLOX_GUILD_ID = '1568083131624460371';
+const KRIMS_SUPPORT_GUILD_ID = '1561174283294609479';
 
 export async function handleJtcVoiceStateUpdate(oldState, newState, client) {
   try {
     const guild = newState.guild || oldState.guild;
-    if (!guild) return;
+    if (!guild || !client?.user) return;
+
+    // Prevent cross-bot conflicts in shared guilds
+    if (guild.id === KRIMS_SUPPORT_GUILD_ID && client.user.id !== MASTER_BOT_ID) return;
+    if (guild.id === PHOENIX_DEN_GUILD_ID && client.user.id === MINI_X_BOT_ID) return;
+    if (guild.id === MINI_ROBLOX_GUILD_ID && client.user.id !== MINI_X_BOT_ID) return;
+    if (client.user.id === PRO_BOT_ID && guild.members.cache.has(MASTER_BOT_ID)) return;
+
+    // Only bots that actually have ManageChannels + MoveMembers should handle JTC
+    const me = guild.members.me;
+    if (!me || !me.permissions.has(PermissionFlagsBits.ManageChannels) || !me.permissions.has(PermissionFlagsBits.MoveMembers)) {
+      return;
+    }
 
     let config = getJtcConfig(guild.id);
 
@@ -334,12 +354,34 @@ export async function handleJtcVoiceStateUpdate(oldState, newState, client) {
         });
       } catch (permErr) {
         console.warn('[JTC Full Overwrite Fallback]:', permErr.message);
-        tempChannel = await guild.channels.create({
-          name: targetName,
-          type: ChannelType.GuildVoice,
-          parent: parentCategory?.id || null,
-          userLimit: config.default_limit || 0
-        });
+        try {
+          tempChannel = await guild.channels.create({
+            name: targetName,
+            type: ChannelType.GuildVoice,
+            parent: parentCategory?.id || null,
+            userLimit: config.default_limit || 0,
+            permissionOverwrites: [
+              {
+                id: member.id,
+                type: OverwriteType.Member,
+                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.MoveMembers]
+              },
+              {
+                id: client.user.id,
+                type: OverwriteType.Member,
+                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.MoveMembers]
+              }
+            ]
+          });
+        } catch (fallbackErr) {
+          console.warn('[JTC Basic Overwrite Fallback]:', fallbackErr.message);
+          tempChannel = await guild.channels.create({
+            name: targetName,
+            type: ChannelType.GuildVoice,
+            parent: parentCategory?.id || null,
+            userLimit: config.default_limit || 0
+          });
+        }
       }
 
       if (tempChannel && tempChannel.id) {
@@ -374,6 +416,10 @@ export async function handleJtcVoiceStateUpdate(oldState, newState, client) {
     // ─── PART B: User Leaves A Temporary Voice Channel (Auto-Cleanup) ───
     if (oldState.channelId && oldState.channelId !== newState.channelId) {
       if (activeTempVoiceChannels.has(oldState.channelId)) {
+        if (activeJtcCleanups.has(oldState.channelId)) return;
+        activeJtcCleanups.add(oldState.channelId);
+        setTimeout(() => activeJtcCleanups.delete(oldState.channelId), 3000);
+
         const oldChannel = oldState.channel || guild.channels.cache.get(oldState.channelId) || await guild.channels.fetch(oldState.channelId).catch(() => null);
         
         if (oldChannel) {

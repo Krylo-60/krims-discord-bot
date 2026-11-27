@@ -444,6 +444,24 @@ export class MultiBotManager {
     client.on('messageCreate', async (message) => {
       if (!message.guild || message.author.bot) return;
 
+      // 🛡️ Anti-Invite / Anti-NSFW-Spam Guard (blocks unauthorized discord.gg / discordapp.com/invite raids)
+      const hasInviteLink = /(?:https?:\/\/)?(?:www\.)?(?:discord\.gg|discord\.com\/invite|discordapp\.com\/invite)\/[a-zA-Z0-9-]+/i.test(message.content || '');
+      if (hasInviteLink) {
+        const isStaff = message.member?.permissions?.has(PermissionFlagsBits.ManageMessages) ||
+          message.member?.permissions?.has(PermissionFlagsBits.Administrator) ||
+          message.author.id === message.guild.ownerId;
+        if (!isStaff) {
+          await message.delete().catch(() => {});
+          const isMassMention = message.mentions?.everyone || /@(everyone|here)|#nsfw|adult/i.test(message.content || '');
+          if (isMassMention && message.member?.moderatable) {
+            await message.member.timeout(10 * 60 * 1000, 'Unauthorized Discord invite / spam link').catch(() => {});
+          }
+          const warn = await message.channel.send(`🛡️ <@${message.author.id}>, unauthorized Discord invite links are not allowed here.`).catch(() => null);
+          if (warn) setTimeout(() => warn.delete().catch(() => {}), 6000);
+          return;
+        }
+      }
+
       // 🛑 Anti-Scam Guard: Intercept Developer Role Requests in Regular Support Tickets
       if (message.channel?.name && (message.channel.name.startsWith('ticket-') || message.channel.name.startsWith('support-'))) {
         const isAskingForDev = /\b(give me dev|i want dev|make me dev|can i be dev|apply for dev|be a developer|want to code|hire me as dev|dev role|developer role|can i have dev|wanna be dev|give dev|let me code|can i help code)\b/i.test(message.content);
@@ -1076,6 +1094,8 @@ export class MultiBotManager {
         if (!member.guild || member.user?.bot) return;
         const guild = member.guild;
         if (guild.id === '1561174283294609479') return; // Master Krims Code AI handles main support server welcomes
+        if (client.user.id === MINI_X_BOT_ID && guild.id === PHOENIX_DEN_GUILD_ID) return;
+        if (client.user.id === BABY_PHOENIX_BOT_ID && guild.id === MINI_ROBLOX_GUILD_ID) return;
 
         // Auto-assign community roles on join (Members, Update Ping, Announcements Ping, Role Ping)
         const assignedRoles = await assignMiniCommunityAutoRoles(member);
