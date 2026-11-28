@@ -703,7 +703,6 @@ const conversationHistory = new Map();
 const userCooldowns = new Map();
 const dailyCooldowns = new Map();
 const workCooldowns = new Map();
-const giveawayEntries = new Map(); // giveaway message ID -> Set of user IDs
 const bountyData = new Map(); // user ID -> bounty amount in KC
 const COOLDOWN_TIME = 2000; // 2 seconds cooldown in milliseconds
 const spamMap = new Map();
@@ -7218,65 +7217,8 @@ client.on('interactionCreate', async (interaction) => {
 
   // Command: /giveaway
   if (commandName === 'giveaway') {
-    const prize = interaction.options.getString('prize');
-    const duration = interaction.options.getInteger('duration');
-
-    const endTime = Math.floor(Date.now() / 1000) + (duration * 60);
-
-    const embed = new EmbedBuilder()
-      .setColor(0xFFD700)
-      .setTitle('🎉 GIVEAWAY!')
-      .setDescription(`**Prize:** ${prize}\n\n⏰ Ends: <t:${endTime}:R>\n\nClick the button below to enter!`)
-      .setFooter({ text: `Hosted by ${interaction.user.username} • 0 entries` })
-      .setTimestamp();
-
-    const msg = await interaction.reply({ embeds: [embed], fetchReply: true });
-
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`giveaway_enter_${msg.id}`)
-        .setLabel('Enter Giveaway')
-        .setStyle(ButtonStyle.Success)
-        .setEmoji('🎉')
-    );
-    await msg.edit({ components: [row] });
-
-    // Track entries
-    giveawayEntries.set(msg.id, new Set());
-
-    // End giveaway after duration
-    setTimeout(async () => {
-      try {
-        const entries = giveawayEntries.get(msg.id);
-        giveawayEntries.delete(msg.id);
-
-        const endEmbed = new EmbedBuilder()
-          .setColor(0xFF5555)
-          .setTitle('🎉 GIVEAWAY ENDED!')
-          .setTimestamp();
-
-        if (!entries || entries.size === 0) {
-          endEmbed.setDescription(`**Prize:** ${prize}\n\n😢 No one entered the giveaway.`);
-        } else {
-          const winnerId = [...entries][Math.floor(Math.random() * entries.size)];
-          endEmbed.setDescription(`**Prize:** ${prize}\n\n🏆 **Winner:** <@${winnerId}>\n\nCongrats! 🎊`);
-        }
-
-        const disabledRow = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId(`giveaway_ended_${msg.id}`)
-            .setLabel('Giveaway Ended')
-            .setStyle(ButtonStyle.Secondary)
-            .setDisabled(true)
-        );
-
-        await msg.edit({ embeds: [endEmbed], components: [disabledRow] });
-      } catch (err) {
-        console.warn('[Giveaway] Failed to end giveaway:', err.message);
-      }
-    }, duration * 60 * 1000);
-
-    return;
+    const { handleGiveawayCommand } = await import('./features/giveawayManager.mjs');
+    return await handleGiveawayCommand(interaction);
   }
 
   // Command: /leaderboard and /levels

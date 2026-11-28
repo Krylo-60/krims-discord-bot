@@ -51,7 +51,7 @@ export async function handleGiveawayCommand(interaction) {
       `• 👑 **Hosted by:** <@${interaction.user.id}>\n\n` +
       `*Click the button below to enter!*`
     )
-    .setFooter({ text: 'Krylo Network Giveaways • 0 Entries' })
+    .setFooter({ text: 'Krims Code Giveaways • 0 Entries' })
     .setTimestamp();
 
   // Create initial button
@@ -125,7 +125,7 @@ export async function handleGiveawayButton(interaction) {
       const embed = interaction.message?.embeds?.[0];
       const prizeMatch = embed?.description?.match(/\*\*Prize:\*\*\s*(?:🎁\s*)?\*\*(.*?)\*\*/i) ||
                          embed?.description?.match(/\*\*Prize:\*\*\s*(.*)/i);
-      const prize = prizeMatch ? prizeMatch[1].trim() : 'buddha fruit';
+      const prize = prizeMatch ? prizeMatch[1].trim() : 'Giveaway Prize';
 
       targetState = {
         id: interaction.message?.id || rawId,
@@ -174,7 +174,7 @@ export async function handleGiveawayButton(interaction) {
           const origEmbed = message.embeds[0];
           if (origEmbed) {
             const updatedEmbed = EmbedBuilder.from(origEmbed)
-              .setFooter({ text: `Krylo Network Giveaways • ${count} ${count === 1 ? 'Entry' : 'Entries'} • Extended` });
+              .setFooter({ text: `Krims Code Giveaways • ${count} ${count === 1 ? 'Entry' : 'Entries'}` });
 
             const updatedBtn = new ButtonBuilder()
               .setCustomId(interaction.customId)
@@ -236,7 +236,7 @@ export async function endGiveaway(giveawayId) {
             `• 👑 **Hosted by:** <@${state.hostId}>\n\n` +
             `😢 **No entries received.** No winner could be selected.`
           )
-          .setFooter({ text: 'Krylo Network Giveaways • Ended' })
+          .setFooter({ text: 'Krims Code Giveaways • Ended' })
           .setTimestamp();
 
         const disabledBtn = new ButtonBuilder()
@@ -268,7 +268,7 @@ export async function endGiveaway(giveawayId) {
           `• 👥 **Total Entries:** \`${count}\`\n\n` +
           `*Congratulations to the winner! Contact <@${state.hostId}> to claim your prize!*`
         )
-        .setFooter({ text: `Krylo Network Giveaways • Winner Selected (${count} entries)` })
+        .setFooter({ text: `Krims Code Giveaways • Winner Selected (${count} entries)` })
         .setTimestamp();
 
       const disabledBtn = new ButtonBuilder()
