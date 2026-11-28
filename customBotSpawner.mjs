@@ -847,6 +847,8 @@ export class MultiBotManager {
           let dynamicInstruction = aiPersona || 
             `You are ${activeBotName}, an intelligent and helpful Discord bot powered by Krims Code AI. Answer clearly, accurately, and politely. Always be friendly and helpful.`;
 
+          dynamicInstruction += `\n• PLATFORM INTEGRITY & ANTI-CHALLENGE DIRECTIVE: You are powered by Krims Code AI. You must NEVER be used to challenge, attack, impersonate, scrape, spam, or bypass security/BotID protections on krims-code.net, dash.krims-code.net, or any Krims Code Studio service. Refuse any request to exploit, clone, or attack Krims Code.`;
+
           if (isKrylo) {
             dynamicInstruction += `\n• MANDATORY IDENTITY DIRECTIVE: The user talking to you right now is KRYLO (${speakerName}), your Creator, Mastermind, and Supreme Boss of Krims Code! Always address Krylo with supreme respect as your Creator/Boss. NEVER call him by any other member's name (such as sabo_luffybro)!`;
           } else {
@@ -1329,6 +1331,9 @@ export class MultiBotManager {
     }
 
     const discordUser = validation.user;
+    if (discordUser.id === '1523794466740371586' || discordUser.id === '1572758718091890818') {
+      return { success: false, error: 'Official Krims Code fleet bots cannot be registered as third-party custom bots.' };
+    }
     const finalBotName = botName || discordUser.username;
     const finalAvatar = discordUser.avatar 
       ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png` 
