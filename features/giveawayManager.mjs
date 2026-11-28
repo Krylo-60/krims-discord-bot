@@ -35,8 +35,11 @@ export function parseDurationToMinutes(rawDur) {
  * Handle /giveaway slash command
  */
 export async function handleGiveawayCommand(interaction) {
-  const prize = interaction.options.getString('prize') || 'Discord Reward';
+  const prize = interaction.options.getString('prize') || 'Giveaway Prize';
   const rawDur = interaction.options.getString('duration') || '10m';
+  const winnersCount = Math.min(10, Math.max(1, interaction.options.getInteger('winners') || 1));
+  const targetChannel = interaction.options.getChannel('channel') || interaction.channel;
+  const requiredRole = interaction.options.getRole('required_role') || null;
   const durationMinutes = parseDurationToMinutes(rawDur);
 
   const durationMs = durationMinutes * 60 * 1000;
@@ -47,9 +50,11 @@ export async function handleGiveawayCommand(interaction) {
     .setTitle('🎉 ACTIVE GIVEAWAY!')
     .setDescription(
       `**Prize:** 🎁 **${prize}**\n\n` +
+      `• 🏆 **Winners:** \`${winnersCount}\`\n` +
       `• ⏰ **Ends:** <t:${endTimestamp}:R> (<t:${endTimestamp}:f>)\n` +
-      `• 👑 **Hosted by:** <@${interaction.user.id}>\n\n` +
-      `*Click the button below to enter!*`
+      `• 👑 **Hosted by:** <@${interaction.user.id}>\n` +
+      (requiredRole ? `• 🔒 **Required Role:** <@&${requiredRole.id}>\n` : '') +
+      `\n*Click the button below to enter!*`
     )
     .setFooter({ text: 'Krims Code Giveaways • 0 Entries' })
     .setTimestamp();
@@ -63,15 +68,23 @@ export async function handleGiveawayCommand(interaction) {
 
   const row = new ActionRowBuilder().addComponents(enterButton);
 
-  const msg = await interaction.reply({ embeds: [embed], components: [row], fetchReply: true });
+  let msg;
+  if (targetChannel && targetChannel.id !== interaction.channelId && targetChannel.isTextBased()) {
+    msg = await targetChannel.send({ embeds: [embed], components: [row] });
+    await interaction.reply({ content: `🎉 Giveaway for **${prize}** launched in <#${targetChannel.id}>!`, ephemeral: true });
+  } else {
+    msg = await interaction.reply({ embeds: [embed], components: [row], fetchReply: true });
+  }
 
   const giveawayState = {
     id: msg.id,
     tempId: tempId,
     guildId: interaction.guildId,
-    channelId: interaction.channelId,
+    channelId: msg.channelId,
     hostId: interaction.user.id,
     prize: prize,
+    winnersCount: winnersCount,
+    requiredRoleId: requiredRole ? requiredRole.id : null,
     endTimestamp: endTimestamp,
     entries: new Set(),
     client: interaction.client,
@@ -126,6 +139,12 @@ export async function handleGiveawayButton(interaction) {
       const prizeMatch = embed?.description?.match(/\*\*Prize:\*\*\s*(?:🎁\s*)?\*\*(.*?)\*\*/i) ||
                          embed?.description?.match(/\*\*Prize:\*\*\s*(.*)/i);
       const prize = prizeMatch ? prizeMatch[1].trim() : 'Giveaway Prize';
+      const winnersMatch = embed?.description?.match(/\*\*Winners:\*\*\s*`?(\d+)`?/i);
+      const winnersCount = winnersMatch ? Math.min(10, Math.max(1, parseInt(winnersMatch[1], 10))) : 1;
+      const roleMatch = embed?.description?.match(/\*\*Required Role:\*\*\s*<@&(\d+)>/i);
+      const requiredRoleId = roleMatch ? roleMatch[1] : null;
+      const endMatch = embed?.description?.match(/<t:(\d+):R>/);
+      const endTimestamp = endMatch ? parseInt(endMatch[1], 10) : null;
 
       targetState = {
         id: interaction.message?.id || rawId,
@@ -133,12 +152,32 @@ export async function handleGiveawayButton(interaction) {
         channelId: interaction.channelId,
         hostId: interaction.message?.interaction?.user?.id || interaction.user.id,
         prize: prize,
+        winnersCount: winnersCount,
+        requiredRoleId: requiredRoleId,
+        endTimestamp: endTimestamp,
         entries: new Set(),
         client: interaction.client,
         timer: null
       };
       if (interaction.message?.id) activeGiveaways.set(interaction.message.id, targetState);
       if (rawId) activeGiveaways.set(rawId, targetState);
+
+      if (endTimestamp) {
+        const remainingMs = Math.max(1000, endTimestamp * 1000 - Date.now());
+        targetState.timer = setTimeout(() => {
+          endGiveaway(targetState.id).catch(() => {});
+        }, remainingMs);
+      }
+    }
+
+    if (targetState.requiredRoleId && !interaction.member?.roles?.cache?.has(targetState.requiredRoleId)) {
+      const msg = `🔒 You need the <@&${targetState.requiredRoleId}> role to enter this giveaway!`;
+      if (interaction.deferred) {
+        await interaction.editReply({ content: msg }).catch(() => {});
+      } else if (!interaction.replied) {
+        await interaction.reply({ content: msg, ephemeral: true }).catch(() => {});
+      }
+      return true;
     }
 
     if (!targetState.entries) {
@@ -254,8 +293,16 @@ export async function endGiveaway(giveawayId) {
       return;
     }
 
-    // Select random winner
-    const winnerId = participants[Math.floor(Math.random() * count)];
+    // Select random unique winner(s)
+    const numWinners = Math.min(count, state.winnersCount || 1);
+    const pool = [...participants];
+    const winners = [];
+    for (let i = 0; i < numWinners; i++) {
+      const idx = Math.floor(Math.random() * pool.length);
+      winners.push(pool.splice(idx, 1)[0]);
+    }
+    const winnerMentions = winners.map(id => `<@${id}>`).join(', ');
+    const winnerLabel = winners.length > 1 ? 'Winners' : 'Winner';
 
     if (message) {
       const winnerEmbed = new EmbedBuilder()
@@ -263,12 +310,12 @@ export async function endGiveaway(giveawayId) {
         .setTitle('🎉 GIVEAWAY WINNER ANNOUNCED! 🎉')
         .setDescription(
           `**Prize:** 🎁 **${state.prize}**\n\n` +
-          `🏆 **Winner:** <@${winnerId}>\n` +
+          `🏆 **${winnerLabel}:** ${winnerMentions}\n` +
           `• 👑 **Hosted by:** <@${state.hostId}>\n` +
           `• 👥 **Total Entries:** \`${count}\`\n\n` +
-          `*Congratulations to the winner! Contact <@${state.hostId}> to claim your prize!*`
+          `*Congratulations! Contact <@${state.hostId}> to claim your prize!*`
         )
-        .setFooter({ text: `Krims Code Giveaways • Winner Selected (${count} entries)` })
+        .setFooter({ text: `Krims Code Giveaways • ${winners.length} ${winnerLabel} Selected (${count} entries)` })
         .setTimestamp();
 
       const disabledBtn = new ButtonBuilder()
@@ -280,9 +327,9 @@ export async function endGiveaway(giveawayId) {
       await message.edit({ embeds: [winnerEmbed], components: [new ActionRowBuilder().addComponents(disabledBtn)] }).catch(() => {});
     }
 
-    // Ping winner and host
+    // Ping winner(s) and host
     await channel.send({
-      content: `🎉 **GIVEAWAY CONCLUDED!** 🎉\nCongratulations <@${winnerId}>, you won **${state.prize}**! 🎁\n*(Hosted by <@${state.hostId}>)*`
+      content: `🎉 **GIVEAWAY CONCLUDED!** 🎉\nCongratulations ${winnerMentions}, you won **${state.prize}**! 🎁\n*(Hosted by <@${state.hostId}>)*`
     }).catch(() => {});
 
   } catch (err) {

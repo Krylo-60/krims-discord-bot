@@ -240,7 +240,10 @@ export const masterCommandBuilders = [
     .setName('giveaway')
     .setDescription('🎉 Launch an interactive server giveaway event!')
     .addStringOption(opt => opt.setName('prize').setDescription('What is the giveaway prize?').setRequired(true))
-    .addStringOption(opt => opt.setName('duration').setDescription('Duration in minutes or format like 30m, 1h, 1d').setRequired(true)),
+    .addStringOption(opt => opt.setName('duration').setDescription('Duration (e.g. 30m, 1h, 1d)').setRequired(true))
+    .addIntegerOption(opt => opt.setName('winners').setDescription('Number of winners (default: 1, max: 10)').setMinValue(1).setMaxValue(10).setRequired(false))
+    .addChannelOption(opt => opt.setName('channel').setDescription('Channel to host the giveaway in (default: current)').setRequired(false))
+    .addRoleOption(opt => opt.setName('required_role').setDescription('Optional role required to enter').setRequired(false)),
 
   new SlashCommandBuilder()
     .setName('serverinfo')
