@@ -25,6 +25,7 @@ import {
   handleDiwaliButton
 } from './features/diwaliFestivalEngine.mjs';
 import { checkAndTriggerGABroadcast, sendOwnerScheduleOverviewDM, broadcastManualModeAnnouncement } from './features/timeGatedReleaseEngine.mjs';
+import { registerAntiNukeListeners, handleAntiRaidMemberJoin, handleAntiNukeCommand } from './features/antiNukeSecurityEngine.mjs';
 import { startKsmpBot } from './features/kryloSmpBotEngine.mjs';
 /**
  * 👑 KRYLOSMP MASTER GOOGLE SHEETS:
@@ -5558,6 +5559,7 @@ client.on('interactionCreate', async (interaction) => {
   if (commandName === 'ban') return handleBan(interaction);
   if (commandName === 'lockdown') return handleLockdown(interaction, true);
   if (commandName === 'unlock') return handleLockdown(interaction, false);
+  if (commandName === 'antinuke') return handleAntiNukeCommand(interaction);
   if (commandName === 'devlogs') return handleDevLogsCommand(interaction);
   if (commandName === 'updates' || commandName === 'changelog') return handleUpdatesCommand(interaction);
   if (commandName === 'betadrop' || commandName === 'incubate') return await dispatchWeeklyBetaDrop(client);
@@ -12159,6 +12161,7 @@ async function generateWelcomeCard(avatarUrl, username, memberCount) {
 
 client.on('guildMemberAdd', async (member) => {
   if (!member.guild || member.user?.bot) return;
+  handleAntiRaidMemberJoin(member).catch(() => {});
 
   // ✨ The Light Bearers (TLB) Clan Operative Arrival Terminal System
   if (member.guild.id === HALF_LIFES_GUILD_ID || member.guild.name.toLowerCase().includes('light') || member.guild.name.toLowerCase().includes('bearer') || member.guild.name.toLowerCase().includes('half')) {
@@ -13604,6 +13607,7 @@ async function handleTicketMessage(message) {
 // Login using bot token
 const token = process.env.DISCORD_TOKEN;
 if (token && token !== 'YOUR_DISCORD_TOKEN') {
+  registerAntiNukeListeners(client);
   client.login(token);
 } else {
   console.log('[!] DISCORD_TOKEN is missing or mock. Add a valid Discord Bot Token in the .env file to start the bot.');

@@ -351,6 +351,29 @@ export const masterCommandBuilders = [
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   new SlashCommandBuilder()
+    .setName('antinuke')
+    .setDescription('🛡️ Configure Anti-Nuke & Anti-Raid Shield (Owner / Staff)')
+    .addSubcommand(sub => sub.setName('status').setDescription('View Anti-Nuke status and maintenance unlock timer'))
+    .addSubcommand(sub => sub.setName('enable').setDescription('Enable Anti-Nuke & Anti-Raid protection'))
+    .addSubcommand(sub => sub.setName('disable').setDescription('Disable Anti-Nuke & Anti-Raid protection'))
+    .addSubcommand(sub =>
+      sub.setName('whitelist')
+        .setDescription('Manage trusted Anti-Nuke whitelist')
+        .addStringOption(opt =>
+          opt.setName('action')
+            .setDescription('Whitelist action')
+            .setRequired(true)
+            .addChoices(
+              { name: 'List', value: 'list' },
+              { name: 'Add User', value: 'add' },
+              { name: 'Remove User', value: 'remove' }
+            )
+        )
+        .addUserOption(opt => opt.setName('user').setDescription('User or bot to add/remove').setRequired(false))
+    )
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+
+  new SlashCommandBuilder()
     .setName('devlogs')
     .setDescription('🛠️ Developer audit telemetry and diagnostic logs from the last 3 days (Owner only)')
     .addStringOption(opt =>
