@@ -26,6 +26,7 @@ import {
 } from './features/diwaliFestivalEngine.mjs';
 import { checkAndTriggerGABroadcast, sendOwnerScheduleOverviewDM, broadcastManualModeAnnouncement } from './features/timeGatedReleaseEngine.mjs';
 import { registerAntiNukeListeners, handleAntiRaidMemberJoin, handleAntiNukeCommand } from './features/antiNukeSecurityEngine.mjs';
+import { handleQuickStartCommand, handleBackupCommand, handleVerifyPanelCommand, handleVerifyPanelButton, handleMaintenanceAutoRole } from './features/maintenanceSuiteEngine.mjs';
 import { startKsmpBot } from './features/kryloSmpBotEngine.mjs';
 /**
  * 👑 KRYLOSMP MASTER GOOGLE SHEETS:
@@ -2069,6 +2070,11 @@ client.on('interactionCreate', async (interaction) => {
   // 🪔 Handle Diwali Festival Interactive Buttons
   if (interaction.isButton() && interaction.customId.startsWith('diwali_')) {
     return await handleDiwaliButton(interaction);
+  }
+
+  // ✅ Handle 1-Click Member Verification Button
+  if (interaction.isButton() && interaction.customId.startsWith('krims_verify_btn:')) {
+    return await handleVerifyPanelButton(interaction);
   }
 
   // 💎 Handle Universal Ticket & Developer Application Interactions
@@ -5560,6 +5566,9 @@ client.on('interactionCreate', async (interaction) => {
   if (commandName === 'lockdown') return handleLockdown(interaction, true);
   if (commandName === 'unlock') return handleLockdown(interaction, false);
   if (commandName === 'antinuke') return handleAntiNukeCommand(interaction);
+  if (commandName === 'quickstart') return handleQuickStartCommand(interaction);
+  if (commandName === 'backup') return handleBackupCommand(interaction);
+  if (commandName === 'verifypanel') return handleVerifyPanelCommand(interaction);
   if (commandName === 'devlogs') return handleDevLogsCommand(interaction);
   if (commandName === 'updates' || commandName === 'changelog') return handleUpdatesCommand(interaction);
   if (commandName === 'betadrop' || commandName === 'incubate') return await dispatchWeeklyBetaDrop(client);
@@ -12162,6 +12171,7 @@ async function generateWelcomeCard(avatarUrl, username, memberCount) {
 client.on('guildMemberAdd', async (member) => {
   if (!member.guild || member.user?.bot) return;
   handleAntiRaidMemberJoin(member).catch(() => {});
+  handleMaintenanceAutoRole(member).catch(() => {});
 
   // ✨ The Light Bearers (TLB) Clan Operative Arrival Terminal System
   if (member.guild.id === HALF_LIFES_GUILD_ID || member.guild.name.toLowerCase().includes('light') || member.guild.name.toLowerCase().includes('bearer') || member.guild.name.toLowerCase().includes('half')) {

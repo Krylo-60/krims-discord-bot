@@ -374,6 +374,33 @@ export const masterCommandBuilders = [
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   new SlashCommandBuilder()
+    .setName('quickstart')
+    .setDescription('⚡ 1-Command Server Security & Log Setup (Maintenance Release)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+
+  new SlashCommandBuilder()
+    .setName('backup')
+    .setDescription('📦 Snapshot or inspect server roles & channels (Owner only)')
+    .addSubcommand(sub => sub.setName('create').setDescription('Create a snapshot of roles and channels'))
+    .addSubcommand(sub => sub.setName('info').setDescription('View latest saved server snapshot'))
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+
+  new SlashCommandBuilder()
+    .setName('verifypanel')
+    .setDescription('✅ Post 1-Click Member Verification Panel or set Auto-Role')
+    .addSubcommand(sub =>
+      sub.setName('setup')
+        .setDescription('Post verification button panel in this channel')
+        .addRoleOption(opt => opt.setName('role').setDescription('Role to grant when verified').setRequired(false))
+    )
+    .addSubcommand(sub =>
+      sub.setName('autorole')
+        .setDescription('Set automatic role granted when members join')
+        .addRoleOption(opt => opt.setName('role').setDescription('Role to auto-assign on join (omit to clear)').setRequired(false))
+    )
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+
+  new SlashCommandBuilder()
     .setName('devlogs')
     .setDescription('🛠️ Developer audit telemetry and diagnostic logs from the last 3 days (Owner only)')
     .addStringOption(opt =>
