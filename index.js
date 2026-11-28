@@ -27,6 +27,7 @@ import {
 import { checkAndTriggerGABroadcast, sendOwnerScheduleOverviewDM, broadcastManualModeAnnouncement } from './features/timeGatedReleaseEngine.mjs';
 import { registerAntiNukeListeners, handleAntiRaidMemberJoin, handleAntiNukeCommand } from './features/antiNukeSecurityEngine.mjs';
 import { handleQuickStartCommand, handleBackupCommand, handleVerifyPanelCommand, handleVerifyPanelButton, handleMaintenanceAutoRole } from './features/maintenanceSuiteEngine.mjs';
+import { handleAppFormCommand, handleAppFormInteraction } from './features/universalAppFormEngine.mjs';
 import { startKsmpBot } from './features/kryloSmpBotEngine.mjs';
 /**
  * 👑 KRYLOSMP MASTER GOOGLE SHEETS:
@@ -2075,6 +2076,12 @@ client.on('interactionCreate', async (interaction) => {
   // ✅ Handle 1-Click Member Verification Button
   if (interaction.isButton() && interaction.customId.startsWith('krims_verify_btn:')) {
     return await handleVerifyPanelButton(interaction);
+  }
+
+  // 📝 Handle Universal Application Form Buttons & Modals
+  if ((interaction.isButton() || interaction.isModalSubmit()) && interaction.customId?.startsWith('appform_')) {
+    const handled = await handleAppFormInteraction(interaction);
+    if (handled) return;
   }
 
   // 💎 Handle Universal Ticket & Developer Application Interactions
@@ -5569,6 +5576,7 @@ client.on('interactionCreate', async (interaction) => {
   if (commandName === 'quickstart') return handleQuickStartCommand(interaction);
   if (commandName === 'backup') return handleBackupCommand(interaction);
   if (commandName === 'verifypanel') return handleVerifyPanelCommand(interaction);
+  if (commandName === 'appform') return handleAppFormCommand(interaction);
   if (commandName === 'devlogs') return handleDevLogsCommand(interaction);
   if (commandName === 'updates' || commandName === 'changelog') return handleUpdatesCommand(interaction);
   if (commandName === 'betadrop' || commandName === 'incubate') return await dispatchWeeklyBetaDrop(client);

@@ -401,6 +401,30 @@ export const masterCommandBuilders = [
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   new SlashCommandBuilder()
+    .setName('appform')
+    .setDescription('📝 Create & manage custom server application forms (Staff / Crew / Mod)')
+    .addSubcommand(sub =>
+      sub.setName('create')
+        .setDescription('Create a custom application form')
+        .addStringOption(opt => opt.setName('name').setDescription('Form name (e.g. Staff Application)').setRequired(true))
+        .addStringOption(opt => opt.setName('questions').setDescription('Up to 5 questions separated by | (e.g. Age? | Why staff? | Timezone?)').setRequired(true))
+        .addChannelOption(opt => opt.setName('review_channel').setDescription('Staff channel to send submitted applications').setRequired(true))
+        .addRoleOption(opt => opt.setName('role').setDescription('Optional role to grant when accepted').setRequired(false))
+    )
+    .addSubcommand(sub =>
+      sub.setName('panel')
+        .setDescription('Post an Apply Now button panel in this channel')
+        .addStringOption(opt => opt.setName('form').setDescription('Name of the form to post').setRequired(true))
+    )
+    .addSubcommand(sub => sub.setName('list').setDescription('List all custom application forms in this server'))
+    .addSubcommand(sub =>
+      sub.setName('delete')
+        .setDescription('Delete a custom application form')
+        .addStringOption(opt => opt.setName('form').setDescription('Name of the form to delete').setRequired(true))
+    )
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+
+  new SlashCommandBuilder()
     .setName('devlogs')
     .setDescription('🛠️ Developer audit telemetry and diagnostic logs from the last 3 days (Owner only)')
     .addStringOption(opt =>
